@@ -1,12 +1,16 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { UserCheck, Calendar, Clock, GraduationCap, Car, Shield, Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { UserCheck, Calendar, Clock, GraduationCap, Car, Shield, Plus, Mail, Phone, MapPin } from "lucide-react";
 
 const PersonalModule = () => {
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+
   const employees = [
     {
       id: 1,
@@ -76,6 +80,20 @@ const PersonalModule = () => {
     return name.split(' ').map(n => n[0]).join('');
   };
 
+  const handleShowDetails = (employee) => {
+    setSelectedEmployee(employee);
+    setIsDetailsOpen(true);
+  };
+
+  const handleEditEmployee = (employee) => {
+    setSelectedEmployee(employee);
+    setIsEditOpen(true);
+  };
+
+  const handleQuickAction = (action: string) => {
+    alert(`${action} wird geöffnet...`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -86,7 +104,10 @@ const PersonalModule = () => {
           </h2>
           <p className="text-gray-600">Mitarbeiterdaten und Qualifikationen verwalten</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
+        <Button 
+          className="bg-blue-600 hover:bg-blue-700"
+          onClick={() => handleQuickAction('Neuer Mitarbeiter')}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Mitarbeiter hinzufügen
         </Button>
@@ -202,8 +223,20 @@ const PersonalModule = () => {
                     </div>
 
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline">Details</Button>
-                      <Button size="sm" className="bg-blue-600 hover:bg-blue-700">Bearbeiten</Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleShowDetails(employee)}
+                      >
+                        Details
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        className="bg-blue-600 hover:bg-blue-700"
+                        onClick={() => handleEditEmployee(employee)}
+                      >
+                        Bearbeiten
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -248,19 +281,35 @@ const PersonalModule = () => {
             </CardHeader>
             <CardContent className="p-4">
               <div className="space-y-2">
-                <Button variant="outline" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => handleQuickAction('Urlaub planen')}
+                >
                   <Calendar className="h-4 w-4 mr-2" />
                   Urlaub planen
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => handleQuickAction('Arbeitszeiten')}
+                >
                   <Clock className="h-4 w-4 mr-2" />
                   Arbeitszeiten
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => handleQuickAction('Schulung buchen')}
+                >
                   <GraduationCap className="h-4 w-4 mr-2" />
                   Schulung buchen
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => handleQuickAction('Zertifikate')}
+                >
                   <Shield className="h-4 w-4 mr-2" />
                   Zertifikate
                 </Button>
@@ -269,6 +318,110 @@ const PersonalModule = () => {
           </Card>
         </div>
       </div>
+
+      {/* Employee Details Dialog */}
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Mitarbeiterdetails</DialogTitle>
+            <DialogDescription>
+              Detaillierte Informationen über den Mitarbeiter
+            </DialogDescription>
+          </DialogHeader>
+          {selectedEmployee && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarFallback className="text-lg">
+                    {getInitials(selectedEmployee.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-xl font-semibold">{selectedEmployee.name}</h3>
+                  <p className="text-gray-600">{selectedEmployee.position}</p>
+                  <Badge className={getStatusColor(selectedEmployee.status)}>
+                    {selectedEmployee.status}
+                  </Badge>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm">{selectedEmployee.email}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm">{selectedEmployee.phone}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Car className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm">Führerschein: {selectedEmployee.license}</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm">{selectedEmployee.hoursThisMonth}h diesen Monat</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm">{selectedEmployee.vacationDays} Tage Resturlaub</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm">{selectedEmployee.currentProject}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="font-medium mb-2">Qualifikationen</h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedEmployee.qualifications.map((qual, index) => (
+                    <Badge key={index} variant="outline">
+                      <Shield className="h-3 w-3 mr-1" />
+                      {qual}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Employee Edit Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mitarbeiter bearbeiten</DialogTitle>
+            <DialogDescription>
+              Mitarbeiterdaten bearbeiten
+            </DialogDescription>
+          </DialogHeader>
+          {selectedEmployee && (
+            <div className="space-y-4">
+              <p className="text-center text-gray-600">
+                Bearbeitungsformular für <strong>{selectedEmployee.name}</strong>
+              </p>
+              <p className="text-sm text-gray-500 text-center">
+                Hier würde normalerweise ein Formular zum Bearbeiten der Mitarbeiterdaten erscheinen.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+                  Abbrechen
+                </Button>
+                <Button className="bg-blue-600 hover:bg-blue-700">
+                  Speichern
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
