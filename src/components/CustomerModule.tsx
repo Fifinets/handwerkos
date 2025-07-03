@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,11 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Users, Plus, Search, Phone, Mail, MapPin, Calendar, FileText, Euro } from "lucide-react";
+import AddCustomerDialog from "./AddCustomerDialog";
 
 const CustomerModule = () => {
   const [searchTerm, setSearchTerm] = useState('');
-
-  const customers = [
+  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
+  const [customers, setCustomers] = useState([
     {
       id: 1,
       name: 'Müller GmbH',
@@ -45,7 +45,7 @@ const CustomerModule = () => {
       revenue: '€45.200',
       status: 'Premium'
     }
-  ];
+  ]);
 
   const recentOrders = [
     { id: 'A2024-001', customer: 'Müller GmbH', project: 'Büroerweiterung', amount: '€12.500', status: 'In Bearbeitung', date: '15.01.2024' },
@@ -60,8 +60,13 @@ const CustomerModule = () => {
       case 'In Bearbeitung': return 'bg-yellow-100 text-yellow-800';
       case 'Abgeschlossen': return 'bg-green-100 text-green-800';
       case 'Angebot': return 'bg-orange-100 text-orange-800';
+      case 'Inaktiv': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const handleAddCustomer = (newCustomer: any) => {
+    setCustomers(prev => [...prev, newCustomer]);
   };
 
   return (
@@ -74,7 +79,10 @@ const CustomerModule = () => {
           </h2>
           <p className="text-gray-600">Verwalten Sie Ihre Kunden und Auftragsdaten</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
+        <Button 
+          className="bg-blue-600 hover:bg-blue-700"
+          onClick={() => setIsAddCustomerOpen(true)}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Neuer Kunde
         </Button>
@@ -232,6 +240,12 @@ const CustomerModule = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <AddCustomerDialog
+        isOpen={isAddCustomerOpen}
+        onClose={() => setIsAddCustomerOpen(false)}
+        onCustomerAdded={handleAddCustomer}
+      />
     </div>
   );
 };
