@@ -1,13 +1,14 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Building2, Calendar, Users, Package, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import { Building2, Calendar, Users, Package, AlertTriangle, CheckCircle, Clock, Plus } from "lucide-react";
+import AddProjectDialog from "./AddProjectDialog";
 
 const ProjectModule = () => {
-  const projects = [
+  const [isAddProjectOpen, setIsAddProjectOpen] = useState(false);
+  const [projects, setProjects] = useState([
     {
       id: 'P2024-001',
       name: 'Büroerweiterung Müller GmbH',
@@ -44,7 +45,7 @@ const ProjectModule = () => {
       team: ['Max Mustermann', 'Lisa Weber', 'Tom Fischer'],
       location: 'München, Bahnhofstr. 78'
     }
-  ];
+  ]);
 
   const upcomingTasks = [
     { task: 'DGUV V3 Prüfung - Schmidt AG', date: '25.01.2024', priority: 'Hoch', type: 'Wartung' },
@@ -80,6 +81,10 @@ const ProjectModule = () => {
     }
   };
 
+  const handleAddProject = (newProject: any) => {
+    setProjects(prev => [...prev, newProject]);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -90,8 +95,11 @@ const ProjectModule = () => {
           </h2>
           <p className="text-gray-600">Verwalten Sie Ihre Baustellen und Projekttermine</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
-          <Building2 className="h-4 w-4 mr-2" />
+        <Button 
+          className="bg-blue-600 hover:bg-blue-700"
+          onClick={() => setIsAddProjectOpen(true)}
+        >
+          <Plus className="h-4 w-4 mr-2" />
           Neues Projekt
         </Button>
       </div>
@@ -266,6 +274,12 @@ const ProjectModule = () => {
           </Card>
         </div>
       </div>
+
+      <AddProjectDialog
+        isOpen={isAddProjectOpen}
+        onClose={() => setIsAddProjectOpen(false)}
+        onProjectAdded={handleAddProject}
+      />
     </div>
   );
 };
