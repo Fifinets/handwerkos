@@ -8,13 +8,26 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
+interface Customer {
+  id: number;
+  name: string;
+  contact: string;
+  email: string;
+  phone: string;
+  address: string;
+  projects: number;
+  revenue: string;
+  status: string;
+}
+
 interface AddProjectDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onProjectAdded: (project: any) => void;
+  customers: Customer[];
 }
 
-const AddProjectDialog = ({ isOpen, onClose, onProjectAdded }: AddProjectDialogProps) => {
+const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers }: AddProjectDialogProps) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: '',
@@ -83,6 +96,16 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded }: AddProjectDialogP
     }));
   };
 
+  const handleCustomerChange = (customerName: string) => {
+    const selectedCustomer = customers.find(customer => customer.name === customerName);
+    
+    setFormData(prev => ({
+      ...prev,
+      customer: customerName,
+      location: selectedCustomer ? selectedCustomer.address : ''
+    }));
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
@@ -107,13 +130,18 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded }: AddProjectDialogP
 
           <div>
             <Label htmlFor="customer">Kunde *</Label>
-            <Input
-              id="customer"
-              value={formData.customer}
-              onChange={(e) => handleInputChange('customer', e.target.value)}
-              placeholder="z.B. Müller GmbH"
-              required
-            />
+            <Select value={formData.customer} onValueChange={handleCustomerChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Kunde auswählen" />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.map((customer) => (
+                  <SelectItem key={customer.id} value={customer.name}>
+                    {customer.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
@@ -122,7 +150,9 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded }: AddProjectDialogP
               id="location"
               value={formData.location}
               onChange={(e) => handleInputChange('location', e.target.value)}
-              placeholder="z.B. Berlin, Hauptstraße 123"
+              placeholder="Wird automatisch aus Kundendaten übernommen"
+              readOnly
+              className="bg-gray-50"
             />
           </div>
 

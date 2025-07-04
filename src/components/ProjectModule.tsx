@@ -8,6 +8,44 @@ import AddProjectDialog from "./AddProjectDialog";
 
 const ProjectModule = () => {
   const [isAddProjectOpen, setIsAddProjectOpen] = useState(false);
+  
+  // Kundendaten für die Auswahl
+  const customers = [
+    {
+      id: 1,
+      name: 'Müller GmbH',
+      contact: 'Hans Müller',
+      email: 'mueller@firma.de',
+      phone: '+49 123 456789',
+      address: 'Berlin, Hauptstraße 123',
+      projects: 3,
+      revenue: '€25.400',
+      status: 'Aktiv'
+    },
+    {
+      id: 2,
+      name: 'Schmidt AG',
+      contact: 'Anna Schmidt',
+      email: 'schmidt@ag.de',
+      phone: '+49 987 654321',
+      address: 'Hamburg, Industriestr. 45',
+      projects: 1,
+      revenue: '€8.750',
+      status: 'Aktiv'
+    },
+    {
+      id: 3,
+      name: 'Weber Bau',
+      contact: 'Peter Weber',
+      email: 'weber@bau.de',
+      phone: '+49 555 123456',
+      address: 'München, Bahnhofstr. 78',
+      projects: 5,
+      revenue: '€45.200',
+      status: 'Premium'
+    }
+  ];
+
   const [projects, setProjects] = useState([
     {
       id: 'P2024-001',
@@ -279,6 +317,7 @@ const ProjectModule = () => {
         isOpen={isAddProjectOpen}
         onClose={() => setIsAddProjectOpen(false)}
         onProjectAdded={handleAddProject}
+        customers={customers}
       />
     </div>
   );
