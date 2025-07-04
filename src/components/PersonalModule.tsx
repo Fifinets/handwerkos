@@ -4,14 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { UserCheck, Calendar, Clock, GraduationCap, Car, Shield, Plus, Mail, Phone, MapPin } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UserCheck, Calendar, Clock, GraduationCap, Car, Shield, Plus, Mail, Phone, MapPin, Edit } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const PersonalModule = () => {
+  const { toast } = useToast();
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-
-  const employees = [
+  const [employees, setEmployees] = useState([
     {
       id: 1,
       name: 'Max Mustermann',
@@ -51,7 +55,19 @@ const PersonalModule = () => {
       hoursThisMonth: 120,
       vacationDays: 8
     }
-  ];
+  ]);
+
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    position: '',
+    email: '',
+    phone: '',
+    status: 'Aktiv',
+    license: '',
+    currentProject: '',
+    hoursThisMonth: 0,
+    vacationDays: 0
+  });
 
   const upcomingTraining = [
     { employee: 'Max Mustermann', training: 'DGUV V3 Auffrischung', date: '15.02.2024', type: 'Pflicht' },
@@ -87,11 +103,55 @@ const PersonalModule = () => {
 
   const handleEditEmployee = (employee) => {
     setSelectedEmployee(employee);
+    setEditFormData({
+      name: employee.name,
+      position: employee.position,
+      email: employee.email,
+      phone: employee.phone,
+      status: employee.status,
+      license: employee.license,
+      currentProject: employee.currentProject,
+      hoursThisMonth: employee.hoursThisMonth,
+      vacationDays: employee.vacationDays
+    });
     setIsEditOpen(true);
   };
 
+  const handleSaveEmployee = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedEmployee) return;
+
+    const updatedEmployee = {
+      ...selectedEmployee,
+      ...editFormData
+    };
+
+    setEmployees(prev => prev.map(emp => 
+      emp.id === selectedEmployee.id ? updatedEmployee : emp
+    ));
+
+    toast({
+      title: "Erfolg",
+      description: "Mitarbeiter wurde erfolgreich aktualisiert."
+    });
+
+    setIsEditOpen(false);
+    setSelectedEmployee(null);
+  };
+
+  const handleInputChange = (field: string, value: string | number) => {
+    setEditFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   const handleQuickAction = (action: string) => {
-    alert(`${action} wird geöffnet...`);
+    toast({
+      title: "Info",
+      description: `${action} wird geöffnet...`
+    });
   };
 
   return (
@@ -235,6 +295,7 @@ const PersonalModule = () => {
                         className="bg-blue-600 hover:bg-blue-700"
                         onClick={() => handleEditEmployee(employee)}
                       >
+                        <Edit className="h-4 w-4 mr-1" />
                         Bearbeiten
                       </Button>
                     </div>
@@ -403,22 +464,100 @@ const PersonalModule = () => {
             </DialogDescription>
           </DialogHeader>
           {selectedEmployee && (
-            <div className="space-y-4">
-              <p className="text-center text-gray-600">
-                Bearbeitungsformular für <strong>{selectedEmployee.name}</strong>
-              </p>
-              <p className="text-sm text-gray-500 text-center">
-                Hier würde normalerweise ein Formular zum Bearbeiten der Mitarbeiterdaten erscheinen.
-              </p>
+            <form onSubmit={handleSaveEmployee} className="space-y-4">
+              <div>
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  value={editFormData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="position">Position</Label>
+                <Input
+                  id="position"
+                  value={editFormData.position}
+                  onChange={(e) => handleInputChange('position', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="email">E-Mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={editFormData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="phone">Telefon</Label>
+                <Input
+                  id="phone"
+                  value={editFormData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="status">Status</Label>
+                <Select value={editFormData.status} onValueChange={(value) => handleInputChange('status', value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Aktiv">Aktiv</SelectItem>
+                    <SelectItem value="Urlaub">Urlaub</SelectItem>
+                    <SelectItem value="Krank">Krank</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="currentProject">Aktuelles Projekt</Label>
+                <Input
+                  id="currentProject"
+                  value={editFormData.currentProject}
+                  onChange={(e) => handleInputChange('currentProject', e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="hoursThisMonth">Stunden (Monat)</Label>
+                  <Input
+                    id="hoursThisMonth"
+                    type="number"
+                    value={editFormData.hoursThisMonth}
+                    onChange={(e) => handleInputChange('hoursThisMonth', parseInt(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="vacationDays">Resturlaub</Label>
+                  <Input
+                    id="vacationDays"
+                    type="number"
+                    value={editFormData.vacationDays}
+                    onChange={(e) => handleInputChange('vacationDays', parseInt(e.target.value))}
+                  />
+                </div>
+              </div>
+
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
                   Abbrechen
                 </Button>
-                <Button className="bg-blue-600 hover:bg-blue-700">
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
                   Speichern
                 </Button>
               </div>
-            </div>
+            </form>
           )}
         </DialogContent>
       </Dialog>

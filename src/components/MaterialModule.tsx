@@ -1,14 +1,16 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
-import { Package, AlertTriangle, TrendingDown, TrendingUp, Plus, Search, Truck } from "lucide-react";
+import { Package, AlertTriangle, TrendingDown, TrendingUp, Plus, Search, Truck, Edit } from "lucide-react";
+import EditMaterialDialog from "./EditMaterialDialog";
 
 const MaterialModule = () => {
-  const materials = [
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState(null);
+  const [materials, setMaterials] = useState([
     {
       id: 'MAT001',
       name: 'Kabel NYM-J 3x1,5 mm²',
@@ -61,7 +63,7 @@ const MaterialModule = () => {
       lastOrder: '05.01.2024',
       status: 'Kritisch'
     }
-  ];
+  ]);
 
   const recentOrders = [
     { id: 'B2024-001', supplier: 'ElektroGroßhandel GmbH', amount: '€1.247', status: 'Geliefert', date: '20.01.2024' },
@@ -89,6 +91,17 @@ const MaterialModule = () => {
     if (current <= min * 0.5) return 'Kritisch';
     if (current <= min) return 'Niedrig';
     return 'Verfügbar';
+  };
+
+  const handleEditMaterial = (material) => {
+    setSelectedMaterial(material);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleMaterialUpdated = (updatedMaterial) => {
+    setMaterials(prev => prev.map(material => 
+      material.id === updatedMaterial.id ? updatedMaterial : material
+    ));
   };
 
   return (
@@ -229,6 +242,14 @@ const MaterialModule = () => {
                       <Package className="h-4 w-4 mr-1" />
                       Details
                     </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleEditMaterial(material)}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Bearbeiten
+                    </Button>
                     {material.status !== 'Verfügbar' && (
                       <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
                         <Truck className="h-4 w-4 mr-1" />
@@ -328,6 +349,13 @@ const MaterialModule = () => {
           </Card>
         </div>
       </div>
+
+      <EditMaterialDialog
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        material={selectedMaterial}
+        onMaterialUpdated={handleMaterialUpdated}
+      />
     </div>
   );
 };
