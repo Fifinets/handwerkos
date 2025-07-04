@@ -1,11 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
 interface Customer {
@@ -20,14 +22,26 @@ interface Customer {
   status: string;
 }
 
+interface TeamMember {
+  id: number;
+  name: string;
+  role: string;
+  projects: Array<{
+    name: string;
+    startDate: string;
+    endDate: string;
+  }>;
+}
+
 interface AddProjectDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onProjectAdded: (project: any) => void;
   customers: Customer[];
+  teamMembers: TeamMember[];
 }
 
-const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers }: AddProjectDialogProps) => {
+const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMembers }: AddProjectDialogProps) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: '',
@@ -36,9 +50,56 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers }: AddPro
     budget: '',
     startDate: '',
     endDate: '',
-    team: '',
+    team: [] as string[],
     status: 'Planung'
   });
+
+  // Verfügbarkeitsprüfung für Teammitglieder
+  const getAvailabilityStatus = (member: TeamMember, projectStart: string, projectEnd: string) => {
+    if (!projectStart || !projectEnd) return 'unknown';
+    
+    const startDate = new Date(projectStart);
+    const endDate = new Date(projectEnd);
+    
+    let conflictDays = 0;
+    let totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    member.projects.forEach(project => {
+      const memberProjectStart = new Date(project.startDate.split('.').reverse().join('-'));
+      const memberProjectEnd = new Date(project.endDate.split('.').reverse().join('-'));
+      
+      if (startDate <= memberProjectEnd && endDate >= memberProjectStart) {
+        const overlapStart = new Date(Math.max(startDate.getTime(), memberProjectStart.getTime()));
+        const overlapEnd = new Date(Math.min(endDate.getTime(), memberProjectEnd.getTime()));
+        const overlapDays = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24));
+        conflictDays += overlapDays;
+      }
+    });
+    
+    if (conflictDays === 0) return 'available';
+    if (conflictDays >= totalDays * 0.8) return 'unavailable';
+    return 'partial';
+  };
+
+  const teamMembersWithAvailability = useMemo(() => {
+    return teamMembers.map(member => ({
+      ...member,
+      availability: getAvailabilityStatus(member, formData.startDate, formData.endDate)
+    }));
+  }, [teamMembers, formData.startDate, formData.endDate]);
+
+  const getAvailabilityBadge = (availability: string) => {
+    switch (availability) {
+      case 'available':
+        return <Badge className="bg-green-100 text-green-800 text-xs">Verfügbar</Badge>;
+      case 'partial':
+        return <Badge className="bg-orange-100 text-orange-800 text-xs">Teilweise</Badge>;
+      case 'unavailable':
+        return <Badge className="bg-red-100 text-red-800 text-xs">Nicht verfügbar</Badge>;
+      default:
+        return <Badge variant="outline" className="text-xs">Unbekannt</Badge>;
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +124,7 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers }: AddPro
       startDate: formData.startDate || new Date().toLocaleDateString('de-DE'),
       endDate: formData.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('de-DE'),
       budget: formData.budget.startsWith('€') ? formData.budget : `€${formData.budget}`,
-      team: formData.team ? formData.team.split(',').map(name => name.trim()) : ['Nicht zugewiesen'],
+      team: formData.team.length > 0 ? formData.team : ['Nicht zugewiesen'],
       location: formData.location || 'Nicht angegeben'
     };
 
@@ -77,7 +138,7 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers }: AddPro
       budget: '',
       startDate: '',
       endDate: '',
-      team: '',
+      team: [],
       status: 'Planung'
     });
 
@@ -106,9 +167,18 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers }: AddPro
     }));
   };
 
+  const handleTeamMemberToggle = (memberName: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      team: checked 
+        ? [...prev.team, memberName]
+        : prev.team.filter(name => name !== memberName)
+    }));
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Neues Projekt erstellen</DialogTitle>
           <DialogDescription>
@@ -189,13 +259,27 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers }: AddPro
           </div>
 
           <div>
-            <Label htmlFor="team">Team (durch Komma getrennt)</Label>
-            <Input
-              id="team"
-              value={formData.team}
-              onChange={(e) => handleInputChange('team', e.target.value)}
-              placeholder="z.B. Max Mustermann, Lisa Weber"
-            />
+            <Label>Team auswählen</Label>
+            <div className="mt-2 space-y-2 max-h-48 overflow-y-auto border rounded-md p-3">
+              {teamMembersWithAvailability.map((member) => (
+                <div key={member.id} className="flex items-center justify-between space-x-2 p-2 rounded-lg hover:bg-gray-50">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`team-${member.id}`}
+                      checked={formData.team.includes(member.name)}
+                      onCheckedChange={(checked) => handleTeamMemberToggle(member.name, checked as boolean)}
+                    />
+                    <div>
+                      <label htmlFor={`team-${member.id}`} className="text-sm font-medium cursor-pointer">
+                        {member.name}
+                      </label>
+                      <p className="text-xs text-gray-500">{member.role}</p>
+                    </div>
+                  </div>
+                  {getAvailabilityBadge(member.availability)}
+                </div>
+              ))}
+            </div>
           </div>
 
           <div>

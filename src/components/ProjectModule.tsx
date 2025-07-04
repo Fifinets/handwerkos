@@ -46,6 +46,59 @@ const ProjectModule = () => {
     }
   ];
 
+  // Teammitglieder mit ihren aktuellen Projekten
+  const teamMembers = [
+    {
+      id: 1,
+      name: 'Max Mustermann',
+      role: 'Projektleiter',
+      projects: [
+        { name: 'Büroerweiterung Müller GmbH', startDate: '01.01.2024', endDate: '15.02.2024' },
+        { name: 'Wohnanlage Phase 2', startDate: '01.02.2024', endDate: '30.04.2024' }
+      ]
+    },
+    {
+      id: 2,
+      name: 'Lisa Weber',
+      role: 'Elektrikerin',
+      projects: [
+        { name: 'Büroerweiterung Müller GmbH', startDate: '01.01.2024', endDate: '15.02.2024' },
+        { name: 'Wohnanlage Phase 2', startDate: '01.02.2024', endDate: '30.04.2024' }
+      ]
+    },
+    {
+      id: 3,
+      name: 'Tom Fischer',
+      role: 'Installateur',
+      projects: [
+        { name: 'Werkshalle Elektrik', startDate: '15.12.2023', endDate: '10.01.2024' },
+        { name: 'Wohnanlage Phase 2', startDate: '01.02.2024', endDate: '30.04.2024' }
+      ]
+    },
+    {
+      id: 4,
+      name: 'Anna Klein',
+      role: 'Technikerin',
+      projects: [
+        { name: 'Werkshalle Elektrik', startDate: '15.12.2023', endDate: '10.01.2024' }
+      ]
+    },
+    {
+      id: 5,
+      name: 'Michael Schmidt',
+      role: 'Monteur',
+      projects: []
+    },
+    {
+      id: 6,
+      name: 'Sarah Wagner',
+      role: 'Planerin',
+      projects: [
+        { name: 'Wohnanlage Phase 2', startDate: '01.02.2024', endDate: '30.04.2024' }
+      ]
+    }
+  ];
+
   const [projects, setProjects] = useState([
     {
       id: 'P2024-001',
@@ -318,6 +371,7 @@ const ProjectModule = () => {
         onClose={() => setIsAddProjectOpen(false)}
         onProjectAdded={handleAddProject}
         customers={customers}
+        teamMembers={teamMembers}
       />
     </div>
   );
