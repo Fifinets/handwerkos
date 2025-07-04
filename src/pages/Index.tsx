@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +24,7 @@ import PersonalModule from "@/components/PersonalModule";
 import MaterialModule from "@/components/MaterialModule";
 import MachineModule from "@/components/MachineModule";
 import FinanceModule from "@/components/FinanceModule";
+import DashboardCalendar from "@/components/DashboardCalendar";
 
 const Index = () => {
   const [activeModule, setActiveModule] = useState('dashboard');
@@ -86,6 +86,9 @@ const Index = () => {
                 </Card>
               ))}
             </div>
+
+            {/* Kalender Section */}
+            <DashboardCalendar />
 
             {/* Recent Activities & Quick Actions */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
