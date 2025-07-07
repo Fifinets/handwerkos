@@ -16,7 +16,9 @@ import {
   Calendar,
   DollarSign,
   Wrench,
-  ClipboardList
+  ClipboardList,
+  LogOut,
+  User
 } from "lucide-react";
 import CustomerModule from "@/components/CustomerModule";
 import ProjectModule from "@/components/ProjectModule";
@@ -25,9 +27,49 @@ import MaterialModule from "@/components/MaterialModule";
 import MachineModule from "@/components/MachineModule";
 import FinanceModule from "@/components/FinanceModule";
 import DashboardCalendar from "@/components/DashboardCalendar";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
 const Index = () => {
   const [activeModule, setActiveModule] = useState('dashboard');
+  const { user, userRole, loading, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (userRole === 'employee') {
+      navigate('/employee');
+    }
+  }, [userRole, navigate]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success('Erfolgreich abgemeldet');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="bg-blue-600 text-white p-3 rounded-lg inline-block mb-4">
+            <Settings className="h-8 w-8" />
+          </div>
+          <p className="text-gray-600">Wird geladen...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || userRole !== 'manager') {
+    return null;
+  }
 
   const modules = [
     { id: 'dashboard', name: 'Dashboard', icon: TrendingUp, color: 'bg-blue-500' },
@@ -178,14 +220,21 @@ const Index = () => {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">ElektroManager Pro</h1>
-                <p className="text-sm text-gray-500">Ihr Elektro-Unternehmen Software</p>
+                <p className="text-sm text-gray-500">Manager Portal</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <div className="text-right">
-                <p className="text-sm font-medium">Mustermann Elektro GmbH</p>
-                <p className="text-xs text-gray-500">Administrator</p>
+                <p className="text-sm font-medium flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  {user?.email}
+                </p>
+                <p className="text-xs text-gray-500">Manager</p>
               </div>
+              <Button variant="outline" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Abmelden
+              </Button>
             </div>
           </div>
         </div>
