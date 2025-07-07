@@ -103,10 +103,25 @@ const DashboardCalendar = () => {
     return getEventsForDate(selectedDate);
   };
 
+  // New function to check if date has both types of events
+  const hasBothEventTypes = (date: Date) => {
+    const dayEvents = getEventsForDate(date);
+    const hasVacation = dayEvents.some(e => e.type === 'vacation');
+    const hasProject = dayEvents.some(e => e.type === 'project');
+    return hasVacation && hasProject;
+  };
+
   const modifiers = {
     hasEvents: (date: Date) => hasEvents(date),
-    vacation: (date: Date) => getEventsForDate(date).some(e => e.type === 'vacation'),
-    project: (date: Date) => getEventsForDate(date).some(e => e.type === 'project')
+    vacation: (date: Date) => {
+      const dayEvents = getEventsForDate(date);
+      return dayEvents.some(e => e.type === 'vacation') && !hasBothEventTypes(date);
+    },
+    project: (date: Date) => {
+      const dayEvents = getEventsForDate(date);
+      return dayEvents.some(e => e.type === 'project') && !hasBothEventTypes(date);
+    },
+    mixed: (date: Date) => hasBothEventTypes(date)
   };
 
   const modifiersStyles = {
@@ -120,6 +135,11 @@ const DashboardCalendar = () => {
     project: {
       backgroundColor: '#dbeafe',
       color: '#1e40af'
+    },
+    mixed: {
+      background: 'linear-gradient(135deg, #fef3c7 50%, #dbeafe 50%)',
+      color: '#374151',
+      fontWeight: 'bold'
     }
   };
 
@@ -186,6 +206,10 @@ const DashboardCalendar = () => {
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 bg-blue-200 rounded"></div>
                 <span>Projekt</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded" style={{background: 'linear-gradient(135deg, #fef3c7 50%, #dbeafe 50%)'}}></div>
+                <span>Beides</span>
               </div>
             </div>
           </div>
