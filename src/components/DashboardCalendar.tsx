@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
@@ -21,6 +20,15 @@ const DashboardCalendar = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [showVacations, setShowVacations] = useState(true);
   const [showProjects, setShowProjects] = useState(true);
+
+  // Handler functions to properly convert CheckedState to boolean
+  const handleVacationFilterChange = (checked: boolean | "indeterminate") => {
+    setShowVacations(checked === true);
+  };
+
+  const handleProjectFilterChange = (checked: boolean | "indeterminate") => {
+    setShowProjects(checked === true);
+  };
 
   // Beispieldaten für Events
   const events: CalendarEvent[] = [
@@ -131,7 +139,7 @@ const DashboardCalendar = () => {
               <Checkbox 
                 id="vacations" 
                 checked={showVacations}
-                onCheckedChange={setShowVacations}
+                onCheckedChange={handleVacationFilterChange}
               />
               <label 
                 htmlFor="vacations" 
@@ -145,7 +153,7 @@ const DashboardCalendar = () => {
               <Checkbox 
                 id="projects" 
                 checked={showProjects}
-                onCheckedChange={setShowProjects}
+                onCheckedChange={handleProjectFilterChange}
               />
               <label 
                 htmlFor="projects" 
