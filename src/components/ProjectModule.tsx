@@ -249,7 +249,7 @@ const ProjectModule = () => {
           <h3 className="text-lg font-semibold">Aktuelle Projekte</h3>
           {projects.map((project) => (
             <Card key={project.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
+              <CardContent className="p-6 flex flex-col h-full">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
@@ -270,7 +270,7 @@ const ProjectModule = () => {
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-3 flex-grow">
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span>Fortschritt</span>
@@ -303,11 +303,11 @@ const ProjectModule = () => {
                       <span className="text-sm">{project.team.join(', ')}</span>
                     </div>
                   </div>
+                </div>
 
-                  <div className="flex gap-2 pt-2">
-                    <Button size="sm" variant="outline">Details</Button>
-                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700">Bearbeiten</Button>
-                  </div>
+                <div className="flex gap-2 pt-4 mt-auto">
+                  <Button size="sm" variant="outline">Details</Button>
+                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700">Bearbeiten</Button>
                 </div>
               </CardContent>
             </Card>

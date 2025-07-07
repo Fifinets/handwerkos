@@ -189,7 +189,7 @@ const MaterialModule = () => {
 
           {materials.map((material) => (
             <Card key={material.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
+              <CardContent className="p-6 flex flex-col h-full">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
@@ -207,7 +207,7 @@ const MaterialModule = () => {
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-3 flex-grow">
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span>Lagerbestand</span>
@@ -237,27 +237,6 @@ const MaterialModule = () => {
                     </div>
                   </div>
 
-                  <div className="flex gap-2 pt-2">
-                    <Button size="sm" variant="outline">
-                      <Package className="h-4 w-4 mr-1" />
-                      Details
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => handleEditMaterial(material)}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Bearbeiten
-                    </Button>
-                    {material.status !== 'Verfügbar' && (
-                      <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
-                        <Truck className="h-4 w-4 mr-1" />
-                        Nachbestellen
-                      </Button>
-                    )}
-                  </div>
-
                   {material.currentStock <= material.minStock && (
                     <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <div className="flex items-center gap-2 text-yellow-800">
@@ -267,6 +246,27 @@ const MaterialModule = () => {
                         </span>
                       </div>
                     </div>
+                  )}
+                </div>
+
+                <div className="flex gap-2 pt-4 mt-auto">
+                  <Button size="sm" variant="outline">
+                    <Package className="h-4 w-4 mr-1" />
+                    Details
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => handleEditMaterial(material)}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Bearbeiten
+                  </Button>
+                  {material.status !== 'Verfügbar' && (
+                    <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+                      <Truck className="h-4 w-4 mr-1" />
+                      Nachbestellen
+                    </Button>
                   )}
                 </div>
               </CardContent>

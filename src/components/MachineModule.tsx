@@ -177,7 +177,7 @@ const MachineModule = () => {
           <h3 className="text-lg font-semibold">Maschinenübersicht</h3>
           {machines.map((machine) => (
             <Card key={machine.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
+              <CardContent className="p-6 flex flex-col h-full">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
@@ -206,7 +206,7 @@ const MachineModule = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                <div className="grid grid-cols-2 gap-4 text-sm mb-4 flex-grow">
                   <div>
                     <p className="text-gray-500">Letzte Wartung:</p>
                     <p className="flex items-center gap-1">
@@ -248,7 +248,7 @@ const MachineModule = () => {
                   </div>
                 )}
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 mt-auto">
                   <Button size="sm" variant="outline">Details</Button>
                   <Button size="sm" variant="outline">
                     <Calendar className="h-4 w-4 mr-1" />

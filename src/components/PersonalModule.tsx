@@ -227,7 +227,7 @@ const PersonalModule = () => {
           <h3 className="text-lg font-semibold">Mitarbeiterliste</h3>
           {employees.map((employee) => (
             <Card key={employee.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
+              <CardContent className="p-6 flex flex-col h-full">
                 <div className="flex items-start gap-4">
                   <Avatar className="h-12 w-12">
                     <AvatarFallback>{getInitials(employee.name)}</AvatarFallback>
@@ -242,7 +242,7 @@ const PersonalModule = () => {
                     </div>
                     <p className="text-gray-600 mb-2">{employee.position}</p>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4 flex-grow">
                       <div>
                         <p className="text-gray-500">Aktuelles Projekt:</p>
                         <p>{employee.currentProject}</p>
@@ -281,25 +281,25 @@ const PersonalModule = () => {
                         ))}
                       </div>
                     </div>
-
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleShowDetails(employee)}
-                      >
-                        Details
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        className="bg-blue-600 hover:bg-blue-700"
-                        onClick={() => handleEditEmployee(employee)}
-                      >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Bearbeiten
-                      </Button>
-                    </div>
                   </div>
+                </div>
+
+                <div className="flex gap-2 mt-auto">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => handleShowDetails(employee)}
+                  >
+                    Details
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={() => handleEditEmployee(employee)}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Bearbeiten
+                  </Button>
                 </div>
               </CardContent>
             </Card>
