@@ -9,7 +9,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -28,25 +27,6 @@ const Auth = () => {
     }
   }, [user, navigate]);
 
-  const checkIfFirstUser = async () => {
-    const { count } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true });
-    
-    return count === 0;
-  };
-
-  const assignManagerRole = async (userId: string) => {
-    const { error } = await supabase
-      .from('user_roles')
-      .update({ role: 'manager' })
-      .eq('user_id', userId);
-    
-    if (error) {
-      console.error('Error assigning manager role:', error);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -60,24 +40,11 @@ const Auth = () => {
           toast.success('Erfolgreich angemeldet!');
         }
       } else {
-        const isFirstUser = await checkIfFirstUser();
-        
         const { error } = await signUp(email, password, firstName, lastName);
         if (error) {
           toast.error(error.message);
         } else {
-          if (isFirstUser) {
-            // Wait a moment for the user to be created, then assign manager role
-            setTimeout(async () => {
-              const { data: { user } } = await supabase.auth.getUser();
-              if (user) {
-                await assignManagerRole(user.id);
-                toast.success('Konto erstellt! Sie wurden als Manager registriert.');
-              }
-            }, 2000);
-          } else {
-            toast.success('Konto erfolgreich erstellt! Bitte überprüfen Sie Ihre E-Mail.');
-          }
+          toast.success('Konto erfolgreich erstellt! Bitte überprüfen Sie Ihre E-Mail.');
         }
       }
     } catch (error) {
@@ -106,11 +73,6 @@ const Auth = () => {
             </CardTitle>
             <CardDescription>
               {isLogin ? 'Melden Sie sich in Ihrem Konto an' : 'Erstellen Sie ein neues Konto'}
-              {!isLogin && (
-                <div className="mt-2 p-2 bg-blue-50 rounded text-sm text-blue-700">
-                  💡 Der erste registrierte Benutzer wird automatisch als Manager eingerichtet!
-                </div>
-              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
