@@ -5,9 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Building2, Calendar, Users, Package, AlertTriangle, CheckCircle, Clock, Plus } from "lucide-react";
 import AddProjectDialog from "./AddProjectDialog";
+import EditProjectDialog from "./EditProjectDialog";
+import ProjectDetailDialog from "./ProjectDetailDialog";
 
 const ProjectModule = () => {
   const [isAddProjectOpen, setIsAddProjectOpen] = useState(false);
+  const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
+  const [isDetailProjectOpen, setIsDetailProjectOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<any>(null);
   
   // Kundendaten für die Auswahl
   const customers = [
@@ -176,6 +181,20 @@ const ProjectModule = () => {
     setProjects(prev => [...prev, newProject]);
   };
 
+  const handleEditProject = (project: any) => {
+    setSelectedProject(project);
+    setIsEditProjectOpen(true);
+  };
+
+  const handleProjectUpdated = (updatedProject: any) => {
+    setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
+  };
+
+  const handleViewDetails = (project: any) => {
+    setSelectedProject(project);
+    setIsDetailProjectOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -306,8 +325,20 @@ const ProjectModule = () => {
                 </div>
 
                 <div className="flex gap-2 pt-4 mt-auto">
-                  <Button size="sm" variant="outline">Details</Button>
-                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700">Bearbeiten</Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => handleViewDetails(project)}
+                  >
+                    Details
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={() => handleEditProject(project)}
+                  >
+                    Bearbeiten
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -372,6 +403,19 @@ const ProjectModule = () => {
         onProjectAdded={handleAddProject}
         customers={customers}
         teamMembers={teamMembers}
+      />
+
+      <EditProjectDialog
+        isOpen={isEditProjectOpen}
+        onClose={() => setIsEditProjectOpen(false)}
+        project={selectedProject}
+        onProjectUpdated={handleProjectUpdated}
+      />
+
+      <ProjectDetailDialog
+        isOpen={isDetailProjectOpen}
+        onClose={() => setIsDetailProjectOpen(false)}
+        project={selectedProject}
       />
     </div>
   );

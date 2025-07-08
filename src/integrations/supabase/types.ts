@@ -41,6 +41,111 @@ export type Database = {
         }
         Relationships: []
       }
+      project_material_purchases: {
+        Row: {
+          created_at: string
+          id: string
+          material_name: string
+          project_id: string
+          purchase_date: string
+          quantity: number
+          supplier: string | null
+          total_price: number
+          unit: string
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_name: string
+          project_id: string
+          purchase_date: string
+          quantity: number
+          supplier?: string | null
+          total_price: number
+          unit: string
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_name?: string
+          project_id?: string
+          purchase_date?: string
+          quantity?: number
+          supplier?: string | null
+          total_price?: number
+          unit?: string
+          unit_price?: number
+        }
+        Relationships: []
+      }
+      project_material_usage: {
+        Row: {
+          created_at: string
+          id: string
+          material_name: string
+          notes: string | null
+          project_id: string
+          quantity_used: number
+          unit: string
+          usage_date: string
+          used_by_employee: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_name: string
+          notes?: string | null
+          project_id: string
+          quantity_used: number
+          unit: string
+          usage_date: string
+          used_by_employee: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_name?: string
+          notes?: string | null
+          project_id?: string
+          quantity_used?: number
+          unit?: string
+          usage_date?: string
+          used_by_employee?: string
+        }
+        Relationships: []
+      }
+      project_work_hours: {
+        Row: {
+          created_at: string
+          employee_name: string
+          hours_worked: number
+          id: string
+          project_id: string
+          work_date: string
+          work_description: string | null
+        }
+        Insert: {
+          created_at?: string
+          employee_name: string
+          hours_worked: number
+          id?: string
+          project_id: string
+          work_date: string
+          work_description?: string | null
+        }
+        Update: {
+          created_at?: string
+          employee_name?: string
+          hours_worked?: number
+          id?: string
+          project_id?: string
+          work_date?: string
+          work_description?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
