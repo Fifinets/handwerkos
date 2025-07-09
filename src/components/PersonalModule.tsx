@@ -53,28 +53,46 @@ const PersonalModule = () => {
       setLoading(true);
       console.log('Fetching employees...');
 
-      // Fetch profiles with employee role
+      // Fetch profiles with employee role using a proper join
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select(`
           id,
           email,
           first_name,
-          last_name,
-          user_roles!inner(role)
-        `)
-        .eq('user_roles.role', 'employee');
+          last_name
+        `);
 
       if (profilesError) {
-        console.error('Error fetching employees:', profilesError);
-        toast.error('Fehler beim Laden der Mitarbeiter');
+        console.error('Error fetching profiles:', profilesError);
+        toast.error('Fehler beim Laden der Profile');
         return;
       }
 
       console.log('Profiles data:', profilesData);
 
+      // Now fetch user roles separately and filter for employees
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .eq('role', 'employee');
+
+      if (rolesError) {
+        console.error('Error fetching roles:', rolesError);
+        toast.error('Fehler beim Laden der Rollen');
+        return;
+      }
+
+      console.log('Roles data:', rolesData);
+
+      // Filter profiles to only include employees
+      const employeeIds = rolesData?.map(role => role.user_id) || [];
+      const employeeProfiles = profilesData?.filter(profile => 
+        employeeIds.includes(profile.id)
+      ) || [];
+
       // Transform the data to match the expected format
-      const employeeList = profilesData ? profilesData.map(profile => ({
+      const employeeList = employeeProfiles.map(profile => ({
         id: profile.id,
         name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email,
         position: 'Mitarbeiter', // Default position, could be stored in profiles later
@@ -86,7 +104,7 @@ const PersonalModule = () => {
         currentProject: '-',
         hoursThisMonth: 0,
         vacationDays: 25
-      })) : [];
+      }));
 
       setEmployees(employeeList);
       console.log('Loaded employees:', employeeList);
@@ -108,28 +126,31 @@ const PersonalModule = () => {
     setIsAddingEmployee(true);
 
     try {
-      console.log('Attempting to invite employee with:', newEmployee.email);
+      console.log('Attempting to register employee with:', newEmployee.email);
       
-      // Use auth.admin.inviteUserByEmail to send invitation email
-      const { data, error } = await supabase.auth.admin.inviteUserByEmail(newEmployee.email, {
-        redirectTo: `${window.location.origin}/auth`,
-        data: {
-          first_name: newEmployee.firstName,
-          last_name: newEmployee.lastName
+      // Use normal signUp instead of admin.inviteUserByEmail
+      const { data, error } = await supabase.auth.signUp({
+        email: newEmployee.email,
+        password: 'temp-password-123!', // Temporary password - user will be asked to change it
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth`,
+          data: {
+            first_name: newEmployee.firstName,
+            last_name: newEmployee.lastName
+          }
         }
       });
 
       if (error) {
-        console.error('Invite error:', error);
-        toast.error(`Fehler beim Einladen des Mitarbeiters: ${error.message}`);
+        console.error('SignUp error:', error);
+        toast.error(`Fehler beim Erstellen des Mitarbeiters: ${error.message}`);
         return;
       }
 
       if (data.user) {
-        console.log('User invited successfully:', data.user.id);
+        console.log('User created successfully:', data.user.id);
         
-        // The user role will be set to 'manager' by default due to the database trigger
-        // We need to update it to 'employee' for the new user
+        // Update the user role to 'employee' (it defaults to 'manager' from the trigger)
         const { error: roleError } = await supabase
           .from('user_roles')
           .update({ role: 'employee' })
@@ -137,10 +158,10 @@ const PersonalModule = () => {
 
         if (roleError) {
           console.error('Role update error:', roleError);
-          toast.error('Mitarbeiter eingeladen, aber Rolle konnte nicht gesetzt werden');
+          toast.error('Mitarbeiter erstellt, aber Rolle konnte nicht gesetzt werden');
         } else {
           console.log('Role updated to employee successfully');
-          toast.success('Mitarbeiter erfolgreich eingeladen! Der Mitarbeiter erhält eine E-Mail zur Passwort-Erstellung.');
+          toast.success('Mitarbeiter erfolgreich erstellt! Der Mitarbeiter erhält eine E-Mail zur Bestätigung.');
           
           // Refresh the employee list
           await fetchEmployees();
@@ -267,9 +288,9 @@ const PersonalModule = () => {
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Neuen Mitarbeiter einladen</DialogTitle>
+              <DialogTitle>Neuen Mitarbeiter erstellen</DialogTitle>
               <DialogDescription>
-                Lade einen neuen Mitarbeiter ein. Der Mitarbeiter erhält eine E-Mail mit einem Link zur Passwort-Erstellung.
+                Erstelle einen neuen Mitarbeiter. Der Mitarbeiter erhält eine E-Mail zur Bestätigung seines Kontos.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleAddEmployee} className="space-y-4">
@@ -345,7 +366,7 @@ const PersonalModule = () => {
                   Abbrechen
                 </Button>
                 <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isAddingEmployee}>
-                  {isAddingEmployee ? 'Wird eingeladen...' : 'Mitarbeiter einladen'}
+                  {isAddingEmployee ? 'Wird erstellt...' : 'Mitarbeiter erstellen'}
                 </Button>
               </div>
             </form>
