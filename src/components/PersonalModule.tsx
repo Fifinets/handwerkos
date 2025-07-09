@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ const PersonalModule = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
   const [isAddingEmployee, setIsAddingEmployee] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [newEmployee, setNewEmployee] = useState({
     email: '',
@@ -29,47 +30,7 @@ const PersonalModule = () => {
     license: ''
   });
 
-  const [employees, setEmployees] = useState([
-    {
-      id: 1,
-      name: 'Max Mustermann',
-      position: 'Elektrikermeister',
-      email: 'max.mustermann@firma.de',
-      phone: '+49 123 456789',
-      status: 'Aktiv',
-      qualifications: ['Elektrikermeister', 'DGUV V3', 'Schaltberechtigung'],
-      license: 'B, BE',
-      currentProject: 'Büroerweiterung Müller GmbH',
-      hoursThisMonth: 168,
-      vacationDays: 5
-    },
-    {
-      id: 2,
-      name: 'Lisa Weber',
-      position: 'Elektronikerin',
-      email: 'lisa.weber@firma.de',
-      phone: '+49 987 654321',
-      status: 'Aktiv',
-      qualifications: ['Elektronikerin', 'Erste Hilfe'],
-      license: 'B',
-      currentProject: 'Wohnanlage Phase 2',
-      hoursThisMonth: 160,
-      vacationDays: 12
-    },
-    {
-      id: 3,
-      name: 'Tom Fischer',
-      position: 'Elektroinstallateur',
-      email: 'tom.fischer@firma.de',
-      phone: '+49 555 123456',
-      status: 'Urlaub',
-      qualifications: ['Elektroinstallateur', 'Hubarbeitsbühne'],
-      license: 'B',
-      currentProject: '-',
-      hoursThisMonth: 120,
-      vacationDays: 8
-    }
-  ]);
+  const [employees, setEmployees] = useState([]);
 
   const [editFormData, setEditFormData] = useState({
     name: '',
@@ -83,10 +44,63 @@ const PersonalModule = () => {
     vacationDays: 0
   });
 
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  const fetchEmployees = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching employees...');
+
+      // Fetch profiles with employee role
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          email,
+          first_name,
+          last_name,
+          user_roles!inner(role)
+        `)
+        .eq('user_roles.role', 'employee');
+
+      if (profilesError) {
+        console.error('Error fetching employees:', profilesError);
+        toast.error('Fehler beim Laden der Mitarbeiter');
+        return;
+      }
+
+      console.log('Profiles data:', profilesData);
+
+      // Transform the data to match the expected format
+      const employeeList = profilesData ? profilesData.map(profile => ({
+        id: profile.id,
+        name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email,
+        position: 'Mitarbeiter', // Default position, could be stored in profiles later
+        email: profile.email,
+        phone: '', // Could be added to profiles table later
+        status: 'Aktiv',
+        qualifications: [],
+        license: '',
+        currentProject: '-',
+        hoursThisMonth: 0,
+        vacationDays: 25
+      })) : [];
+
+      setEmployees(employeeList);
+      console.log('Loaded employees:', employeeList);
+
+    } catch (error) {
+      console.error('Error in fetchEmployees:', error);
+      toast.error('Ein unerwarteter Fehler ist aufgetreten');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const upcomingTraining = [
-    { employee: 'Max Mustermann', training: 'DGUV V3 Auffrischung', date: '15.02.2024', type: 'Pflicht' },
-    { employee: 'Lisa Weber', training: 'Photovoltaik Grundlagen', date: '20.02.2024', type: 'Weiterbildung' },
-    { employee: 'Tom Fischer', training: 'Erste Hilfe Kurs', date: '25.02.2024', type: 'Pflicht' }
+    { employee: 'Keine Schulungen geplant', training: '', date: '', type: 'Info' }
   ];
 
   const handleAddEmployee = async (e: React.FormEvent) => {
@@ -128,22 +142,9 @@ const PersonalModule = () => {
           console.log('Role updated to employee successfully');
           toast.success('Mitarbeiter erfolgreich eingeladen! Der Mitarbeiter erhält eine E-Mail zur Passwort-Erstellung.');
           
-          // Add to local employees list for immediate UI update
-          const newEmp = {
-            id: Date.now(), // temporary ID
-            name: `${newEmployee.firstName} ${newEmployee.lastName}`,
-            position: newEmployee.position,
-            email: newEmployee.email,
-            phone: newEmployee.phone,
-            status: 'Aktiv',
-            qualifications: [],
-            license: newEmployee.license,
-            currentProject: '-',
-            hoursThisMonth: 0,
-            vacationDays: 25
-          };
+          // Refresh the employee list
+          await fetchEmployees();
           
-          setEmployees(prev => [...prev, newEmp]);
           setNewEmployee({ email: '', firstName: '', lastName: '', position: '', phone: '', license: '' });
           setIsAddEmployeeOpen(false);
         }
@@ -176,6 +177,7 @@ const PersonalModule = () => {
     switch (type) {
       case 'Pflicht': return 'bg-red-100 text-red-800';
       case 'Weiterbildung': return 'bg-blue-100 text-blue-800';
+      case 'Info': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -241,6 +243,10 @@ const PersonalModule = () => {
       description: `${action} wird geöffnet...`
     });
   };
+
+  const activeEmployees = employees.filter(emp => emp.status === 'Aktiv').length;
+  const onVacationEmployees = employees.filter(emp => emp.status === 'Urlaub').length;
+  const totalHours = employees.reduce((sum, emp) => sum + emp.hoursThisMonth, 0);
 
   return (
     <div className="space-y-6">
@@ -354,7 +360,7 @@ const PersonalModule = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Mitarbeiter gesamt</p>
-                <p className="text-2xl font-bold">8</p>
+                <p className="text-2xl font-bold">{employees.length}</p>
               </div>
               <UserCheck className="h-8 w-8 text-blue-600" />
             </div>
@@ -365,7 +371,7 @@ const PersonalModule = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Aktiv</p>
-                <p className="text-2xl font-bold">6</p>
+                <p className="text-2xl font-bold">{activeEmployees}</p>
               </div>
               <UserCheck className="h-8 w-8 text-green-600" />
             </div>
@@ -376,7 +382,7 @@ const PersonalModule = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Urlaub</p>
-                <p className="text-2xl font-bold">2</p>
+                <p className="text-2xl font-bold">{onVacationEmployees}</p>
               </div>
               <Calendar className="h-8 w-8 text-yellow-600" />
             </div>
@@ -387,7 +393,7 @@ const PersonalModule = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Stunden (Monat)</p>
-                <p className="text-2xl font-bold">1.248</p>
+                <p className="text-2xl font-bold">{totalHours}</p>
               </div>
               <Clock className="h-8 w-8 text-purple-600" />
             </div>
@@ -399,85 +405,102 @@ const PersonalModule = () => {
         {/* Employee List */}
         <div className="lg:col-span-2 space-y-4">
           <h3 className="text-lg font-semibold">Mitarbeiterliste</h3>
-          {employees.map((employee) => (
-            <Card key={employee.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6 flex flex-col h-full">
-                <div className="flex items-start gap-4">
-                  <Avatar className="h-12 w-12">
-                    <AvatarFallback>{getInitials(employee.name)}</AvatarFallback>
-                  </Avatar>
-                  
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="text-lg font-semibold">{employee.name}</h4>
-                      <Badge className={getStatusColor(employee.status)}>
-                        {employee.status}
-                      </Badge>
-                    </div>
-                    <p className="text-gray-600 mb-2">{employee.position}</p>
+          {loading ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <p className="text-gray-500">Mitarbeiter werden geladen...</p>
+              </CardContent>
+            </Card>
+          ) : employees.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <p className="text-gray-500">Noch keine Mitarbeiter vorhanden.</p>
+                <p className="text-sm text-gray-400 mt-2">Klicken Sie auf "Mitarbeiter hinzufügen" um den ersten Mitarbeiter einzuladen.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            employees.map((employee) => (
+              <Card key={employee.id} className="hover:shadow-lg transition-shadow">
+                <CardContent className="p-6 flex flex-col h-full">
+                  <div className="flex items-start gap-4">
+                    <Avatar className="h-12 w-12">
+                      <AvatarFallback>{getInitials(employee.name)}</AvatarFallback>
+                    </Avatar>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4 flex-grow">
-                      <div>
-                        <p className="text-gray-500">Aktuelles Projekt:</p>
-                        <p>{employee.currentProject}</p>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="text-lg font-semibold">{employee.name}</h4>
+                        <Badge className={getStatusColor(employee.status)}>
+                          {employee.status}
+                        </Badge>
                       </div>
-                      <div>
-                        <p className="text-gray-500">Stunden (Monat):</p>
-                        <p className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          {employee.hoursThisMonth}h
-                        </p>
+                      <p className="text-gray-600 mb-2">{employee.position}</p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4 flex-grow">
+                        <div>
+                          <p className="text-gray-500">Aktuelles Projekt:</p>
+                          <p>{employee.currentProject}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500">Stunden (Monat):</p>
+                          <p className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            {employee.hoursThisMonth}h
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500">Führerschein:</p>
+                          <p className="flex items-center gap-1">
+                            <Car className="h-4 w-4" />
+                            {employee.license || 'Nicht angegeben'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500">Resturlaub:</p>
+                          <p className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            {employee.vacationDays} Tage
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-gray-500">Führerschein:</p>
-                        <p className="flex items-center gap-1">
-                          <Car className="h-4 w-4" />
-                          {employee.license}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500">Resturlaub:</p>
-                        <p className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          {employee.vacationDays} Tage
-                        </p>
-                      </div>
-                    </div>
 
-                    <div className="mb-4">
-                      <p className="text-gray-500 text-sm mb-2">Qualifikationen:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {employee.qualifications.map((qual, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            <Shield className="h-3 w-3 mr-1" />
-                            {qual}
-                          </Badge>
-                        ))}
+                      <div className="mb-4">
+                        <p className="text-gray-500 text-sm mb-2">Qualifikationen:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {employee.qualifications.length > 0 ? employee.qualifications.map((qual, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              <Shield className="h-3 w-3 mr-1" />
+                              {qual}
+                            </Badge>
+                          )) : (
+                            <span className="text-sm text-gray-400">Keine Qualifikationen hinterlegt</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex gap-2 mt-auto">
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => handleShowDetails(employee)}
-                  >
-                    Details
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    className="bg-blue-600 hover:bg-blue-700"
-                    onClick={() => handleEditEmployee(employee)}
-                  >
-                    <Edit className="h-4 w-4 mr-1" />
-                    Bearbeiten
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="flex gap-2 mt-auto">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleShowDetails(employee)}
+                    >
+                      Details
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      className="bg-blue-600 hover:bg-blue-700"
+                      onClick={() => handleEditEmployee(employee)}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Bearbeiten
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
 
         {/* Training & Quick Actions */}
@@ -499,11 +522,13 @@ const PersonalModule = () => {
                       </Badge>
                     </div>
                     <p className="font-medium text-sm mb-1">{training.employee}</p>
-                    <p className="text-sm text-gray-600 mb-1">{training.training}</p>
-                    <p className="text-xs text-gray-500 flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {training.date}
-                    </p>
+                    {training.training && <p className="text-sm text-gray-600 mb-1">{training.training}</p>}
+                    {training.date && (
+                      <p className="text-xs text-gray-500 flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {training.date}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -588,11 +613,11 @@ const PersonalModule = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm">{selectedEmployee.phone}</span>
+                    <span className="text-sm">{selectedEmployee.phone || 'Nicht angegeben'}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Car className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm">Führerschein: {selectedEmployee.license}</span>
+                    <span className="text-sm">Führerschein: {selectedEmployee.license || 'Nicht angegeben'}</span>
                   </div>
                 </div>
                 
@@ -615,12 +640,14 @@ const PersonalModule = () => {
               <div>
                 <h4 className="font-medium mb-2">Qualifikationen</h4>
                 <div className="flex flex-wrap gap-2">
-                  {selectedEmployee.qualifications.map((qual, index) => (
+                  {selectedEmployee.qualifications.length > 0 ? selectedEmployee.qualifications.map((qual, index) => (
                     <Badge key={index} variant="outline">
                       <Shield className="h-3 w-3 mr-1" />
                       {qual}
                     </Badge>
-                  ))}
+                  )) : (
+                    <span className="text-sm text-gray-400">Keine Qualifikationen hinterlegt</span>
+                  )}
                 </div>
               </div>
             </div>
