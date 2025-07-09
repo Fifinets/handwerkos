@@ -91,7 +91,7 @@ const AddOrderDialog = ({ open, onOpenChange, onOrderAdded }: AddOrderDialogProp
 
       const { error } = await supabase
         .from('orders')
-        .insert([orderData]);
+        .insert(orderData);
 
       if (error) {
         console.error('Error adding order:', error);
