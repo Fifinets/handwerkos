@@ -35,7 +35,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Sending employee confirmation email to:", managerEmail);
 
     const emailResponse = await resend.emails.send({
-      from: "Personal Management <noreply@resend.dev>",
+      from: "ElektroManager Pro <onboarding@resend.dev>",
       to: [managerEmail],
       subject: `Neuer Mitarbeiter erfolgreich registriert - ${employeeName}`,
       html: `
