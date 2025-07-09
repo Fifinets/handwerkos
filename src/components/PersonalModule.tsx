@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserCheck, Calendar, Clock, GraduationCap, Car, Shield, Plus, Mail, Phone, MapPin, Edit } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { UserCheck, Calendar, Clock, GraduationCap, Car, Shield, Plus, Mail, Phone, MapPin, Edit, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -27,8 +28,11 @@ const PersonalModule = () => {
     lastName: '',
     position: '',
     phone: '',
-    license: ''
+    license: '',
+    qualifications: [] as string[]
   });
+
+  const [qualificationInput, setQualificationInput] = useState('');
 
   const [employees, setEmployees] = useState([]);
 
@@ -166,7 +170,8 @@ const PersonalModule = () => {
           // Refresh the employee list
           await fetchEmployees();
           
-          setNewEmployee({ email: '', firstName: '', lastName: '', position: '', phone: '', license: '' });
+          setNewEmployee({ email: '', firstName: '', lastName: '', position: '', phone: '', license: '', qualifications: [] });
+          setQualificationInput('');
           setIsAddEmployeeOpen(false);
         }
       }
@@ -183,6 +188,30 @@ const PersonalModule = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  const addQualification = () => {
+    if (qualificationInput.trim() && !newEmployee.qualifications.includes(qualificationInput.trim())) {
+      setNewEmployee(prev => ({
+        ...prev,
+        qualifications: [...prev.qualifications, qualificationInput.trim()]
+      }));
+      setQualificationInput('');
+    }
+  };
+
+  const removeQualification = (qualification: string) => {
+    setNewEmployee(prev => ({
+      ...prev,
+      qualifications: prev.qualifications.filter(q => q !== qualification)
+    }));
+  };
+
+  const handleQualificationKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addQualification();
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -359,6 +388,42 @@ const PersonalModule = () => {
                   onChange={(e) => handleNewEmployeeChange('license', e.target.value)}
                   placeholder="z.B. B, BE"
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="add-qualifications">Qualifikationen</Label>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      id="add-qualifications"
+                      type="text"
+                      value={qualificationInput}
+                      onChange={(e) => setQualificationInput(e.target.value)}
+                      onKeyPress={handleQualificationKeyPress}
+                      placeholder="z.B. VDE 0100, Erste Hilfe"
+                    />
+                    <Button type="button" onClick={addQualification} size="sm">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {newEmployee.qualifications.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {newEmployee.qualifications.map((qualification, index) => (
+                        <Badge key={index} variant="outline" className="text-xs">
+                          <Shield className="h-3 w-3 mr-1" />
+                          {qualification}
+                          <button
+                            type="button"
+                            onClick={() => removeQualification(qualification)}
+                            className="ml-1 hover:text-red-600"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               
               <div className="flex justify-end gap-2">
