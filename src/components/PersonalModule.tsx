@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -95,32 +96,43 @@ const PersonalModule = () => {
     setIsAddingEmployee(true);
 
     try {
-      // Create employee account with employee role
-      const { data, error } = await supabase.auth.admin.createUser({
+      console.log('Attempting to create employee with:', newEmployee.email);
+      
+      // Use normal sign up instead of admin.createUser
+      const { data, error } = await supabase.auth.signUp({
         email: newEmployee.email,
         password: newEmployee.password,
-        user_metadata: {
-          first_name: newEmployee.firstName,
-          last_name: newEmployee.lastName
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            first_name: newEmployee.firstName,
+            last_name: newEmployee.lastName
+          }
         }
       });
 
       if (error) {
+        console.error('Signup error:', error);
         toast.error(`Fehler beim Erstellen des Mitarbeiters: ${error.message}`);
         return;
       }
 
       if (data.user) {
-        // Update user role to employee
+        console.log('User created successfully:', data.user.id);
+        
+        // The user role will be set to 'manager' by default due to the database trigger
+        // We need to update it to 'employee' for the new user
         const { error: roleError } = await supabase
           .from('user_roles')
           .update({ role: 'employee' })
           .eq('user_id', data.user.id);
 
         if (roleError) {
+          console.error('Role update error:', roleError);
           toast.error('Mitarbeiter erstellt, aber Rolle konnte nicht gesetzt werden');
         } else {
-          toast.success('Mitarbeiter erfolgreich erstellt!');
+          console.log('Role updated to employee successfully');
+          toast.success('Mitarbeiter erfolgreich erstellt! Der Mitarbeiter muss seine E-Mail bestätigen.');
           
           // Add to local employees list for immediate UI update
           const newEmp = {
@@ -143,7 +155,8 @@ const PersonalModule = () => {
         }
       }
     } catch (error) {
-      toast.error('Ein Fehler ist aufgetreten');
+      console.error('Unexpected error:', error);
+      toast.error('Ein unerwarteter Fehler ist aufgetreten');
     } finally {
       setIsAddingEmployee(false);
     }
@@ -256,7 +269,7 @@ const PersonalModule = () => {
             <DialogHeader>
               <DialogTitle>Neuen Mitarbeiter hinzufügen</DialogTitle>
               <DialogDescription>
-                Erstelle einen neuen Mitarbeiter-Account
+                Erstelle einen neuen Mitarbeiter-Account. Der Mitarbeiter erhält eine E-Mail zur Bestätigung.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleAddEmployee} className="space-y-4">
