@@ -12,9 +12,11 @@ import { UserCheck, Calendar, Clock, GraduationCap, Car, Shield, Plus, Mail, Pho
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 const PersonalModule = () => {
   const { toast: showToast } = useToast();
+  const { user } = useAuth();
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -165,7 +167,30 @@ const PersonalModule = () => {
           toast.error('Mitarbeiter erstellt, aber Rolle konnte nicht gesetzt werden');
         } else {
           console.log('Role updated to employee successfully');
-          toast.success('Mitarbeiter erfolgreich erstellt! Der Mitarbeiter erhält eine E-Mail zur Bestätigung.');
+          
+          // Send confirmation email to manager
+          try {
+            const { error: emailError } = await supabase.functions.invoke('send-employee-confirmation', {
+              body: {
+                managerEmail: user?.email || '',
+                employeeName: `${newEmployee.firstName} ${newEmployee.lastName}`.trim(),
+                employeeEmail: newEmployee.email,
+                companyName: 'Ihr Unternehmen' // You can make this configurable later
+              }
+            });
+
+            if (emailError) {
+              console.error('Email sending error:', emailError);
+              // Don't show error to user since the main process succeeded
+            } else {
+              console.log('Confirmation email sent successfully');
+            }
+          } catch (emailErr) {
+            console.error('Email function error:', emailErr);
+            // Don't show error to user since the main process succeeded
+          }
+          
+          toast.success('Mitarbeiter erfolgreich erstellt! Der Mitarbeiter erhält eine E-Mail zur Bestätigung und Sie erhalten eine Bestätigungsmail.');
           
           // Refresh the employee list
           await fetchEmployees();
