@@ -1,0 +1,8 @@
+
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">HandwerksManager</string>
+    <string name="title_activity_main">HandwerksManager</string>
+    <string name="package_name">app.lovable.a0eb28b7447b47a280fca8181ec925b9</string>
+    <string name="custom_url_scheme">app.lovable.a0eb28b7447b47a280fca8181ec925b9</string>
+</resources>
