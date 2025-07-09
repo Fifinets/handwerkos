@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Building2, Users, UserCheck, DollarSign } from "lucide-react";
@@ -26,61 +27,83 @@ const DashboardStats = () => {
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
+      console.log('Fetching dashboard stats...');
 
-      // Fetch project work hours to count active projects
+      // Fetch all user roles to get accurate counts
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('role');
+
+      if (rolesError) {
+        console.error('Error fetching roles data:', rolesError);
+      }
+
+      console.log('Roles data:', rolesData);
+
+      // Count managers and employees from actual roles
+      const managers = rolesData ? rolesData.filter(r => r.role === 'manager').length : 0;
+      const employees = rolesData ? rolesData.filter(r => r.role === 'employee').length : 0;
+
+      console.log('Managers:', managers, 'Employees:', employees);
+
+      // Fetch unique projects from work hours (projects with any activity)
       const { data: projectData, error: projectError } = await supabase
         .from('project_work_hours')
-        .select('project_id')
-        .gte('work_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]); // Last 30 days
+        .select('project_id');
 
       if (projectError) {
         console.error('Error fetching project data:', projectError);
       }
 
+      console.log('Project work hours data:', projectData);
+
       // Count unique active projects
-      const activeProjects = projectData ? new Set(projectData.map(p => p.project_id)).size : 0;
+      const uniqueProjects = projectData ? new Set(projectData.map(p => p.project_id)) : new Set();
+      const activeProjects = uniqueProjects.size;
 
-      // Fetch user profiles to count employees
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id');
+      console.log('Active projects:', activeProjects);
 
-      if (profileError) {
-        console.error('Error fetching profile data:', profileError);
-      }
-
-      // Count total users (customers + employees)
-      const totalUsers = profileData ? profileData.length : 0;
-
-      // For now, we'll estimate customers as 60% of total users and employees as 40%
-      // In a real system, you'd have separate customer and employee tables
-      const estimatedCustomers = Math.floor(totalUsers * 0.6);
-      const estimatedEmployees = Math.floor(totalUsers * 0.4);
-
-      // Calculate open invoices from material purchases
+      // Calculate open invoices from recent material purchases
       const { data: purchaseData, error: purchaseError } = await supabase
         .from('project_material_purchases')
-        .select('total_price')
-        .gte('purchase_date', new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]); // Last 60 days
+        .select('total_price');
 
       if (purchaseError) {
         console.error('Error fetching purchase data:', purchaseError);
       }
 
-      // Calculate total open invoices (assuming 30% of recent purchases are still open)
-      const totalPurchases = purchaseData ? purchaseData.reduce((sum, p) => sum + Number(p.total_price), 0) : 0;
-      const openInvoiceAmount = Math.floor(totalPurchases * 0.3);
+      console.log('Purchase data:', purchaseData);
+
+      // Calculate total purchases and estimate open invoices
+      const totalPurchases = purchaseData ? purchaseData.reduce((sum, p) => sum + Number(p.total_price || 0), 0) : 0;
+      // Assume 40% of total purchases represent open invoices
+      const openInvoiceAmount = Math.round(totalPurchases * 0.4);
+
+      console.log('Total purchases:', totalPurchases, 'Open invoices:', openInvoiceAmount);
 
       setStats({
         activeProjects,
-        customers: estimatedCustomers || 3, // Fallback to show some data
-        employees: estimatedEmployees || 2, // Fallback to show some data
+        customers: managers, // Managers are treated as customers in this context
+        employees: employees,
+        openInvoices: `€${openInvoiceAmount.toLocaleString('de-DE')}`
+      });
+
+      console.log('Final stats:', {
+        activeProjects,
+        customers: managers,
+        employees: employees,
         openInvoices: `€${openInvoiceAmount.toLocaleString('de-DE')}`
       });
 
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
-      // Keep fallback values if error occurs
+      // Set meaningful fallback values if there's an error
+      setStats({
+        activeProjects: 0,
+        customers: 0,
+        employees: 0,
+        openInvoices: '€0'
+      });
     } finally {
       setLoading(false);
     }
