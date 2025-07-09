@@ -8,20 +8,39 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
+interface Customer {
+  company_name: string;
+  contact_person: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  postal_code?: string;
+  country?: string;
+  tax_number?: string;
+  customer_number?: string;
+  status: string;
+}
+
 interface AddCustomerDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onCustomerAdded: (customer: any) => void;
+  onCustomerAdded: (customer: Customer) => void;
 }
 
 const AddCustomerDialog = ({ isOpen, onClose, onCustomerAdded }: AddCustomerDialogProps) => {
   const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    name: '',
-    contact: '',
+  const [formData, setFormData] = useState<Customer>({
+    company_name: '',
+    contact_person: '',
     email: '',
     phone: '',
     address: '',
+    city: '',
+    postal_code: '',
+    country: 'Deutschland',
+    tax_number: '',
+    customer_number: '',
     status: 'Aktiv'
   });
 
@@ -29,7 +48,7 @@ const AddCustomerDialog = ({ isOpen, onClose, onCustomerAdded }: AddCustomerDial
     e.preventDefault();
     
     // Validierung
-    if (!formData.name || !formData.contact || !formData.email) {
+    if (!formData.company_name || !formData.contact_person || !formData.email) {
       toast({
         title: "Fehler",
         description: "Bitte füllen Sie alle Pflichtfelder aus.",
@@ -38,40 +57,38 @@ const AddCustomerDialog = ({ isOpen, onClose, onCustomerAdded }: AddCustomerDial
       return;
     }
 
-    // Neuen Kunden erstellen
-    const newCustomer = {
-      id: Date.now(), // Temporäre ID für Demo
-      name: formData.name,
-      contact: formData.contact,
-      email: formData.email,
-      phone: formData.phone,
-      address: formData.address,
-      projects: 0,
-      revenue: '€0',
-      status: formData.status
-    };
+    // E-Mail Validierung
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast({
+        title: "Fehler",
+        description: "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    onCustomerAdded(newCustomer);
+    onCustomerAdded(formData);
     
     // Formular zurücksetzen
     setFormData({
-      name: '',
-      contact: '',
+      company_name: '',
+      contact_person: '',
       email: '',
       phone: '',
       address: '',
+      city: '',
+      postal_code: '',
+      country: 'Deutschland',
+      tax_number: '',
+      customer_number: '',
       status: 'Aktiv'
-    });
-
-    toast({
-      title: "Erfolg",
-      description: "Kunde wurde erfolgreich hinzugefügt."
     });
 
     onClose();
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: keyof Customer, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -80,7 +97,7 @@ const AddCustomerDialog = ({ isOpen, onClose, onCustomerAdded }: AddCustomerDial
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Neuen Kunden hinzufügen</DialogTitle>
           <DialogDescription>
@@ -89,59 +106,112 @@ const AddCustomerDialog = ({ isOpen, onClose, onCustomerAdded }: AddCustomerDial
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="name">Firmenname *</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-              placeholder="z.B. Mustermann GmbH"
-              required
-            />
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="company_name">Firmenname *</Label>
+              <Input
+                id="company_name"
+                value={formData.company_name}
+                onChange={(e) => handleInputChange('company_name', e.target.value)}
+                placeholder="z.B. Mustermann GmbH"
+                required
+              />
+            </div>
 
-          <div>
-            <Label htmlFor="contact">Ansprechpartner *</Label>
-            <Input
-              id="contact"
-              value={formData.contact}
-              onChange={(e) => handleInputChange('contact', e.target.value)}
-              placeholder="z.B. Max Mustermann"
-              required
-            />
-          </div>
+            <div>
+              <Label htmlFor="contact_person">Ansprechpartner *</Label>
+              <Input
+                id="contact_person"
+                value={formData.contact_person}
+                onChange={(e) => handleInputChange('contact_person', e.target.value)}
+                placeholder="z.B. Max Mustermann"
+                required
+              />
+            </div>
 
-          <div>
-            <Label htmlFor="email">E-Mail *</Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              placeholder="kontakt@firma.de"
-              required
-            />
-          </div>
+            <div>
+              <Label htmlFor="email">E-Mail *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                placeholder="kontakt@firma.de"
+                required
+              />
+            </div>
 
-          <div>
-            <Label htmlFor="phone">Telefon</Label>
-            <Input
-              id="phone"
-              value={formData.phone}
-              onChange={(e) => handleInputChange('phone', e.target.value)}
-              placeholder="+49 123 456789"
-            />
+            <div>
+              <Label htmlFor="phone">Telefon</Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => handleInputChange('phone', e.target.value)}
+                placeholder="+49 123 456789"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="customer_number">Kundennummer</Label>
+              <Input
+                id="customer_number"
+                value={formData.customer_number}
+                onChange={(e) => handleInputChange('customer_number', e.target.value)}
+                placeholder="KD-001"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="tax_number">Steuernummer</Label>
+              <Input
+                id="tax_number"
+                value={formData.tax_number}
+                onChange={(e) => handleInputChange('tax_number', e.target.value)}
+                placeholder="DE123456789"
+              />
+            </div>
           </div>
 
           <div>
             <Label htmlFor="address">Adresse</Label>
-            <Textarea
+            <Input
               id="address"
               value={formData.address}
               onChange={(e) => handleInputChange('address', e.target.value)}
-              placeholder="Straße, PLZ Ort"
-              rows={2}
+              placeholder="Straße und Hausnummer"
             />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="postal_code">PLZ</Label>
+              <Input
+                id="postal_code"
+                value={formData.postal_code}
+                onChange={(e) => handleInputChange('postal_code', e.target.value)}
+                placeholder="12345"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="city">Stadt</Label>
+              <Input
+                id="city"
+                value={formData.city}
+                onChange={(e) => handleInputChange('city', e.target.value)}
+                placeholder="Berlin"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="country">Land</Label>
+              <Input
+                id="country"
+                value={formData.country}
+                onChange={(e) => handleInputChange('country', e.target.value)}
+                placeholder="Deutschland"
+              />
+            </div>
           </div>
 
           <div>

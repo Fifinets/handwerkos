@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      customers: {
+        Row: {
+          address: string | null
+          city: string | null
+          company_name: string
+          contact_person: string
+          country: string | null
+          created_at: string
+          customer_number: string | null
+          email: string
+          id: string
+          phone: string | null
+          postal_code: string | null
+          status: string
+          tax_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          company_name: string
+          contact_person: string
+          country?: string | null
+          created_at?: string
+          customer_number?: string | null
+          email: string
+          id?: string
+          phone?: string | null
+          postal_code?: string | null
+          status?: string
+          tax_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          company_name?: string
+          contact_person?: string
+          country?: string | null
+          created_at?: string
+          customer_number?: string | null
+          email?: string
+          id?: string
+          phone?: string | null
+          postal_code?: string | null
+          status?: string
+          tax_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
