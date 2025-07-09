@@ -17,8 +17,6 @@ interface Customer {
   city?: string;
   postal_code?: string;
   country?: string;
-  tax_number?: string;
-  customer_number?: string;
   status: string;
 }
 
@@ -39,8 +37,6 @@ const AddCustomerDialog = ({ isOpen, onClose, onCustomerAdded }: AddCustomerDial
     city: '',
     postal_code: '',
     country: 'Deutschland',
-    tax_number: '',
-    customer_number: '',
     status: 'Aktiv'
   });
 
@@ -80,8 +76,6 @@ const AddCustomerDialog = ({ isOpen, onClose, onCustomerAdded }: AddCustomerDial
       city: '',
       postal_code: '',
       country: 'Deutschland',
-      tax_number: '',
-      customer_number: '',
       status: 'Aktiv'
     });
 
@@ -148,26 +142,6 @@ const AddCustomerDialog = ({ isOpen, onClose, onCustomerAdded }: AddCustomerDial
                 value={formData.phone}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
                 placeholder="+49 123 456789"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="customer_number">Kundennummer</Label>
-              <Input
-                id="customer_number"
-                value={formData.customer_number}
-                onChange={(e) => handleInputChange('customer_number', e.target.value)}
-                placeholder="KD-001"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="tax_number">Steuernummer</Label>
-              <Input
-                id="tax_number"
-                value={formData.tax_number}
-                onChange={(e) => handleInputChange('tax_number', e.target.value)}
-                placeholder="DE123456789"
               />
             </div>
           </div>

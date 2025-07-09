@@ -17,8 +17,6 @@ interface Customer {
   city?: string;
   postal_code?: string;
   country?: string;
-  tax_number?: string;
-  customer_number?: string;
   status: string;
   created_at: string;
   updated_at: string;
@@ -42,8 +40,6 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
     city: customer?.city || '',
     postal_code: customer?.postal_code || '',
     country: customer?.country || 'Deutschland',
-    tax_number: customer?.tax_number || '',
-    customer_number: customer?.customer_number || '',
     status: customer?.status || 'Aktiv'
   });
 
@@ -58,8 +54,6 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
         city: customer.city || '',
         postal_code: customer.postal_code || '',
         country: customer.country || 'Deutschland',
-        tax_number: customer.tax_number || '',
-        customer_number: customer.customer_number || '',
         status: customer.status
       });
     }
@@ -158,24 +152,6 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
                 id="phone"
                 value={formData.phone}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="customer_number">Kundennummer</Label>
-              <Input
-                id="customer_number"
-                value={formData.customer_number}
-                onChange={(e) => handleInputChange('customer_number', e.target.value)}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="tax_number">Steuernummer</Label>
-              <Input
-                id="tax_number"
-                value={formData.tax_number}
-                onChange={(e) => handleInputChange('tax_number', e.target.value)}
               />
             </div>
           </div>
