@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,7 +24,6 @@ const PersonalModule = () => {
     email: '',
     firstName: '',
     lastName: '',
-    password: '',
     position: '',
     phone: '',
     license: ''
@@ -96,29 +94,25 @@ const PersonalModule = () => {
     setIsAddingEmployee(true);
 
     try {
-      console.log('Attempting to create employee with:', newEmployee.email);
+      console.log('Attempting to invite employee with:', newEmployee.email);
       
-      // Use normal sign up instead of admin.createUser
-      const { data, error } = await supabase.auth.signUp({
-        email: newEmployee.email,
-        password: newEmployee.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            first_name: newEmployee.firstName,
-            last_name: newEmployee.lastName
-          }
+      // Use auth.admin.inviteUserByEmail to send invitation email
+      const { data, error } = await supabase.auth.admin.inviteUserByEmail(newEmployee.email, {
+        redirectTo: `${window.location.origin}/auth`,
+        data: {
+          first_name: newEmployee.firstName,
+          last_name: newEmployee.lastName
         }
       });
 
       if (error) {
-        console.error('Signup error:', error);
-        toast.error(`Fehler beim Erstellen des Mitarbeiters: ${error.message}`);
+        console.error('Invite error:', error);
+        toast.error(`Fehler beim Einladen des Mitarbeiters: ${error.message}`);
         return;
       }
 
       if (data.user) {
-        console.log('User created successfully:', data.user.id);
+        console.log('User invited successfully:', data.user.id);
         
         // The user role will be set to 'manager' by default due to the database trigger
         // We need to update it to 'employee' for the new user
@@ -129,10 +123,10 @@ const PersonalModule = () => {
 
         if (roleError) {
           console.error('Role update error:', roleError);
-          toast.error('Mitarbeiter erstellt, aber Rolle konnte nicht gesetzt werden');
+          toast.error('Mitarbeiter eingeladen, aber Rolle konnte nicht gesetzt werden');
         } else {
           console.log('Role updated to employee successfully');
-          toast.success('Mitarbeiter erfolgreich erstellt! Der Mitarbeiter muss seine E-Mail bestätigen.');
+          toast.success('Mitarbeiter erfolgreich eingeladen! Der Mitarbeiter erhält eine E-Mail zur Passwort-Erstellung.');
           
           // Add to local employees list for immediate UI update
           const newEmp = {
@@ -150,7 +144,7 @@ const PersonalModule = () => {
           };
           
           setEmployees(prev => [...prev, newEmp]);
-          setNewEmployee({ email: '', firstName: '', lastName: '', password: '', position: '', phone: '', license: '' });
+          setNewEmployee({ email: '', firstName: '', lastName: '', position: '', phone: '', license: '' });
           setIsAddEmployeeOpen(false);
         }
       }
@@ -267,9 +261,9 @@ const PersonalModule = () => {
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Neuen Mitarbeiter hinzufügen</DialogTitle>
+              <DialogTitle>Neuen Mitarbeiter einladen</DialogTitle>
               <DialogDescription>
-                Erstelle einen neuen Mitarbeiter-Account. Der Mitarbeiter erhält eine E-Mail zur Bestätigung.
+                Lade einen neuen Mitarbeiter ein. Der Mitarbeiter erhält eine E-Mail mit einem Link zur Passwort-Erstellung.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleAddEmployee} className="space-y-4">
@@ -308,18 +302,6 @@ const PersonalModule = () => {
               </div>
               
               <div>
-                <Label htmlFor="add-password">Passwort</Label>
-                <Input
-                  id="add-password"
-                  type="password"
-                  value={newEmployee.password}
-                  onChange={(e) => handleNewEmployeeChange('password', e.target.value)}
-                  required
-                  minLength={6}
-                />
-              </div>
-
-              <div>
                 <Label htmlFor="add-position">Position</Label>
                 <Input
                   id="add-position"
@@ -357,7 +339,7 @@ const PersonalModule = () => {
                   Abbrechen
                 </Button>
                 <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isAddingEmployee}>
-                  {isAddingEmployee ? 'Wird erstellt...' : 'Mitarbeiter erstellen'}
+                  {isAddingEmployee ? 'Wird eingeladen...' : 'Mitarbeiter einladen'}
                 </Button>
               </div>
             </form>
