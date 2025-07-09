@@ -26,6 +26,7 @@ import PersonalModule from "@/components/PersonalModule";
 import MaterialModule from "@/components/MaterialModule";
 import MachineModule from "@/components/MachineModule";
 import FinanceModule from "@/components/FinanceModule";
+import EmployeeManagementModule from "@/components/EmployeeManagementModule";
 import DashboardCalendar from "@/components/DashboardCalendar";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -76,6 +77,7 @@ const Index = () => {
     { id: 'customers', name: 'Kunden & Aufträge', icon: Users, color: 'bg-green-500' },
     { id: 'projects', name: 'Projekte & Baustellen', icon: Building2, color: 'bg-orange-500' },
     { id: 'personal', name: 'Personal', icon: UserCheck, color: 'bg-purple-500' },
+    { id: 'employees', name: 'Mitarbeiterverwaltung', icon: UserCheck, color: 'bg-indigo-500' },
     { id: 'materials', name: 'Material', icon: Package, color: 'bg-red-500' },
     { id: 'machines', name: 'Maschinen & Geräte', icon: Settings, color: 'bg-indigo-500' },
     { id: 'finance', name: 'Finanzen', icon: Calculator, color: 'bg-cyan-500' }
@@ -103,6 +105,8 @@ const Index = () => {
         return <ProjectModule />;
       case 'personal':
         return <PersonalModule />;
+      case 'employees':
+        return <EmployeeManagementModule />;
       case 'materials':
         return <MaterialModule />;
       case 'machines':
@@ -194,10 +198,10 @@ const Index = () => {
                     <Button 
                       variant="outline" 
                       className="h-20 flex flex-col gap-2"
-                      onClick={() => setActiveModule('materials')}
+                      onClick={() => setActiveModule('employees')}
                     >
-                      <Package className="h-6 w-6" />
-                      <span className="text-xs">Bestellung</span>
+                      <UserCheck className="h-6 w-6" />
+                      <span className="text-xs">Mitarbeiter</span>
                     </Button>
                   </div>
                 </CardContent>
