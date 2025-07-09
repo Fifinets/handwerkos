@@ -1,0 +1,284 @@
+
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface Customer {
+  id: string;
+  company_name: string;
+  contact_person: string;
+}
+
+interface AddOrderDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onOrderAdded: () => void;
+}
+
+const AddOrderDialog = ({ open, onOpenChange, onOrderAdded }: AddOrderDialogProps) => {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [customerId, setCustomerId] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [status, setStatus] = useState('Angebot');
+  const [priority, setPriority] = useState('Normal');
+  const [totalAmount, setTotalAmount] = useState('');
+  const [currency, setCurrency] = useState('EUR');
+  const [notes, setNotes] = useState('');
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (open) {
+      fetchCustomers();
+    }
+  }, [open]);
+
+  const fetchCustomers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('id, company_name, contact_person')
+        .eq('status', 'Aktiv')
+        .order('company_name');
+
+      if (error) {
+        console.error('Error fetching customers:', error);
+        return;
+      }
+
+      setCustomers(data || []);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!title.trim() || !customerId) {
+      toast({
+        title: "Fehler",
+        description: "Bitte füllen Sie alle Pflichtfelder aus.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      console.log('Adding new order...');
+
+      const orderData = {
+        title: title.trim(),
+        description: description.trim() || null,
+        customer_id: customerId,
+        due_date: dueDate || null,
+        status,
+        priority,
+        total_amount: totalAmount ? parseFloat(totalAmount) : null,
+        currency,
+        notes: notes.trim() || null
+      };
+
+      const { error } = await supabase
+        .from('orders')
+        .insert([orderData]);
+
+      if (error) {
+        console.error('Error adding order:', error);
+        toast({
+          title: "Fehler",
+          description: "Auftrag konnte nicht erstellt werden.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Erfolg",
+        description: "Auftrag wurde erfolgreich erstellt."
+      });
+
+      // Reset form
+      setTitle('');
+      setDescription('');
+      setCustomerId('');
+      setDueDate('');
+      setStatus('Angebot');
+      setPriority('Normal');
+      setTotalAmount('');
+      setCurrency('EUR');
+      setNotes('');
+
+      onOrderAdded();
+    } catch (error) {
+      console.error('Error adding order:', error);
+      toast({
+        title: "Fehler",
+        description: "Ein unerwarteter Fehler ist aufgetreten.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Neuen Auftrag erstellen</DialogTitle>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Titel *</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Auftragstitel eingeben"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="customer">Kunde *</Label>
+              <Select value={customerId} onValueChange={setCustomerId} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Kunde auswählen" />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers.map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      {customer.company_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Beschreibung</Label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Auftragsbeschreibung eingeben"
+              rows={3}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Angebot">Angebot</SelectItem>
+                  <SelectItem value="Bestätigt">Bestätigt</SelectItem>
+                  <SelectItem value="In Bearbeitung">In Bearbeitung</SelectItem>
+                  <SelectItem value="Abgeschlossen">Abgeschlossen</SelectItem>
+                  <SelectItem value="Storniert">Storniert</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priorität</Label>
+              <Select value={priority} onValueChange={setPriority}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Niedrig">Niedrig</SelectItem>
+                  <SelectItem value="Normal">Normal</SelectItem>
+                  <SelectItem value="Hoch">Hoch</SelectItem>
+                  <SelectItem value="Dringend">Dringend</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="dueDate">Fälligkeitsdatum</Label>
+              <Input
+                id="dueDate"
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="totalAmount">Gesamtbetrag</Label>
+              <Input
+                id="totalAmount"
+                type="number"
+                step="0.01"
+                value={totalAmount}
+                onChange={(e) => setTotalAmount(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="currency">Währung</Label>
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="EUR">EUR</SelectItem>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="CHF">CHF</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notizen</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Zusätzliche Notizen"
+              rows={2}
+            />
+          </div>
+
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+            >
+              Abbrechen
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Wird erstellt..." : "Auftrag erstellen"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default AddOrderDialog;

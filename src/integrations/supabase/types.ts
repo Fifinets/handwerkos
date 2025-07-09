@@ -65,6 +65,65 @@ export type Database = {
         }
         Relationships: []
       }
+      orders: {
+        Row: {
+          created_at: string
+          currency: string | null
+          customer_id: string
+          description: string | null
+          due_date: string | null
+          id: string
+          notes: string | null
+          order_date: string
+          order_number: string
+          priority: string
+          status: string
+          title: string
+          total_amount: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string | null
+          customer_id: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          order_date?: string
+          order_number: string
+          priority?: string
+          status?: string
+          title: string
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string | null
+          customer_id?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          order_date?: string
+          order_number?: string
+          priority?: string
+          status?: string
+          title?: string
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -223,6 +282,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_order_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       has_role: {
         Args:
           | {
