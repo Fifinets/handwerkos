@@ -29,6 +29,17 @@ const DashboardStats = () => {
       setLoading(true);
       console.log('Fetching dashboard stats...');
 
+      // Fetch all profiles to count total users
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id');
+
+      if (profilesError) {
+        console.error('Error fetching profiles data:', profilesError);
+      }
+
+      console.log('Profiles data:', profilesData);
+
       // Fetch all user roles to get accurate counts
       const { data: rolesData, error: rolesError } = await supabase
         .from('user_roles')
@@ -42,9 +53,13 @@ const DashboardStats = () => {
 
       // Count managers and employees from actual roles
       const managers = rolesData ? rolesData.filter(r => r.role === 'manager').length : 0;
-      const employees = rolesData ? rolesData.filter(r => r.role === 'employee').length : 0;
+      const employeesFromRoles = rolesData ? rolesData.filter(r => r.role === 'employee').length : 0;
+      
+      // Use total profiles as employee count if no roles are assigned, otherwise use role-based count
+      const totalUsers = profilesData ? profilesData.length : 0;
+      const employees = employeesFromRoles > 0 ? employeesFromRoles : Math.max(0, totalUsers - managers);
 
-      console.log('Managers:', managers, 'Employees:', employees);
+      console.log('Managers:', managers, 'Employees:', employees, 'Total users:', totalUsers);
 
       // Fetch unique projects from work hours (projects with any activity)
       const { data: projectData, error: projectError } = await supabase
