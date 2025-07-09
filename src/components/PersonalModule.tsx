@@ -132,7 +132,7 @@ const PersonalModule = () => {
         email: newEmployee.email,
         password: 'temp-password-123!', // Temporary password - user will be asked to change it
         options: {
-          emailRedirectTo: `${window.location.origin}/auth`,
+          emailRedirectTo: `${window.location.origin}/auth?mode=employee-setup`,
           data: {
             first_name: newEmployee.firstName,
             last_name: newEmployee.lastName

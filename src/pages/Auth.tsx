@@ -34,10 +34,16 @@ const Auth = () => {
     const accessToken = searchParams.get('access_token');
     const refreshToken = searchParams.get('refresh_token');
     const type = searchParams.get('type');
+    const mode = searchParams.get('mode');
     
     if (accessToken && refreshToken && type === 'signup') {
       setIsPasswordSetup(true);
       setIsLogin(false);
+    }
+    
+    // Hide login/register toggle for employee setup
+    if (mode === 'employee-setup') {
+      setIsPasswordSetup(true);
     }
   }, [searchParams]);
 
@@ -120,7 +126,9 @@ const Auth = () => {
             </CardTitle>
             <CardDescription>
               {isPasswordSetup 
-                ? 'Erstellen Sie Ihr persönliches Passwort für Ihr Mitarbeiterkonto'
+                ? (searchParams.get('mode') === 'employee-setup' 
+                   ? 'Willkommen! Setzen Sie Ihr Passwort, um Ihr Mitarbeiterkonto zu aktivieren' 
+                   : 'Erstellen Sie Ihr persönliches Passwort für Ihr Mitarbeiterkonto')
                 : isLogin 
                 ? 'Melden Sie sich in Ihrem Konto an' 
                 : 'Erstellen Sie ein neues Konto'
@@ -215,7 +223,7 @@ const Auth = () => {
               </Button>
             </form>
             
-            {!isPasswordSetup && (
+            {!isPasswordSetup && searchParams.get('mode') !== 'employee-setup' && (
               <div className="mt-4 text-center">
                 <button
                   type="button"
