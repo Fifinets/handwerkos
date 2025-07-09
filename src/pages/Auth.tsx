@@ -24,10 +24,12 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    if (user) {
+    // Don't redirect if user is in employee setup mode
+    const mode = searchParams.get('mode');
+    if (user && mode !== 'employee-setup' && !isPasswordSetup) {
       navigate('/');
     }
-  }, [user, navigate]);
+  }, [user, navigate, searchParams, isPasswordSetup]);
 
   useEffect(() => {
     // Check if user arrived via email confirmation link
