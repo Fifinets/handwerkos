@@ -1,0 +1,44 @@
+
+{
+  "name": "elektromanager-pro-desktop",
+  "version": "1.0.0",
+  "description": "ElektroManager Pro Desktop App",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "dist": "electron-builder --publish=never",
+    "dist-win": "electron-builder --win --publish=never",
+    "dist-mac": "electron-builder --mac --publish=never",
+    "dist-linux": "electron-builder --linux --publish=never"
+  },
+  "build": {
+    "appId": "com.elektromanager.pro",
+    "productName": "ElektroManager Pro",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "../dist/**/*",
+      "../build/icon.png"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "../build/icon.png"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "../build/icon.png"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "../build/icon.png"
+    }
+  },
+  "devDependencies": {
+    "electron": "^27.0.0",
+    "electron-builder": "^24.6.4"
+  }
+}
