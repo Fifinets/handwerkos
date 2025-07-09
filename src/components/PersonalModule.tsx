@@ -9,12 +9,27 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserCheck, Calendar, Clock, GraduationCap, Car, Shield, Plus, Mail, Phone, MapPin, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const PersonalModule = () => {
-  const { toast } = useToast();
+  const { toast: showToast } = useToast();
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
+  const [isAddingEmployee, setIsAddingEmployee] = useState(false);
+
+  const [newEmployee, setNewEmployee] = useState({
+    email: '',
+    firstName: '',
+    lastName: '',
+    password: '',
+    position: '',
+    phone: '',
+    license: ''
+  });
+
   const [employees, setEmployees] = useState([
     {
       id: 1,
@@ -75,6 +90,72 @@ const PersonalModule = () => {
     { employee: 'Tom Fischer', training: 'Erste Hilfe Kurs', date: '25.02.2024', type: 'Pflicht' }
   ];
 
+  const handleAddEmployee = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsAddingEmployee(true);
+
+    try {
+      // Create employee account with employee role
+      const { data, error } = await supabase.auth.admin.createUser({
+        email: newEmployee.email,
+        password: newEmployee.password,
+        user_metadata: {
+          first_name: newEmployee.firstName,
+          last_name: newEmployee.lastName
+        }
+      });
+
+      if (error) {
+        toast.error(`Fehler beim Erstellen des Mitarbeiters: ${error.message}`);
+        return;
+      }
+
+      if (data.user) {
+        // Update user role to employee
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .update({ role: 'employee' })
+          .eq('user_id', data.user.id);
+
+        if (roleError) {
+          toast.error('Mitarbeiter erstellt, aber Rolle konnte nicht gesetzt werden');
+        } else {
+          toast.success('Mitarbeiter erfolgreich erstellt!');
+          
+          // Add to local employees list for immediate UI update
+          const newEmp = {
+            id: Date.now(), // temporary ID
+            name: `${newEmployee.firstName} ${newEmployee.lastName}`,
+            position: newEmployee.position,
+            email: newEmployee.email,
+            phone: newEmployee.phone,
+            status: 'Aktiv',
+            qualifications: [],
+            license: newEmployee.license,
+            currentProject: '-',
+            hoursThisMonth: 0,
+            vacationDays: 25
+          };
+          
+          setEmployees(prev => [...prev, newEmp]);
+          setNewEmployee({ email: '', firstName: '', lastName: '', password: '', position: '', phone: '', license: '' });
+          setIsAddEmployeeOpen(false);
+        }
+      }
+    } catch (error) {
+      toast.error('Ein Fehler ist aufgetreten');
+    } finally {
+      setIsAddingEmployee(false);
+    }
+  };
+
+  const handleNewEmployeeChange = (field: string, value: string) => {
+    setNewEmployee(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Aktiv': return 'bg-green-100 text-green-800';
@@ -131,7 +212,7 @@ const PersonalModule = () => {
       emp.id === selectedEmployee.id ? updatedEmployee : emp
     ));
 
-    toast({
+    showToast({
       title: "Erfolg",
       description: "Mitarbeiter wurde erfolgreich aktualisiert."
     });
@@ -148,7 +229,7 @@ const PersonalModule = () => {
   };
 
   const handleQuickAction = (action: string) => {
-    toast({
+    showToast({
       title: "Info",
       description: `${action} wird geöffnet...`
     });
@@ -164,13 +245,111 @@ const PersonalModule = () => {
           </h2>
           <p className="text-gray-600">Mitarbeiterdaten und Qualifikationen verwalten</p>
         </div>
-        <Button 
-          className="bg-blue-600 hover:bg-blue-700"
-          onClick={() => handleQuickAction('Neuer Mitarbeiter')}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Mitarbeiter hinzufügen
-        </Button>
+        <Dialog open={isAddEmployeeOpen} onOpenChange={setIsAddEmployeeOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Mitarbeiter hinzufügen
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Neuen Mitarbeiter hinzufügen</DialogTitle>
+              <DialogDescription>
+                Erstelle einen neuen Mitarbeiter-Account
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleAddEmployee} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="add-firstName">Vorname</Label>
+                  <Input
+                    id="add-firstName"
+                    type="text"
+                    value={newEmployee.firstName}
+                    onChange={(e) => handleNewEmployeeChange('firstName', e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="add-lastName">Nachname</Label>
+                  <Input
+                    id="add-lastName"
+                    type="text"
+                    value={newEmployee.lastName}
+                    onChange={(e) => handleNewEmployeeChange('lastName', e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="add-email">E-Mail</Label>
+                <Input
+                  id="add-email"
+                  type="email"
+                  value={newEmployee.email}
+                  onChange={(e) => handleNewEmployeeChange('email', e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="add-password">Passwort</Label>
+                <Input
+                  id="add-password"
+                  type="password"
+                  value={newEmployee.password}
+                  onChange={(e) => handleNewEmployeeChange('password', e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="add-position">Position</Label>
+                <Input
+                  id="add-position"
+                  type="text"
+                  value={newEmployee.position}
+                  onChange={(e) => handleNewEmployeeChange('position', e.target.value)}
+                  placeholder="z.B. Elektriker, Elektroniker"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="add-phone">Telefon</Label>
+                <Input
+                  id="add-phone"
+                  type="tel"
+                  value={newEmployee.phone}
+                  onChange={(e) => handleNewEmployeeChange('phone', e.target.value)}
+                  placeholder="+49 123 456789"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="add-license">Führerschein</Label>
+                <Input
+                  id="add-license"
+                  type="text"
+                  value={newEmployee.license}
+                  onChange={(e) => handleNewEmployeeChange('license', e.target.value)}
+                  placeholder="z.B. B, BE"
+                />
+              </div>
+              
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setIsAddEmployeeOpen(false)}>
+                  Abbrechen
+                </Button>
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isAddingEmployee}>
+                  {isAddingEmployee ? 'Wird erstellt...' : 'Mitarbeiter erstellen'}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Overview Stats */}
