@@ -49,9 +49,12 @@ Deno.serve(async (req) => {
     // Get Google Client ID from secrets
     const googleClientId = Deno.env.get('GOOGLE_CLIENT_ID')
     
+    console.log('Getting Google Client ID - exists:', !!googleClientId);
+    
     if (!googleClientId) {
+      console.error('GOOGLE_CLIENT_ID environment variable not found');
       return new Response(
-        JSON.stringify({ error: 'Google Client ID nicht konfiguriert' }),
+        JSON.stringify({ error: 'Google Client ID nicht konfiguriert. Bitte fügen Sie GOOGLE_CLIENT_ID in den Supabase Secrets hinzu.' }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
