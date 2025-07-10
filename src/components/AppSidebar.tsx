@@ -11,19 +11,6 @@ import {
   LogOut
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarFooter,
-  useSidebar,
-} from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 
@@ -44,7 +31,6 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
-  const { state } = useSidebar();
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
@@ -66,7 +52,7 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
     }
   };
 
-  const isExpanded = isHovered || state !== "collapsed";
+  const isExpanded = isHovered;
 
   return (
     <div 
