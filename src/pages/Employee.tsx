@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const Employee = () => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('material');
   const [userRole, setUserRole] = useState<string | null>(null);
 
@@ -46,6 +48,7 @@ const Employee = () => {
   const handleSignOut = async () => {
     await signOut();
     toast.success('Erfolgreich abgemeldet');
+    navigate('/auth');
   };
 
   const tabs = [
