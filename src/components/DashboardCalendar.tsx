@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CalendarDays, Users, Building2, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
+import GoogleCalendarSettings from "./GoogleCalendarSettings";
 
 interface CalendarEvent {
   id: string;
@@ -148,9 +149,12 @@ const DashboardCalendar = () => {
       {/* Kalender */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CalendarDays className="h-5 w-5" />
-            Kalender
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="h-5 w-5" />
+              Kalender
+            </div>
+            <GoogleCalendarSettings />
           </CardTitle>
           
           {/* Filter Controls */}
