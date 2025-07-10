@@ -415,7 +415,7 @@ const PlannerModule: React.FC = () => {
                                     : item.item.color,
                                 width: `${spanWidth * 100}%`,
                                 left: 0,
-                                top: `${2 + idx * 10}px`,
+                                top: `${2 + idx * 14}px`,
                                 zIndex: 10
                               }}
                               title={
