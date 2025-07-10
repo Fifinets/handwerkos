@@ -640,9 +640,30 @@ const PlannerModule: React.FC = () => {
                   <Button variant="outline" size="sm" onClick={navigatePrevious}>
                     <ChevronLeft className="w-4 h-4" />
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>
-                    Heute
-                  </Button>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "w-[180px] justify-start text-left font-normal",
+                          "hover:bg-muted/50"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {format(currentDate, 'MMMM yyyy', { locale: de })}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={currentDate}
+                        onSelect={(date) => date && setCurrentDate(date)}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <Button variant="outline" size="sm" onClick={navigateNext}>
                     <ChevronRight className="w-4 h-4" />
                   </Button>
@@ -747,8 +768,46 @@ const PlannerModule: React.FC = () => {
         
         <TabsContent value="employees">
           <Card>
-            <CardHeader>
-              <CardTitle>Mitarbeiterkalender</CardTitle>
+            <CardHeader className="pb-4">
+              <div className="flex justify-between items-center">
+                <CardTitle className="flex items-center space-x-2">
+                  <Users className="w-5 h-5" />
+                  <span>Mitarbeiterkalender - {format(currentDate, 'yyyy', { locale: de })}</span>
+                </CardTitle>
+                
+                <div className="flex items-center space-x-2">
+                  <Button variant="outline" size="sm" onClick={navigatePrevious}>
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "w-[180px] justify-start text-left font-normal",
+                          "hover:bg-muted/50"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {format(currentDate, 'MMMM yyyy', { locale: de })}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={currentDate}
+                        onSelect={(date) => date && setCurrentDate(date)}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Button variant="outline" size="sm" onClick={navigateNext}>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">Mitarbeiterkalender wird hier implementiert...</p>
