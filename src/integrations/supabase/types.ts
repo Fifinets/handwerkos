@@ -617,6 +617,50 @@ export type Database = {
         }
         Relationships: []
       }
+      working_hours_config: {
+        Row: {
+          break_duration: number
+          created_at: string
+          employee_id: string | null
+          end_time: string
+          id: string
+          is_default: boolean
+          start_time: string
+          updated_at: string
+          working_days: number[]
+        }
+        Insert: {
+          break_duration?: number
+          created_at?: string
+          employee_id?: string | null
+          end_time?: string
+          id?: string
+          is_default?: boolean
+          start_time?: string
+          updated_at?: string
+          working_days?: number[]
+        }
+        Update: {
+          break_duration?: number
+          created_at?: string
+          employee_id?: string | null
+          end_time?: string
+          id?: string
+          is_default?: boolean
+          start_time?: string
+          updated_at?: string
+          working_days?: number[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_working_hours_employee"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

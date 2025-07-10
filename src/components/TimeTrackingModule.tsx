@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { format, parseISO, differenceInMinutes, startOfDay, endOfDay } from 'date-fns'
 import { de } from 'date-fns/locale'
-import { Play, Pause, Square, Clock, Calendar, User, MapPin, Filter, Plus } from 'lucide-react'
+import { Play, Pause, Square, Clock, Calendar, User, MapPin, Filter, Plus, Settings, Users } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -13,9 +13,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/integrations/supabase/client"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/useAuth"
 
 interface TimeEntry {
   id: string
@@ -52,10 +54,22 @@ interface Employee {
   user_id?: string
 }
 
+interface WorkingHoursConfig {
+  id: string
+  employee_id?: string
+  start_time: string
+  end_time: string
+  break_duration: number
+  working_days: number[]
+  is_default: boolean
+}
+
 const TimeTrackingModule: React.FC = () => {
+  const { userRole } = useAuth()
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
+  const [workingHours, setWorkingHours] = useState<WorkingHoursConfig[]>([])
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null)
   const [activeEntry, setActiveEntry] = useState<TimeEntry | null>(null)
   const [loading, setLoading] = useState(true)
@@ -63,6 +77,8 @@ const TimeTrackingModule: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<string>('')
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all')
   const [newEntryDialog, setNewEntryDialog] = useState(false)
+  const [workingHoursDialog, setWorkingHoursDialog] = useState(false)
+  const [selectedEmployeeForHours, setSelectedEmployeeForHours] = useState<string>('')
 
   const { toast } = useToast()
 
@@ -77,7 +93,8 @@ const TimeTrackingModule: React.FC = () => {
         loadTimeEntries(),
         loadProjects(),
         loadEmployees(),
-        loadCurrentEmployee()
+        loadCurrentEmployee(),
+        loadWorkingHours()
       ])
     } catch (error) {
       console.error('Error loading time tracking data:', error)
@@ -156,6 +173,16 @@ const TimeTrackingModule: React.FC = () => {
 
     if (error) throw error
     setEmployees(data || [])
+  }
+
+  const loadWorkingHours = async () => {
+    const { data, error } = await supabase
+      .from('working_hours_config')
+      .select('*')
+      .order('is_default', { ascending: false })
+
+    if (error) throw error
+    setWorkingHours(data || [])
   }
 
   const startTimeTracking = async (projectId?: string, description?: string) => {
@@ -262,6 +289,344 @@ const TimeTrackingModule: React.FC = () => {
     loadTimeEntries()
   }
 
+  const startTimeTrackingForEmployee = async (employeeId: string, projectId?: string, description?: string) => {
+    if (!userRole || userRole !== 'manager') {
+      toast({
+        title: "Keine Berechtigung",
+        description: "Nur Manager können Zeiterfassung für andere starten.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Check if employee already has active entry
+    const { data: existingEntry } = await supabase
+      .from('time_entries')
+      .select('*')
+      .eq('employee_id', employeeId)
+      .eq('status', 'aktiv')
+      .single()
+
+    if (existingEntry) {
+      toast({
+        title: "Zeiterfassung bereits aktiv",
+        description: "Dieser Mitarbeiter hat bereits eine aktive Zeiterfassung.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('time_entries')
+      .insert({
+        employee_id: employeeId,
+        project_id: projectId || null,
+        start_time: new Date().toISOString(),
+        description: description || null,
+        status: 'aktiv'
+      })
+      .select(`
+        *,
+        employee:employees(first_name, last_name),
+        project:projects(name, color)
+      `)
+      .single()
+
+    if (error) {
+      toast({
+        title: "Fehler beim Starten",
+        description: "Die Zeiterfassung konnte nicht gestartet werden.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    loadTimeEntries()
+    toast({
+      title: "Zeiterfassung gestartet",
+      description: `Zeiterfassung für ${data.employee?.first_name} ${data.employee?.last_name} wurde gestartet.`
+    })
+  }
+
+  const updateWorkingHours = async (employeeId: string | null, config: Partial<WorkingHoursConfig>) => {
+    if (!userRole || userRole !== 'manager') {
+      toast({
+        title: "Keine Berechtigung",
+        description: "Nur Manager können Arbeitszeiten ändern.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Check if config exists
+    const { data: existing } = await supabase
+      .from('working_hours_config')
+      .select('*')
+      .eq('employee_id', employeeId)
+      .single()
+
+    if (existing) {
+      // Update existing
+      const { error } = await supabase
+        .from('working_hours_config')
+        .update(config)
+        .eq('id', existing.id)
+
+      if (error) {
+        toast({
+          title: "Fehler beim Aktualisieren",
+          description: "Die Arbeitszeiten konnten nicht aktualisiert werden.",
+          variant: "destructive"
+        })
+        return
+      }
+    } else {
+      // Create new
+      const { error } = await supabase
+        .from('working_hours_config')
+        .insert({
+          employee_id: employeeId,
+          ...config
+        })
+
+      if (error) {
+        toast({
+          title: "Fehler beim Erstellen",
+          description: "Die Arbeitszeiten konnten nicht erstellt werden.",
+          variant: "destructive"
+        })
+        return
+      }
+    }
+
+    loadWorkingHours()
+    setWorkingHoursDialog(false)
+    toast({
+      title: "Arbeitszeiten aktualisiert",
+      description: "Die Arbeitszeiten wurden erfolgreich gespeichert."
+    })
+  }
+
+  const formatWorkingDays = (days: number[]) => {
+    const dayNames = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
+    return days.map(day => dayNames[day === 7 ? 0 : day]).join(', ')
+  }
+
+  const getWorkingHoursForEmployee = (employeeId: string) => {
+    return workingHours.find(wh => wh.employee_id === employeeId) || 
+           workingHours.find(wh => wh.is_default)
+  }
+
+  const WorkingHoursDialog = () => {
+    const [startTime, setStartTime] = useState('08:00')
+    const [endTime, setEndTime] = useState('17:00')
+    const [breakDuration, setBreakDuration] = useState(30)
+    const [workingDays, setWorkingDays] = useState<number[]>([1,2,3,4,5])
+
+    useEffect(() => {
+      if (selectedEmployeeForHours) {
+        const config = getWorkingHoursForEmployee(selectedEmployeeForHours)
+        if (config) {
+          setStartTime(config.start_time.slice(0, 5))
+          setEndTime(config.end_time.slice(0, 5))
+          setBreakDuration(config.break_duration)
+          setWorkingDays(config.working_days)
+        }
+      }
+    }, [selectedEmployeeForHours])
+
+    const handleSave = () => {
+      updateWorkingHours(
+        selectedEmployeeForHours === 'default' ? null : selectedEmployeeForHours,
+        {
+          start_time: startTime + ':00',
+          end_time: endTime + ':00',
+          break_duration: breakDuration,
+          working_days: workingDays,
+          is_default: selectedEmployeeForHours === 'default'
+        }
+      )
+    }
+
+    const toggleWorkingDay = (day: number) => {
+      setWorkingDays(prev => 
+        prev.includes(day) 
+          ? prev.filter(d => d !== day)
+          : [...prev, day].sort()
+      )
+    }
+
+    return (
+      <Dialog open={workingHoursDialog} onOpenChange={setWorkingHoursDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Arbeitszeiten konfigurieren</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Mitarbeiter</Label>
+              <Select value={selectedEmployeeForHours} onValueChange={setSelectedEmployeeForHours}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Mitarbeiter wählen..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Standard (alle Mitarbeiter)</SelectItem>
+                  {employees.map(employee => (
+                    <SelectItem key={employee.id} value={employee.id}>
+                      {employee.first_name} {employee.last_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Arbeitsbeginn</Label>
+                <Input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Arbeitsende</Label>
+                <Input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label>Pausendauer (Minuten)</Label>
+              <Input
+                type="number"
+                value={breakDuration}
+                onChange={(e) => setBreakDuration(Number(e.target.value))}
+                min="0"
+                max="120"
+              />
+            </div>
+            
+            <div>
+              <Label>Arbeitstage</Label>
+              <div className="flex gap-2 mt-2">
+                {[
+                  { value: 1, label: 'Mo' },
+                  { value: 2, label: 'Di' },
+                  { value: 3, label: 'Mi' },
+                  { value: 4, label: 'Do' },
+                  { value: 5, label: 'Fr' },
+                  { value: 6, label: 'Sa' },
+                  { value: 7, label: 'So' }
+                ].map(day => (
+                  <Button
+                    key={day.value}
+                    variant={workingDays.includes(day.value) ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => toggleWorkingDay(day.value)}
+                  >
+                    {day.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setWorkingHoursDialog(false)}>
+                Abbrechen
+              </Button>
+              <Button onClick={handleSave} disabled={!selectedEmployeeForHours}>
+                Speichern
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  const ManagerStartDialog = () => {
+    const [employeeId, setEmployeeId] = useState('')
+    const [projectId, setProjectId] = useState('')
+    const [description, setDescription] = useState('')
+
+    const handleSubmit = () => {
+      if (!employeeId) return
+      startTimeTrackingForEmployee(
+        employeeId,
+        projectId === 'none' ? undefined : projectId || undefined,
+        description || undefined
+      )
+      setEmployeeId('')
+      setProjectId('')
+      setDescription('')
+      setNewEntryDialog(false)
+    }
+
+    return (
+      <div className="space-y-4">
+        <div>
+          <Label htmlFor="employee">Mitarbeiter</Label>
+          <Select value={employeeId} onValueChange={setEmployeeId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Mitarbeiter auswählen..." />
+            </SelectTrigger>
+            <SelectContent>
+              {employees.map(employee => (
+                <SelectItem key={employee.id} value={employee.id}>
+                  {employee.first_name} {employee.last_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="project">Projekt (optional)</Label>
+          <Select value={projectId} onValueChange={setProjectId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Projekt auswählen..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Kein Projekt</SelectItem>
+              {projects.map(project => (
+                <SelectItem key={project.id} value={project.id}>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: project.color }}
+                    />
+                    {project.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="description">Beschreibung (optional)</Label>
+          <Textarea
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Beschreibung der Tätigkeit..."
+          />
+        </div>
+        <div className="flex gap-2 justify-end">
+          <Button variant="outline" onClick={() => setNewEntryDialog(false)}>
+            Abbrechen
+          </Button>
+          <Button onClick={handleSubmit} disabled={!employeeId}>
+            <Play className="w-4 h-4 mr-2" />
+            Starten
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   const formatDuration = (startTime: string, endTime?: string) => {
     const start = parseISO(startTime)
     const end = endTime ? parseISO(endTime) : new Date()
@@ -296,50 +661,54 @@ const TimeTrackingModule: React.FC = () => {
       <Dialog open={newEntryDialog} onOpenChange={setNewEntryDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Neue Zeiterfassung starten</DialogTitle>
+            <DialogTitle>
+              {userRole === 'manager' ? 'Zeiterfassung starten' : 'Neue Zeiterfassung starten'}
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="project">Projekt (optional)</Label>
-              <Select value={projectId} onValueChange={setProjectId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Projekt auswählen..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Kein Projekt</SelectItem>
-                  {projects.map(project => (
-                    <SelectItem key={project.id} value={project.id}>
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: project.color }}
-                        />
-                        {project.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {userRole === 'manager' ? <ManagerStartDialog /> : (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="project">Projekt (optional)</Label>
+                <Select value={projectId} onValueChange={setProjectId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Projekt auswählen..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Kein Projekt</SelectItem>
+                    {projects.map(project => (
+                      <SelectItem key={project.id} value={project.id}>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: project.color }}
+                          />
+                          {project.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="description">Beschreibung (optional)</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Was arbeiten Sie?"
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setNewEntryDialog(false)}>
+                  Abbrechen
+                </Button>
+                <Button onClick={handleSubmit}>
+                  <Play className="w-4 h-4 mr-2" />
+                  Starten
+                </Button>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="description">Beschreibung (optional)</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Was arbeiten Sie?"
-              />
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setNewEntryDialog(false)}>
-                Abbrechen
-              </Button>
-              <Button onClick={handleSubmit}>
-                <Play className="w-4 h-4 mr-2" />
-                Starten
-              </Button>
-            </div>
-          </div>
+          )}
         </DialogContent>
       </Dialog>
     )
@@ -354,10 +723,18 @@ const TimeTrackingModule: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Zeiterfassung</h1>
-        <Button onClick={() => setNewEntryDialog(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Neue Zeiterfassung
-        </Button>
+        <div className="flex gap-2">
+          {userRole === 'manager' && (
+            <Button variant="outline" onClick={() => setWorkingHoursDialog(true)}>
+              <Settings className="w-4 h-4 mr-2" />
+              Arbeitszeiten
+            </Button>
+          )}
+          <Button onClick={() => setNewEntryDialog(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            {userRole === 'manager' ? 'Zeiterfassung starten' : 'Meine Zeiterfassung'}
+          </Button>
+        </div>
       </div>
 
       {/* Current Status */}
@@ -590,6 +967,7 @@ const TimeTrackingModule: React.FC = () => {
       </Card>
 
       <NewEntryDialog />
+      <WorkingHoursDialog />
     </div>
   )
 }
