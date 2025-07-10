@@ -400,14 +400,21 @@ const PlannerModule: React.FC = () => {
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
     const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
     
-    // Filter active projects
+    // Filter active projects - show projects that are active, planned, or in progress
     const activeProjects = projects.filter(project => {
+      const status = project.status.toLowerCase()
+      const isActiveStatus = status === 'aktiv' || status === 'geplant' || status === 'in bearbeitung'
+      
+      if (isActiveStatus) {
+        return true // Always show active projects regardless of dates
+      }
+      
+      // For other projects, only show if they overlap with the current month
       const projectStart = new Date(project.start_date)
       const projectEnd = project.end_date ? new Date(project.end_date) : new Date()
       const monthStart = new Date(currentYear, currentMonth, 1)
       const monthEnd = new Date(currentYear, currentMonth + 1, 0)
       
-      // Project is active if it overlaps with the current month
       return projectStart <= monthEnd && projectEnd >= monthStart
     })
 
