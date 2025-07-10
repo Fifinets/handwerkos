@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { format, parseISO, differenceInMinutes, startOfDay, endOfDay } from 'date-fns'
 import { de } from 'date-fns/locale'
-import { Play, Pause, Square, Clock, Calendar, User, MapPin, Filter, Plus, Settings, Users } from 'lucide-react'
+import { Play, Pause, Square, Clock, Calendar, User, MapPin, Filter, Plus, Settings, Users, Wifi, WifiOff, Edit } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils"
 import { supabase } from "@/integrations/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/useAuth"
+import { OfflineTimeTrackingManager, GPSLocationManager, NetworkManager, type GeolocationPosition, type OfflineTimeEntry } from "@/lib/timetrackingUtils"
 
 interface TimeEntry {
   id: string
@@ -30,6 +31,14 @@ interface TimeEntry {
   status: string
   created_at: string
   updated_at: string
+  start_location_lat?: number
+  start_location_lng?: number
+  start_location_address?: string
+  end_location_lat?: number
+  end_location_lng?: number
+  end_location_address?: string
+  is_offline_synced?: boolean
+  offline_created_at?: string
   employee?: {
     first_name: string
     last_name: string
@@ -38,6 +47,23 @@ interface TimeEntry {
     name: string
     color: string
   }
+}
+
+interface TimeEntryCorrection {
+  id: string
+  time_entry_id: string
+  requested_by: string
+  approved_by?: string
+  original_start_time: string
+  original_end_time?: string
+  corrected_start_time: string
+  corrected_end_time?: string
+  original_description?: string
+  corrected_description?: string
+  correction_reason: string
+  status: 'pending' | 'approved' | 'rejected'
+  created_at: string
+  updated_at: string
 }
 
 interface Project {
@@ -70,17 +96,50 @@ const TimeTrackingModule: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
   const [workingHours, setWorkingHours] = useState<WorkingHoursConfig[]>([])
+  const [corrections, setCorrections] = useState<TimeEntryCorrection[]>([])
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null)
   const [activeEntry, setActiveEntry] = useState<TimeEntry | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isOnline, setIsOnline] = useState(NetworkManager.isOnline())
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [selectedProject, setSelectedProject] = useState<string>('')
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all')
   const [newEntryDialog, setNewEntryDialog] = useState(false)
   const [workingHoursDialog, setWorkingHoursDialog] = useState(false)
+  const [correctionDialog, setCorrectionDialog] = useState(false)
+  const [selectedEntryForCorrection, setSelectedEntryForCorrection] = useState<TimeEntry | null>(null)
   const [selectedEmployeeForHours, setSelectedEmployeeForHours] = useState<string>('')
+  
+  // Manager Instanzen
+  const offlineManager = new OfflineTimeTrackingManager()
+  const gpsManager = new GPSLocationManager()
 
   const { toast } = useToast()
+
+  // Initialize Service Worker and Network Status
+  useEffect(() => {
+    NetworkManager.registerServiceWorker()
+    
+    const cleanup = NetworkManager.onStatusChange((online) => {
+      setIsOnline(online)
+      if (online) {
+        // Sync offline entries when coming back online
+        syncOfflineEntries()
+        toast({
+          title: "Wieder online",
+          description: "Synchronisiere Offline-Daten..."
+        })
+      } else {
+        toast({
+          title: "Offline-Modus",
+          description: "Zeiteinträge werden lokal gespeichert.",
+          variant: "destructive"
+        })
+      }
+    })
+
+    return cleanup
+  }, [])
 
   useEffect(() => {
     loadData()
@@ -123,6 +182,51 @@ const TimeTrackingModule: React.FC = () => {
     }
 
     setCurrentEmployee(data)
+  }
+
+  const syncOfflineEntries = async () => {
+    try {
+      const offlineEntries = await offlineManager.getOfflineEntries()
+      
+      for (const entry of offlineEntries) {
+        try {
+          const { error } = await supabase
+            .from('time_entries')
+            .insert({
+              employee_id: entry.employee_id,
+              project_id: entry.project_id,
+              start_time: entry.start_time,
+              end_time: entry.end_time,
+              description: entry.description,
+              status: entry.status,
+              start_location_lat: entry.start_location?.lat,
+              start_location_lng: entry.start_location?.lng,
+              start_location_address: entry.start_location?.address,
+              end_location_lat: entry.end_location?.lat,
+              end_location_lng: entry.end_location?.lng,
+              end_location_address: entry.end_location?.address,
+              is_offline_synced: true,
+              offline_created_at: entry.offline_created_at
+            })
+
+          if (!error) {
+            await offlineManager.removeOfflineEntry(entry.id)
+          }
+        } catch (syncError) {
+          console.error('Error syncing offline entry:', syncError)
+        }
+      }
+      
+      if (offlineEntries.length > 0) {
+        loadTimeEntries()
+        toast({
+          title: "Synchronisation abgeschlossen",
+          description: `${offlineEntries.length} Offline-Einträge wurden synchronisiert.`
+        })
+      }
+    } catch (error) {
+      console.error('Error syncing offline entries:', error)
+    }
   }
 
   const loadTimeEntries = async () => {
@@ -204,15 +308,49 @@ const TimeTrackingModule: React.FC = () => {
       return
     }
 
+    // Get GPS location
+    let startLocation: GeolocationPosition | undefined
+    try {
+      startLocation = await gpsManager.getCurrentPosition()
+    } catch (error) {
+      console.warn('GPS location not available:', error)
+    }
+
+    const timeEntry = {
+      employee_id: currentEmployee.id,
+      project_id: projectId || null,
+      start_time: new Date().toISOString(),
+      description: description || null,
+      status: 'aktiv',
+      start_location_lat: startLocation?.lat,
+      start_location_lng: startLocation?.lng,
+      start_location_address: startLocation?.address
+    }
+
+    if (!isOnline) {
+      // Save offline
+      const offlineEntry: OfflineTimeEntry = {
+        id: crypto.randomUUID(),
+        employee_id: currentEmployee.id,
+        project_id: projectId || undefined,
+        start_time: new Date().toISOString(),
+        description: description || undefined,
+        status: 'aktiv',
+        start_location: startLocation,
+        offline_created_at: new Date().toISOString()
+      }
+
+      await offlineManager.saveOfflineEntry(offlineEntry)
+      toast({
+        title: "Offline gespeichert",
+        description: "Zeiterfassung wird bei der nächsten Verbindung synchronisiert."
+      })
+      return
+    }
+
     const { data, error } = await supabase
       .from('time_entries')
-      .insert({
-        employee_id: currentEmployee.id,
-        project_id: projectId || null,
-        start_time: new Date().toISOString(),
-        description: description || null,
-        status: 'aktiv'
-      })
+      .insert(timeEntry)
       .select(`
         *,
         employee:employees(first_name, last_name),
@@ -234,19 +372,34 @@ const TimeTrackingModule: React.FC = () => {
     setNewEntryDialog(false)
     toast({
       title: "Zeiterfassung gestartet",
-      description: "Die Zeiterfassung wurde erfolgreich gestartet."
+      description: startLocation 
+        ? `Gestartet an: ${startLocation.address}`
+        : "Die Zeiterfassung wurde erfolgreich gestartet."
     })
   }
 
   const stopTimeTracking = async () => {
     if (!activeEntry) return
 
+    // Get GPS location
+    let endLocation: GeolocationPosition | undefined
+    try {
+      endLocation = await gpsManager.getCurrentPosition()
+    } catch (error) {
+      console.warn('GPS location not available:', error)
+    }
+
+    const updateData = {
+      end_time: new Date().toISOString(),
+      status: 'beendet',
+      end_location_lat: endLocation?.lat,
+      end_location_lng: endLocation?.lng,
+      end_location_address: endLocation?.address
+    }
+
     const { error } = await supabase
       .from('time_entries')
-      .update({
-        end_time: new Date().toISOString(),
-        status: 'beendet'
-      })
+      .update(updateData)
       .eq('id', activeEntry.id)
 
     if (error) {
@@ -262,7 +415,9 @@ const TimeTrackingModule: React.FC = () => {
     loadTimeEntries()
     toast({
       title: "Zeiterfassung beendet",
-      description: "Die Zeiterfassung wurde erfolgreich beendet."
+      description: endLocation 
+        ? `Beendet an: ${endLocation.address}`
+        : "Die Zeiterfassung wurde erfolgreich beendet."
     })
   }
 

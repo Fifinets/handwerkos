@@ -548,9 +548,17 @@ export type Database = {
           created_at: string
           description: string | null
           employee_id: string
+          end_location_address: string | null
+          end_location_lat: number | null
+          end_location_lng: number | null
           end_time: string | null
           id: string
+          is_offline_synced: boolean | null
+          offline_created_at: string | null
           project_id: string | null
+          start_location_address: string | null
+          start_location_lat: number | null
+          start_location_lng: number | null
           start_time: string
           status: string
           updated_at: string
@@ -560,9 +568,17 @@ export type Database = {
           created_at?: string
           description?: string | null
           employee_id: string
+          end_location_address?: string | null
+          end_location_lat?: number | null
+          end_location_lng?: number | null
           end_time?: string | null
           id?: string
+          is_offline_synced?: boolean | null
+          offline_created_at?: string | null
           project_id?: string | null
+          start_location_address?: string | null
+          start_location_lat?: number | null
+          start_location_lng?: number | null
           start_time: string
           status?: string
           updated_at?: string
@@ -572,9 +588,17 @@ export type Database = {
           created_at?: string
           description?: string | null
           employee_id?: string
+          end_location_address?: string | null
+          end_location_lat?: number | null
+          end_location_lng?: number | null
           end_time?: string | null
           id?: string
+          is_offline_synced?: boolean | null
+          offline_created_at?: string | null
           project_id?: string | null
+          start_location_address?: string | null
+          start_location_lat?: number | null
+          start_location_lng?: number | null
           start_time?: string
           status?: string
           updated_at?: string
@@ -592,6 +616,79 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      time_entry_corrections: {
+        Row: {
+          approved_by: string | null
+          corrected_description: string | null
+          corrected_end_time: string | null
+          corrected_start_time: string
+          correction_reason: string
+          created_at: string
+          id: string
+          original_description: string | null
+          original_end_time: string | null
+          original_start_time: string
+          requested_by: string
+          status: string
+          time_entry_id: string
+          updated_at: string
+        }
+        Insert: {
+          approved_by?: string | null
+          corrected_description?: string | null
+          corrected_end_time?: string | null
+          corrected_start_time: string
+          correction_reason: string
+          created_at?: string
+          id?: string
+          original_description?: string | null
+          original_end_time?: string | null
+          original_start_time: string
+          requested_by: string
+          status?: string
+          time_entry_id: string
+          updated_at?: string
+        }
+        Update: {
+          approved_by?: string | null
+          corrected_description?: string | null
+          corrected_end_time?: string | null
+          corrected_start_time?: string
+          correction_reason?: string
+          created_at?: string
+          id?: string
+          original_description?: string | null
+          original_end_time?: string | null
+          original_start_time?: string
+          requested_by?: string
+          status?: string
+          time_entry_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_corrections_approved_by"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_corrections_requested_by"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_corrections_time_entry"
+            columns: ["time_entry_id"]
+            isOneToOne: false
+            referencedRelation: "time_entries"
             referencedColumns: ["id"]
           },
         ]
