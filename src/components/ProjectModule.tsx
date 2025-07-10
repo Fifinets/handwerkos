@@ -266,7 +266,7 @@ const ProjectModule = () => {
         {/* Active Projects */}
         <div className="lg:col-span-2 space-y-4">
           <h3 className="text-lg font-semibold">Aktuelle Projekte</h3>
-          {projects.map((project) => (
+          {projects.filter(project => project.status !== 'Abgeschlossen').map((project) => (
             <Card key={project.id} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6 flex flex-col h-full">
                 <div className="flex items-start justify-between mb-4">
