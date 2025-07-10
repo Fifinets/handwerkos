@@ -1280,7 +1280,7 @@ const TimeTrackingModule: React.FC = () => {
 
       {/* Filters */}
       <Card>
-        <CardContent className="pt-6">
+        <CardContent>
           <div className="flex gap-4 items-end">
             <div className="flex-1">
               <Label>Datum</Label>
