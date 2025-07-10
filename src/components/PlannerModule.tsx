@@ -394,8 +394,8 @@ const PlannerModule: React.FC = () => {
                     }`}
                   >
                     {isValidDate && items && (
-                      <div className="absolute inset-0 p-1 space-y-1">
-                        {items.slice(0, 3).map((item, idx) => {
+                      <div className="absolute inset-0 p-1">
+                        {items.map((item, idx) => {
                           const currentDate = new Date(currentYear, month, day)
                           const shouldShowItem = isStartOfSpan(item, currentDate)
                           
@@ -406,7 +406,7 @@ const PlannerModule: React.FC = () => {
                           return (
                             <div
                               key={`${item.type}-${item.item.id || idx}`}
-                              className="h-3 rounded text-white text-xs flex items-center justify-center font-medium shadow-sm absolute"
+                              className="h-2 rounded text-white text-xs flex items-center justify-center font-medium shadow-sm absolute"
                               style={{
                                 backgroundColor: item.type === 'project' 
                                   ? item.color 
@@ -415,7 +415,7 @@ const PlannerModule: React.FC = () => {
                                     : item.item.color,
                                 width: `${spanWidth * 100}%`,
                                 left: 0,
-                                top: `${4 + idx * 16}px`,
+                                top: `${2 + idx * 10}px`,
                                 zIndex: 10
                               }}
                               title={
@@ -428,20 +428,14 @@ const PlannerModule: React.FC = () => {
                             >
                               {spanWidth >= 3 && (
                                 <>
-                                  {item.type === 'project' && <Briefcase className="w-2 h-2" />}
+                                  {item.type === 'project' && <Briefcase className="w-1.5 h-1.5" />}
                                   {item.type === 'absence' && getIconForAbsenceType(item.item.type)}
-                                  {item.type === 'event' && <Calendar className="w-2 h-2" />}
+                                  {item.type === 'event' && <Calendar className="w-1.5 h-1.5" />}
                                 </>
                               )}
                             </div>
                           )
                         })}
-                        {items.length > 3 && (
-                          <div className="h-3 bg-gray-400 rounded text-white text-xs flex items-center justify-center font-medium absolute"
-                               style={{ top: `${4 + 3 * 16}px`, left: 0 }}>
-                            +{items.length - 3}
-                          </div>
-                        )}
                       </div>
                     )}
                   </div>
