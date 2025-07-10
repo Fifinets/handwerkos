@@ -278,7 +278,11 @@ const TimeTrackingModule: React.FC = () => {
       .eq('status', 'aktiv')
       .order('last_name')
 
-    if (error) throw error
+    if (error) {
+      console.error('Error loading employees:', error)
+      throw error
+    }
+    console.log('Loaded employees:', data)
     setEmployees(data || [])
   }
 
@@ -1031,11 +1035,13 @@ const TimeTrackingModule: React.FC = () => {
                       </SelectTrigger>
                       <SelectContent className="bg-background border shadow-lg z-50">
                         <SelectItem value="all">Alle Mitarbeiter</SelectItem>
-                        {employees.map((employee) => (
+                        {employees.length > 0 ? employees.map((employee) => (
                           <SelectItem key={employee.id} value={employee.id}>
                             {employee.first_name} {employee.last_name}
                           </SelectItem>
-                        ))}
+                        )) : (
+                          <SelectItem value="loading" disabled>Lade Mitarbeiter...</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
