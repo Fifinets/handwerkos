@@ -73,7 +73,7 @@ interface ProjectAssignment {
 
 const PlannerModule: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [viewMode, setViewMode] = useState<'week' | 'month'>('week')
+  const [viewMode, setViewMode] = useState<'week' | 'month'>('month')
   const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'employees' | 'resources'>('overview')
   const [filterType, setFilterType] = useState<'all' | 'projects' | 'absences' | 'events'>('all')
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all')
@@ -390,6 +390,148 @@ const PlannerModule: React.FC = () => {
     )
   }
 
+  // Project calendar view (active projects on Y-axis, days 1-31 on X-axis for selected month)
+  const renderProjectCalendarView = () => {
+    const currentMonth = currentDate.getMonth()
+    const currentYear = currentDate.getFullYear()
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
+    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
+    
+    // Filter active projects
+    const activeProjects = projects.filter(project => {
+      const projectStart = new Date(project.start_date)
+      const projectEnd = project.end_date ? new Date(project.end_date) : new Date()
+      const monthStart = new Date(currentYear, currentMonth, 1)
+      const monthEnd = new Date(currentYear, currentMonth + 1, 0)
+      
+      // Project is active if it overlaps with the current month
+      return projectStart <= monthEnd && projectEnd >= monthStart
+    })
+
+    // Helper function to check if project is active on a specific day
+    const isProjectActiveOnDay = (project: Project, day: number) => {
+      const date = new Date(currentYear, currentMonth, day)
+      const projectStart = new Date(project.start_date)
+      const projectEnd = project.end_date ? new Date(project.end_date) : projectStart
+      
+      return date >= projectStart && date <= projectEnd
+    }
+
+    // Get assignments for a project on a specific day
+    const getProjectAssignmentsForDay = (projectId: string, day: number) => {
+      const date = new Date(currentYear, currentMonth, day)
+      return projectAssignments.filter(assignment => {
+        const assignStart = new Date(assignment.start_date)
+        const assignEnd = assignment.end_date ? new Date(assignment.end_date) : assignStart
+        
+        return assignment.project_id === projectId && 
+               date >= assignStart && 
+               date <= assignEnd
+      })
+    }
+
+    return (
+      <div className="overflow-x-auto">
+        <div className="min-w-[1200px] border border-border rounded-lg overflow-hidden">
+          {/* Header row with days 1-31 */}
+          <div className="grid bg-muted" style={{ gridTemplateColumns: '200px repeat(' + daysInMonth + ', 1fr)' }}>
+            <div className="p-3 border-r border-border font-medium">
+              Projekt
+            </div>
+            {days.map(day => (
+              <div
+                key={day}
+                className="p-2 text-center text-xs border-r border-border last:border-r-0 font-medium"
+              >
+                <div>{day}</div>
+                <div className="text-muted-foreground">
+                  {format(new Date(currentYear, currentMonth, day), 'EEE', { locale: de })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Project rows */}
+          {activeProjects.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">
+              Keine aktiven Projekte in {format(currentDate, 'MMMM yyyy', { locale: de })}
+            </div>
+          ) : (
+            activeProjects.map((project, index) => (
+              <div
+                key={project.id}
+                className={`grid ${index % 2 === 0 ? 'bg-background' : 'bg-muted/50'} border-b border-border last:border-b-0`}
+                style={{ gridTemplateColumns: '200px repeat(' + daysInMonth + ', 1fr)' }}
+              >
+                {/* Project info */}
+                <div className="p-3 border-r border-border">
+                  <div className="font-medium text-sm">{project.name}</div>
+                  <div className="text-xs text-muted-foreground">{project.location}</div>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <Badge variant="outline" className="text-xs">{project.status}</Badge>
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: project.color }}
+                      title={`Projekt: ${project.name}`}
+                    />
+                  </div>
+                </div>
+                
+                {/* Days */}
+                {days.map(day => {
+                  const isActive = isProjectActiveOnDay(project, day)
+                  const assignments = getProjectAssignmentsForDay(project.id, day)
+                  
+                  return (
+                    <div
+                      key={day}
+                      className="border-r border-border last:border-r-0 h-20 relative"
+                    >
+                      {isActive && (
+                        <div className="absolute inset-0 p-1">
+                          {/* Project timeline bar */}
+                          <div
+                            className="h-6 rounded-md flex items-center justify-center text-white text-xs font-medium shadow-sm mb-1"
+                            style={{ backgroundColor: project.color }}
+                            title={`${project.name} - ${format(new Date(currentYear, currentMonth, day), 'dd.MM.yyyy')}`}
+                          >
+                            <Briefcase className="w-3 h-3" />
+                          </div>
+                          
+                          {/* Employee assignments */}
+                          <div className="space-y-1">
+                            {assignments.slice(0, 2).map(assignment => (
+                              <div
+                                key={assignment.id}
+                                className="h-4 bg-blue-200 dark:bg-blue-800 rounded text-xs flex items-center px-1 text-blue-800 dark:text-blue-200"
+                                title={`${assignment.employee?.first_name} ${assignment.employee?.last_name} (${assignment.hours_per_day}h)`}
+                              >
+                                <User className="w-2 h-2 mr-1" />
+                                <span className="truncate">
+                                  {assignment.employee?.first_name?.charAt(0)}{assignment.employee?.last_name?.charAt(0)}
+                                </span>
+                                <span className="ml-auto text-xs">{assignment.hours_per_day}h</span>
+                              </div>
+                            ))}
+                            {assignments.length > 2 && (
+                              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded text-xs flex items-center justify-center text-gray-600 dark:text-gray-300">
+                                +{assignments.length - 2}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -553,11 +695,28 @@ const PlannerModule: React.FC = () => {
         
         <TabsContent value="projects">
           <Card>
-            <CardHeader>
-              <CardTitle>Projektkalender</CardTitle>
+            <CardHeader className="pb-4">
+              <div className="flex justify-between items-center">
+                <CardTitle className="flex items-center space-x-2">
+                  <Briefcase className="w-5 h-5" />
+                  <span>Projektkalender - {format(currentDate, 'MMMM yyyy', { locale: de })}</span>
+                </CardTitle>
+                
+                <div className="flex items-center space-x-2">
+                  <Button variant="outline" size="sm" onClick={navigatePrevious}>
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>
+                    Heute
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={navigateNext}>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Projektkalender wird hier implementiert...</p>
+              {renderProjectCalendarView()}
             </CardContent>
           </Card>
         </TabsContent>
