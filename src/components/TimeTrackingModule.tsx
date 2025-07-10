@@ -1,342 +1,305 @@
-import React, { useState, useEffect } from 'react'
-import { format, parseISO, differenceInMinutes, startOfDay, endOfDay } from 'date-fns'
-import { de } from 'date-fns/locale'
-import { Play, Pause, Square, Clock, Calendar, User, MapPin, Filter, Plus, Settings, Users, Wifi, WifiOff, Edit } from 'lucide-react'
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Calendar as CalendarComponent } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Switch } from "@/components/ui/switch"
-import { cn } from "@/lib/utils"
-import { supabase } from "@/integrations/supabase/client"
-import { useToast } from "@/hooks/use-toast"
-import { useAuth } from "@/hooks/useAuth"
-import { OfflineTimeTrackingManager, GPSLocationManager, NetworkManager, type GeolocationPosition, type OfflineTimeEntry } from "@/lib/timetrackingUtils"
-
+import React, { useState, useEffect } from 'react';
+import { format, parseISO, differenceInMinutes, startOfDay, endOfDay } from 'date-fns';
+import { de } from 'date-fns/locale';
+import { Play, Pause, Square, Clock, Calendar, User, MapPin, Filter, Plus, Settings, Users, Wifi, WifiOff, Edit } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { OfflineTimeTrackingManager, GPSLocationManager, NetworkManager, type GeolocationPosition, type OfflineTimeEntry } from "@/lib/timetrackingUtils";
 interface TimeEntry {
-  id: string
-  employee_id: string
-  project_id?: string
-  start_time: string
-  end_time?: string
-  break_duration: number
-  description?: string
-  status: string
-  created_at: string
-  updated_at: string
-  start_location_lat?: number
-  start_location_lng?: number
-  start_location_address?: string
-  end_location_lat?: number
-  end_location_lng?: number
-  end_location_address?: string
-  is_offline_synced?: boolean
-  offline_created_at?: string
+  id: string;
+  employee_id: string;
+  project_id?: string;
+  start_time: string;
+  end_time?: string;
+  break_duration: number;
+  description?: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  start_location_lat?: number;
+  start_location_lng?: number;
+  start_location_address?: string;
+  end_location_lat?: number;
+  end_location_lng?: number;
+  end_location_address?: string;
+  is_offline_synced?: boolean;
+  offline_created_at?: string;
   employee?: {
-    first_name: string
-    last_name: string
-  }
+    first_name: string;
+    last_name: string;
+  };
   project?: {
-    name: string
-    color: string
-  }
+    name: string;
+    color: string;
+  };
 }
-
 interface TimeEntryCorrection {
-  id: string
-  time_entry_id: string
-  requested_by: string
-  approved_by?: string
-  original_start_time: string
-  original_end_time?: string
-  corrected_start_time: string
-  corrected_end_time?: string
-  original_description?: string
-  corrected_description?: string
-  correction_reason: string
-  status: 'pending' | 'approved' | 'rejected'
-  created_at: string
-  updated_at: string
+  id: string;
+  time_entry_id: string;
+  requested_by: string;
+  approved_by?: string;
+  original_start_time: string;
+  original_end_time?: string;
+  corrected_start_time: string;
+  corrected_end_time?: string;
+  original_description?: string;
+  corrected_description?: string;
+  correction_reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  updated_at: string;
 }
-
 interface Project {
-  id: string
-  name: string
-  color: string
-  status: string
+  id: string;
+  name: string;
+  color: string;
+  status: string;
 }
-
 interface Employee {
-  id: string
-  first_name: string
-  last_name: string
-  user_id?: string
+  id: string;
+  first_name: string;
+  last_name: string;
+  user_id?: string;
 }
-
 interface WorkingHoursConfig {
-  id: string
-  employee_id?: string
-  start_time: string
-  end_time: string
-  break_duration: number
-  working_days: number[]
-  is_default: boolean
+  id: string;
+  employee_id?: string;
+  start_time: string;
+  end_time: string;
+  break_duration: number;
+  working_days: number[];
+  is_default: boolean;
 }
-
 const TimeTrackingModule: React.FC = () => {
-  const { userRole } = useAuth()
-  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([])
-  const [projects, setProjects] = useState<Project[]>([])
-  const [employees, setEmployees] = useState<Employee[]>([])
-  const [absences, setAbsences] = useState<any[]>([])
-  const [workingHours, setWorkingHours] = useState<WorkingHoursConfig[]>([])
-  const [corrections, setCorrections] = useState<TimeEntryCorrection[]>([])
-  const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null)
-  const [activeEntry, setActiveEntry] = useState<TimeEntry | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [isOnline, setIsOnline] = useState(NetworkManager.isOnline())
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
-  const [selectedProject, setSelectedProject] = useState<string>('')
-  const [selectedEmployee, setSelectedEmployee] = useState<string>('all')
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('all')
-  const [newEntryDialog, setNewEntryDialog] = useState(false)
-  const [workingHoursDialog, setWorkingHoursDialog] = useState(false)
-  const [correctionDialog, setCorrectionDialog] = useState(false)
-  const [selectedEntryForCorrection, setSelectedEntryForCorrection] = useState<TimeEntry | null>(null)
-  const [selectedEmployeeForHours, setSelectedEmployeeForHours] = useState<string>('')
-  
-  // Manager Instanzen
-  const offlineManager = new OfflineTimeTrackingManager()
-  const gpsManager = new GPSLocationManager()
+  const {
+    userRole
+  } = useAuth();
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [absences, setAbsences] = useState<any[]>([]);
+  const [workingHours, setWorkingHours] = useState<WorkingHoursConfig[]>([]);
+  const [corrections, setCorrections] = useState<TimeEntryCorrection[]>([]);
+  const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
+  const [activeEntry, setActiveEntry] = useState<TimeEntry | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isOnline, setIsOnline] = useState(NetworkManager.isOnline());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedProject, setSelectedProject] = useState<string>('');
+  const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('all');
+  const [newEntryDialog, setNewEntryDialog] = useState(false);
+  const [workingHoursDialog, setWorkingHoursDialog] = useState(false);
+  const [correctionDialog, setCorrectionDialog] = useState(false);
+  const [selectedEntryForCorrection, setSelectedEntryForCorrection] = useState<TimeEntry | null>(null);
+  const [selectedEmployeeForHours, setSelectedEmployeeForHours] = useState<string>('');
 
-  const { toast } = useToast()
+  // Manager Instanzen
+  const offlineManager = new OfflineTimeTrackingManager();
+  const gpsManager = new GPSLocationManager();
+  const {
+    toast
+  } = useToast();
 
   // Initialize Service Worker and Network Status
   useEffect(() => {
-    NetworkManager.registerServiceWorker()
-    
-    const cleanup = NetworkManager.onStatusChange((online) => {
-      setIsOnline(online)
+    NetworkManager.registerServiceWorker();
+    const cleanup = NetworkManager.onStatusChange(online => {
+      setIsOnline(online);
       if (online) {
         // Sync offline entries when coming back online
-        syncOfflineEntries()
+        syncOfflineEntries();
         toast({
           title: "Wieder online",
           description: "Synchronisiere Offline-Daten..."
-        })
+        });
       } else {
         toast({
           title: "Offline-Modus",
           description: "Zeiteinträge werden lokal gespeichert.",
           variant: "destructive"
-        })
+        });
       }
-    })
-
-    return cleanup
-  }, [])
-
+    });
+    return cleanup;
+  }, []);
   useEffect(() => {
-    loadData()
-  }, [selectedDate, selectedEmployee, selectedEmployeeId])
-
+    loadData();
+  }, [selectedDate, selectedEmployee, selectedEmployeeId]);
   const loadData = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      await Promise.all([
-        loadTimeEntries(),
-        loadProjects(),
-        loadEmployees(),
-        loadCurrentEmployee(),
-        loadWorkingHours(),
-        loadAbsences()
-      ])
+      await Promise.all([loadTimeEntries(), loadProjects(), loadEmployees(), loadCurrentEmployee(), loadWorkingHours(), loadAbsences()]);
     } catch (error) {
-      console.error('Error loading time tracking data:', error)
+      console.error('Error loading time tracking data:', error);
       toast({
         title: "Fehler beim Laden",
         description: "Die Zeiterfassungsdaten konnten nicht geladen werden.",
         variant: "destructive"
-      })
+      });
     }
-    setLoading(false)
-  }
-
+    setLoading(false);
+  };
   const loadCurrentEmployee = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
-
+    const {
+      data: {
+        user
+      }
+    } = await supabase.auth.getUser();
+    if (!user) return;
+    const {
+      data,
+      error
+    } = await supabase.from('profiles').select('*').eq('id', user.id).single();
     if (error) {
-      console.error('Error loading current employee:', error)
-      return
+      console.error('Error loading current employee:', error);
+      return;
     }
-
-    setCurrentEmployee(data)
-  }
-
+    setCurrentEmployee(data);
+  };
   const syncOfflineEntries = async () => {
     try {
-      const offlineEntries = await offlineManager.getOfflineEntries()
-      
+      const offlineEntries = await offlineManager.getOfflineEntries();
       for (const entry of offlineEntries) {
         try {
-          const { error } = await supabase
-            .from('time_entries')
-            .insert({
-              employee_id: entry.employee_id,
-              project_id: entry.project_id,
-              start_time: entry.start_time,
-              end_time: entry.end_time,
-              description: entry.description,
-              status: entry.status,
-              start_location_lat: entry.start_location?.lat,
-              start_location_lng: entry.start_location?.lng,
-              start_location_address: entry.start_location?.address,
-              end_location_lat: entry.end_location?.lat,
-              end_location_lng: entry.end_location?.lng,
-              end_location_address: entry.end_location?.address,
-              is_offline_synced: true,
-              offline_created_at: entry.offline_created_at
-            })
-
+          const {
+            error
+          } = await supabase.from('time_entries').insert({
+            employee_id: entry.employee_id,
+            project_id: entry.project_id,
+            start_time: entry.start_time,
+            end_time: entry.end_time,
+            description: entry.description,
+            status: entry.status,
+            start_location_lat: entry.start_location?.lat,
+            start_location_lng: entry.start_location?.lng,
+            start_location_address: entry.start_location?.address,
+            end_location_lat: entry.end_location?.lat,
+            end_location_lng: entry.end_location?.lng,
+            end_location_address: entry.end_location?.address,
+            is_offline_synced: true,
+            offline_created_at: entry.offline_created_at
+          });
           if (!error) {
-            await offlineManager.removeOfflineEntry(entry.id)
+            await offlineManager.removeOfflineEntry(entry.id);
           }
         } catch (syncError) {
-          console.error('Error syncing offline entry:', syncError)
+          console.error('Error syncing offline entry:', syncError);
         }
       }
-      
       if (offlineEntries.length > 0) {
-        loadTimeEntries()
+        loadTimeEntries();
         toast({
           title: "Synchronisation abgeschlossen",
           description: `${offlineEntries.length} Offline-Einträge wurden synchronisiert.`
-        })
+        });
       }
     } catch (error) {
-      console.error('Error syncing offline entries:', error)
+      console.error('Error syncing offline entries:', error);
     }
-  }
-
+  };
   const loadTimeEntries = async () => {
-    const dateStart = startOfDay(selectedDate)
-    const dateEnd = endOfDay(selectedDate)
-
-    let query = supabase
-      .from('time_entries')
-      .select(`
+    const dateStart = startOfDay(selectedDate);
+    const dateEnd = endOfDay(selectedDate);
+    let query = supabase.from('time_entries').select(`
         *,
         employee:employees(first_name, last_name),
         project:projects(name, color)
-      `)
-      .gte('start_time', dateStart.toISOString())
-      .lte('start_time', dateEnd.toISOString())
-      .order('start_time', { ascending: false })
-
+      `).gte('start_time', dateStart.toISOString()).lte('start_time', dateEnd.toISOString()).order('start_time', {
+      ascending: false
+    });
     if (selectedEmployee !== 'all') {
-      query = query.eq('employee_id', selectedEmployee)
+      query = query.eq('employee_id', selectedEmployee);
     }
-
-    const { data, error } = await query
-
-    if (error) throw error
-    setTimeEntries(data || [])
+    const {
+      data,
+      error
+    } = await query;
+    if (error) throw error;
+    setTimeEntries(data || []);
 
     // Find active entry
-    const active = data?.find(entry => entry.status === 'aktiv')
-    setActiveEntry(active || null)
-  }
-
+    const active = data?.find(entry => entry.status === 'aktiv');
+    setActiveEntry(active || null);
+  };
   const loadProjects = async () => {
-    const { data, error } = await supabase
-      .from('projects')
-      .select('id, name, color, status')
-      .order('name')
-
-    if (error) throw error
-    setProjects(data || [])
-  }
-
+    const {
+      data,
+      error
+    } = await supabase.from('projects').select('id, name, color, status').order('name');
+    if (error) throw error;
+    setProjects(data || []);
+  };
   const loadEmployees = async () => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .not('status', 'is', null)
-      .eq('status', 'aktiv')
-      .order('last_name')
-
+    const {
+      data,
+      error
+    } = await supabase.from('profiles').select('*').not('status', 'is', null).eq('status', 'aktiv').order('last_name');
     if (error) {
-      console.error('Error loading employees:', error)
-      throw error
+      console.error('Error loading employees:', error);
+      throw error;
     }
-    console.log('Loaded employees:', data)
-    setEmployees(data || [])
-  }
-
+    console.log('Loaded employees:', data);
+    setEmployees(data || []);
+  };
   const loadWorkingHours = async () => {
-    const { data, error } = await supabase
-      .from('working_hours_config')
-      .select('*')
-      .order('is_default', { ascending: false })
-
-    if (error) throw error
-    setWorkingHours(data || [])
-  }
-
+    const {
+      data,
+      error
+    } = await supabase.from('working_hours_config').select('*').order('is_default', {
+      ascending: false
+    });
+    if (error) throw error;
+    setWorkingHours(data || []);
+  };
   const loadAbsences = async () => {
     const currentMonth = format(selectedDate, 'yyyy-MM');
-    const { data, error } = await supabase
-      .from('employee_absences')
-      .select('*')
-      .gte('start_date', `${currentMonth}-01`)
-      .lte('end_date', `${currentMonth}-31`)
-      .eq('status', 'genehmigt')
-
-    if (error) throw error
-    setAbsences(data || [])
-  }
-
+    const {
+      data,
+      error
+    } = await supabase.from('employee_absences').select('*').gte('start_date', `${currentMonth}-01`).lte('end_date', `${currentMonth}-31`).eq('status', 'genehmigt');
+    if (error) throw error;
+    setAbsences(data || []);
+  };
   const startTimeTracking = async (projectId?: string, description?: string) => {
     if (!currentEmployee) {
       toast({
         title: "Fehler",
         description: "Kein Mitarbeiter gefunden.",
         variant: "destructive"
-      })
-      return
+      });
+      return;
     }
-
     if (activeEntry) {
       toast({
         title: "Zeiterfassung bereits aktiv",
         description: "Beenden Sie zuerst die aktuelle Zeiterfassung.",
         variant: "destructive"
-      })
-      return
+      });
+      return;
     }
 
     // Get GPS location
-    let startLocation: GeolocationPosition | undefined
+    let startLocation: GeolocationPosition | undefined;
     try {
-      startLocation = await gpsManager.getCurrentPosition()
+      startLocation = await gpsManager.getCurrentPosition();
     } catch (error) {
-      console.warn('GPS location not available:', error)
+      console.warn('GPS location not available:', error);
     }
-
     const timeEntry = {
       employee_id: currentEmployee.id,
       project_id: projectId || null,
@@ -346,8 +309,7 @@ const TimeTrackingModule: React.FC = () => {
       start_location_lat: startLocation?.lat,
       start_location_lng: startLocation?.lng,
       start_location_address: startLocation?.address
-    }
-
+    };
     if (!isOnline) {
       // Save offline
       const offlineEntry: OfflineTimeEntry = {
@@ -359,281 +321,232 @@ const TimeTrackingModule: React.FC = () => {
         status: 'aktiv',
         start_location: startLocation,
         offline_created_at: new Date().toISOString()
-      }
-
-      await offlineManager.saveOfflineEntry(offlineEntry)
+      };
+      await offlineManager.saveOfflineEntry(offlineEntry);
       toast({
         title: "Offline gespeichert",
         description: "Zeiterfassung wird bei der nächsten Verbindung synchronisiert."
-      })
-      return
+      });
+      return;
     }
-
-    const { data, error } = await supabase
-      .from('time_entries')
-      .insert(timeEntry)
-      .select(`
+    const {
+      data,
+      error
+    } = await supabase.from('time_entries').insert(timeEntry).select(`
         *,
         employee:employees(first_name, last_name),
         project:projects(name, color)
-      `)
-      .single()
-
+      `).single();
     if (error) {
       toast({
         title: "Fehler beim Starten",
         description: "Die Zeiterfassung konnte nicht gestartet werden.",
         variant: "destructive"
-      })
-      return
+      });
+      return;
     }
-
-    setActiveEntry(data)
-    loadTimeEntries()
-    setNewEntryDialog(false)
+    setActiveEntry(data);
+    loadTimeEntries();
+    setNewEntryDialog(false);
     toast({
       title: "Zeiterfassung gestartet",
-      description: startLocation 
-        ? `Gestartet an: ${startLocation.address}`
-        : "Die Zeiterfassung wurde erfolgreich gestartet."
-    })
-  }
-
+      description: startLocation ? `Gestartet an: ${startLocation.address}` : "Die Zeiterfassung wurde erfolgreich gestartet."
+    });
+  };
   const stopTimeTracking = async () => {
-    if (!activeEntry) return
+    if (!activeEntry) return;
 
     // Get GPS location
-    let endLocation: GeolocationPosition | undefined
+    let endLocation: GeolocationPosition | undefined;
     try {
-      endLocation = await gpsManager.getCurrentPosition()
+      endLocation = await gpsManager.getCurrentPosition();
     } catch (error) {
-      console.warn('GPS location not available:', error)
+      console.warn('GPS location not available:', error);
     }
-
     const updateData = {
       end_time: new Date().toISOString(),
       status: 'beendet',
       end_location_lat: endLocation?.lat,
       end_location_lng: endLocation?.lng,
       end_location_address: endLocation?.address
-    }
-
-    const { error } = await supabase
-      .from('time_entries')
-      .update(updateData)
-      .eq('id', activeEntry.id)
-
+    };
+    const {
+      error
+    } = await supabase.from('time_entries').update(updateData).eq('id', activeEntry.id);
     if (error) {
       toast({
         title: "Fehler beim Stoppen",
         description: "Die Zeiterfassung konnte nicht gestoppt werden.",
         variant: "destructive"
-      })
-      return
+      });
+      return;
     }
-
-    setActiveEntry(null)
-    loadTimeEntries()
+    setActiveEntry(null);
+    loadTimeEntries();
     toast({
       title: "Zeiterfassung beendet",
-      description: endLocation 
-        ? `Beendet an: ${endLocation.address}`
-        : "Die Zeiterfassung wurde erfolgreich beendet."
-    })
-  }
-
+      description: endLocation ? `Beendet an: ${endLocation.address}` : "Die Zeiterfassung wurde erfolgreich beendet."
+    });
+  };
   const pauseTimeTracking = async () => {
-    if (!activeEntry) return
-
-    const newStatus = activeEntry.status === 'aktiv' ? 'pausiert' : 'aktiv'
-
-    const { error } = await supabase
-      .from('time_entries')
-      .update({ status: newStatus })
-      .eq('id', activeEntry.id)
-
+    if (!activeEntry) return;
+    const newStatus = activeEntry.status === 'aktiv' ? 'pausiert' : 'aktiv';
+    const {
+      error
+    } = await supabase.from('time_entries').update({
+      status: newStatus
+    }).eq('id', activeEntry.id);
     if (error) {
       toast({
         title: "Fehler",
         description: "Der Status konnte nicht geändert werden.",
         variant: "destructive"
-      })
-      return
+      });
+      return;
     }
-
-    setActiveEntry({ ...activeEntry, status: newStatus })
-    loadTimeEntries()
-  }
-
+    setActiveEntry({
+      ...activeEntry,
+      status: newStatus
+    });
+    loadTimeEntries();
+  };
   const startTimeTrackingForEmployee = async (employeeId: string, projectId?: string, description?: string) => {
     if (!userRole || userRole !== 'manager') {
       toast({
         title: "Keine Berechtigung",
         description: "Nur Manager können Zeiterfassung für andere starten.",
         variant: "destructive"
-      })
-      return
+      });
+      return;
     }
 
     // Check if employee already has active entry
-    const { data: existingEntry } = await supabase
-      .from('time_entries')
-      .select('*')
-      .eq('employee_id', employeeId)
-      .eq('status', 'aktiv')
-      .single()
-
+    const {
+      data: existingEntry
+    } = await supabase.from('time_entries').select('*').eq('employee_id', employeeId).eq('status', 'aktiv').single();
     if (existingEntry) {
       toast({
         title: "Zeiterfassung bereits aktiv",
         description: "Dieser Mitarbeiter hat bereits eine aktive Zeiterfassung.",
         variant: "destructive"
-      })
-      return
+      });
+      return;
     }
-
-    const { data, error } = await supabase
-      .from('time_entries')
-      .insert({
-        employee_id: employeeId,
-        project_id: projectId || null,
-        start_time: new Date().toISOString(),
-        description: description || null,
-        status: 'aktiv'
-      })
-      .select(`
+    const {
+      data,
+      error
+    } = await supabase.from('time_entries').insert({
+      employee_id: employeeId,
+      project_id: projectId || null,
+      start_time: new Date().toISOString(),
+      description: description || null,
+      status: 'aktiv'
+    }).select(`
         *,
         employee:employees(first_name, last_name),
         project:projects(name, color)
-      `)
-      .single()
-
+      `).single();
     if (error) {
       toast({
         title: "Fehler beim Starten",
         description: "Die Zeiterfassung konnte nicht gestartet werden.",
         variant: "destructive"
-      })
-      return
+      });
+      return;
     }
-
-    loadTimeEntries()
+    loadTimeEntries();
     toast({
       title: "Zeiterfassung gestartet",
       description: `Zeiterfassung für ${data.employee?.first_name} ${data.employee?.last_name} wurde gestartet.`
-    })
-  }
-
+    });
+  };
   const updateWorkingHours = async (employeeId: string | null, config: Partial<WorkingHoursConfig>) => {
     if (!userRole || userRole !== 'manager') {
       toast({
         title: "Keine Berechtigung",
         description: "Nur Manager können Arbeitszeiten ändern.",
         variant: "destructive"
-      })
-      return
+      });
+      return;
     }
 
     // Check if config exists
-    const { data: existing } = await supabase
-      .from('working_hours_config')
-      .select('*')
-      .eq('employee_id', employeeId)
-      .single()
-
+    const {
+      data: existing
+    } = await supabase.from('working_hours_config').select('*').eq('employee_id', employeeId).single();
     if (existing) {
       // Update existing
-      const { error } = await supabase
-        .from('working_hours_config')
-        .update(config)
-        .eq('id', existing.id)
-
+      const {
+        error
+      } = await supabase.from('working_hours_config').update(config).eq('id', existing.id);
       if (error) {
         toast({
           title: "Fehler beim Aktualisieren",
           description: "Die Arbeitszeiten konnten nicht aktualisiert werden.",
           variant: "destructive"
-        })
-        return
+        });
+        return;
       }
     } else {
       // Create new
-      const { error } = await supabase
-        .from('working_hours_config')
-        .insert({
-          employee_id: employeeId,
-          ...config
-        })
-
+      const {
+        error
+      } = await supabase.from('working_hours_config').insert({
+        employee_id: employeeId,
+        ...config
+      });
       if (error) {
         toast({
           title: "Fehler beim Erstellen",
           description: "Die Arbeitszeiten konnten nicht erstellt werden.",
           variant: "destructive"
-        })
-        return
+        });
+        return;
       }
     }
-
-    loadWorkingHours()
-    setWorkingHoursDialog(false)
+    loadWorkingHours();
+    setWorkingHoursDialog(false);
     toast({
       title: "Arbeitszeiten aktualisiert",
       description: "Die Arbeitszeiten wurden erfolgreich gespeichert."
-    })
-  }
-
+    });
+  };
   const formatWorkingDays = (days: number[]) => {
-    const dayNames = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
-    return days.map(day => dayNames[day === 7 ? 0 : day]).join(', ')
-  }
-
+    const dayNames = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+    return days.map(day => dayNames[day === 7 ? 0 : day]).join(', ');
+  };
   const getWorkingHoursForEmployee = (employeeId: string) => {
-    return workingHours.find(wh => wh.employee_id === employeeId) || 
-           workingHours.find(wh => wh.is_default)
-  }
-
+    return workingHours.find(wh => wh.employee_id === employeeId) || workingHours.find(wh => wh.is_default);
+  };
   const WorkingHoursDialog = () => {
-    const [startTime, setStartTime] = useState('08:00')
-    const [endTime, setEndTime] = useState('17:00')
-    const [breakDuration, setBreakDuration] = useState(30)
-    const [workingDays, setWorkingDays] = useState<number[]>([1,2,3,4,5])
-
+    const [startTime, setStartTime] = useState('08:00');
+    const [endTime, setEndTime] = useState('17:00');
+    const [breakDuration, setBreakDuration] = useState(30);
+    const [workingDays, setWorkingDays] = useState<number[]>([1, 2, 3, 4, 5]);
     useEffect(() => {
       if (selectedEmployeeForHours) {
-        const config = getWorkingHoursForEmployee(selectedEmployeeForHours)
+        const config = getWorkingHoursForEmployee(selectedEmployeeForHours);
         if (config) {
-          setStartTime(config.start_time.slice(0, 5))
-          setEndTime(config.end_time.slice(0, 5))
-          setBreakDuration(config.break_duration)
-          setWorkingDays(config.working_days)
+          setStartTime(config.start_time.slice(0, 5));
+          setEndTime(config.end_time.slice(0, 5));
+          setBreakDuration(config.break_duration);
+          setWorkingDays(config.working_days);
         }
       }
-    }, [selectedEmployeeForHours])
-
+    }, [selectedEmployeeForHours]);
     const handleSave = () => {
-      updateWorkingHours(
-        selectedEmployeeForHours === 'default' ? null : selectedEmployeeForHours,
-        {
-          start_time: startTime + ':00',
-          end_time: endTime + ':00',
-          break_duration: breakDuration,
-          working_days: workingDays,
-          is_default: selectedEmployeeForHours === 'default'
-        }
-      )
-    }
-
+      updateWorkingHours(selectedEmployeeForHours === 'default' ? null : selectedEmployeeForHours, {
+        start_time: startTime + ':00',
+        end_time: endTime + ':00',
+        break_duration: breakDuration,
+        working_days: workingDays,
+        is_default: selectedEmployeeForHours === 'default'
+      });
+    };
     const toggleWorkingDay = (day: number) => {
-      setWorkingDays(prev => 
-        prev.includes(day) 
-          ? prev.filter(d => d !== day)
-          : [...prev, day].sort()
-      )
-    }
-
-    return (
-      <Dialog open={workingHoursDialog} onOpenChange={setWorkingHoursDialog}>
+      setWorkingDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day].sort());
+    };
+    return <Dialog open={workingHoursDialog} onOpenChange={setWorkingHoursDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Arbeitszeiten konfigurieren</DialogTitle>
@@ -647,11 +560,9 @@ const TimeTrackingModule: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="default">Standard (alle Mitarbeiter)</SelectItem>
-                  {employees.map(employee => (
-                    <SelectItem key={employee.id} value={employee.id}>
+                  {employees.map(employee => <SelectItem key={employee.id} value={employee.id}>
                       {employee.first_name} {employee.last_name}
-                    </SelectItem>
-                  ))}
+                    </SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -659,54 +570,46 @@ const TimeTrackingModule: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Arbeitsbeginn</Label>
-                <Input
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                />
+                <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
               </div>
               <div>
                 <Label>Arbeitsende</Label>
-                <Input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                />
+                <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
               </div>
             </div>
             
             <div>
               <Label>Pausendauer (Minuten)</Label>
-              <Input
-                type="number"
-                value={breakDuration}
-                onChange={(e) => setBreakDuration(Number(e.target.value))}
-                min="0"
-                max="120"
-              />
+              <Input type="number" value={breakDuration} onChange={e => setBreakDuration(Number(e.target.value))} min="0" max="120" />
             </div>
             
             <div>
               <Label>Arbeitstage</Label>
               <div className="flex gap-2 mt-2">
-                {[
-                  { value: 1, label: 'Mo' },
-                  { value: 2, label: 'Di' },
-                  { value: 3, label: 'Mi' },
-                  { value: 4, label: 'Do' },
-                  { value: 5, label: 'Fr' },
-                  { value: 6, label: 'Sa' },
-                  { value: 7, label: 'So' }
-                ].map(day => (
-                  <Button
-                    key={day.value}
-                    variant={workingDays.includes(day.value) ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => toggleWorkingDay(day.value)}
-                  >
+                {[{
+                value: 1,
+                label: 'Mo'
+              }, {
+                value: 2,
+                label: 'Di'
+              }, {
+                value: 3,
+                label: 'Mi'
+              }, {
+                value: 4,
+                label: 'Do'
+              }, {
+                value: 5,
+                label: 'Fr'
+              }, {
+                value: 6,
+                label: 'Sa'
+              }, {
+                value: 7,
+                label: 'So'
+              }].map(day => <Button key={day.value} variant={workingDays.includes(day.value) ? 'default' : 'outline'} size="sm" onClick={() => toggleWorkingDay(day.value)}>
                     {day.label}
-                  </Button>
-                ))}
+                  </Button>)}
               </div>
             </div>
             
@@ -720,30 +623,21 @@ const TimeTrackingModule: React.FC = () => {
             </div>
           </div>
         </DialogContent>
-      </Dialog>
-    )
-  }
-
+      </Dialog>;
+  };
   const ManagerStartDialog = () => {
-    const [employeeId, setEmployeeId] = useState('')
-    const [projectId, setProjectId] = useState('')
-    const [description, setDescription] = useState('')
-
+    const [employeeId, setEmployeeId] = useState('');
+    const [projectId, setProjectId] = useState('');
+    const [description, setDescription] = useState('');
     const handleSubmit = () => {
-      if (!employeeId) return
-      startTimeTrackingForEmployee(
-        employeeId,
-        projectId === 'none' ? undefined : projectId || undefined,
-        description || undefined
-      )
-      setEmployeeId('')
-      setProjectId('')
-      setDescription('')
-      setNewEntryDialog(false)
-    }
-
-    return (
-      <div className="space-y-4">
+      if (!employeeId) return;
+      startTimeTrackingForEmployee(employeeId, projectId === 'none' ? undefined : projectId || undefined, description || undefined);
+      setEmployeeId('');
+      setProjectId('');
+      setDescription('');
+      setNewEntryDialog(false);
+    };
+    return <div className="space-y-4">
         <div>
           <Label htmlFor="employee">Mitarbeiter</Label>
           <Select value={employeeId} onValueChange={setEmployeeId}>
@@ -751,11 +645,9 @@ const TimeTrackingModule: React.FC = () => {
               <SelectValue placeholder="Mitarbeiter auswählen..." />
             </SelectTrigger>
             <SelectContent>
-              {employees.map(employee => (
-                <SelectItem key={employee.id} value={employee.id}>
+              {employees.map(employee => <SelectItem key={employee.id} value={employee.id}>
                   {employee.first_name} {employee.last_name}
-                </SelectItem>
-              ))}
+                </SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -767,28 +659,20 @@ const TimeTrackingModule: React.FC = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">Kein Projekt</SelectItem>
-              {projects.map(project => (
-                <SelectItem key={project.id} value={project.id}>
+              {projects.map(project => <SelectItem key={project.id} value={project.id}>
                   <div className="flex items-center gap-2">
-                    <div 
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: project.color }}
-                    />
+                    <div className="w-3 h-3 rounded-full" style={{
+                  backgroundColor: project.color
+                }} />
                     {project.name}
                   </div>
-                </SelectItem>
-              ))}
+                </SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div>
           <Label htmlFor="description">Beschreibung (optional)</Label>
-          <Textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Beschreibung der Tätigkeit..."
-          />
+          <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} placeholder="Beschreibung der Tätigkeit..." />
         </div>
         <div className="flex gap-2 justify-end">
           <Button variant="outline" onClick={() => setNewEntryDialog(false)}>
@@ -799,50 +683,42 @@ const TimeTrackingModule: React.FC = () => {
             Starten
           </Button>
         </div>
-      </div>
-    )
-  }
-
+      </div>;
+  };
   const formatDuration = (startTime: string, endTime?: string) => {
-    const start = parseISO(startTime)
-    const end = endTime ? parseISO(endTime) : new Date()
-    const minutes = differenceInMinutes(end, start)
-    const hours = Math.floor(minutes / 60)
-    const remainingMinutes = minutes % 60
-    return `${hours}:${remainingMinutes.toString().padStart(2, '0')}h`
-  }
-
+    const start = parseISO(startTime);
+    const end = endTime ? parseISO(endTime) : new Date();
+    const minutes = differenceInMinutes(end, start);
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `${hours}:${remainingMinutes.toString().padStart(2, '0')}h`;
+  };
   const getTotalHours = () => {
     return timeEntries.reduce((total, entry) => {
       if (entry.status === 'beendet' && entry.end_time) {
-        const start = parseISO(entry.start_time)
-        const end = parseISO(entry.end_time)
-        return total + differenceInMinutes(end, start)
+        const start = parseISO(entry.start_time);
+        const end = parseISO(entry.end_time);
+        return total + differenceInMinutes(end, start);
       }
-      return total
-    }, 0)
-  }
-
+      return total;
+    }, 0);
+  };
   const NewEntryDialog = () => {
-    const [description, setDescription] = useState('')
-    const [projectId, setProjectId] = useState('')
-
+    const [description, setDescription] = useState('');
+    const [projectId, setProjectId] = useState('');
     const handleSubmit = () => {
-      startTimeTracking(projectId === 'none' ? undefined : projectId || undefined, description || undefined)
-      setDescription('')
-      setProjectId('')
-    }
-
-    return (
-      <Dialog open={newEntryDialog} onOpenChange={setNewEntryDialog}>
+      startTimeTracking(projectId === 'none' ? undefined : projectId || undefined, description || undefined);
+      setDescription('');
+      setProjectId('');
+    };
+    return <Dialog open={newEntryDialog} onOpenChange={setNewEntryDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
               {userRole === 'manager' ? 'Zeiterfassung starten' : 'Neue Zeiterfassung starten'}
             </DialogTitle>
           </DialogHeader>
-          {userRole === 'manager' ? <ManagerStartDialog /> : (
-            <div className="space-y-4">
+          {userRole === 'manager' ? <ManagerStartDialog /> : <div className="space-y-4">
               <div>
                 <Label htmlFor="project">Projekt (optional)</Label>
                 <Select value={projectId} onValueChange={setProjectId}>
@@ -851,28 +727,20 @@ const TimeTrackingModule: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Kein Projekt</SelectItem>
-                    {projects.map(project => (
-                      <SelectItem key={project.id} value={project.id}>
+                    {projects.map(project => <SelectItem key={project.id} value={project.id}>
                         <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: project.color }}
-                          />
+                          <div className="w-3 h-3 rounded-full" style={{
+                      backgroundColor: project.color
+                    }} />
                           {project.name}
                         </div>
-                      </SelectItem>
-                    ))}
+                      </SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label htmlFor="description">Beschreibung (optional)</Label>
-                <Textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Was arbeiten Sie?"
-                />
+                <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} placeholder="Was arbeiten Sie?" />
               </div>
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={() => setNewEntryDialog(false)}>
@@ -883,29 +751,22 @@ const TimeTrackingModule: React.FC = () => {
                   Starten
                 </Button>
               </div>
-            </div>
-          )}
+            </div>}
         </DialogContent>
-      </Dialog>
-    )
-  }
-
+      </Dialog>;
+  };
   if (loading) {
-    return <div className="flex items-center justify-center h-64">Lade Zeiterfassung...</div>
+    return <div className="flex items-center justify-center h-64">Lade Zeiterfassung...</div>;
   }
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Zeiterfassung</h1>
         <div className="flex gap-2">
-          {userRole === 'manager' && (
-            <Button variant="outline" onClick={() => setWorkingHoursDialog(true)}>
+          {userRole === 'manager' && <Button variant="outline" onClick={() => setWorkingHoursDialog(true)}>
               <Settings className="w-4 h-4 mr-2" />
               Arbeitszeiten
-            </Button>
-          )}
+            </Button>}
           <Button onClick={() => setNewEntryDialog(true)}>
             <Plus className="w-4 h-4 mr-2" />
             {userRole === 'manager' ? 'Zeiterfassung starten' : 'Meine Zeiterfassung'}
@@ -922,21 +783,20 @@ const TimeTrackingModule: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {activeEntry ? (
-            <div className="space-y-4">
+          {activeEntry ? <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-lg font-medium">
                     {activeEntry.project?.name || 'Allgemeine Arbeitszeit'}
                   </p>
                   <p className="text-muted-foreground">
-                    Gestartet: {format(parseISO(activeEntry.start_time), 'HH:mm', { locale: de })}
+                    Gestartet: {format(parseISO(activeEntry.start_time), 'HH:mm', {
+                  locale: de
+                })}
                   </p>
-                  {activeEntry.description && (
-                    <p className="text-sm text-muted-foreground mt-1">
+                  {activeEntry.description && <p className="text-sm text-muted-foreground mt-1">
                       {activeEntry.description}
-                    </p>
-                  )}
+                    </p>}
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold">
@@ -948,43 +808,28 @@ const TimeTrackingModule: React.FC = () => {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={pauseTimeTracking}
-                  className="flex-1"
-                >
-                  {activeEntry.status === 'aktiv' ? (
-                    <>
+                <Button variant="outline" onClick={pauseTimeTracking} className="flex-1">
+                  {activeEntry.status === 'aktiv' ? <>
                       <Pause className="w-4 h-4 mr-2" />
                       Pausieren
-                    </>
-                  ) : (
-                    <>
+                    </> : <>
                       <Play className="w-4 h-4 mr-2" />
                       Fortsetzen
-                    </>
-                  )}
+                    </>}
                 </Button>
-                <Button
-                  variant="destructive"
-                  onClick={stopTimeTracking}
-                  className="flex-1"
-                >
+                <Button variant="destructive" onClick={stopTimeTracking} className="flex-1">
                   <Square className="w-4 h-4 mr-2" />
                   Beenden
                 </Button>
               </div>
-            </div>
-          ) : (
-            <div className="text-center py-8">
+            </div> : <div className="text-center py-8">
               <Clock className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground mb-4">Keine aktive Zeiterfassung</p>
               <Button onClick={() => setNewEntryDialog(true)}>
                 <Play className="w-4 h-4 mr-2" />
                 Zeiterfassung starten
               </Button>
-            </div>
-          )}
+            </div>}
         </CardContent>
       </Card>
 
@@ -998,34 +843,30 @@ const TimeTrackingModule: React.FC = () => {
         </CardHeader>
         <CardContent>
           {(() => {
-            // Berechne Monatsgesamtstunden für den ausgewählten Mitarbeiter
-            const currentMonth = format(selectedDate, 'yyyy-MM');
-             const filteredEntries = timeEntries.filter(entry => {
-               const matchesMonth = format(new Date(entry.start_time), 'yyyy-MM') === currentMonth;
-               const matchesEmployee = selectedEmployeeId === 'all' || !selectedEmployeeId || entry.employee_id === selectedEmployeeId;
-               return matchesMonth && matchesEmployee;
-             });
+          // Berechne Monatsgesamtstunden für den ausgewählten Mitarbeiter
+          const currentMonth = format(selectedDate, 'yyyy-MM');
+          const filteredEntries = timeEntries.filter(entry => {
+            const matchesMonth = format(new Date(entry.start_time), 'yyyy-MM') === currentMonth;
+            const matchesEmployee = selectedEmployeeId === 'all' || !selectedEmployeeId || entry.employee_id === selectedEmployeeId;
+            return matchesMonth && matchesEmployee;
+          });
+          const monthlyTotalHours = filteredEntries.reduce((total, entry) => {
+            if (entry.end_time) {
+              const duration = (new Date(entry.end_time).getTime() - new Date(entry.start_time).getTime()) / (1000 * 60 * 60);
+              return total + duration;
+            }
+            return total;
+          }, 0);
 
-            const monthlyTotalHours = filteredEntries.reduce((total, entry) => {
-              if (entry.end_time) {
-                const duration = (new Date(entry.end_time).getTime() - new Date(entry.start_time).getTime()) / (1000 * 60 * 60);
-                return total + duration;
-              }
-              return total;
-            }, 0);
-
-            // Gruppiere Einträge nach Datum
-            const entriesByDate = filteredEntries.reduce((acc, entry) => {
-              const date = format(new Date(entry.start_time), 'yyyy-MM-dd');
-              if (!acc[date]) acc[date] = [];
-              acc[date].push(entry);
-              return acc;
-            }, {} as Record<string, typeof filteredEntries>);
-
-            const selectedEmployee = employees.find(e => e.id === selectedEmployeeId);
-
-            return (
-              <div className="space-y-4">
+          // Gruppiere Einträge nach Datum
+          const entriesByDate = filteredEntries.reduce((acc, entry) => {
+            const date = format(new Date(entry.start_time), 'yyyy-MM-dd');
+            if (!acc[date]) acc[date] = [];
+            acc[date].push(entry);
+            return acc;
+          }, {} as Record<string, typeof filteredEntries>);
+          const selectedEmployee = employees.find(e => e.id === selectedEmployeeId);
+          return <div className="space-y-4">
                 {/* Mitarbeiterauswahl */}
                 <div className="flex gap-4 items-end">
                   <div className="flex-1">
@@ -1036,13 +877,9 @@ const TimeTrackingModule: React.FC = () => {
                       </SelectTrigger>
                       <SelectContent className="bg-background border shadow-lg z-50">
                         <SelectItem value="all">Alle Mitarbeiter</SelectItem>
-                        {employees.length > 0 ? employees.map((employee) => (
-                          <SelectItem key={employee.id} value={employee.id}>
+                        {employees.length > 0 ? employees.map(employee => <SelectItem key={employee.id} value={employee.id}>
                             {employee.first_name} {employee.last_name}
-                          </SelectItem>
-                        )) : (
-                          <SelectItem value="loading" disabled>Lade Mitarbeiter...</SelectItem>
-                        )}
+                          </SelectItem>) : <SelectItem value="loading" disabled>Lade Mitarbeiter...</SelectItem>}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1051,12 +888,12 @@ const TimeTrackingModule: React.FC = () => {
                 {/* Monatsübersicht */}
                 <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-4 rounded-lg border">
                   <h3 className="font-semibold text-lg mb-2">
-                    Monatsübersicht {format(selectedDate, 'MMMM yyyy', { locale: de })}
-                    {selectedEmployee && (
-                      <span className="text-base font-normal ml-2">
+                    Monatsübersicht {format(selectedDate, 'MMMM yyyy', {
+                  locale: de
+                })}
+                    {selectedEmployee && <span className="text-base font-normal ml-2">
                         - {selectedEmployee.first_name} {selectedEmployee.last_name}
-                      </span>
-                    )}
+                      </span>}
                   </h3>
                   <p className="text-2xl font-bold text-primary">
                     {monthlyTotalHours.toFixed(1)} Stunden
@@ -1064,55 +901,54 @@ const TimeTrackingModule: React.FC = () => {
                 </div>
 
                 {/* Tägliche Einträge */}
-                {selectedEmployeeId && selectedEmployeeId !== 'all' ? (
-                  <div className="space-y-3">
+                {selectedEmployeeId && selectedEmployeeId !== 'all' ? <div className="space-y-3">
                     {(() => {
-                      // Erstelle eine Liste aller Tage im Monat
-                      const currentMonthDate = new Date(selectedDate);
-                      const year = currentMonthDate.getFullYear();
-                      const month = currentMonthDate.getMonth();
-                      const daysInMonth = new Date(year, month + 1, 0).getDate();
-                      
-                      const allDays = [];
-                      for (let day = 1; day <= daysInMonth; day++) {
-                        const date = new Date(year, month, day);
-                        const dateString = format(date, 'yyyy-MM-dd');
-                        const dayOfWeek = date.getDay(); // 0 = Sonntag, 6 = Samstag
-                        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-                        const hasEntries = entriesByDate[dateString];
-                        
-                        // Prüfe auf Urlaub für den aktuellen Tag und Mitarbeiter
-                        const isOnVacation = absences.some(absence => {
-                          const startDate = new Date(absence.start_date);
-                          const endDate = new Date(absence.end_date);
-                          const currentDate = new Date(dateString);
-                          return absence.employee_id === selectedEmployeeId && 
-                                 absence.type === 'urlaub' &&
-                                 currentDate >= startDate && 
-                                 currentDate <= endDate;
-                        });
-                        
-                        allDays.push({
-                          date: dateString,
-                          dateObject: date,
-                          isWeekend,
-                          hasEntries,
-                          isOnVacation,
-                          entries: hasEntries || []
-                        });
-                      }
-                      
-                      return allDays
-                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                        .map(({ date, dateObject, isWeekend, hasEntries, isOnVacation, entries }) => {
-                          // Wenn es ein Urlaubstag ist
-                          if (isOnVacation && !hasEntries) {
-                            return (
-                              <div key={date} className="border rounded-lg overflow-hidden bg-yellow-50/50 border-yellow-200">
+                // Erstelle eine Liste aller Tage im Monat
+                const currentMonthDate = new Date(selectedDate);
+                const year = currentMonthDate.getFullYear();
+                const month = currentMonthDate.getMonth();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const allDays = [];
+                for (let day = 1; day <= daysInMonth; day++) {
+                  const date = new Date(year, month, day);
+                  const dateString = format(date, 'yyyy-MM-dd');
+                  const dayOfWeek = date.getDay(); // 0 = Sonntag, 6 = Samstag
+                  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                  const hasEntries = entriesByDate[dateString];
+
+                  // Prüfe auf Urlaub für den aktuellen Tag und Mitarbeiter
+                  const isOnVacation = absences.some(absence => {
+                    const startDate = new Date(absence.start_date);
+                    const endDate = new Date(absence.end_date);
+                    const currentDate = new Date(dateString);
+                    return absence.employee_id === selectedEmployeeId && absence.type === 'urlaub' && currentDate >= startDate && currentDate <= endDate;
+                  });
+                  allDays.push({
+                    date: dateString,
+                    dateObject: date,
+                    isWeekend,
+                    hasEntries,
+                    isOnVacation,
+                    entries: hasEntries || []
+                  });
+                }
+                return allDays.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(({
+                  date,
+                  dateObject,
+                  isWeekend,
+                  hasEntries,
+                  isOnVacation,
+                  entries
+                }) => {
+                  // Wenn es ein Urlaubstag ist
+                  if (isOnVacation && !hasEntries) {
+                    return <div key={date} className="border rounded-lg overflow-hidden bg-yellow-50/50 border-yellow-200">
                                 <div className="bg-yellow-100/50 p-4 border-b">
                                   <div className="flex justify-between items-center">
                                     <h4 className="font-semibold text-yellow-800">
-                                      {format(dateObject, 'EEEE, dd.MM.yyyy', { locale: de })}
+                                      {format(dateObject, 'EEEE, dd.MM.yyyy', {
+                              locale: de
+                            })}
                                     </h4>
                                     <div className="text-right">
                                       <span className="px-3 py-1 rounded-full text-sm font-medium bg-yellow-200 text-yellow-800">
@@ -1121,18 +957,18 @@ const TimeTrackingModule: React.FC = () => {
                                     </div>
                                   </div>
                                 </div>
-                              </div>
-                            );
-                          }
-                          
-                          // Wenn es ein Wochenende ist und keine Einträge gibt
-                          if (isWeekend && !hasEntries) {
-                            return (
-                              <div key={date} className="border rounded-lg overflow-hidden bg-gray-50/50">
+                              </div>;
+                  }
+
+                  // Wenn es ein Wochenende ist und keine Einträge gibt
+                  if (isWeekend && !hasEntries) {
+                    return <div key={date} className="border rounded-lg overflow-hidden bg-gray-50/50">
                                 <div className="bg-gray-100/50 p-4 border-b">
                                   <div className="flex justify-between items-center">
                                     <h4 className="font-semibold text-gray-600">
-                                      {format(dateObject, 'EEEE, dd.MM.yyyy', { locale: de })}
+                                      {format(dateObject, 'EEEE, dd.MM.yyyy', {
+                              locale: de
+                            })}
                                     </h4>
                                     <div className="text-right">
                                       <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
@@ -1141,58 +977,40 @@ const TimeTrackingModule: React.FC = () => {
                                     </div>
                                   </div>
                                 </div>
-                              </div>
-                            );
-                          }
-                          
-                          // Wenn es keine Einträge für einen Werktag gibt, überspringen
-                          if (!hasEntries) {
-                            return null;
-                          }
+                              </div>;
+                  }
 
-                          const dayTotalMinutes = entries.reduce((total, entry) => {
-                            if (entry.end_time) {
-                              const duration = new Date(entry.end_time).getTime() - new Date(entry.start_time).getTime();
-                              return total + duration / (1000 * 60);
-                            }
-                            return total;
-                          }, 0);
-                          
-                          const dayTotalHours = dayTotalMinutes / 60;
-                          const firstEntry = entries.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0];
-                          const lastEntry = entries.sort((a, b) => new Date(b.end_time || b.start_time).getTime() - new Date(a.end_time || a.start_time).getTime())[0];
-                          
-                          return (
-                            <div key={date} className={cn(
-                              "border rounded-lg overflow-hidden",
-                              isOnVacation ? "bg-yellow-50/50 border-yellow-200" :
-                              isWeekend ? "bg-amber-50/50 border-amber-200" : ""
-                            )}>
+                  // Wenn es keine Einträge für einen Werktag gibt, überspringen
+                  if (!hasEntries) {
+                    return null;
+                  }
+                  const dayTotalMinutes = entries.reduce((total, entry) => {
+                    if (entry.end_time) {
+                      const duration = new Date(entry.end_time).getTime() - new Date(entry.start_time).getTime();
+                      return total + duration / (1000 * 60);
+                    }
+                    return total;
+                  }, 0);
+                  const dayTotalHours = dayTotalMinutes / 60;
+                  const firstEntry = entries.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0];
+                  const lastEntry = entries.sort((a, b) => new Date(b.end_time || b.start_time).getTime() - new Date(a.end_time || a.start_time).getTime())[0];
+                  return <div key={date} className={cn("border rounded-lg overflow-hidden", isOnVacation ? "bg-yellow-50/50 border-yellow-200" : isWeekend ? "bg-amber-50/50 border-amber-200" : "")}>
                               {/* Tagesheader */}
-                              <div className={cn(
-                                "p-4 border-b",
-                                isOnVacation ? "bg-yellow-100/50" :
-                                isWeekend ? "bg-amber-100/50" : "bg-muted/50"
-                              )}>
+                              <div className={cn("p-4 border-b", isOnVacation ? "bg-yellow-100/50" : isWeekend ? "bg-amber-100/50" : "bg-muted/50")}>
                                 <div className="flex justify-between items-center">
                                   <div>
-                                    <h4 className={cn(
-                                      "font-semibold",
-                                      isOnVacation ? "text-yellow-800" : ""
-                                    )}>
-                                      {format(dateObject, 'EEEE, dd.MM.yyyy', { locale: de })}
+                                    <h4 className={cn("font-semibold", isOnVacation ? "text-yellow-800" : "")}>
+                                      {format(dateObject, 'EEEE, dd.MM.yyyy', {
+                              locale: de
+                            })}
                                     </h4>
                                     <div className="flex gap-2 mt-1">
-                                      {isOnVacation && (
-                                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-200 text-yellow-800 inline-block">
+                                      {isOnVacation && <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-200 text-yellow-800 inline-block">
                                           Urlaub (gearbeitet)
-                                        </span>
-                                      )}
-                                      {isWeekend && (
-                                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-200 text-amber-800 inline-block">
+                                        </span>}
+                                      {isWeekend && <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-200 text-amber-800 inline-block">
                                           Wochenendarbeit
-                                        </span>
-                                      )}
+                                        </span>}
                                     </div>
                                   </div>
                                   <div className="text-right">
@@ -1206,236 +1024,59 @@ const TimeTrackingModule: React.FC = () => {
                               
                               {/* Einträge für den Tag */}
                               <div className="divide-y">
-                                {entries
-                                  .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-                                  .map((entry) => {
-                                    const project = projects.find(p => p.id === entry.project_id);
-                                    const duration = entry.end_time 
-                                      ? (new Date(entry.end_time).getTime() - new Date(entry.start_time).getTime()) / (1000 * 60 * 60)
-                                      : 0;
-                                    const breakDuration = entry.break_duration || 0;
-
-                                    return (
-                                      <div key={entry.id} className="p-4 hover:bg-muted/30">
+                                {entries.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()).map(entry => {
+                        const project = projects.find(p => p.id === entry.project_id);
+                        const duration = entry.end_time ? (new Date(entry.end_time).getTime() - new Date(entry.start_time).getTime()) / (1000 * 60 * 60) : 0;
+                        const breakDuration = entry.break_duration || 0;
+                        return <div key={entry.id} className="p-4 hover:bg-muted/30">
                                         <div className="flex justify-between items-start">
                                           <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
                                               <span className="font-medium">
                                                 {format(new Date(entry.start_time), 'HH:mm')} - {entry.end_time ? format(new Date(entry.end_time), 'HH:mm') : 'Aktiv'}
                                               </span>
-                                              <span className={cn(
-                                                "px-2 py-1 rounded-full text-xs font-medium",
-                                                entry.status === 'aktiv' ? "bg-green-100 text-green-800" :
-                                                entry.status === 'beendet' ? "bg-blue-100 text-blue-800" :
-                                                entry.status === 'pausiert' ? "bg-yellow-100 text-yellow-800" :
-                                                "bg-gray-100 text-gray-800"
-                                              )}>
-                                                {entry.status === 'aktiv' ? 'Aktiv' :
-                                                 entry.status === 'beendet' ? 'Beendet' :
-                                                 entry.status === 'pausiert' ? 'Pausiert' :
-                                                 entry.status}
+                                              <span className={cn("px-2 py-1 rounded-full text-xs font-medium", entry.status === 'aktiv' ? "bg-green-100 text-green-800" : entry.status === 'beendet' ? "bg-blue-100 text-blue-800" : entry.status === 'pausiert' ? "bg-yellow-100 text-yellow-800" : "bg-gray-100 text-gray-800")}>
+                                                {entry.status === 'aktiv' ? 'Aktiv' : entry.status === 'beendet' ? 'Beendet' : entry.status === 'pausiert' ? 'Pausiert' : entry.status}
                                               </span>
                                             </div>
                                             <div className="text-sm text-muted-foreground">
                                               <p><strong>Projekt:</strong> {project?.name || 'Kein Projekt'}</p>
-                                              {entry.description && (
-                                                <p><strong>Beschreibung:</strong> {entry.description}</p>
-                                              )}
-                                              {breakDuration > 0 && (
-                                                <p><strong>Pause:</strong> {breakDuration} min</p>
-                                              )}
+                                              {entry.description && <p><strong>Beschreibung:</strong> {entry.description}</p>}
+                                              {breakDuration > 0 && <p><strong>Pause:</strong> {breakDuration} min</p>}
                                             </div>
                                           </div>
                                           <div className="text-right ml-4">
-                                            {entry.end_time && (
-                                              <span className="text-lg font-bold">{duration.toFixed(1)}h</span>
-                                            )}
+                                            {entry.end_time && <span className="text-lg font-bold">{duration.toFixed(1)}h</span>}
                                           </div>
                                         </div>
-                                      </div>
-                                    );
-                                  })}
+                                      </div>;
+                      })}
                               </div>
-                            </div>
-                          );
-                        })
-                        .filter(Boolean); // Entferne null-Werte
-                    })()}
-                    {Object.keys(entriesByDate).length === 0 && (
-                      <div className="p-8 text-center text-muted-foreground border rounded-lg">
+                            </div>;
+                }).filter(Boolean); // Entferne null-Werte
+              })()}
+                    {Object.keys(entriesByDate).length === 0 && <div className="p-8 text-center text-muted-foreground border rounded-lg">
                         Keine Zeiterfassungseinträge für den ausgewählten Mitarbeiter gefunden
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="p-8 text-center text-muted-foreground border rounded-lg">
+                      </div>}
+                  </div> : <div className="p-8 text-center text-muted-foreground border rounded-lg">
                     Bitte wählen Sie einen Mitarbeiter aus, um die Zeiterfassung anzuzeigen
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+                  </div>}
+              </div>;
+        })()}
         </CardContent>
       </Card>
 
       {/* Filters */}
-      <Card>
-        <CardContent>
-          <div className="flex gap-4 items-end">
-            <div className="flex-1">
-              <Label>Datum</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !selectedDate && "text-muted-foreground"
-                    )}
-                  >
-                    <Calendar className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "dd.MM.yyyy", { locale: de }) : "Datum wählen"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <CalendarComponent
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={(date) => date && setSelectedDate(date)}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="flex-1">
-              <Label>Mitarbeiter</Label>
-              <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle Mitarbeiter</SelectItem>
-                  {employees.map(employee => (
-                    <SelectItem key={employee.id} value={employee.id}>
-                      {employee.first_name} {employee.last_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      
 
       {/* Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-2xl font-bold">{timeEntries.length}</p>
-              <p className="text-muted-foreground">Einträge heute</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-2xl font-bold">
-                {Math.floor(getTotalHours() / 60)}:{(getTotalHours() % 60).toString().padStart(2, '0')}h
-              </p>
-              <p className="text-muted-foreground">Gesamtzeit heute</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-2xl font-bold">
-                {timeEntries.filter(e => e.status === 'beendet').length}
-              </p>
-              <p className="text-muted-foreground">Abgeschlossen</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      
 
       {/* Time Entries List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Zeiteinträge</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {timeEntries.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Keine Zeiteinträge für das ausgewählte Datum gefunden.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {timeEntries.map(entry => (
-                <div
-                  key={entry.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
-                >
-                  <div className="flex items-center gap-4">
-                    {entry.project && (
-                      <div
-                        className="w-4 h-4 rounded-full"
-                        style={{ backgroundColor: entry.project.color }}
-                      />
-                    )}
-                    <div>
-                      <p className="font-medium">
-                        {entry.project?.name || 'Allgemeine Arbeitszeit'}
-                      </p>
-                      {entry.description && (
-                        <p className="text-sm text-muted-foreground">
-                          {entry.description}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                        <span>
-                          {format(parseISO(entry.start_time), 'HH:mm', { locale: de })} - {' '}
-                          {entry.end_time 
-                            ? format(parseISO(entry.end_time), 'HH:mm', { locale: de })
-                            : 'Laufend'
-                          }
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <User className="w-3 h-3" />
-                          {entry.employee?.first_name} {entry.employee?.last_name}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold">
-                      {entry.end_time 
-                        ? formatDuration(entry.start_time, entry.end_time)
-                        : formatDuration(entry.start_time)
-                      }
-                    </p>
-                    <Badge 
-                      variant={
-                        entry.status === 'aktiv' ? 'default' : 
-                        entry.status === 'beendet' ? 'secondary' : 'outline'
-                      }
-                    >
-                      {entry.status === 'aktiv' ? 'Aktiv' : 
-                       entry.status === 'beendet' ? 'Beendet' : 'Pausiert'}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      
 
       <NewEntryDialog />
       <WorkingHoursDialog />
-    </div>
-  )
-}
-
-export default TimeTrackingModule
+    </div>;
+};
+export default TimeTrackingModule;
