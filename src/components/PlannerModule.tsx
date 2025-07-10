@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, addWeeks, addMonths, subWeeks, subMonths, isSameDay, isWithinInterval, eachDayOfInterval } from 'date-fns'
 import { de } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Calendar, Users, Briefcase, Plus, Filter, User, Clock, MapPin, AlertCircle, CheckCircle, XCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, Users, Briefcase, Plus, Filter, User, Clock, MapPin, AlertCircle, CheckCircle, XCircle, CalendarIcon } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
+import { cn } from "@/lib/utils"
 import { supabase } from "@/integrations/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 
@@ -706,9 +709,30 @@ const PlannerModule: React.FC = () => {
                   <Button variant="outline" size="sm" onClick={navigatePrevious}>
                     <ChevronLeft className="w-4 h-4" />
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>
-                    Heute
-                  </Button>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "w-[180px] justify-start text-left font-normal",
+                          "hover:bg-muted/50"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {format(currentDate, 'MMMM yyyy', { locale: de })}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={currentDate}
+                        onSelect={(date) => date && setCurrentDate(date)}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <Button variant="outline" size="sm" onClick={navigateNext}>
                     <ChevronRight className="w-4 h-4" />
                   </Button>
