@@ -287,7 +287,7 @@ const TimeTrackingModule: React.FC = () => {
     const [projectId, setProjectId] = useState('')
 
     const handleSubmit = () => {
-      startTimeTracking(projectId || undefined, description || undefined)
+      startTimeTracking(projectId === 'none' ? undefined : projectId || undefined, description || undefined)
       setDescription('')
       setProjectId('')
     }
@@ -306,7 +306,7 @@ const TimeTrackingModule: React.FC = () => {
                   <SelectValue placeholder="Projekt auswählen..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Kein Projekt</SelectItem>
+                  <SelectItem value="none">Kein Projekt</SelectItem>
                   {projects.map(project => (
                     <SelectItem key={project.id} value={project.id}>
                       <div className="flex items-center gap-2">
