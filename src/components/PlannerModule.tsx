@@ -480,78 +480,83 @@ const PlannerModule: React.FC = () => {
                   </div>
                 </div>
                 
-                {/* Days */}
-                {days.map(day => (
-                  <div
-                    key={day}
-                    className="border-r border-border last:border-r-0 h-20 relative"
-                  />
-                ))}
-                
-                {/* Project timeline bar - continuous across days */}
-                {(() => {
-                  const projectStart = new Date(project.start_date)
-                  const projectEnd = project.end_date ? new Date(project.end_date) : projectStart
-                  const monthStart = new Date(currentYear, currentMonth, 1)
-                  const monthEnd = new Date(currentYear, currentMonth + 1, 0)
+                {/* Days container with project timeline */}
+                <div className="relative h-20" style={{ gridColumn: `2 / ${daysInMonth + 2}` }}>
+                  {/* Background grid for days */}
+                  <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${daysInMonth}, 1fr)` }}>
+                    {days.map(day => (
+                      <div
+                        key={day}
+                        className="border-r border-border last:border-r-0"
+                      />
+                    ))}
+                  </div>
                   
-                  // Calculate start and end positions within the month
-                  const effectiveStart = projectStart < monthStart ? 1 : projectStart.getDate()
-                  const effectiveEnd = projectEnd > monthEnd ? daysInMonth : projectEnd.getDate()
-                  
-                  // Skip if project doesn't overlap with current month
-                  if (projectEnd < monthStart || projectStart > monthEnd) return null
-                  
-                  const width = ((effectiveEnd - effectiveStart + 1) / daysInMonth) * 100
-                  const left = ((effectiveStart - 1) / daysInMonth) * 100
-                  
-                  return (
-                    <div
-                      className="absolute top-2 h-12 rounded-md flex items-center px-3 text-white text-sm font-medium shadow-md z-10"
-                      style={{
-                        left: `${left}%`,
-                        width: `${width}%`,
-                        backgroundColor: project.color,
-                        minWidth: '60px'
-                      }}
-                      title={`${project.name} (${format(projectStart, 'dd.MM.yyyy')} - ${format(projectEnd, 'dd.MM.yyyy')})`}
-                    >
-                      <Briefcase className="w-4 h-4 mr-2 flex-shrink-0" />
-                      <span className="truncate">{project.name}</span>
-                      <div className="ml-auto flex items-center space-x-1">
-                        <span className="text-xs opacity-90">
-                          {format(projectStart, 'dd.MM')} - {format(projectEnd, 'dd.MM')}
-                        </span>
+                  {/* Project timeline bar - continuous across days */}
+                  {(() => {
+                    const projectStart = new Date(project.start_date)
+                    const projectEnd = project.end_date ? new Date(project.end_date) : projectStart
+                    const monthStart = new Date(currentYear, currentMonth, 1)
+                    const monthEnd = new Date(currentYear, currentMonth + 1, 0)
+                    
+                    // Calculate start and end positions within the month
+                    const effectiveStart = projectStart < monthStart ? 1 : projectStart.getDate()
+                    const effectiveEnd = projectEnd > monthEnd ? daysInMonth : projectEnd.getDate()
+                    
+                    // Skip if project doesn't overlap with current month
+                    if (projectEnd < monthStart || projectStart > monthEnd) return null
+                    
+                    const width = ((effectiveEnd - effectiveStart + 1) / daysInMonth) * 100
+                    const left = ((effectiveStart - 1) / daysInMonth) * 100
+                    
+                    return (
+                      <div
+                        className="absolute top-2 h-12 rounded-md flex items-center px-3 text-white text-sm font-medium shadow-md z-10"
+                        style={{
+                          left: `${left}%`,
+                          width: `${width}%`,
+                          backgroundColor: project.color,
+                          minWidth: '60px'
+                        }}
+                        title={`${project.name} (${format(projectStart, 'dd.MM.yyyy')} - ${format(projectEnd, 'dd.MM.yyyy')})`}
+                      >
+                        <Briefcase className="w-4 h-4 mr-2 flex-shrink-0" />
+                        <span className="truncate">{project.name}</span>
+                        <div className="ml-auto flex items-center space-x-1">
+                          <span className="text-xs opacity-90">
+                            {format(projectStart, 'dd.MM')} - {format(projectEnd, 'dd.MM')}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )
-                })()}
-                
-                {/* Employee assignments as small indicators */}
-                {days.map(day => {
-                  const assignments = getProjectAssignmentsForDay(project.id, day)
+                    )
+                  })()}
                   
-                  if (assignments.length === 0) return null
-                  
-                  const dayLeft = ((day - 1) / daysInMonth) * 100
-                  const dayWidth = (1 / daysInMonth) * 100
-                  
-                  return (
-                    <div
-                      key={`assignments-${day}`}
-                      className="absolute bottom-2 h-4 bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-700 rounded flex items-center justify-center"
-                      style={{
-                        left: `${dayLeft}%`,
-                        width: `${dayWidth - 1}%`,
-                        minWidth: '20px'
-                      }}
-                      title={`${assignments.length} Mitarbeiter: ${assignments.map(a => `${a.employee?.first_name} ${a.employee?.last_name} (${a.hours_per_day}h)`).join(', ')}`}
-                    >
-                      <User className="w-2 h-2 text-blue-600 dark:text-blue-400" />
-                      <span className="text-xs ml-1 text-blue-600 dark:text-blue-400">{assignments.length}</span>
-                    </div>
-                  )
-                })}
+                  {/* Employee assignments as small indicators */}
+                  {days.map(day => {
+                    const assignments = getProjectAssignmentsForDay(project.id, day)
+                    
+                    if (assignments.length === 0) return null
+                    
+                    const dayLeft = ((day - 1) / daysInMonth) * 100
+                    const dayWidth = (1 / daysInMonth) * 100
+                    
+                    return (
+                      <div
+                        key={`assignments-${day}`}
+                        className="absolute bottom-1 h-4 bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-700 rounded flex items-center justify-center"
+                        style={{
+                          left: `${dayLeft}%`,
+                          width: `${dayWidth - 1}%`,
+                          minWidth: '20px'
+                        }}
+                        title={`${assignments.length} Mitarbeiter: ${assignments.map(a => `${a.employee?.first_name} ${a.employee?.last_name} (${a.hours_per_day}h)`).join(', ')}`}
+                      >
+                        <User className="w-2 h-2 text-blue-600 dark:text-blue-400" />
+                        <span className="text-xs ml-1 text-blue-600 dark:text-blue-400">{assignments.length}</span>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             ))
           )}
