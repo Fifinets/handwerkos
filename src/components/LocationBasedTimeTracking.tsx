@@ -100,14 +100,31 @@ const LocationBasedTimeTracking: React.FC<LocationBasedTimeTrackingProps> = ({ e
 
   const fetchAssignedProject = async () => {
     try {
+      // Prüfe zuerst ob der User eine Employee-Rolle hat
+      const { data: userRole } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', employeeId)
+        .single();
+
+      if (userRole?.role !== 'employee') {
+        toast.error('Diese Funktion ist nur für Mitarbeiter verfügbar');
+        setIsLoading(false);
+        return;
+      }
+
       // Hole das aktuelle Employee-Record
       const { data: employee } = await supabase
         .from('employees')
         .select('id')
         .eq('user_id', employeeId)
-        .single();
+        .maybeSingle();
 
-      if (!employee) return;
+      if (!employee) {
+        toast.error('Mitarbeiterprofil nicht gefunden');
+        setIsLoading(false);
+        return;
+      }
 
       // Hole die aktuelle Projektzuweisung
       const { data: assignment } = await supabase

@@ -19,10 +19,29 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import LocationBasedTimeTracking from "@/components/LocationBasedTimeTracking";
+import ManagerTimeView from "@/components/ManagerTimeView";
+import { supabase } from "@/integrations/supabase/client";
 
 const Employee = () => {
   const { user, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState('material');
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (!user?.id) return;
+      
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+      
+      setUserRole(data?.role || null);
+    };
+
+    fetchUserRole();
+  }, [user?.id]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -75,7 +94,12 @@ const Employee = () => {
     </Card>
   );
 
-  const renderTimeForm = () => <LocationBasedTimeTracking employeeId={user?.id || ''} />;
+  const renderTimeForm = () => {
+    if (userRole === 'manager') {
+      return <ManagerTimeView />;
+    }
+    return <LocationBasedTimeTracking employeeId={user?.id || ''} />;
+  };
 
   const renderVacationForm = () => (
     <Card>
