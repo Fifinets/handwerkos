@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,10 +12,13 @@ import {
   LogOut, 
   User,
   Plus,
-  Settings
+  Settings,
+  MapPin,
+  Navigation
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import LocationBasedTimeTracking from "@/components/LocationBasedTimeTracking";
 
 const Employee = () => {
   const { user, signOut } = useAuth();
@@ -72,45 +75,7 @@ const Employee = () => {
     </Card>
   );
 
-  const renderTimeForm = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
-          Überstunden beantragen
-        </CardTitle>
-        <CardDescription>Zusätzliche Arbeitszeit oder Änderungen melden</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="project-time">Projekt</Label>
-          <Input id="project-time" placeholder="Projektname oder -nummer" />
-        </div>
-        <div>
-          <Label htmlFor="date">Datum</Label>
-          <Input id="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <Button className="w-full h-12">
-            <Plus className="h-4 w-4 mr-2" />
-            Arbeitsbeginn
-          </Button>
-          <Button variant="outline" className="w-full h-12">
-            <Plus className="h-4 w-4 mr-2" />
-            Arbeitsende
-          </Button>
-        </div>
-        <div>
-          <Label htmlFor="reason">Grund für Mehrzeit</Label>
-          <Textarea id="reason" placeholder="Begründung für zusätzliche Arbeitszeit..." />
-        </div>
-        <Button className="w-full">
-          <Plus className="h-4 w-4 mr-2" />
-          Arbeitszeit melden
-        </Button>
-      </CardContent>
-    </Card>
-  );
+  const renderTimeForm = () => <LocationBasedTimeTracking employeeId={user?.id || ''} />;
 
   const renderVacationForm = () => (
     <Card>
