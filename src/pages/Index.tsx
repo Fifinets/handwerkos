@@ -1,25 +1,24 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { 
+  TrendingUp, 
   Users, 
   Building2, 
   UserCheck, 
   Package, 
   Settings, 
-  Calculator,
-  FileText,
-  TrendingUp,
-  Phone,
-  Mail,
-  MapPin,
+  Calculator, 
   Calendar,
-  DollarSign,
-  Wrench,
-  ClipboardList,
   LogOut,
   User
-} from "lucide-react";
+} from 'lucide-react';
+
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
 import CustomerModule from "@/components/CustomerModule";
 import ProjectModule from "@/components/ProjectModule";
 import PersonalModule from "@/components/PersonalModule";
@@ -29,74 +28,34 @@ import FinanceModule from "@/components/FinanceModule";
 import PlannerModule from "@/components/PlannerModule";
 import DashboardCalendar from "@/components/DashboardCalendar";
 import DashboardStats from "@/components/DashboardStats";
-import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 const Index = () => {
-  const [activeModule, setActiveModule] = useState('dashboard');
-  const { user, userRole, loading, signOut } = useAuth();
+  const { user, userRole, loading } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
-    }
-  }, [user, loading, navigate]);
-
-  useEffect(() => {
-    if (userRole === 'employee') {
-      navigate('/employee');
-    }
-  }, [userRole, navigate]);
-
-  const handleSignOut = async () => {
-    await signOut();
-    toast.success('Erfolgreich abgemeldet');
-  };
+  const [activeModule, setActiveModule] = useState('dashboard');
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="bg-blue-600 text-white p-3 rounded-lg inline-block mb-4">
-            <Settings className="h-8 w-8" />
-          </div>
-          <p className="text-gray-600">Wird geladen...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  if (!user || userRole !== 'manager') {
+  if (!user) {
+    navigate('/auth');
     return null;
   }
 
-  const modules = [
-    { id: 'dashboard', name: 'Dashboard', icon: TrendingUp, color: 'bg-blue-500' },
-    { id: 'customers', name: 'Kunden & Aufträge', icon: Users, color: 'bg-green-500' },
-    { id: 'projects', name: 'Projekte & Baustellen', icon: Building2, color: 'bg-orange-500' },
-    { id: 'personal', name: 'Personal', icon: UserCheck, color: 'bg-purple-500' },
-    { id: 'materials', name: 'Material', icon: Package, color: 'bg-red-500' },
-    { id: 'machines', name: 'Maschinen & Geräte', icon: Settings, color: 'bg-indigo-500' },
-    { id: 'finance', name: 'Finanzen', icon: Calculator, color: 'bg-cyan-500' },
-    { id: 'planner', name: 'Planer', icon: Calendar, color: 'bg-teal-500' }
-  ];
+  if (userRole === 'employee') {
+    navigate('/employee');
+    return null;
+  }
 
-  const dashboardStats = [
-    { title: 'Aktive Projekte', value: '12', icon: Building2, color: 'text-blue-600' },
-    { title: 'Kunden', value: '48', icon: Users, color: 'text-green-600' },
-    { title: 'Mitarbeiter', value: '8', icon: UserCheck, color: 'text-purple-600' },
-    { title: 'Offene Rechnungen', value: '€15.420', icon: DollarSign, color: 'text-red-600' }
-  ];
-
-  const recentActivities = [
-    { type: 'Auftrag', description: 'Neuer Auftrag von Müller GmbH', time: '2 Std.' },
-    { type: 'Wartung', description: 'DGUV V3 Prüfung bei Schmidt AG fällig', time: '4 Std.' },
-    { type: 'Material', description: 'Kabel 5x2.5 mm² unter Mindestbestand', time: '6 Std.' },
-    { type: 'Personal', description: 'Urlaub von Max Mustermann genehmigt', time: '1 Tag' }
-  ];
+  if (userRole !== 'manager') {
+    return null;
+  }
 
   const renderModule = () => {
     switch(activeModule) {
@@ -117,155 +76,53 @@ const Index = () => {
       default:
         return (
           <div className="space-y-6">
-            {/* Stats Overview */}
             <DashboardStats />
-
-            {/* Kalender Section */}
             <DashboardCalendar />
-
-            {/* Recent Activities & Quick Actions */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ClipboardList className="h-5 w-5" />
-                    Aktuelle Aktivitäten
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {recentActivities.map((activity, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <span className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full mr-2">
-                            {activity.type}
-                          </span>
-                          <span className="text-sm">{activity.description}</span>
-                        </div>
-                        <span className="text-xs text-gray-500">{activity.time}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Wrench className="h-5 w-5" />
-                    Schnellzugriff
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button 
-                      variant="outline" 
-                      className="h-20 flex flex-col gap-2"
-                      onClick={() => setActiveModule('customers')}
-                    >
-                      <Users className="h-6 w-6" />
-                      <span className="text-xs">Neuer Kunde</span>
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="h-20 flex flex-col gap-2"
-                      onClick={() => setActiveModule('projects')}
-                    >
-                      <Building2 className="h-6 w-6" />
-                      <span className="text-xs">Neues Projekt</span>
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="h-20 flex flex-col gap-2"
-                      onClick={() => setActiveModule('finance')}
-                    >
-                      <FileText className="h-6 w-6" />
-                      <span className="text-xs">Rechnung</span>
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="h-20 flex flex-col gap-2"
-                      onClick={() => setActiveModule('personal')}
-                    >
-                      <UserCheck className="h-6 w-6" />
-                      <span className="text-xs">Personal</span>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </div>
         );
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-600 text-white p-2 rounded-lg">
-                <Settings className="h-6 w-6" />
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <AppSidebar activeModule={activeModule} onModuleChange={setActiveModule} />
+        
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <header className="h-16 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
+            <div className="flex items-center justify-between h-full px-6">
+              <div className="flex items-center space-x-4">
+                <SidebarTrigger />
+                <Separator orientation="vertical" className="h-6" />
+                <div className="flex items-center space-x-2">
+                  <h1 className="text-xl font-semibold">ElektroManage Pro</h1>
+                  <Badge variant="secondary" className="hidden sm:inline-flex">
+                    Manager Dashboard
+                  </Badge>
+                </div>
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">ElektroManager Pro</h1>
-                <p className="text-sm text-gray-500">Manager Portal</p>
+              
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <User className="w-4 h-4" />
+                  <span className="hidden sm:inline">
+                    {user?.email || 'Unbekannter Benutzer'}
+                  </span>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm font-medium flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  {user?.email}
-                </p>
-                <p className="text-xs text-gray-500">Manager</p>
-              </div>
-              <Button variant="outline" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Abmelden
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar Navigation */}
-          <div className="w-full lg:w-64 flex-shrink-0">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Module</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <nav className="space-y-1">
-                  {modules.map((module) => (
-                    <Button
-                      key={module.id}
-                      variant={activeModule === module.id ? "default" : "ghost"}
-                      className={`w-full justify-start gap-3 ${
-                        activeModule === module.id ? 'bg-blue-600 text-white' : ''
-                      }`}
-                      onClick={() => setActiveModule(module.id)}
-                    >
-                      <module.icon className="h-4 w-4" />
-                      {module.name}
-                    </Button>
-                  ))}
-                </nav>
-              </CardContent>
-            </Card>
-          </div>
+          </header>
 
           {/* Main Content */}
-          <div className="flex-1">
-            {renderModule()}
-          </div>
+          <main className="flex-1 overflow-auto">
+            <div className="p-6">
+              {renderModule()}
+            </div>
+          </main>
         </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 
