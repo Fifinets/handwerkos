@@ -383,6 +383,11 @@ const PlannerModule: React.FC = () => {
                   const startDay = spanStart.getDate()
                   const endDay = spanEnd.getDate()
                   
+                  // If the end date is beyond the current month, extend to the last day of the month
+                  if (endDate > monthEnd) {
+                    return monthEnd.getDate() - startDay + 1
+                  }
+                  
                   return endDay - startDay + 1
                 }
 
@@ -406,7 +411,7 @@ const PlannerModule: React.FC = () => {
                           return (
                             <div
                               key={`${item.type}-${item.item.id || idx}`}
-                              className="h-3 rounded text-white text-xs flex items-center justify-center font-medium shadow-sm absolute"
+                              className="h-3 rounded text-white text-xs flex items-center justify-center font-medium shadow-sm absolute hover:h-4 hover:z-20 transition-all duration-200 group cursor-pointer"
                               style={{
                                 backgroundColor: item.type === 'project' 
                                   ? item.color 
@@ -433,6 +438,14 @@ const PlannerModule: React.FC = () => {
                                   {item.type === 'event' && <Calendar className="w-1.5 h-1.5" />}
                                 </>
                               )}
+                              {/* Tooltip für Hover */}
+                              <div className="absolute top-[-32px] left-0 bg-background border border-border rounded px-2 py-1 text-xs text-foreground shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-30">
+                                {item.type === 'project' 
+                                  ? item.item.name
+                                  : item.type === 'absence'
+                                    ? `${item.item.type}: ${item.item.employee?.first_name} ${item.item.employee?.last_name}`
+                                    : item.item.title}
+                              </div>
                             </div>
                           )
                         })}
