@@ -242,175 +242,150 @@ const PlannerModule: React.FC = () => {
     ? employees 
     : employees.filter(emp => emp.department === selectedDepartment)
 
-  // Render calendar overview with all data
-  const renderCalendarOverview = () => {
+  // Get year calendar layout (months on Y-axis, days 1-31 on X-axis)
+  const renderYearCalendarOverview = () => {
+    const currentYear = currentDate.getFullYear()
+    const months = Array.from({ length: 12 }, (_, i) => i)
+    const days = Array.from({ length: 31 }, (_, i) => i + 1)
+
+    // Helper function to get items for a specific month and day
+    const getItemsForDate = (month: number, day: number) => {
+      const date = new Date(currentYear, month, day)
+      
+      // Skip invalid dates (e.g., Feb 30)
+      if (date.getMonth() !== month) return null
+      
+      const dateString = format(date, 'yyyy-MM-dd')
+      
+      const items: any[] = []
+      
+      // Add projects
+      projects.forEach(project => {
+        const projectStart = new Date(project.start_date)
+        const projectEnd = project.end_date ? new Date(project.end_date) : projectStart
+        
+        if (date >= projectStart && date <= projectEnd) {
+          items.push({
+            type: 'project',
+            item: project,
+            color: project.color
+          })
+        }
+      })
+      
+      // Add absences
+      absences.forEach(absence => {
+        const absenceStart = new Date(absence.start_date)
+        const absenceEnd = new Date(absence.end_date)
+        
+        if (date >= absenceStart && date <= absenceEnd) {
+          items.push({
+            type: 'absence',
+            item: absence,
+            color: getColorForAbsenceType(absence.type).replace('bg-', '')
+          })
+        }
+      })
+      
+      // Add calendar events
+      calendarEvents.forEach(event => {
+        const eventStart = new Date(event.start_date)
+        const eventEnd = new Date(event.end_date)
+        
+        if (date >= eventStart && date <= eventEnd) {
+          items.push({
+            type: 'event',
+            item: event,
+            color: event.color
+          })
+        }
+      })
+      
+      return items.length > 0 ? items : null
+    }
+
     return (
-      <div className="grid grid-cols-1 gap-0 border border-border rounded-lg overflow-hidden">
-        {/* Header row with dates */}
-        <div className="grid grid-cols-12 bg-muted">
-          <div className="col-span-3 p-3 border-r border-border font-medium">
-            Ressource
-          </div>
-          <div className="col-span-9 grid" style={{ gridTemplateColumns: `repeat(${dateRange.length}, 1fr)` }}>
-            {dateRange.map((date, index) => (
+      <div className="overflow-x-auto">
+        <div className="min-w-[1200px] border border-border rounded-lg overflow-hidden">
+          {/* Header row with days 1-31 */}
+          <div className="grid bg-muted" style={{ gridTemplateColumns: '120px repeat(31, 1fr)' }}>
+            <div className="p-3 border-r border-border font-medium text-center">
+              Monat
+            </div>
+            {days.map(day => (
               <div
-                key={index}
-                className="p-2 text-center text-xs border-r border-border last:border-r-0"
+                key={day}
+                className="p-2 text-center text-xs border-r border-border last:border-r-0 font-medium"
               >
-                <div className="font-medium">
-                  {format(date, 'EEE', { locale: de })}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {format(date, 'dd.MM', { locale: de })}
-                </div>
+                {day}
               </div>
             ))}
           </div>
-        </div>
 
-        {/* Projects section */}
-        <div className="bg-blue-50 dark:bg-blue-950/20 border-b border-border">
-          <div className="p-2 px-3 font-medium text-sm text-blue-700 dark:text-blue-300 flex items-center">
-            <Briefcase className="w-4 h-4 mr-2" />
-            Projekte
-          </div>
-        </div>
-        
-        {projects.map((project, index) => (
-          <div key={project.id} className={`grid grid-cols-12 border-b border-border last:border-b-0 ${index % 2 === 0 ? 'bg-background' : 'bg-muted/50'}`}>
-            <div className="col-span-3 p-3 border-r border-border">
-              <div className="font-medium text-sm">{project.name}</div>
-              <div className="text-xs text-muted-foreground">{project.location}</div>
-              <Badge variant="outline" className="mt-1 text-xs">{project.status}</Badge>
-            </div>
-            
-            <div className="col-span-9 relative h-12">
-              <div className="grid h-full" style={{ gridTemplateColumns: `repeat(${dateRange.length}, 1fr)` }}>
-                {dateRange.map((date, dayIndex) => (
-                  <div key={dayIndex} className="border-r border-border last:border-r-0 relative" />
-                ))}
+          {/* Months rows */}
+          {months.map((month, monthIndex) => (
+            <div
+              key={month}
+              className={`grid ${monthIndex % 2 === 0 ? 'bg-background' : 'bg-muted/50'} border-b border-border last:border-b-0`}
+              style={{ gridTemplateColumns: '120px repeat(31, 1fr)' }}
+            >
+              {/* Month name */}
+              <div className="p-3 border-r border-border font-medium text-center bg-muted/50">
+                {format(new Date(currentYear, month, 1), 'MMMM', { locale: de })}
               </div>
               
-              {/* Project timeline bar */}
-              {(() => {
-                const projectStart = new Date(project.start_date)
-                const projectEnd = project.end_date ? new Date(project.end_date) : projectStart
-                const taskStart = Math.max(0, Math.floor((projectStart.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)))
-                const taskEnd = Math.min(dateRange.length - 1, Math.floor((projectEnd.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)))
-                
-                if (taskStart > dateRange.length - 1 || taskEnd < 0) return null
-                
-                const width = ((taskEnd - taskStart + 1) / dateRange.length) * 100
-                const left = (taskStart / dateRange.length) * 100
+              {/* Days */}
+              {days.map(day => {
+                const date = new Date(currentYear, month, day)
+                const isValidDate = date.getMonth() === month
+                const items = isValidDate ? getItemsForDate(month, day) : null
                 
                 return (
                   <div
-                    className="absolute top-1 h-8 rounded-md flex items-center px-2 text-white text-xs font-medium shadow-sm"
-                    style={{
-                      left: `${left}%`,
-                      width: `${width}%`,
-                      minWidth: '40px',
-                      backgroundColor: project.color
-                    }}
-                    title={`${project.name} (${format(projectStart, 'dd.MM')} - ${format(projectEnd, 'dd.MM')})`}
+                    key={day}
+                    className={`border-r border-border last:border-r-0 h-16 relative ${
+                      !isValidDate ? 'bg-muted/30' : ''
+                    }`}
                   >
-                    <span className="truncate">{project.name}</span>
+                    {isValidDate && items && (
+                      <div className="absolute inset-0 p-1 space-y-1">
+                        {items.slice(0, 3).map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="h-3 rounded text-white text-xs flex items-center justify-center font-medium shadow-sm"
+                            style={{
+                              backgroundColor: item.type === 'project' 
+                                ? item.color 
+                                : item.type === 'absence'
+                                  ? `rgb(${item.color === 'green-500' ? '34 197 94' : item.color === 'red-500' ? '239 68 68' : item.color === 'blue-500' ? '59 130 246' : '107 114 128'})`
+                                  : item.item.color
+                            }}
+                            title={
+                              item.type === 'project' 
+                                ? `Projekt: ${item.item.name}`
+                                : item.type === 'absence'
+                                  ? `${item.item.type}: ${item.item.employee?.first_name} ${item.item.employee?.last_name}`
+                                  : `Termin: ${item.item.title}`
+                            }
+                          >
+                            {item.type === 'project' && <Briefcase className="w-2 h-2" />}
+                            {item.type === 'absence' && getIconForAbsenceType(item.item.type)}
+                            {item.type === 'event' && <Calendar className="w-2 h-2" />}
+                          </div>
+                        ))}
+                        {items.length > 3 && (
+                          <div className="h-3 bg-gray-400 rounded text-white text-xs flex items-center justify-center font-medium">
+                            +{items.length - 3}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )
-              })()}
+              })}
             </div>
-          </div>
-        ))}
-
-        {/* Employees section */}
-        <div className="bg-green-50 dark:bg-green-950/20 border-b border-border">
-          <div className="p-2 px-3 font-medium text-sm text-green-700 dark:text-green-300 flex items-center">
-            <Users className="w-4 h-4 mr-2" />
-            Mitarbeiter
-          </div>
+          ))}
         </div>
-        
-        {filteredEmployees.map((employee, index) => {
-          const employeeAbsences = absences.filter(a => a.employee_id === employee.id)
-          const employeeAssignments = projectAssignments.filter(a => a.employee_id === employee.id)
-          
-          return (
-            <div key={employee.id} className={`grid grid-cols-12 border-b border-border last:border-b-0 ${index % 2 === 0 ? 'bg-background' : 'bg-muted/50'}`}>
-              <div className="col-span-3 p-3 border-r border-border">
-                <div className="font-medium text-sm">{employee.first_name} {employee.last_name}</div>
-                <div className="text-xs text-muted-foreground">{employee.position}</div>
-                <div className="text-xs text-muted-foreground">{employee.department}</div>
-              </div>
-              
-              <div className="col-span-9 relative h-16">
-                <div className="grid h-full" style={{ gridTemplateColumns: `repeat(${dateRange.length}, 1fr)` }}>
-                  {dateRange.map((date, dayIndex) => (
-                    <div key={dayIndex} className="border-r border-border last:border-r-0 relative" />
-                  ))}
-                </div>
-                
-                {/* Absence bars */}
-                {employeeAbsences.map((absence) => {
-                  const absenceStart = new Date(absence.start_date)
-                  const absenceEnd = new Date(absence.end_date)
-                  const taskStart = Math.max(0, Math.floor((absenceStart.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)))
-                  const taskEnd = Math.min(dateRange.length - 1, Math.floor((absenceEnd.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)))
-                  
-                  if (taskStart > dateRange.length - 1 || taskEnd < 0) return null
-                  
-                  const width = ((taskEnd - taskStart + 1) / dateRange.length) * 100
-                  const left = (taskStart / dateRange.length) * 100
-                  
-                  return (
-                    <div
-                      key={absence.id}
-                      className={`absolute top-1 h-6 ${getColorForAbsenceType(absence.type)} rounded-md flex items-center px-2 text-white text-xs font-medium shadow-sm`}
-                      style={{
-                        left: `${left}%`,
-                        width: `${width}%`,
-                        minWidth: '30px'
-                      }}
-                      title={`${absence.type} (${format(absenceStart, 'dd.MM')} - ${format(absenceEnd, 'dd.MM')}) - ${absence.status}`}
-                    >
-                      {getIconForAbsenceType(absence.type)}
-                      <span className="ml-1 truncate">{absence.type}</span>
-                      {getStatusIcon(absence.status)}
-                    </div>
-                  )
-                })}
-                
-                {/* Project assignment bars */}
-                {employeeAssignments.map((assignment, idx) => {
-                  const assignStart = new Date(assignment.start_date)
-                  const assignEnd = assignment.end_date ? new Date(assignment.end_date) : assignStart
-                  const taskStart = Math.max(0, Math.floor((assignStart.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)))
-                  const taskEnd = Math.min(dateRange.length - 1, Math.floor((assignEnd.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)))
-                  
-                  if (taskStart > dateRange.length - 1 || taskEnd < 0) return null
-                  
-                  const width = ((taskEnd - taskStart + 1) / dateRange.length) * 100
-                  const left = (taskStart / dateRange.length) * 100
-                  
-                  return (
-                    <div
-                      key={assignment.id}
-                      className="absolute bottom-1 h-6 bg-blue-500 rounded-md flex items-center px-2 text-white text-xs font-medium shadow-sm"
-                      style={{
-                        left: `${left}%`,
-                        width: `${width}%`,
-                        minWidth: '40px'
-                      }}
-                      title={`${assignment.project?.name} (${assignment.hours_per_day}h/Tag)`}
-                    >
-                      <Briefcase className="w-3 h-3 mr-1" />
-                      <span className="truncate">{assignment.project?.name}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )
-        })}
       </div>
     )
   }
@@ -531,7 +506,7 @@ const PlannerModule: React.FC = () => {
             </CardHeader>
             
             <CardContent>
-              {renderCalendarOverview()}
+              {renderYearCalendarOverview()}
               
               {/* Legend */}
               <div className="mt-6 space-y-3">
