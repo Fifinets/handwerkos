@@ -343,6 +343,49 @@ const PlannerModule: React.FC = () => {
                 const isValidDate = date.getMonth() === month
                 const items = isValidDate ? getItemsForDate(month, day) : null
                 
+                const isStartOfSpan = (item: any, currentDate: Date) => {
+                  if (item.type === 'project') {
+                    const projectStart = new Date(item.item.start_date)
+                    return isSameDay(projectStart, currentDate) || (projectStart < currentDate && day === 1)
+                  }
+                  if (item.type === 'absence') {
+                    const absenceStart = new Date(item.item.start_date)
+                    return isSameDay(absenceStart, currentDate) || (absenceStart < currentDate && day === 1)
+                  }
+                  if (item.type === 'event') {
+                    const eventStart = new Date(item.item.start_date)
+                    return isSameDay(eventStart, currentDate) || (eventStart < currentDate && day === 1)
+                  }
+                  return false
+                }
+
+                const getSpanWidth = (item: any, currentDate: Date) => {
+                  const monthStart = new Date(currentYear, month, 1)
+                  const monthEnd = new Date(currentYear, month + 1, 0)
+                  
+                  let startDate: Date, endDate: Date
+                  
+                  if (item.type === 'project') {
+                    startDate = new Date(item.item.start_date)
+                    endDate = item.item.end_date ? new Date(item.item.end_date) : new Date()
+                  } else if (item.type === 'absence') {
+                    startDate = new Date(item.item.start_date)
+                    endDate = new Date(item.item.end_date)
+                  } else {
+                    startDate = new Date(item.item.start_date)
+                    endDate = new Date(item.item.end_date)
+                  }
+                  
+                  // Clip to current month
+                  const spanStart = startDate < monthStart ? monthStart : startDate
+                  const spanEnd = endDate > monthEnd ? monthEnd : endDate
+                  
+                  const startDay = spanStart.getDate()
+                  const endDay = spanEnd.getDate()
+                  
+                  return endDay - startDay + 1
+                }
+
                 return (
                   <div
                     key={day}
@@ -352,32 +395,50 @@ const PlannerModule: React.FC = () => {
                   >
                     {isValidDate && items && (
                       <div className="absolute inset-0 p-1 space-y-1">
-                        {items.slice(0, 3).map((item, idx) => (
-                          <div
-                            key={idx}
-                            className="h-3 rounded text-white text-xs flex items-center justify-center font-medium shadow-sm"
-                            style={{
-                              backgroundColor: item.type === 'project' 
-                                ? item.color 
-                                : item.type === 'absence'
-                                  ? `rgb(${item.color === 'green-500' ? '34 197 94' : item.color === 'red-500' ? '239 68 68' : item.color === 'blue-500' ? '59 130 246' : '107 114 128'})`
-                                  : item.item.color
-                            }}
-                            title={
-                              item.type === 'project' 
-                                ? `Projekt: ${item.item.name}`
-                                : item.type === 'absence'
-                                  ? `${item.item.type}: ${item.item.employee?.first_name} ${item.item.employee?.last_name}`
-                                  : `Termin: ${item.item.title}`
-                            }
-                          >
-                            {item.type === 'project' && <Briefcase className="w-2 h-2" />}
-                            {item.type === 'absence' && getIconForAbsenceType(item.item.type)}
-                            {item.type === 'event' && <Calendar className="w-2 h-2" />}
-                          </div>
-                        ))}
+                        {items.slice(0, 3).map((item, idx) => {
+                          const currentDate = new Date(currentYear, month, day)
+                          const shouldShowItem = isStartOfSpan(item, currentDate)
+                          
+                          if (!shouldShowItem) return null
+                          
+                          const spanWidth = getSpanWidth(item, currentDate)
+                          
+                          return (
+                            <div
+                              key={`${item.type}-${item.item.id || idx}`}
+                              className="h-3 rounded text-white text-xs flex items-center justify-center font-medium shadow-sm absolute"
+                              style={{
+                                backgroundColor: item.type === 'project' 
+                                  ? item.color 
+                                  : item.type === 'absence'
+                                    ? `rgb(${item.color === 'green-500' ? '34 197 94' : item.color === 'red-500' ? '239 68 68' : item.color === 'blue-500' ? '59 130 246' : '107 114 128'})`
+                                    : item.item.color,
+                                width: `${spanWidth * 100}%`,
+                                left: 0,
+                                top: `${4 + idx * 16}px`,
+                                zIndex: 10
+                              }}
+                              title={
+                                item.type === 'project' 
+                                  ? `Projekt: ${item.item.name}`
+                                  : item.type === 'absence'
+                                    ? `${item.item.type}: ${item.item.employee?.first_name} ${item.item.employee?.last_name}`
+                                    : `Termin: ${item.item.title}`
+                              }
+                            >
+                              {spanWidth >= 3 && (
+                                <>
+                                  {item.type === 'project' && <Briefcase className="w-2 h-2" />}
+                                  {item.type === 'absence' && getIconForAbsenceType(item.item.type)}
+                                  {item.type === 'event' && <Calendar className="w-2 h-2" />}
+                                </>
+                              )}
+                            </div>
+                          )
+                        })}
                         {items.length > 3 && (
-                          <div className="h-3 bg-gray-400 rounded text-white text-xs flex items-center justify-center font-medium">
+                          <div className="h-3 bg-gray-400 rounded text-white text-xs flex items-center justify-center font-medium absolute"
+                               style={{ top: `${4 + 3 * 16}px`, left: 0 }}>
                             +{items.length - 3}
                           </div>
                         )}
