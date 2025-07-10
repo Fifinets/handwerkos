@@ -309,26 +309,47 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          department: string | null
           email: string
+          employee_number: string | null
           first_name: string | null
+          hire_date: string | null
+          hourly_rate: number | null
           id: string
           last_name: string | null
+          phone: string | null
+          position: string | null
+          status: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          department?: string | null
           email: string
+          employee_number?: string | null
           first_name?: string | null
+          hire_date?: string | null
+          hourly_rate?: number | null
           id: string
           last_name?: string | null
+          phone?: string | null
+          position?: string | null
+          status?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          department?: string | null
           email?: string
+          employee_number?: string | null
           first_name?: string | null
+          hire_date?: string | null
+          hourly_rate?: number | null
           id?: string
           last_name?: string | null
+          phone?: string | null
+          position?: string | null
+          status?: string | null
           updated_at?: string
         }
         Relationships: []

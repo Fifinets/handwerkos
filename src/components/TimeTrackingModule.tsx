@@ -174,9 +174,9 @@ const TimeTrackingModule: React.FC = () => {
     if (!user) return
 
     const { data, error } = await supabase
-      .from('employees')
+      .from('profiles')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('id', user.id)
       .single()
 
     if (error) {
@@ -273,8 +273,9 @@ const TimeTrackingModule: React.FC = () => {
 
   const loadEmployees = async () => {
     const { data, error } = await supabase
-      .from('employees')
+      .from('profiles')
       .select('*')
+      .not('status', 'is', null)
       .eq('status', 'aktiv')
       .order('last_name')
 
