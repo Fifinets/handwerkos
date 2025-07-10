@@ -104,7 +104,7 @@ const TimeTrackingModule: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [selectedProject, setSelectedProject] = useState<string>('')
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all')
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('')
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('all')
   const [newEntryDialog, setNewEntryDialog] = useState(false)
   const [workingHoursDialog, setWorkingHoursDialog] = useState(false)
   const [correctionDialog, setCorrectionDialog] = useState(false)
@@ -980,11 +980,11 @@ const TimeTrackingModule: React.FC = () => {
           {(() => {
             // Berechne Monatsgesamtstunden für den ausgewählten Mitarbeiter
             const currentMonth = format(selectedDate, 'yyyy-MM');
-            const filteredEntries = timeEntries.filter(entry => {
-              const matchesMonth = format(new Date(entry.start_time), 'yyyy-MM') === currentMonth;
-              const matchesEmployee = !selectedEmployeeId || entry.employee_id === selectedEmployeeId;
-              return matchesMonth && matchesEmployee;
-            });
+             const filteredEntries = timeEntries.filter(entry => {
+               const matchesMonth = format(new Date(entry.start_time), 'yyyy-MM') === currentMonth;
+               const matchesEmployee = selectedEmployeeId === 'all' || !selectedEmployeeId || entry.employee_id === selectedEmployeeId;
+               return matchesMonth && matchesEmployee;
+             });
 
             const monthlyTotalHours = filteredEntries.reduce((total, entry) => {
               if (entry.end_time) {
@@ -1010,12 +1010,12 @@ const TimeTrackingModule: React.FC = () => {
                 <div className="flex gap-4 items-end">
                   <div className="flex-1">
                     <Label>Mitarbeiter auswählen</Label>
-                    <Select value={selectedEmployeeId || ""} onValueChange={setSelectedEmployeeId}>
+                    <Select value={selectedEmployeeId || "all"} onValueChange={setSelectedEmployeeId}>
                       <SelectTrigger>
                         <SelectValue placeholder="Mitarbeiter wählen..." />
                       </SelectTrigger>
                       <SelectContent className="bg-background border shadow-lg z-50">
-                        <SelectItem value="">Alle Mitarbeiter</SelectItem>
+                        <SelectItem value="all">Alle Mitarbeiter</SelectItem>
                         {employees.map((employee) => (
                           <SelectItem key={employee.id} value={employee.id}>
                             {employee.first_name} {employee.last_name}
@@ -1042,7 +1042,7 @@ const TimeTrackingModule: React.FC = () => {
                 </div>
 
                 {/* Tägliche Einträge */}
-                {selectedEmployeeId ? (
+                {selectedEmployeeId && selectedEmployeeId !== 'all' ? (
                   <div className="space-y-3">
                     {Object.entries(entriesByDate)
                       .sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime())
