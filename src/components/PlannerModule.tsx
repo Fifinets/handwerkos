@@ -140,7 +140,7 @@ const PlannerModule: React.FC = () => {
       .from('employee_absences')
       .select(`
         *,
-        employee:employees(*)
+        employee:employees!employee_absences_employee_id_fkey(*)
       `)
       .order('start_date')
     
