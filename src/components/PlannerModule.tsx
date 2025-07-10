@@ -481,49 +481,74 @@ const PlannerModule: React.FC = () => {
                 </div>
                 
                 {/* Days */}
-                {days.map(day => {
-                  const isActive = isProjectActiveOnDay(project, day)
-                  const assignments = getProjectAssignmentsForDay(project.id, day)
+                {days.map(day => (
+                  <div
+                    key={day}
+                    className="border-r border-border last:border-r-0 h-20 relative"
+                  />
+                ))}
+                
+                {/* Project timeline bar - continuous across days */}
+                {(() => {
+                  const projectStart = new Date(project.start_date)
+                  const projectEnd = project.end_date ? new Date(project.end_date) : projectStart
+                  const monthStart = new Date(currentYear, currentMonth, 1)
+                  const monthEnd = new Date(currentYear, currentMonth + 1, 0)
+                  
+                  // Calculate start and end positions within the month
+                  const effectiveStart = projectStart < monthStart ? 1 : projectStart.getDate()
+                  const effectiveEnd = projectEnd > monthEnd ? daysInMonth : projectEnd.getDate()
+                  
+                  // Skip if project doesn't overlap with current month
+                  if (projectEnd < monthStart || projectStart > monthEnd) return null
+                  
+                  const width = ((effectiveEnd - effectiveStart + 1) / daysInMonth) * 100
+                  const left = ((effectiveStart - 1) / daysInMonth) * 100
                   
                   return (
                     <div
-                      key={day}
-                      className="border-r border-border last:border-r-0 h-20 relative"
+                      className="absolute top-2 h-12 rounded-md flex items-center px-3 text-white text-sm font-medium shadow-md z-10"
+                      style={{
+                        left: `${left}%`,
+                        width: `${width}%`,
+                        backgroundColor: project.color,
+                        minWidth: '60px'
+                      }}
+                      title={`${project.name} (${format(projectStart, 'dd.MM.yyyy')} - ${format(projectEnd, 'dd.MM.yyyy')})`}
                     >
-                      {isActive && (
-                        <div className="absolute inset-0 p-1">
-                          {/* Project timeline bar */}
-                          <div
-                            className="h-6 rounded-md flex items-center justify-center text-white text-xs font-medium shadow-sm mb-1"
-                            style={{ backgroundColor: project.color }}
-                            title={`${project.name} - ${format(new Date(currentYear, currentMonth, day), 'dd.MM.yyyy')}`}
-                          >
-                            <Briefcase className="w-3 h-3" />
-                          </div>
-                          
-                          {/* Employee assignments */}
-                          <div className="space-y-1">
-                            {assignments.slice(0, 2).map(assignment => (
-                              <div
-                                key={assignment.id}
-                                className="h-4 bg-blue-200 dark:bg-blue-800 rounded text-xs flex items-center px-1 text-blue-800 dark:text-blue-200"
-                                title={`${assignment.employee?.first_name} ${assignment.employee?.last_name} (${assignment.hours_per_day}h)`}
-                              >
-                                <User className="w-2 h-2 mr-1" />
-                                <span className="truncate">
-                                  {assignment.employee?.first_name?.charAt(0)}{assignment.employee?.last_name?.charAt(0)}
-                                </span>
-                                <span className="ml-auto text-xs">{assignment.hours_per_day}h</span>
-                              </div>
-                            ))}
-                            {assignments.length > 2 && (
-                              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded text-xs flex items-center justify-center text-gray-600 dark:text-gray-300">
-                                +{assignments.length - 2}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
+                      <Briefcase className="w-4 h-4 mr-2 flex-shrink-0" />
+                      <span className="truncate">{project.name}</span>
+                      <div className="ml-auto flex items-center space-x-1">
+                        <span className="text-xs opacity-90">
+                          {format(projectStart, 'dd.MM')} - {format(projectEnd, 'dd.MM')}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })()}
+                
+                {/* Employee assignments as small indicators */}
+                {days.map(day => {
+                  const assignments = getProjectAssignmentsForDay(project.id, day)
+                  
+                  if (assignments.length === 0) return null
+                  
+                  const dayLeft = ((day - 1) / daysInMonth) * 100
+                  const dayWidth = (1 / daysInMonth) * 100
+                  
+                  return (
+                    <div
+                      key={`assignments-${day}`}
+                      className="absolute bottom-2 h-4 bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-700 rounded flex items-center justify-center"
+                      style={{
+                        left: `${dayLeft}%`,
+                        width: `${dayWidth - 1}%`,
+                        minWidth: '20px'
+                      }}
+                      title={`${assignments.length} Mitarbeiter: ${assignments.map(a => `${a.employee?.first_name} ${a.employee?.last_name} (${a.hours_per_day}h)`).join(', ')}`}
+                    >
+                      <User className="w-2 h-2 text-blue-600 dark:text-blue-400" />
+                      <span className="text-xs ml-1 text-blue-600 dark:text-blue-400">{assignments.length}</span>
                     </div>
                   )
                 })}
