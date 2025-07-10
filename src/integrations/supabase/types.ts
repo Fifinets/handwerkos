@@ -542,6 +542,60 @@ export type Database = {
           },
         ]
       }
+      time_entries: {
+        Row: {
+          break_duration: number | null
+          created_at: string
+          description: string | null
+          employee_id: string
+          end_time: string | null
+          id: string
+          project_id: string | null
+          start_time: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          break_duration?: number | null
+          created_at?: string
+          description?: string | null
+          employee_id: string
+          end_time?: string | null
+          id?: string
+          project_id?: string | null
+          start_time: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          break_duration?: number | null
+          created_at?: string
+          description?: string | null
+          employee_id?: string
+          end_time?: string | null
+          id?: string
+          project_id?: string | null
+          start_time?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_time_entries_employee"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_time_entries_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string

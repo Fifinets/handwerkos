@@ -26,6 +26,7 @@ import MaterialModule from "@/components/MaterialModule";
 import MachineModule from "@/components/MachineModule";
 import FinanceModule from "@/components/FinanceModule";
 import PlannerModule from "@/components/PlannerModule";
+import TimeTrackingModule from "@/components/TimeTrackingModule";
 import DashboardCalendar from "@/components/DashboardCalendar";
 import DashboardStats from "@/components/DashboardStats";
 import { toast } from "@/hooks/use-toast";
@@ -73,6 +74,8 @@ const Index = () => {
         return <FinanceModule />;
       case 'planner':
         return <PlannerModule />;
+      case 'timetracking':
+        return <TimeTrackingModule />;
       default:
         return (
           <div className="space-y-6">
