@@ -6,14 +6,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Settings, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { googleCalendarAPI, GoogleCalendar } from "@/lib/googleCalendar";
 
-interface GoogleCalendar {
-  id: string;
-  summary: string;
-  description?: string;
-  backgroundColor?: string;
-  selected?: boolean;
-}
+// Google Client ID - muss vom User in den Secrets gesetzt werden
+const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'; // Will be replaced with actual secret
 
 interface GoogleCalendarSettingsProps {
   onCalendarsChange?: (calendars: GoogleCalendar[]) => void;
@@ -46,66 +42,60 @@ const GoogleCalendarSettings: React.FC<GoogleCalendarSettingsProps> = ({ onCalen
   const connectToGoogle = async () => {
     setIsLoading(true);
     try {
-      // This will be implemented with actual Google OAuth
-      // For now, simulate the connection
-      toast({
-        title: "Google Calendar Integration",
-        description: "Google OAuth wird implementiert. Bitte Google Cloud Projekt konfigurieren.",
-      });
+      googleCalendarAPI.setClientId(GOOGLE_CLIENT_ID);
+      const success = await googleCalendarAPI.authenticate();
       
-      // Simulate successful connection
-      setTimeout(() => {
+      if (success) {
         setIsConnected(true);
-        loadCalendars();
-        setIsLoading(false);
-      }, 2000);
-      
+        await loadCalendars();
+        toast({
+          title: "Verbindung erfolgreich",
+          description: "Mit Google Calendar verbunden.",
+        });
+      } else {
+        throw new Error('Authentication failed');
+      }
     } catch (error) {
       console.error('Error connecting to Google:', error);
       toast({
         title: "Verbindungsfehler",
-        description: "Konnte nicht mit Google Calendar verbinden.",
+        description: "Google OAuth Konfiguration fehlt. Bitte Client ID in Secrets hinzufügen.",
         variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
     }
   };
 
   const loadCalendars = async () => {
     try {
-      // Mock data for now - will be replaced with actual Google Calendar API
-      const mockCalendars: GoogleCalendar[] = [
-        {
-          id: 'primary',
-          summary: 'Hauptkalender',
-          description: 'Ihr Hauptkalender',
-          backgroundColor: '#1976D2',
-          selected: false,
-        },
-        {
-          id: 'work',
-          summary: 'Arbeit',
-          description: 'Arbeits-Termine',
-          backgroundColor: '#E65100',
-          selected: false,
-        },
-        {
-          id: 'personal',
-          summary: 'Privat',
-          description: 'Private Termine',
-          backgroundColor: '#7B1FA2',
-          selected: false,
-        },
-      ];
-      
-      setCalendars(mockCalendars);
+      if (googleCalendarAPI.isAuthenticated()) {
+        // Load real calendars from Google Calendar API
+        const realCalendars = await googleCalendarAPI.getCalendars();
+        
+        // Load previously selected calendars
+        const savedSelection = localStorage.getItem('google_calendar_selected');
+        const selectedIds = savedSelection ? JSON.parse(savedSelection) : [];
+        
+        // Mark previously selected calendars
+        const calendarsWithSelection = realCalendars.map(cal => ({
+          ...cal,
+          selected: selectedIds.includes(cal.id)
+        }));
+        
+        setCalendars(calendarsWithSelection);
+        onCalendarsChange?.(calendarsWithSelection.filter(cal => cal.selected));
+      }
     } catch (error) {
       console.error('Error loading calendars:', error);
       toast({
-        title: "Fehler",
-        description: "Konnte Kalender nicht laden.",
+        title: "Fehler beim Laden der Kalender",
+        description: "Konnte Google Calendar nicht erreichen. Bitte erneut verbinden.",
         variant: "destructive",
       });
+      // Fallback to disconnect if API fails
+      setIsConnected(false);
+      googleCalendarAPI.disconnect();
     }
   };
 
@@ -114,6 +104,11 @@ const GoogleCalendarSettings: React.FC<GoogleCalendarSettingsProps> = ({ onCalen
       cal.id === calendarId ? { ...cal, selected: !cal.selected } : cal
     );
     setCalendars(updatedCalendars);
+    
+    // Save selection to localStorage
+    const selectedIds = updatedCalendars.filter(cal => cal.selected).map(cal => cal.id);
+    localStorage.setItem('google_calendar_selected', JSON.stringify(selectedIds));
+    
     onCalendarsChange?.(updatedCalendars.filter(cal => cal.selected));
   };
 
@@ -155,7 +150,7 @@ const GoogleCalendarSettings: React.FC<GoogleCalendarSettingsProps> = ({ onCalen
   };
 
   const disconnectGoogle = () => {
-    localStorage.removeItem('google_calendar_token');
+    googleCalendarAPI.disconnect();
     setIsConnected(false);
     setCalendars([]);
     toast({
