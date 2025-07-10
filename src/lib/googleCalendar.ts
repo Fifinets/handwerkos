@@ -1,4 +1,6 @@
-// Google Calendar API Integration
+import { supabase } from "@/integrations/supabase/client";
+
+// Google Calendar API Integration mit Supabase Secrets
 
 interface GoogleCalendarEvent {
   id: string;
@@ -32,30 +34,60 @@ class GoogleCalendarAPI {
     this.accessToken = localStorage.getItem('google_calendar_token');
   }
 
-  setClientId(clientId: string) {
-    this.clientId = clientId;
+  async setClientId() {
+    try {
+      // Get Google Client ID from Supabase Edge Function (secure way)
+      const { data, error } = await supabase.functions.invoke('get-google-client-id');
+      
+      if (error) {
+        console.error('Failed to get Google Client ID:', error);
+        throw new Error('Google Client ID nicht konfiguriert');
+      }
+      
+      this.clientId = data.clientId;
+    } catch (error) {
+      console.error('Error getting client ID:', error);
+      throw error;
+    }
   }
 
   async authenticate(): Promise<boolean> {
     try {
+      console.log('Starting Google authentication...');
+      
+      // Ensure client ID is set
+      if (!this.clientId) {
+        await this.setClientId();
+      }
+      
       // Load Google APIs
       await this.loadGoogleAPI();
       
+      console.log('Google API loaded, initializing auth...');
+      
       // Initialize gapi
-      await window.gapi.load('auth2', () => {
-        window.gapi.auth2.init({
-          client_id: this.clientId,
-          scope: 'https://www.googleapis.com/auth/calendar.readonly'
+      return new Promise((resolve, reject) => {
+        window.gapi.load('auth2', async () => {
+          try {
+            await window.gapi.auth2.init({
+              client_id: this.clientId,
+              scope: 'https://www.googleapis.com/auth/calendar.readonly'
+            });
+
+            const authInstance = window.gapi.auth2.getAuthInstance();
+            const user = await authInstance.signIn();
+            
+            this.accessToken = user.getAuthResponse().access_token;
+            localStorage.setItem('google_calendar_token', this.accessToken);
+            
+            console.log('Google authentication successful');
+            resolve(true);
+          } catch (error) {
+            console.error('Auth initialization failed:', error);
+            reject(error);
+          }
         });
       });
-
-      const authInstance = window.gapi.auth2.getAuthInstance();
-      const user = await authInstance.signIn();
-      
-      this.accessToken = user.getAuthResponse().access_token;
-      localStorage.setItem('google_calendar_token', this.accessToken);
-      
-      return true;
     } catch (error) {
       console.error('Google authentication failed:', error);
       return false;
@@ -74,7 +106,10 @@ class GoogleCalendarAPI {
       script.onload = () => {
         window.gapi.load('client:auth2', resolve);
       };
-      script.onerror = reject;
+      script.onerror = (error) => {
+        console.error('Failed to load Google API script:', error);
+        reject(error);
+      };
       document.head.appendChild(script);
     });
   }
@@ -85,6 +120,8 @@ class GoogleCalendarAPI {
     }
 
     try {
+      console.log('Fetching calendars from Google API...');
+      
       const response = await fetch(
         'https://www.googleapis.com/calendar/v3/users/me/calendarList',
         {
@@ -96,12 +133,14 @@ class GoogleCalendarAPI {
       );
 
       if (!response.ok) {
+        console.error('Calendar API response:', response.status, response.statusText);
         throw new Error(`API call failed: ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('Calendars loaded:', data.items?.length || 0);
       
-      return data.items.map((calendar: any) => ({
+      return (data.items || []).map((calendar: any) => ({
         id: calendar.id,
         summary: calendar.summary,
         description: calendar.description,

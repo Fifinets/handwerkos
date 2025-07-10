@@ -7,9 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Settings, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { googleCalendarAPI, GoogleCalendar } from "@/lib/googleCalendar";
-
-// Google Client ID - muss vom User in den Secrets gesetzt werden
-const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'; // Will be replaced with actual secret
+import { supabase } from "@/integrations/supabase/client";
 
 interface GoogleCalendarSettingsProps {
   onCalendarsChange?: (calendars: GoogleCalendar[]) => void;
@@ -42,7 +40,7 @@ const GoogleCalendarSettings: React.FC<GoogleCalendarSettingsProps> = ({ onCalen
   const connectToGoogle = async () => {
     setIsLoading(true);
     try {
-      googleCalendarAPI.setClientId(GOOGLE_CLIENT_ID);
+      console.log('Starting Google Calendar connection...');
       const success = await googleCalendarAPI.authenticate();
       
       if (success) {
@@ -58,8 +56,8 @@ const GoogleCalendarSettings: React.FC<GoogleCalendarSettingsProps> = ({ onCalen
     } catch (error) {
       console.error('Error connecting to Google:', error);
       toast({
-        title: "Verbindungsfehler",
-        description: "Google OAuth Konfiguration fehlt. Bitte Client ID in Secrets hinzufügen.",
+        title: "Verbindungsfehler", 
+        description: error instanceof Error ? error.message : "Fehler bei der Google-Verbindung.",
         variant: "destructive",
       });
     } finally {
