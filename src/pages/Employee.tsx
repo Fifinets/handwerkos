@@ -91,14 +91,14 @@ const Employee = () => {
           <Input id="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} />
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="start-time">Startzeit</Label>
-            <Input id="start-time" type="time" />
-          </div>
-          <div>
-            <Label htmlFor="end-time">Endzeit</Label>
-            <Input id="end-time" type="time" />
-          </div>
+          <Button className="w-full h-12">
+            <Plus className="h-4 w-4 mr-2" />
+            Arbeitsbeginn
+          </Button>
+          <Button variant="outline" className="w-full h-12">
+            <Plus className="h-4 w-4 mr-2" />
+            Arbeitsende
+          </Button>
         </div>
         <div>
           <Label htmlFor="reason">Grund für Mehrzeit</Label>
