@@ -14,6 +14,9 @@ const config: CapacitorConfig = {
       launchShowDuration: 2000,
       backgroundColor: '#3b82f6',
       showSpinner: false
+    },
+    Geolocation: {
+      permissions: ['location']
     }
   }
 };
