@@ -1044,93 +1044,157 @@ const TimeTrackingModule: React.FC = () => {
                 {/* Tägliche Einträge */}
                 {selectedEmployeeId && selectedEmployeeId !== 'all' ? (
                   <div className="space-y-3">
-                    {Object.entries(entriesByDate)
-                      .sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime())
-                      .map(([date, entries]) => {
-                        const dayTotalMinutes = entries.reduce((total, entry) => {
-                          if (entry.end_time) {
-                            const duration = new Date(entry.end_time).getTime() - new Date(entry.start_time).getTime();
-                            return total + duration / (1000 * 60);
-                          }
-                          return total;
-                        }, 0);
+                    {(() => {
+                      // Erstelle eine Liste aller Tage im Monat
+                      const currentMonthDate = new Date(selectedDate);
+                      const year = currentMonthDate.getFullYear();
+                      const month = currentMonthDate.getMonth();
+                      const daysInMonth = new Date(year, month + 1, 0).getDate();
+                      
+                      const allDays = [];
+                      for (let day = 1; day <= daysInMonth; day++) {
+                        const date = new Date(year, month, day);
+                        const dateString = format(date, 'yyyy-MM-dd');
+                        const dayOfWeek = date.getDay(); // 0 = Sonntag, 6 = Samstag
+                        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                        const hasEntries = entriesByDate[dateString];
                         
-                        const dayTotalHours = dayTotalMinutes / 60;
-                        const firstEntry = entries.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0];
-                        const lastEntry = entries.sort((a, b) => new Date(b.end_time || b.start_time).getTime() - new Date(a.end_time || a.start_time).getTime())[0];
-                        
-                        return (
-                          <div key={date} className="border rounded-lg overflow-hidden">
-                            {/* Tagesheader */}
-                            <div className="bg-muted/50 p-4 border-b">
-                              <div className="flex justify-between items-center">
-                                <h4 className="font-semibold">
-                                  {format(new Date(date), 'EEEE, dd.MM.yyyy', { locale: de })}
-                                </h4>
-                                <div className="text-right">
-                                  <p className="text-lg font-bold">{dayTotalHours.toFixed(1)}h</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {format(new Date(firstEntry.start_time), 'HH:mm')} - {lastEntry.end_time ? format(new Date(lastEntry.end_time), 'HH:mm') : 'Aktiv'}
-                                  </p>
+                        allDays.push({
+                          date: dateString,
+                          dateObject: date,
+                          isWeekend,
+                          hasEntries,
+                          entries: hasEntries || []
+                        });
+                      }
+                      
+                      return allDays
+                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                        .map(({ date, dateObject, isWeekend, hasEntries, entries }) => {
+                          // Wenn es ein Wochenende ist und keine Einträge gibt
+                          if (isWeekend && !hasEntries) {
+                            return (
+                              <div key={date} className="border rounded-lg overflow-hidden bg-gray-50/50">
+                                <div className="bg-gray-100/50 p-4 border-b">
+                                  <div className="flex justify-between items-center">
+                                    <h4 className="font-semibold text-gray-600">
+                                      {format(dateObject, 'EEEE, dd.MM.yyyy', { locale: de })}
+                                    </h4>
+                                    <div className="text-right">
+                                      <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                                        Freier Tag
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                            
-                            {/* Einträge für den Tag */}
-                            <div className="divide-y">
-                              {entries
-                                .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-                                .map((entry) => {
-                                  const project = projects.find(p => p.id === entry.project_id);
-                                  const duration = entry.end_time 
-                                    ? (new Date(entry.end_time).getTime() - new Date(entry.start_time).getTime()) / (1000 * 60 * 60)
-                                    : 0;
-                                  const breakDuration = entry.break_duration || 0;
+                            );
+                          }
+                          
+                          // Wenn es keine Einträge für einen Werktag gibt, überspringen
+                          if (!hasEntries) {
+                            return null;
+                          }
 
-                                  return (
-                                    <div key={entry.id} className="p-4 hover:bg-muted/30">
-                                      <div className="flex justify-between items-start">
-                                        <div className="flex-1">
-                                          <div className="flex items-center gap-2 mb-1">
-                                            <span className="font-medium">
-                                              {format(new Date(entry.start_time), 'HH:mm')} - {entry.end_time ? format(new Date(entry.end_time), 'HH:mm') : 'Aktiv'}
-                                            </span>
-                                            <span className={cn(
-                                              "px-2 py-1 rounded-full text-xs font-medium",
-                                              entry.status === 'aktiv' ? "bg-green-100 text-green-800" :
-                                              entry.status === 'beendet' ? "bg-blue-100 text-blue-800" :
-                                              entry.status === 'pausiert' ? "bg-yellow-100 text-yellow-800" :
-                                              "bg-gray-100 text-gray-800"
-                                            )}>
-                                              {entry.status === 'aktiv' ? 'Aktiv' :
-                                               entry.status === 'beendet' ? 'Beendet' :
-                                               entry.status === 'pausiert' ? 'Pausiert' :
-                                               entry.status}
-                                            </span>
+                          const dayTotalMinutes = entries.reduce((total, entry) => {
+                            if (entry.end_time) {
+                              const duration = new Date(entry.end_time).getTime() - new Date(entry.start_time).getTime();
+                              return total + duration / (1000 * 60);
+                            }
+                            return total;
+                          }, 0);
+                          
+                          const dayTotalHours = dayTotalMinutes / 60;
+                          const firstEntry = entries.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0];
+                          const lastEntry = entries.sort((a, b) => new Date(b.end_time || b.start_time).getTime() - new Date(a.end_time || a.start_time).getTime())[0];
+                          
+                          return (
+                            <div key={date} className={cn(
+                              "border rounded-lg overflow-hidden",
+                              isWeekend ? "bg-amber-50/50 border-amber-200" : ""
+                            )}>
+                              {/* Tagesheader */}
+                              <div className={cn(
+                                "p-4 border-b",
+                                isWeekend ? "bg-amber-100/50" : "bg-muted/50"
+                              )}>
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <h4 className="font-semibold">
+                                      {format(dateObject, 'EEEE, dd.MM.yyyy', { locale: de })}
+                                    </h4>
+                                    {isWeekend && (
+                                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-200 text-amber-800 mt-1 inline-block">
+                                        Wochenendarbeit
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-lg font-bold">{dayTotalHours.toFixed(1)}h</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {format(new Date(firstEntry.start_time), 'HH:mm')} - {lastEntry.end_time ? format(new Date(lastEntry.end_time), 'HH:mm') : 'Aktiv'}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Einträge für den Tag */}
+                              <div className="divide-y">
+                                {entries
+                                  .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+                                  .map((entry) => {
+                                    const project = projects.find(p => p.id === entry.project_id);
+                                    const duration = entry.end_time 
+                                      ? (new Date(entry.end_time).getTime() - new Date(entry.start_time).getTime()) / (1000 * 60 * 60)
+                                      : 0;
+                                    const breakDuration = entry.break_duration || 0;
+
+                                    return (
+                                      <div key={entry.id} className="p-4 hover:bg-muted/30">
+                                        <div className="flex justify-between items-start">
+                                          <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                              <span className="font-medium">
+                                                {format(new Date(entry.start_time), 'HH:mm')} - {entry.end_time ? format(new Date(entry.end_time), 'HH:mm') : 'Aktiv'}
+                                              </span>
+                                              <span className={cn(
+                                                "px-2 py-1 rounded-full text-xs font-medium",
+                                                entry.status === 'aktiv' ? "bg-green-100 text-green-800" :
+                                                entry.status === 'beendet' ? "bg-blue-100 text-blue-800" :
+                                                entry.status === 'pausiert' ? "bg-yellow-100 text-yellow-800" :
+                                                "bg-gray-100 text-gray-800"
+                                              )}>
+                                                {entry.status === 'aktiv' ? 'Aktiv' :
+                                                 entry.status === 'beendet' ? 'Beendet' :
+                                                 entry.status === 'pausiert' ? 'Pausiert' :
+                                                 entry.status}
+                                              </span>
+                                            </div>
+                                            <div className="text-sm text-muted-foreground">
+                                              <p><strong>Projekt:</strong> {project?.name || 'Kein Projekt'}</p>
+                                              {entry.description && (
+                                                <p><strong>Beschreibung:</strong> {entry.description}</p>
+                                              )}
+                                              {breakDuration > 0 && (
+                                                <p><strong>Pause:</strong> {breakDuration} min</p>
+                                              )}
+                                            </div>
                                           </div>
-                                          <div className="text-sm text-muted-foreground">
-                                            <p><strong>Projekt:</strong> {project?.name || 'Kein Projekt'}</p>
-                                            {entry.description && (
-                                              <p><strong>Beschreibung:</strong> {entry.description}</p>
-                                            )}
-                                            {breakDuration > 0 && (
-                                              <p><strong>Pause:</strong> {breakDuration} min</p>
+                                          <div className="text-right ml-4">
+                                            {entry.end_time && (
+                                              <span className="text-lg font-bold">{duration.toFixed(1)}h</span>
                                             )}
                                           </div>
-                                        </div>
-                                        <div className="text-right ml-4">
-                                          {entry.end_time && (
-                                            <span className="text-lg font-bold">{duration.toFixed(1)}h</span>
-                                          )}
                                         </div>
                                       </div>
-                                    </div>
-                                  );
-                                })}
+                                    );
+                                  })}
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })
+                        .filter(Boolean); // Entferne null-Werte
+                    })()}
                     {Object.keys(entriesByDate).length === 0 && (
                       <div className="p-8 text-center text-muted-foreground border rounded-lg">
                         Keine Zeiterfassungseinträge für den ausgewählten Mitarbeiter gefunden
