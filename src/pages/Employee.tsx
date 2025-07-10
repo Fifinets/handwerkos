@@ -77,7 +77,7 @@ const Employee = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Clock className="h-5 w-5" />
-          Arbeitszeit erfassen
+          Überstunden beantragen
         </CardTitle>
         <CardDescription>Zusätzliche Arbeitszeit oder Änderungen melden</CardDescription>
       </CardHeader>
