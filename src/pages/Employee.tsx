@@ -173,12 +173,24 @@ const Employee = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              {userRole === 'manager' && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/')}
+                >
+                  <Navigation className="h-4 w-4 mr-2" />
+                  Zurück zum Manager-Dashboard
+                </Button>
+              )}
               <div className="text-right">
                 <p className="text-sm font-medium flex items-center gap-2">
                   <User className="h-4 w-4" />
                   {user?.email}
                 </p>
-                <p className="text-xs text-gray-500">Mitarbeiter</p>
+                <p className="text-xs text-gray-500">
+                  {userRole === 'manager' ? 'Manager (Mitarbeiter-Ansicht)' : 'Mitarbeiter'}
+                </p>
               </div>
               <Button variant="outline" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4 mr-2" />

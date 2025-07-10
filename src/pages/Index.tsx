@@ -102,6 +102,15 @@ const Index = () => {
             </div>
             
             <div className="flex items-center space-x-4">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/employee')}
+                className="hidden sm:flex"
+              >
+                <UserCheck className="w-4 h-4 mr-2" />
+                Mitarbeiter-Ansicht
+              </Button>
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <User className="w-4 h-4" />
                 <span className="hidden sm:inline">
