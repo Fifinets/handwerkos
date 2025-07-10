@@ -88,7 +88,7 @@ const Employee = () => {
         </div>
         <div>
           <Label htmlFor="date">Datum</Label>
-          <Input id="date" type="date" />
+          <Input id="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
