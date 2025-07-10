@@ -67,16 +67,18 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
               <div key={item.id}>
                 <button
                   onClick={() => onModuleChange(item.id)}
-                  className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${
+                  className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 relative ${
                     activeModule === item.id
                       ? "bg-primary text-primary-foreground"
                       : "hover:bg-accent hover:text-accent-foreground"
                   }`}
                   title={!isExpanded ? item.name : undefined}
                 >
-                  <item.icon className={`h-5 w-5 ${item.color} flex-shrink-0`} />
-                  <span className={`ml-3 transition-all duration-300 ${
-                    isExpanded ? "opacity-100 visible" : "opacity-0 invisible"
+                  <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
+                    <item.icon className={`h-5 w-5 ${item.color}`} />
+                  </div>
+                  <span className={`ml-3 whitespace-nowrap transition-all duration-300 ${
+                    isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
                   }`}>
                     {item.name}
                   </span>
@@ -89,12 +91,14 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
         <div className="p-2 border-t border-border">
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center p-3 rounded-lg text-destructive hover:bg-destructive/10 transition-all duration-200"
+            className="w-full flex items-center p-3 rounded-lg text-destructive hover:bg-destructive/10 transition-all duration-200 relative"
             title={!isExpanded ? "Abmelden" : undefined}
           >
-            <LogOut className="h-5 w-5 flex-shrink-0" />
-            <span className={`ml-3 transition-all duration-300 ${
-              isExpanded ? "opacity-100 visible" : "opacity-0 invisible"
+            <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
+              <LogOut className="h-5 w-5" />
+            </div>
+            <span className={`ml-3 whitespace-nowrap transition-all duration-300 ${
+              isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
             }`}>
               Abmelden
             </span>
