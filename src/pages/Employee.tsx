@@ -1,39 +1,36 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  Package, 
-  Clock, 
-  Calendar, 
-  LogOut, 
-  User,
-  Plus,
-  Settings
-} from "lucide-react";
+import { Package, Clock, Calendar, LogOut, User, Plus, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-
 const Employee = () => {
-  const { user, signOut } = useAuth();
+  const {
+    user,
+    signOut
+  } = useAuth();
   const [activeTab, setActiveTab] = useState('material');
-
   const handleSignOut = async () => {
     await signOut();
     toast.success('Erfolgreich abgemeldet');
   };
-
-  const tabs = [
-    { id: 'material', name: 'Material verbuchen', icon: Package },
-    { id: 'time', name: 'Arbeitszeit', icon: Clock },
-    { id: 'vacation', name: 'Urlaub', icon: Calendar },
-  ];
-
-  const renderMaterialForm = () => (
-    <Card>
+  const tabs = [{
+    id: 'material',
+    name: 'Material verbuchen',
+    icon: Package
+  }, {
+    id: 'time',
+    name: 'Arbeitszeit',
+    icon: Clock
+  }, {
+    id: 'vacation',
+    name: 'Urlaub',
+    icon: Calendar
+  }];
+  const renderMaterialForm = () => <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Package className="h-5 w-5" />
@@ -69,11 +66,8 @@ const Employee = () => {
           Material verbuchen
         </Button>
       </CardContent>
-    </Card>
-  );
-
-  const renderTimeForm = () => (
-    <Card>
+    </Card>;
+  const renderTimeForm = () => <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Clock className="h-5 w-5" />
@@ -88,32 +82,26 @@ const Employee = () => {
         </div>
         <div>
           <Label htmlFor="date">Datum</Label>
-          <Input id="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} />
+          <Input id="date" type="date" />
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <Button className="w-full h-12">
-            <Plus className="h-4 w-4 mr-2" />
-            Arbeitsbeginn
-          </Button>
-          <Button variant="outline" className="w-full h-12">
-            <Plus className="h-4 w-4 mr-2" />
-            Arbeitsende
-          </Button>
+          <div>
+            <Label htmlFor="start-time">Startzeit</Label>
+            <Input id="start-time" type="time" />
+          </div>
+          <div>
+            <Label htmlFor="end-time">Endzeit</Label>
+            <Input id="end-time" type="time" />
+          </div>
         </div>
-        <div>
-          <Label htmlFor="reason">Grund für Mehrzeit</Label>
-          <Textarea id="reason" placeholder="Begründung für zusätzliche Arbeitszeit..." />
-        </div>
+        
         <Button className="w-full">
           <Plus className="h-4 w-4 mr-2" />
           Arbeitszeit melden
         </Button>
       </CardContent>
-    </Card>
-  );
-
-  const renderVacationForm = () => (
-    <Card>
+    </Card>;
+  const renderVacationForm = () => <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calendar className="h-5 w-5" />
@@ -149,9 +137,7 @@ const Employee = () => {
           Urlaub beantragen
         </Button>
       </CardContent>
-    </Card>
-  );
-
+    </Card>;
   const renderContent = () => {
     switch (activeTab) {
       case 'material':
@@ -164,9 +150,7 @@ const Employee = () => {
         return renderMaterialForm();
     }
   };
-
-  return (
-    <div className="min-h-screen bg-gray-50">
+  return <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -207,19 +191,10 @@ const Employee = () => {
               </CardHeader>
               <CardContent className="p-0">
                 <nav className="space-y-1">
-                  {tabs.map((tab) => (
-                    <Button
-                      key={tab.id}
-                      variant={activeTab === tab.id ? "default" : "ghost"}
-                      className={`w-full justify-start gap-3 ${
-                        activeTab === tab.id ? 'bg-blue-600 text-white' : ''
-                      }`}
-                      onClick={() => setActiveTab(tab.id)}
-                    >
+                  {tabs.map(tab => <Button key={tab.id} variant={activeTab === tab.id ? "default" : "ghost"} className={`w-full justify-start gap-3 ${activeTab === tab.id ? 'bg-blue-600 text-white' : ''}`} onClick={() => setActiveTab(tab.id)}>
                       <tab.icon className="h-4 w-4" />
                       {tab.name}
-                    </Button>
-                  ))}
+                    </Button>)}
                 </nav>
               </CardContent>
             </Card>
@@ -231,8 +206,6 @@ const Employee = () => {
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Employee;
