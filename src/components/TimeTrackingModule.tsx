@@ -104,6 +104,7 @@ const TimeTrackingModule: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [selectedProject, setSelectedProject] = useState<string>('')
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all')
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('')
   const [newEntryDialog, setNewEntryDialog] = useState(false)
   const [workingHoursDialog, setWorkingHoursDialog] = useState(false)
   const [correctionDialog, setCorrectionDialog] = useState(false)
@@ -977,12 +978,15 @@ const TimeTrackingModule: React.FC = () => {
         </CardHeader>
         <CardContent>
           {(() => {
-            // Berechne Monatsgesamtstunden
+            // Berechne Monatsgesamtstunden für den ausgewählten Mitarbeiter
             const currentMonth = format(selectedDate, 'yyyy-MM');
-            const monthlyEntries = timeEntries.filter(entry => 
-              format(new Date(entry.start_time), 'yyyy-MM') === currentMonth
-            );
-            const monthlyTotalHours = monthlyEntries.reduce((total, entry) => {
+            const filteredEntries = timeEntries.filter(entry => {
+              const matchesMonth = format(new Date(entry.start_time), 'yyyy-MM') === currentMonth;
+              const matchesEmployee = !selectedEmployeeId || entry.employee_id === selectedEmployeeId;
+              return matchesMonth && matchesEmployee;
+            });
+
+            const monthlyTotalHours = filteredEntries.reduce((total, entry) => {
               if (entry.end_time) {
                 const duration = (new Date(entry.end_time).getTime() - new Date(entry.start_time).getTime()) / (1000 * 60 * 60);
                 return total + duration;
@@ -990,103 +994,154 @@ const TimeTrackingModule: React.FC = () => {
               return total;
             }, 0);
 
+            // Gruppiere Einträge nach Datum
+            const entriesByDate = filteredEntries.reduce((acc, entry) => {
+              const date = format(new Date(entry.start_time), 'yyyy-MM-dd');
+              if (!acc[date]) acc[date] = [];
+              acc[date].push(entry);
+              return acc;
+            }, {} as Record<string, typeof filteredEntries>);
+
+            const selectedEmployee = employees.find(e => e.id === selectedEmployeeId);
+
             return (
               <div className="space-y-4">
+                {/* Mitarbeiterauswahl */}
+                <div className="flex gap-4 items-end">
+                  <div className="flex-1">
+                    <Label>Mitarbeiter auswählen</Label>
+                    <Select value={selectedEmployeeId || ""} onValueChange={setSelectedEmployeeId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Mitarbeiter wählen..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border shadow-lg z-50">
+                        <SelectItem value="">Alle Mitarbeiter</SelectItem>
+                        {employees.map((employee) => (
+                          <SelectItem key={employee.id} value={employee.id}>
+                            {employee.first_name} {employee.last_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 {/* Monatsübersicht */}
                 <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-4 rounded-lg border">
                   <h3 className="font-semibold text-lg mb-2">
                     Monatsübersicht {format(selectedDate, 'MMMM yyyy', { locale: de })}
+                    {selectedEmployee && (
+                      <span className="text-base font-normal ml-2">
+                        - {selectedEmployee.first_name} {selectedEmployee.last_name}
+                      </span>
+                    )}
                   </h3>
                   <p className="text-2xl font-bold text-primary">
                     {monthlyTotalHours.toFixed(1)} Stunden
                   </p>
                 </div>
 
-                {/* Zeiterfassungstabelle */}
-                <div className="border rounded-lg overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-muted/50 border-b">
-                        <tr>
-                          <th className="text-left p-3 font-medium">Mitarbeiter</th>
-                          <th className="text-left p-3 font-medium">Datum</th>
-                          <th className="text-left p-3 font-medium">Beginn</th>
-                          <th className="text-left p-3 font-medium">Ende</th>
-                          <th className="text-left p-3 font-medium">Pause</th>
-                          <th className="text-left p-3 font-medium">Dauer</th>
-                          <th className="text-left p-3 font-medium">Projekt</th>
-                          <th className="text-left p-3 font-medium">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {timeEntries
-                          .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime())
-                          .map((entry) => {
-                            const employee = employees.find(e => e.id === entry.employee_id);
-                            const project = projects.find(p => p.id === entry.project_id);
-                            const duration = entry.end_time 
-                              ? (new Date(entry.end_time).getTime() - new Date(entry.start_time).getTime()) / (1000 * 60 * 60)
-                              : 0;
-                            const breakDuration = entry.break_duration || 0;
+                {/* Tägliche Einträge */}
+                {selectedEmployeeId ? (
+                  <div className="space-y-3">
+                    {Object.entries(entriesByDate)
+                      .sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime())
+                      .map(([date, entries]) => {
+                        const dayTotalMinutes = entries.reduce((total, entry) => {
+                          if (entry.end_time) {
+                            const duration = new Date(entry.end_time).getTime() - new Date(entry.start_time).getTime();
+                            return total + duration / (1000 * 60);
+                          }
+                          return total;
+                        }, 0);
+                        
+                        const dayTotalHours = dayTotalMinutes / 60;
+                        const firstEntry = entries.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0];
+                        const lastEntry = entries.sort((a, b) => new Date(b.end_time || b.start_time).getTime() - new Date(a.end_time || a.start_time).getTime())[0];
+                        
+                        return (
+                          <div key={date} className="border rounded-lg overflow-hidden">
+                            {/* Tagesheader */}
+                            <div className="bg-muted/50 p-4 border-b">
+                              <div className="flex justify-between items-center">
+                                <h4 className="font-semibold">
+                                  {format(new Date(date), 'EEEE, dd.MM.yyyy', { locale: de })}
+                                </h4>
+                                <div className="text-right">
+                                  <p className="text-lg font-bold">{dayTotalHours.toFixed(1)}h</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {format(new Date(firstEntry.start_time), 'HH:mm')} - {lastEntry.end_time ? format(new Date(lastEntry.end_time), 'HH:mm') : 'Aktiv'}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Einträge für den Tag */}
+                            <div className="divide-y">
+                              {entries
+                                .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+                                .map((entry) => {
+                                  const project = projects.find(p => p.id === entry.project_id);
+                                  const duration = entry.end_time 
+                                    ? (new Date(entry.end_time).getTime() - new Date(entry.start_time).getTime()) / (1000 * 60 * 60)
+                                    : 0;
+                                  const breakDuration = entry.break_duration || 0;
 
-                            return (
-                              <tr key={entry.id} className="border-b hover:bg-muted/30">
-                                <td className="p-3">
-                                  {employee ? `${employee.first_name} ${employee.last_name}` : 'Unbekannt'}
-                                </td>
-                                <td className="p-3">
-                                  {format(new Date(entry.start_time), 'dd.MM.yyyy', { locale: de })}
-                                </td>
-                                <td className="p-3">
-                                  {format(new Date(entry.start_time), 'HH:mm')}
-                                </td>
-                                <td className="p-3">
-                                  {entry.end_time ? format(new Date(entry.end_time), 'HH:mm') : '-'}
-                                </td>
-                                <td className="p-3">
-                                  {breakDuration > 0 ? `${breakDuration} min` : '-'}
-                                </td>
-                                <td className="p-3 font-medium">
-                                  {entry.end_time ? `${duration.toFixed(1)}h` : '-'}
-                                </td>
-                                <td className="p-3">
-                                  <div>
-                                    {project?.name || 'Kein Projekt'}
-                                    {entry.description && (
-                                      <div className="text-xs text-muted-foreground mt-1">
-                                        {entry.description}
+                                  return (
+                                    <div key={entry.id} className="p-4 hover:bg-muted/30">
+                                      <div className="flex justify-between items-start">
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <span className="font-medium">
+                                              {format(new Date(entry.start_time), 'HH:mm')} - {entry.end_time ? format(new Date(entry.end_time), 'HH:mm') : 'Aktiv'}
+                                            </span>
+                                            <span className={cn(
+                                              "px-2 py-1 rounded-full text-xs font-medium",
+                                              entry.status === 'aktiv' ? "bg-green-100 text-green-800" :
+                                              entry.status === 'beendet' ? "bg-blue-100 text-blue-800" :
+                                              entry.status === 'pausiert' ? "bg-yellow-100 text-yellow-800" :
+                                              "bg-gray-100 text-gray-800"
+                                            )}>
+                                              {entry.status === 'aktiv' ? 'Aktiv' :
+                                               entry.status === 'beendet' ? 'Beendet' :
+                                               entry.status === 'pausiert' ? 'Pausiert' :
+                                               entry.status}
+                                            </span>
+                                          </div>
+                                          <div className="text-sm text-muted-foreground">
+                                            <p><strong>Projekt:</strong> {project?.name || 'Kein Projekt'}</p>
+                                            {entry.description && (
+                                              <p><strong>Beschreibung:</strong> {entry.description}</p>
+                                            )}
+                                            {breakDuration > 0 && (
+                                              <p><strong>Pause:</strong> {breakDuration} min</p>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <div className="text-right ml-4">
+                                          {entry.end_time && (
+                                            <span className="text-lg font-bold">{duration.toFixed(1)}h</span>
+                                          )}
+                                        </div>
                                       </div>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="p-3">
-                                  <span className={cn(
-                                    "px-2 py-1 rounded-full text-xs font-medium",
-                                    entry.status === 'aktiv' ? "bg-green-100 text-green-800" :
-                                    entry.status === 'beendet' ? "bg-blue-100 text-blue-800" :
-                                    entry.status === 'pausiert' ? "bg-yellow-100 text-yellow-800" :
-                                    "bg-gray-100 text-gray-800"
-                                  )}>
-                                    {entry.status === 'aktiv' ? 'Aktiv' :
-                                     entry.status === 'beendet' ? 'Beendet' :
-                                     entry.status === 'pausiert' ? 'Pausiert' :
-                                     entry.status}
-                                  </span>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        {timeEntries.length === 0 && (
-                          <tr>
-                            <td colSpan={8} className="p-8 text-center text-muted-foreground">
-                              Keine Zeiterfassungseinträge gefunden
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    {Object.keys(entriesByDate).length === 0 && (
+                      <div className="p-8 text-center text-muted-foreground border rounded-lg">
+                        Keine Zeiterfassungseinträge für den ausgewählten Mitarbeiter gefunden
+                      </div>
+                    )}
                   </div>
-                </div>
+                ) : (
+                  <div className="p-8 text-center text-muted-foreground border rounded-lg">
+                    Bitte wählen Sie einen Mitarbeiter aus, um die Zeiterfassung anzuzeigen
+                  </div>
+                )}
               </div>
             );
           })()}
