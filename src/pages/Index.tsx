@@ -26,6 +26,7 @@ import PersonalModule from "@/components/PersonalModule";
 import MaterialModule from "@/components/MaterialModule";
 import MachineModule from "@/components/MachineModule";
 import FinanceModule from "@/components/FinanceModule";
+import PlannerModule from "@/components/PlannerModule";
 import DashboardCalendar from "@/components/DashboardCalendar";
 import DashboardStats from "@/components/DashboardStats";
 import { useAuth } from "@/hooks/useAuth";
@@ -79,7 +80,8 @@ const Index = () => {
     { id: 'personal', name: 'Personal', icon: UserCheck, color: 'bg-purple-500' },
     { id: 'materials', name: 'Material', icon: Package, color: 'bg-red-500' },
     { id: 'machines', name: 'Maschinen & Geräte', icon: Settings, color: 'bg-indigo-500' },
-    { id: 'finance', name: 'Finanzen', icon: Calculator, color: 'bg-cyan-500' }
+    { id: 'finance', name: 'Finanzen', icon: Calculator, color: 'bg-cyan-500' },
+    { id: 'planner', name: 'Planer', icon: Calendar, color: 'bg-teal-500' }
   ];
 
   const dashboardStats = [
@@ -110,6 +112,8 @@ const Index = () => {
         return <MachineModule />;
       case 'finance':
         return <FinanceModule />;
+      case 'planner':
+        return <PlannerModule />;
       default:
         return (
           <div className="space-y-6">
