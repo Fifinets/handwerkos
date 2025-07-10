@@ -47,6 +47,7 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
   const { state } = useSidebar();
   const { signOut } = useAuth();
   const navigate = useNavigate();
+  const [isHovered, setIsHovered] = useState(false);
 
   const handleSignOut = async () => {
     try {
@@ -65,53 +66,55 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
     }
   };
 
-  return (
-    <Sidebar 
-      className={`transition-all duration-300 ${state === "collapsed" ? "w-16" : "w-64"}`}
-      collapsible="icon"
-    >
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className={state === "collapsed" ? "sr-only" : ""}>
-            Navigation
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navigationItems.map((item) => (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton
-                    onClick={() => onModuleChange(item.id)}
-                    className={`w-full justify-start transition-colors ${
-                      activeModule === item.id
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-accent hover:text-accent-foreground"
-                    }`}
-                    tooltip={state === "collapsed" ? item.name : undefined}
-                  >
-                    <item.icon className={`h-5 w-5 ${item.color}`} />
-                    {state !== "collapsed" && <span className="ml-3">{item.name}</span>}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
+  const isExpanded = isHovered || state !== "collapsed";
 
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={handleSignOut}
-              className="w-full justify-start text-destructive hover:bg-destructive/10"
-              tooltip={state === "collapsed" ? "Abmelden" : undefined}
-            >
-              <LogOut className="h-5 w-5" />
-              {state !== "collapsed" && <span className="ml-3">Abmelden</span>}
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-    </Sidebar>
+  return (
+    <div 
+      className={`fixed left-0 top-0 h-full z-50 transition-all duration-300 ${isExpanded ? "w-64" : "w-16"} bg-sidebar border-r border-border`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="flex flex-col h-full">
+        <div className="flex-1 p-2">
+          <div className="space-y-2">
+            {navigationItems.map((item) => (
+              <div key={item.id}>
+                <button
+                  onClick={() => onModuleChange(item.id)}
+                  className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${
+                    activeModule === item.id
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-accent hover:text-accent-foreground"
+                  }`}
+                  title={!isExpanded ? item.name : undefined}
+                >
+                  <item.icon className={`h-5 w-5 ${item.color} flex-shrink-0`} />
+                  <span className={`ml-3 transition-all duration-300 ${
+                    isExpanded ? "opacity-100 visible" : "opacity-0 invisible"
+                  }`}>
+                    {item.name}
+                  </span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="p-2 border-t border-border">
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center p-3 rounded-lg text-destructive hover:bg-destructive/10 transition-all duration-200"
+            title={!isExpanded ? "Abmelden" : undefined}
+          >
+            <LogOut className="h-5 w-5 flex-shrink-0" />
+            <span className={`ml-3 transition-all duration-300 ${
+              isExpanded ? "opacity-100 visible" : "opacity-0 invisible"
+            }`}>
+              Abmelden
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

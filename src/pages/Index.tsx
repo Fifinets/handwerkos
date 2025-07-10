@@ -84,45 +84,39 @@ const Index = () => {
   };
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar activeModule={activeModule} onModuleChange={setActiveModule} />
-        
-        <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <header className="h-16 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
-            <div className="flex items-center justify-between h-full px-6">
-              <div className="flex items-center space-x-4">
-                <SidebarTrigger />
-                <Separator orientation="vertical" className="h-6" />
-                <div className="flex items-center space-x-2">
-                  <h1 className="text-xl font-semibold">ElektroManage Pro</h1>
-                  <Badge variant="secondary" className="hidden sm:inline-flex">
-                    Manager Dashboard
-                  </Badge>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                  <User className="w-4 h-4" />
-                  <span className="hidden sm:inline">
-                    {user?.email || 'Unbekannter Benutzer'}
-                  </span>
-                </div>
+    <div className="min-h-screen w-full bg-background">
+      <AppSidebar activeModule={activeModule} onModuleChange={setActiveModule} />
+      
+      <div className="ml-16 flex flex-col min-h-screen">
+        {/* Header */}
+        <header className="h-16 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-30">
+          <div className="flex items-center justify-between h-full px-6">
+            <div className="flex items-center space-x-2">
+              <h1 className="text-xl font-semibold">ElektroManage Pro</h1>
+              <Badge variant="secondary" className="hidden sm:inline-flex">
+                Manager Dashboard
+              </Badge>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <User className="w-4 h-4" />
+                <span className="hidden sm:inline">
+                  {user?.email || 'Unbekannter Benutzer'}
+                </span>
               </div>
             </div>
-          </header>
+          </div>
+        </header>
 
-          {/* Main Content */}
-          <main className="flex-1 overflow-auto">
-            <div className="p-6">
-              {renderModule()}
-            </div>
-          </main>
-        </div>
+        {/* Main Content */}
+        <main className="flex-1 overflow-auto">
+          <div className="p-6">
+            {renderModule()}
+          </div>
+        </main>
       </div>
-    </SidebarProvider>
+    </div>
   );
 };
 
