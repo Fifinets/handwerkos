@@ -406,7 +406,7 @@ const PlannerModule: React.FC = () => {
                           return (
                             <div
                               key={`${item.type}-${item.item.id || idx}`}
-                              className="h-2 rounded text-white text-xs flex items-center justify-center font-medium shadow-sm absolute"
+                              className="h-3 rounded text-white text-xs flex items-center justify-center font-medium shadow-sm absolute"
                               style={{
                                 backgroundColor: item.type === 'project' 
                                   ? item.color 
