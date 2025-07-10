@@ -95,6 +95,7 @@ const TimeTrackingModule: React.FC = () => {
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
+  const [absences, setAbsences] = useState<any[]>([])
   const [workingHours, setWorkingHours] = useState<WorkingHoursConfig[]>([])
   const [corrections, setCorrections] = useState<TimeEntryCorrection[]>([])
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null)
@@ -144,7 +145,7 @@ const TimeTrackingModule: React.FC = () => {
 
   useEffect(() => {
     loadData()
-  }, [selectedDate, selectedEmployee])
+  }, [selectedDate, selectedEmployee, selectedEmployeeId])
 
   const loadData = async () => {
     setLoading(true)
@@ -154,7 +155,8 @@ const TimeTrackingModule: React.FC = () => {
         loadProjects(),
         loadEmployees(),
         loadCurrentEmployee(),
-        loadWorkingHours()
+        loadWorkingHours(),
+        loadAbsences()
       ])
     } catch (error) {
       console.error('Error loading time tracking data:', error)
@@ -288,6 +290,19 @@ const TimeTrackingModule: React.FC = () => {
 
     if (error) throw error
     setWorkingHours(data || [])
+  }
+
+  const loadAbsences = async () => {
+    const currentMonth = format(selectedDate, 'yyyy-MM');
+    const { data, error } = await supabase
+      .from('employee_absences')
+      .select('*')
+      .gte('start_date', `${currentMonth}-01`)
+      .lte('end_date', `${currentMonth}-31`)
+      .eq('status', 'genehmigt')
+
+    if (error) throw error
+    setAbsences(data || [])
   }
 
   const startTimeTracking = async (projectId?: string, description?: string) => {
@@ -1059,18 +1074,50 @@ const TimeTrackingModule: React.FC = () => {
                         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
                         const hasEntries = entriesByDate[dateString];
                         
+                        // Prüfe auf Urlaub für den aktuellen Tag und Mitarbeiter
+                        const isOnVacation = absences.some(absence => {
+                          const startDate = new Date(absence.start_date);
+                          const endDate = new Date(absence.end_date);
+                          const currentDate = new Date(dateString);
+                          return absence.employee_id === selectedEmployeeId && 
+                                 absence.type === 'urlaub' &&
+                                 currentDate >= startDate && 
+                                 currentDate <= endDate;
+                        });
+                        
                         allDays.push({
                           date: dateString,
                           dateObject: date,
                           isWeekend,
                           hasEntries,
+                          isOnVacation,
                           entries: hasEntries || []
                         });
                       }
                       
                       return allDays
                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                        .map(({ date, dateObject, isWeekend, hasEntries, entries }) => {
+                        .map(({ date, dateObject, isWeekend, hasEntries, isOnVacation, entries }) => {
+                          // Wenn es ein Urlaubstag ist
+                          if (isOnVacation && !hasEntries) {
+                            return (
+                              <div key={date} className="border rounded-lg overflow-hidden bg-yellow-50/50 border-yellow-200">
+                                <div className="bg-yellow-100/50 p-4 border-b">
+                                  <div className="flex justify-between items-center">
+                                    <h4 className="font-semibold text-yellow-800">
+                                      {format(dateObject, 'EEEE, dd.MM.yyyy', { locale: de })}
+                                    </h4>
+                                    <div className="text-right">
+                                      <span className="px-3 py-1 rounded-full text-sm font-medium bg-yellow-200 text-yellow-800">
+                                        Urlaub
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+                          
                           // Wenn es ein Wochenende ist und keine Einträge gibt
                           if (isWeekend && !hasEntries) {
                             return (
@@ -1111,23 +1158,35 @@ const TimeTrackingModule: React.FC = () => {
                           return (
                             <div key={date} className={cn(
                               "border rounded-lg overflow-hidden",
+                              isOnVacation ? "bg-yellow-50/50 border-yellow-200" :
                               isWeekend ? "bg-amber-50/50 border-amber-200" : ""
                             )}>
                               {/* Tagesheader */}
                               <div className={cn(
                                 "p-4 border-b",
+                                isOnVacation ? "bg-yellow-100/50" :
                                 isWeekend ? "bg-amber-100/50" : "bg-muted/50"
                               )}>
                                 <div className="flex justify-between items-center">
                                   <div>
-                                    <h4 className="font-semibold">
+                                    <h4 className={cn(
+                                      "font-semibold",
+                                      isOnVacation ? "text-yellow-800" : ""
+                                    )}>
                                       {format(dateObject, 'EEEE, dd.MM.yyyy', { locale: de })}
                                     </h4>
-                                    {isWeekend && (
-                                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-200 text-amber-800 mt-1 inline-block">
-                                        Wochenendarbeit
-                                      </span>
-                                    )}
+                                    <div className="flex gap-2 mt-1">
+                                      {isOnVacation && (
+                                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-200 text-yellow-800 inline-block">
+                                          Urlaub (gearbeitet)
+                                        </span>
+                                      )}
+                                      {isWeekend && (
+                                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-200 text-amber-800 inline-block">
+                                          Wochenendarbeit
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                   <div className="text-right">
                                     <p className="text-lg font-bold">{dayTotalHours.toFixed(1)}h</p>
