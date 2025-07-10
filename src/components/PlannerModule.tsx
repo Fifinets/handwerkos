@@ -565,6 +565,178 @@ const PlannerModule: React.FC = () => {
     )
   }
 
+  // Employee calendar view (employees on Y-axis, days 1-31 on X-axis for selected month)
+  const renderEmployeeCalendarView = () => {
+    const currentMonth = currentDate.getMonth()
+    const currentYear = currentDate.getFullYear()
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
+    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
+    
+    // Filter active employees
+    const activeEmployees = employees.filter(emp => emp.status === 'aktiv')
+
+    // Helper function to check if employee has absence on a specific day
+    const getEmployeeAbsencesForDay = (employeeId: string, day: number) => {
+      const date = new Date(currentYear, currentMonth, day)
+      return absences.filter(absence => {
+        const absenceStart = new Date(absence.start_date)
+        const absenceEnd = new Date(absence.end_date)
+        
+        return absence.employee_id === employeeId && 
+               date >= absenceStart && 
+               date <= absenceEnd
+      })
+    }
+
+    return (
+      <div className="overflow-x-auto">
+        <div className="min-w-[1200px] border border-border rounded-lg overflow-hidden">
+          {/* Header row with days 1-31 */}
+          <div className="grid bg-muted" style={{ gridTemplateColumns: '200px repeat(' + daysInMonth + ', 1fr)' }}>
+            <div className="p-3 border-r border-border font-medium">
+              Mitarbeiter
+            </div>
+            {days.map(day => (
+              <div
+                key={day}
+                className="p-2 text-center text-xs border-r border-border last:border-r-0 font-medium"
+              >
+                <div>{day}</div>
+                <div className="text-muted-foreground">
+                  {format(new Date(currentYear, currentMonth, day), 'EEE', { locale: de })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Employee rows */}
+          {activeEmployees.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">
+              Keine aktiven Mitarbeiter in {format(currentDate, 'MMMM yyyy', { locale: de })}
+            </div>
+          ) : (
+            activeEmployees.map((employee, index) => {
+              // Get all absences for this employee in the current month
+              const employeeAbsences = absences.filter(absence => {
+                const absenceStart = new Date(absence.start_date)
+                const absenceEnd = new Date(absence.end_date)
+                const monthStart = new Date(currentYear, currentMonth, 1)
+                const monthEnd = new Date(currentYear, currentMonth + 1, 0)
+                
+                return absence.employee_id === employee.id &&
+                       absenceStart <= monthEnd && 
+                       absenceEnd >= monthStart
+              })
+
+              return (
+                <div
+                  key={employee.id}
+                  className={`grid ${index % 2 === 0 ? 'bg-background' : 'bg-muted/50'} border-b border-border last:border-b-0`}
+                  style={{ gridTemplateColumns: '200px repeat(' + daysInMonth + ', 1fr)' }}
+                >
+                  {/* Employee info */}
+                  <div className="p-3 border-r border-border">
+                    <div className="font-medium text-sm">{employee.first_name} {employee.last_name}</div>
+                    <div className="text-xs text-muted-foreground">{employee.position}</div>
+                    <div className="text-xs text-muted-foreground">{employee.department}</div>
+                  </div>
+                  
+                  {/* Days container with absence timeline */}
+                  <div className="relative h-20" style={{ gridColumn: `2 / ${daysInMonth + 2}` }}>
+                    {/* Background grid for days */}
+                    <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${daysInMonth}, 1fr)` }}>
+                      {days.map(day => (
+                        <div
+                          key={day}
+                          className="border-r border-border last:border-r-0"
+                        />
+                      ))}
+                    </div>
+                    
+                    {/* Absence timeline bars */}
+                    {employeeAbsences.map((absence, absenceIndex) => {
+                      const absenceStart = new Date(absence.start_date)
+                      const absenceEnd = new Date(absence.end_date)
+                      const monthStart = new Date(currentYear, currentMonth, 1)
+                      const monthEnd = new Date(currentYear, currentMonth + 1, 0)
+                      
+                      // Calculate start and end positions within the month
+                      const effectiveStart = absenceStart < monthStart ? 1 : absenceStart.getDate()
+                      const effectiveEnd = absenceEnd > monthEnd ? daysInMonth : absenceEnd.getDate()
+                      
+                      const width = ((effectiveEnd - effectiveStart + 1) / daysInMonth) * 100
+                      const left = ((effectiveStart - 1) / daysInMonth) * 100
+                      
+                      // Calculate vertical position for multiple absences
+                      const topOffset = 2 + (absenceIndex * 16) // 16px spacing between bars
+                      
+                      return (
+                        <div
+                          key={absence.id}
+                          className={`absolute h-12 rounded-md flex items-center px-3 text-white text-xs font-medium shadow-md z-10 ${getColorForAbsenceType(absence.type)}`}
+                          style={{
+                            left: `${left}%`,
+                            width: `${width}%`,
+                            top: `${topOffset}px`,
+                            minWidth: '60px'
+                          }}
+                          title={`${absence.type} (${format(absenceStart, 'dd.MM.yyyy')} - ${format(absenceEnd, 'dd.MM.yyyy')}) - ${absence.status}${absence.reason ? ` - ${absence.reason}` : ''}`}
+                        >
+                          {getIconForAbsenceType(absence.type)}
+                          <span className="ml-2 truncate">{absence.type}</span>
+                          <div className="ml-auto flex items-center space-x-1">
+                            {getStatusIcon(absence.status)}
+                            <span className="text-xs opacity-90">
+                              {format(absenceStart, 'dd.MM')} - {format(absenceEnd, 'dd.MM')}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                    
+                    {/* Project assignments as small indicators at bottom */}
+                    {days.map(day => {
+                      const dayAssignments = projectAssignments.filter(assignment => {
+                        const assignStart = new Date(assignment.start_date)
+                        const assignEnd = assignment.end_date ? new Date(assignment.end_date) : assignStart
+                        const date = new Date(currentYear, currentMonth, day)
+                        
+                        return assignment.employee_id === employee.id &&
+                               date >= assignStart && 
+                               date <= assignEnd
+                      })
+                      
+                      if (dayAssignments.length === 0) return null
+                      
+                      const dayLeft = ((day - 1) / daysInMonth) * 100
+                      const dayWidth = (1 / daysInMonth) * 100
+                      
+                      return (
+                        <div
+                          key={`assignments-${day}`}
+                          className="absolute bottom-1 h-4 bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-700 rounded flex items-center justify-center"
+                          style={{
+                            left: `${dayLeft}%`,
+                            width: `${dayWidth - 1}%`,
+                            minWidth: '20px'
+                          }}
+                          title={`${dayAssignments.length} Projekt(e): ${dayAssignments.map(a => `${a.project?.name} (${a.hours_per_day}h)`).join(', ')}`}
+                        >
+                          <Briefcase className="w-2 h-2 text-blue-600 dark:text-blue-400" />
+                          <span className="text-xs ml-1 text-blue-600 dark:text-blue-400">{dayAssignments.length}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -840,7 +1012,7 @@ const PlannerModule: React.FC = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Mitarbeiterkalender wird hier implementiert...</p>
+              {renderEmployeeCalendarView()}
             </CardContent>
           </Card>
         </TabsContent>
