@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { OfflineTimeTrackingManager, GPSLocationManager, NetworkManager, type GeolocationPosition, type OfflineTimeEntry } from "@/lib/timetrackingUtils";
+import EditTimeEntryDialog from "./EditTimeEntryDialog";
 interface TimeEntry {
   id: string;
   employee_id: string;
@@ -107,6 +108,8 @@ const TimeTrackingModule: React.FC = () => {
   const [correctionDialog, setCorrectionDialog] = useState(false);
   const [selectedEntryForCorrection, setSelectedEntryForCorrection] = useState<TimeEntry | null>(null);
   const [selectedEmployeeForHours, setSelectedEmployeeForHours] = useState<string>('');
+  const [editDialog, setEditDialog] = useState(false);
+  const [selectedEntryForEdit, setSelectedEntryForEdit] = useState<TimeEntry | null>(null);
 
   // Manager Instanzen
   const offlineManager = new OfflineTimeTrackingManager();
@@ -1045,8 +1048,20 @@ const TimeTrackingModule: React.FC = () => {
                                               {breakDuration > 0 && <p><strong>Pause:</strong> {breakDuration} min</p>}
                                             </div>
                                           </div>
-                                          <div className="text-right ml-4">
+                                          <div className="text-right ml-4 flex items-center gap-2">
                                             {entry.end_time && <span className="text-lg font-bold">{duration.toFixed(1)}h</span>}
+                                            {userRole === 'manager' && (
+                                              <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => {
+                                                  setSelectedEntryForEdit(entry);
+                                                  setEditDialog(true);
+                                                }}
+                                              >
+                                                <Edit className="w-4 h-4" />
+                                              </Button>
+                                            )}
                                           </div>
                                         </div>
                                       </div>;
@@ -1077,6 +1092,13 @@ const TimeTrackingModule: React.FC = () => {
 
       <NewEntryDialog />
       <WorkingHoursDialog />
+      <EditTimeEntryDialog
+        open={editDialog}
+        onOpenChange={setEditDialog}
+        timeEntry={selectedEntryForEdit}
+        projects={projects}
+        onSave={loadData}
+      />
     </div>;
 };
 export default TimeTrackingModule;
