@@ -53,14 +53,18 @@ const ProjectModule = () => {
     }
   ];
 
-  // Echte Mitarbeiter aus der Datenbank laden
+  // Echte Mitarbeiter aus der Datenbank laden (nur Employees, keine Manager)
   useEffect(() => {
     const fetchTeamMembers = async () => {
       try {
         const { data: profiles, error } = await supabase
           .from('profiles')
-          .select('*')
-          .eq('status', 'aktiv');
+          .select(`
+            *,
+            user_roles!inner(role)
+          `)
+          .eq('status', 'aktiv')
+          .eq('user_roles.role', 'employee');
 
         if (error) {
           console.error('Error fetching team members:', error);
