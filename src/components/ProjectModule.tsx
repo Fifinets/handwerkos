@@ -57,17 +57,33 @@ const ProjectModule = () => {
   useEffect(() => {
     const fetchTeamMembers = async () => {
       try {
-        const { data: profiles, error } = await supabase
-          .from('profiles')
-          .select(`
-            *,
-            user_roles!inner(role)
-          `)
-          .eq('status', 'aktiv')
-          .eq('user_roles.role', 'employee');
+        // Zuerst alle User-Rollen holen, die Employee sind
+        const { data: employeeRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('user_id')
+          .eq('role', 'employee');
 
-        if (error) {
-          console.error('Error fetching team members:', error);
+        if (rolesError) {
+          console.error('Error fetching employee roles:', rolesError);
+          return;
+        }
+
+        if (!employeeRoles || employeeRoles.length === 0) {
+          setTeamMembers([]);
+          return;
+        }
+
+        const employeeUserIds = employeeRoles.map(role => role.user_id);
+
+        // Dann die Profile dieser User holen
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*')
+          .in('id', employeeUserIds)
+          .eq('status', 'aktiv');
+
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
           return;
         }
 

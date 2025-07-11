@@ -8,6 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { de } from "date-fns/locale";
+import { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 
 interface Customer {
@@ -48,18 +54,17 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
     customer: '',
     location: '',
     budget: '',
-    startDate: '',
-    endDate: '',
     team: [] as string[],
     status: 'Planung'
   });
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   // Verfügbarkeitsprüfung für Teammitglieder
-  const getAvailabilityStatus = (member: TeamMember, projectStart: string, projectEnd: string) => {
-    if (!projectStart || !projectEnd) return 'unknown';
+  const getAvailabilityStatus = (member: TeamMember, dateRange: DateRange | undefined) => {
+    if (!dateRange?.from || !dateRange?.to) return 'unknown';
     
-    const startDate = new Date(projectStart);
-    const endDate = new Date(projectEnd);
+    const startDate = dateRange.from;
+    const endDate = dateRange.to;
     
     let conflictDays = 0;
     let totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -84,9 +89,9 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
   const teamMembersWithAvailability = useMemo(() => {
     return teamMembers.map(member => ({
       ...member,
-      availability: getAvailabilityStatus(member, formData.startDate, formData.endDate)
+      availability: getAvailabilityStatus(member, dateRange)
     }));
-  }, [teamMembers, formData.startDate, formData.endDate]);
+  }, [teamMembers, dateRange]);
 
   const getAvailabilityBadge = (availability: string) => {
     switch (availability) {
@@ -121,8 +126,8 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
       customer: formData.customer,
       status: formData.status,
       progress: 0,
-      startDate: formData.startDate || new Date().toLocaleDateString('de-DE'),
-      endDate: formData.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('de-DE'),
+      startDate: dateRange?.from ? format(dateRange.from, 'dd.MM.yyyy') : new Date().toLocaleDateString('de-DE'),
+      endDate: dateRange?.to ? format(dateRange.to, 'dd.MM.yyyy') : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('de-DE'),
       budget: formData.budget.startsWith('€') ? formData.budget : `€${formData.budget}`,
       team: formData.team.length > 0 ? formData.team : ['Nicht zugewiesen'],
       location: formData.location || 'Nicht angegeben'
@@ -136,11 +141,10 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
       customer: '',
       location: '',
       budget: '',
-      startDate: '',
-      endDate: '',
       team: [],
       status: 'Planung'
     });
+    setDateRange(undefined);
 
     toast({
       title: "Erfolg",
@@ -237,25 +241,42 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="startDate">Startdatum</Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={formData.startDate}
-                onChange={(e) => handleInputChange('startDate', e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="endDate">Enddatum</Label>
-              <Input
-                id="endDate"
-                type="date"
-                value={formData.endDate}
-                onChange={(e) => handleInputChange('endDate', e.target.value)}
-              />
-            </div>
+          <div>
+            <Label>Projektzeitraum</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "dd.MM.yyyy", { locale: de })} -{" "}
+                        {format(dateRange.to, "dd.MM.yyyy", { locale: de })}
+                      </>
+                    ) : (
+                      format(dateRange.from, "dd.MM.yyyy", { locale: de })
+                    )
+                  ) : (
+                    <span>Start- und Enddatum auswählen</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange?.from}
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                  locale={de}
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
