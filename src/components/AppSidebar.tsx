@@ -36,6 +36,7 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
+  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const handleSignOut = async () => {
     try {
@@ -59,8 +60,15 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
   return (
     <div 
       className={`fixed left-0 top-0 h-full z-50 transition-all duration-300 ${isExpanded ? "w-64" : "w-16"} bg-sidebar border-r border-border`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => {
+        if (hoverTimeout) clearTimeout(hoverTimeout);
+        const timeout = setTimeout(() => setIsHovered(true), 200);
+        setHoverTimeout(timeout);
+      }}
+      onMouseLeave={() => {
+        if (hoverTimeout) clearTimeout(hoverTimeout);
+        setIsHovered(false);
+      }}
     >
       <div className="flex flex-col h-full">
         <div className="flex-1 p-2">
