@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,12 +7,14 @@ import { Building2, Calendar, Users, Package, AlertTriangle, CheckCircle, Clock,
 import AddProjectDialog from "./AddProjectDialog";
 import EditProjectDialog from "./EditProjectDialog";
 import ProjectDetailDialog from "./ProjectDetailDialog";
+import { supabase } from "@/integrations/supabase/client";
 
 const ProjectModule = () => {
   const [isAddProjectOpen, setIsAddProjectOpen] = useState(false);
   const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
   const [isDetailProjectOpen, setIsDetailProjectOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
   
   // Kundendaten für die Auswahl
   const customers = [
@@ -51,58 +53,35 @@ const ProjectModule = () => {
     }
   ];
 
-  // Teammitglieder mit ihren aktuellen Projekten
-  const teamMembers = [
-    {
-      id: 1,
-      name: 'Max Mustermann',
-      role: 'Projektleiter',
-      projects: [
-        { name: 'Büroerweiterung Müller GmbH', startDate: '01.01.2024', endDate: '15.02.2024' },
-        { name: 'Wohnanlage Phase 2', startDate: '01.02.2024', endDate: '30.04.2024' }
-      ]
-    },
-    {
-      id: 2,
-      name: 'Lisa Weber',
-      role: 'Elektrikerin',
-      projects: [
-        { name: 'Büroerweiterung Müller GmbH', startDate: '01.01.2024', endDate: '15.02.2024' },
-        { name: 'Wohnanlage Phase 2', startDate: '01.02.2024', endDate: '30.04.2024' }
-      ]
-    },
-    {
-      id: 3,
-      name: 'Tom Fischer',
-      role: 'Installateur',
-      projects: [
-        { name: 'Werkshalle Elektrik', startDate: '15.12.2023', endDate: '10.01.2024' },
-        { name: 'Wohnanlage Phase 2', startDate: '01.02.2024', endDate: '30.04.2024' }
-      ]
-    },
-    {
-      id: 4,
-      name: 'Anna Klein',
-      role: 'Technikerin',
-      projects: [
-        { name: 'Werkshalle Elektrik', startDate: '15.12.2023', endDate: '10.01.2024' }
-      ]
-    },
-    {
-      id: 5,
-      name: 'Michael Schmidt',
-      role: 'Monteur',
-      projects: []
-    },
-    {
-      id: 6,
-      name: 'Sarah Wagner',
-      role: 'Planerin',
-      projects: [
-        { name: 'Wohnanlage Phase 2', startDate: '01.02.2024', endDate: '30.04.2024' }
-      ]
-    }
-  ];
+  // Echte Mitarbeiter aus der Datenbank laden
+  useEffect(() => {
+    const fetchTeamMembers = async () => {
+      try {
+        const { data: profiles, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('status', 'aktiv');
+
+        if (error) {
+          console.error('Error fetching team members:', error);
+          return;
+        }
+
+        const formattedMembers = profiles?.map(profile => ({
+          id: profile.id,
+          name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email,
+          role: profile.position || 'Mitarbeiter',
+          projects: [] // TODO: Echte Projekt-Zuordnungen laden
+        })) || [];
+
+        setTeamMembers(formattedMembers);
+      } catch (error) {
+        console.error('Error loading team members:', error);
+      }
+    };
+
+    fetchTeamMembers();
+  }, []);
 
   const [projects, setProjects] = useState([
     {
