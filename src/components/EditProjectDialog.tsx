@@ -1,11 +1,19 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { DateRange } from "react-day-picker";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 
 interface Project {
   id: string;
@@ -29,6 +37,8 @@ interface EditProjectDialogProps {
 
 const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated }: EditProjectDialogProps) => {
   const { toast } = useToast();
+  const [customers, setCustomers] = useState<Tables<'customers'>[]>([]);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [formData, setFormData] = useState({
     name: project?.name || '',
     customer: project?.customer || '',
@@ -40,7 +50,26 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated }: EditP
     location: project?.location || ''
   });
 
-  React.useEffect(() => {
+  // Load customers
+  useEffect(() => {
+    const loadCustomers = async () => {
+      const { data } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('status', 'Aktiv')
+        .order('company_name');
+      
+      if (data) {
+        setCustomers(data);
+      }
+    };
+
+    if (isOpen) {
+      loadCustomers();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
     if (project) {
       setFormData({
         name: project.name,
@@ -52,8 +81,31 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated }: EditP
         budget: project.budget,
         location: project.location
       });
+
+      // Set date range from project dates
+      if (project.startDate && project.endDate) {
+        setDateRange({
+          from: new Date(project.startDate),
+          to: new Date(project.endDate)
+        });
+      } else if (project.startDate) {
+        setDateRange({
+          from: new Date(project.startDate),
+          to: undefined
+        });
+      }
     }
   }, [project]);
+
+  // Update form data when date range changes
+  useEffect(() => {
+    if (dateRange?.from) {
+      handleInputChange('startDate', format(dateRange.from, 'yyyy-MM-dd'));
+    }
+    if (dateRange?.to) {
+      handleInputChange('endDate', format(dateRange.to, 'yyyy-MM-dd'));
+    }
+  }, [dateRange]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,12 +159,18 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated }: EditP
 
           <div>
             <Label htmlFor="customer">Kunde</Label>
-            <Input
-              id="customer"
-              value={formData.customer}
-              onChange={(e) => handleInputChange('customer', e.target.value)}
-              required
-            />
+            <Select value={formData.customer} onValueChange={(value) => handleInputChange('customer', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Kunde auswählen" />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.map((customer) => (
+                  <SelectItem key={customer.id} value={customer.company_name}>
+                    {customer.company_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
@@ -134,25 +192,44 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated }: EditP
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="startDate">Startdatum</Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={formData.startDate}
-                onChange={(e) => handleInputChange('startDate', e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="endDate">Enddatum</Label>
-              <Input
-                id="endDate"
-                type="date"
-                value={formData.endDate}
-                onChange={(e) => handleInputChange('endDate', e.target.value)}
-              />
-            </div>
+          <div>
+            <Label>Projektzeitraum</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !dateRange && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "dd.MM.yyyy")} -{" "}
+                        {format(dateRange.to, "dd.MM.yyyy")}
+                      </>
+                    ) : (
+                      format(dateRange.from, "dd.MM.yyyy")
+                    )
+                  ) : (
+                    <span>Zeitraum auswählen</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange?.from}
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
