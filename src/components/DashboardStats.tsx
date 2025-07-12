@@ -26,6 +26,25 @@ const DashboardStats = () => {
   const dashboardCards: DashboardCard[] = [
     // First row
     {
+      title: "Projekte",
+      description: "Starten Sie jetzt mit Ihrem ersten Projekt.",
+      icon: Building2,
+      buttonText: "Projekte anzeigen"
+    },
+    {
+      title: "Dokumente", 
+      description: "Erstellen Sie einfach Angebote oder Rechnungen und verwenden Sie diese mit einem Klick an den Kunden per E-Mail.",
+      icon: FileText,
+      buttonText: "Dokumente anzeigen"
+    },
+    {
+      title: "Aufgaben",
+      description: "Legen Sie Aufgaben für sich und Ihre Mitarbeiter an. Diese können auch direkt einem Projekt zugeordnet werden.",
+      icon: CheckSquare,
+      buttonText: "Aufgaben anzeigen"
+    },
+    // Second row
+    {
       title: "Kontakte",
       description: "Verwalten Sie Ihre Kontakte. Private wie gewerbliche Kunden, Lieferanten und Kooperationspartner an einem Ort.",
       icon: Users,
@@ -66,9 +85,9 @@ const DashboardStats = () => {
 
   return (
     <div className="space-y-6">
-      {/* First row - 4 cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {dashboardCards.slice(0, 4).map((card, index) => (
+      {/* First row - 3 cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {dashboardCards.slice(0, 3).map((card, index) => (
           <Card key={index} className="hover:shadow-lg transition-all duration-200 h-full">
             <CardHeader className="text-center pb-4">
               <div className="flex justify-center mb-4">
@@ -94,10 +113,10 @@ const DashboardStats = () => {
         ))}
       </div>
 
-      {/* Second row - 3 cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {dashboardCards.slice(4, 7).map((card, index) => (
-          <Card key={index + 4} className="hover:shadow-lg transition-all duration-200 h-full">
+      {/* Second row - 4 cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {dashboardCards.slice(3, 7).map((card, index) => (
+          <Card key={index + 3} className="hover:shadow-lg transition-all duration-200 h-full">
             <CardHeader className="text-center pb-4">
               <div className="flex justify-center mb-4">
                 <div className="p-3 rounded-lg bg-muted">
