@@ -9,7 +9,10 @@ import {
   Calculator, 
   Calendar,
   Clock,
-  LogOut
+  LogOut,
+  ChevronDown,
+  ChevronRight,
+  Database
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,9 +20,17 @@ import { toast } from "@/hooks/use-toast";
 
 const navigationItems = [
   { id: 'dashboard', name: 'Dashboard', icon: TrendingUp, color: 'text-blue-500' },
-  { id: 'customers', name: 'Kunden & Aufträge', icon: Users, color: 'text-green-500' },
+  { 
+    id: 'stammdaten', 
+    name: 'Stammdaten', 
+    icon: Database, 
+    color: 'text-gray-500',
+    children: [
+      { id: 'customers', name: 'Kunden & Aufträge', icon: Users, color: 'text-green-500' },
+      { id: 'personal', name: 'Personal', icon: UserCheck, color: 'text-purple-500' }
+    ]
+  },
   { id: 'projects', name: 'Projekte & Baustellen', icon: Building2, color: 'text-orange-500' },
-  { id: 'personal', name: 'Personal', icon: UserCheck, color: 'text-purple-500' },
   { id: 'timetracking', name: 'Zeiterfassung', icon: Clock, color: 'text-yellow-500' },
   { id: 'materials', name: 'Material', icon: Package, color: 'text-red-500' },
   { id: 'machines', name: 'Maschinen & Geräte', icon: Settings, color: 'text-indigo-500' },
@@ -37,6 +48,7 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(['stammdaten']);
 
   const handleSignOut = async () => {
     try {
@@ -57,6 +69,14 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
 
   const isExpanded = isHovered;
 
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups(prev => 
+      prev.includes(groupId) 
+        ? prev.filter(id => id !== groupId)
+        : [...prev, groupId]
+    );
+  };
+
   return (
     <div 
       className={`fixed left-0 top-0 h-full z-50 transition-all duration-300 ${isExpanded ? "w-64" : "w-16"} bg-sidebar border-r border-border`}
@@ -75,24 +95,78 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
           <div className="space-y-2">
             {navigationItems.map((item) => (
               <div key={item.id}>
-                <button
-                  onClick={() => onModuleChange(item.id)}
-                  className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 relative ${
-                    activeModule === item.id
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-accent hover:text-accent-foreground"
-                  }`}
-                  title={!isExpanded ? item.name : undefined}
-                >
-                  <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
-                    <item.icon className={`h-5 w-5 ${item.color}`} />
+                {item.children ? (
+                  // Gruppiertes Menü mit Unterelementen
+                  <div>
+                    <button
+                      onClick={() => toggleGroup(item.id)}
+                      className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 relative hover:bg-accent hover:text-accent-foreground`}
+                      title={!isExpanded ? item.name : undefined}
+                    >
+                      <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
+                        <item.icon className={`h-5 w-5 ${item.color}`} />
+                      </div>
+                      <span className={`ml-3 whitespace-nowrap transition-all duration-300 ${
+                        isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
+                      }`}>
+                        {item.name}
+                      </span>
+                      {isExpanded && (
+                        <div className="ml-auto">
+                          {expandedGroups.includes(item.id) ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </div>
+                      )}
+                    </button>
+                    
+                    {/* Unterelemente */}
+                    {expandedGroups.includes(item.id) && isExpanded && (
+                      <div className="ml-6 mt-1 space-y-1">
+                        {item.children.map((child) => (
+                          <button
+                            key={child.id}
+                            onClick={() => onModuleChange(child.id)}
+                            className={`w-full flex items-center p-2 rounded-lg transition-all duration-200 text-sm ${
+                              activeModule === child.id
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-accent hover:text-accent-foreground"
+                            }`}
+                          >
+                            <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                              <child.icon className={`h-4 w-4 ${child.color}`} />
+                            </div>
+                            <span className="ml-2 whitespace-nowrap">
+                              {child.name}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <span className={`ml-3 whitespace-nowrap transition-all duration-300 ${
-                    isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
-                  }`}>
-                    {item.name}
-                  </span>
-                </button>
+                ) : (
+                  // Einzelnes Menüelement
+                  <button
+                    onClick={() => onModuleChange(item.id)}
+                    className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 relative ${
+                      activeModule === item.id
+                        ? "bg-primary text-primary-foreground"
+                        : "hover:bg-accent hover:text-accent-foreground"
+                    }`}
+                    title={!isExpanded ? item.name : undefined}
+                  >
+                    <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
+                      <item.icon className={`h-5 w-5 ${item.color}`} />
+                    </div>
+                    <span className={`ml-3 whitespace-nowrap transition-all duration-300 ${
+                      isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
+                    }`}>
+                      {item.name}
+                    </span>
+                  </button>
+                )}
               </div>
             ))}
           </div>
