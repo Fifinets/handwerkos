@@ -12,10 +12,12 @@ import {
   Send, 
   Eye,
   Edit,
-  Download
+  Download,
+  Mail
 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { AddQuoteDialog } from './AddQuoteDialog';
 import { AddInvoiceDialog } from './AddInvoiceDialog';
 
@@ -26,6 +28,7 @@ interface Quote {
   customer: {
     company_name: string;
     contact_person: string;
+    email: string;
   };
   quote_date: string;
   valid_until: string | null;
@@ -41,6 +44,7 @@ interface Invoice {
   customer: {
     company_name: string;
     contact_person: string;
+    email: string;
   };
   invoice_date: string;
   due_date: string;
@@ -53,6 +57,8 @@ export function DocumentModule() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddQuote, setShowAddQuote] = useState(false);
   const [showAddInvoice, setShowAddInvoice] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: quotes = [], isLoading: quotesLoading } = useQuery({
     queryKey: ['quotes'],
@@ -61,7 +67,7 @@ export function DocumentModule() {
         .from('quotes')
         .select(`
           *,
-          customer:customers(company_name, contact_person)
+          customer:customers(company_name, contact_person, email)
         `)
         .order('created_at', { ascending: false });
       
@@ -70,6 +76,58 @@ export function DocumentModule() {
     }
   });
 
+  const sendEmailMutation = useMutation({
+    mutationFn: async ({ documentType, documentId, documentData }: { 
+      documentType: 'quote' | 'invoice', 
+      documentId: string, 
+      documentData: any 
+    }) => {
+      const { data, error } = await supabase.functions.invoke('send-document-email', {
+        body: {
+          documentType,
+          documentId,
+          recipientEmail: documentData.customer.email,
+          recipientName: documentData.customer.contact_person
+        }
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data, variables) => {
+      toast({
+        title: "E-Mail versendet",
+        description: `${variables.documentType === 'quote' ? 'Angebot' : 'Rechnung'} wurde erfolgreich per E-Mail versendet.`,
+      });
+      queryClient.invalidateQueries({ queryKey: [variables.documentType === 'quote' ? 'quotes' : 'invoices'] });
+    },
+    onError: (error: any) => {
+      console.error('Email sending error:', error);
+      toast({
+        title: "Fehler beim Versenden",
+        description: error.message || "Beim Versenden der E-Mail ist ein Fehler aufgetreten.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleSendEmail = (documentType: 'quote' | 'invoice', documentData: any) => {
+    if (!documentData.customer?.email) {
+      toast({
+        title: "Keine E-Mail-Adresse",
+        description: "Für diesen Kunden ist keine E-Mail-Adresse hinterlegt.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    sendEmailMutation.mutate({
+      documentType,
+      documentId: documentData.id,
+      documentData
+    });
+  };
+
   const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
     queryKey: ['invoices'],
     queryFn: async () => {
@@ -77,7 +135,7 @@ export function DocumentModule() {
         .from('invoices')
         .select(`
           *,
-          customer:customers(company_name, contact_person)
+          customer:customers(company_name, contact_person, email)
         `)
         .order('created_at', { ascending: false });
       
@@ -209,16 +267,22 @@ export function DocumentModule() {
                           {formatCurrency(quote.total_amount, quote.currency)}
                         </div>
                         <div className="flex gap-1">
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" title="Ansehen">
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" title="Bearbeiten">
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
-                            <Send className="h-4 w-4" />
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            title="Per E-Mail versenden"
+                            onClick={() => handleSendEmail('quote', quote)}
+                            disabled={sendEmailMutation.isPending}
+                          >
+                            <Mail className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" title="Herunterladen">
                             <Download className="h-4 w-4" />
                           </Button>
                         </div>
@@ -275,16 +339,22 @@ export function DocumentModule() {
                           {formatCurrency(invoice.total_amount, invoice.currency)}
                         </div>
                         <div className="flex gap-1">
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" title="Ansehen">
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" title="Bearbeiten">
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
-                            <Send className="h-4 w-4" />
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            title="Per E-Mail versenden"
+                            onClick={() => handleSendEmail('invoice', invoice)}
+                            disabled={sendEmailMutation.isPending}
+                          >
+                            <Mail className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" title="Herunterladen">
                             <Download className="h-4 w-4" />
                           </Button>
                         </div>
