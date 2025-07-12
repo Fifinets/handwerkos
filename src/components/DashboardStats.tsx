@@ -1,171 +1,173 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from "@/components/ui/card";
-import { Building2, Users, UserCheck, DollarSign } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { 
+  Building2, 
+  FileText, 
+  CheckSquare, 
+  Users, 
+  Calendar, 
+  Calculator, 
+  UserCheck, 
+  Settings, 
+  DollarSign 
+} from "lucide-react";
 
-interface DashboardStatsData {
-  activeProjects: number;
-  customers: number;
-  employees: number;
-  openInvoices: string;
+interface DashboardCard {
+  title: string;
+  description: string;
+  icon: any;
+  buttonText: string;
+  onClick?: () => void;
 }
 
 const DashboardStats = () => {
-  const [stats, setStats] = useState<DashboardStatsData>({
-    activeProjects: 0,
-    customers: 0,
-    employees: 0,
-    openInvoices: '€0'
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchDashboardStats();
-  }, []);
-
-  const fetchDashboardStats = async () => {
-    try {
-      setLoading(true);
-      console.log('Fetching dashboard stats...');
-
-      // Fetch all profiles to count total users
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id');
-
-      if (profilesError) {
-        console.error('Error fetching profiles data:', profilesError);
-      }
-
-      console.log('Profiles data:', profilesData);
-
-      // Fetch all user roles to get accurate counts
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('role');
-
-      if (rolesError) {
-        console.error('Error fetching roles data:', rolesError);
-      }
-
-      console.log('Roles data:', rolesData);
-
-      // Count managers and employees from actual roles
-      const managers = rolesData ? rolesData.filter(r => r.role === 'manager').length : 0;
-      const employeesFromRoles = rolesData ? rolesData.filter(r => r.role === 'employee').length : 0;
-      
-      // Use total profiles as employee count if no roles are assigned, otherwise use role-based count
-      const totalUsers = profilesData ? profilesData.length : 0;
-      const employees = employeesFromRoles > 0 ? employeesFromRoles : Math.max(0, totalUsers - managers);
-
-      console.log('Managers:', managers, 'Employees:', employees, 'Total users:', totalUsers);
-
-      // Fetch unique projects from work hours (projects with any activity)
-      const { data: projectData, error: projectError } = await supabase
-        .from('project_work_hours')
-        .select('project_id');
-
-      if (projectError) {
-        console.error('Error fetching project data:', projectError);
-      }
-
-      console.log('Project work hours data:', projectData);
-
-      // Count unique active projects
-      const uniqueProjects = projectData ? new Set(projectData.map(p => p.project_id)) : new Set();
-      const activeProjects = uniqueProjects.size;
-
-      console.log('Active projects:', activeProjects);
-
-      // Calculate open invoices from recent material purchases
-      const { data: purchaseData, error: purchaseError } = await supabase
-        .from('project_material_purchases')
-        .select('total_price');
-
-      if (purchaseError) {
-        console.error('Error fetching purchase data:', purchaseError);
-      }
-
-      console.log('Purchase data:', purchaseData);
-
-      // Calculate total purchases and estimate open invoices
-      const totalPurchases = purchaseData ? purchaseData.reduce((sum, p) => sum + Number(p.total_price || 0), 0) : 0;
-      // Assume 40% of total purchases represent open invoices
-      const openInvoiceAmount = Math.round(totalPurchases * 0.4);
-
-      console.log('Total purchases:', totalPurchases, 'Open invoices:', openInvoiceAmount);
-
-      setStats({
-        activeProjects,
-        customers: managers, // Managers are treated as customers in this context
-        employees: employees,
-        openInvoices: `€${openInvoiceAmount.toLocaleString('de-DE')}`
-      });
-
-      console.log('Final stats:', {
-        activeProjects,
-        customers: managers,
-        employees: employees,
-        openInvoices: `€${openInvoiceAmount.toLocaleString('de-DE')}`
-      });
-
-    } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
-      // Set meaningful fallback values if there's an error
-      setStats({
-        activeProjects: 0,
-        customers: 0,
-        employees: 0,
-        openInvoices: '€0'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const dashboardStats = [
-    { 
-      title: 'Aktive Projekte', 
-      value: loading ? '...' : stats.activeProjects.toString(), 
-      icon: Building2, 
-      color: 'text-blue-600' 
+  const dashboardCards: DashboardCard[] = [
+    // First row
+    {
+      title: "Projekte",
+      description: "Starten Sie jetzt mit Ihrem ersten Projekt.",
+      icon: Building2,
+      buttonText: "Projekte anzeigen"
     },
-    { 
-      title: 'Kunden', 
-      value: loading ? '...' : stats.customers.toString(), 
-      icon: Users, 
-      color: 'text-green-600' 
+    {
+      title: "Dokumente", 
+      description: "Erstellen Sie einfach Angebote oder Rechnungen und verwenden Sie diese mit einem Klick an den Kunden per E-Mail.",
+      icon: FileText,
+      buttonText: "Dokumente anzeigen"
     },
-    { 
-      title: 'Mitarbeiter', 
-      value: loading ? '...' : stats.employees.toString(), 
-      icon: UserCheck, 
-      color: 'text-purple-600' 
+    {
+      title: "Aufgaben",
+      description: "Legen Sie Aufgaben für sich und Ihre Mitarbeiter an. Diese können auch direkt einem Projekt zugeordnet werden.",
+      icon: CheckSquare,
+      buttonText: "Aufgaben anzeigen"
     },
-    { 
-      title: 'Offene Rechnungen', 
-      value: loading ? '...' : stats.openInvoices, 
-      icon: DollarSign, 
-      color: 'text-red-600' 
+    // Second row
+    {
+      title: "Kontakte",
+      description: "Verwalten Sie Ihre Kontakte. Private wie gewerbliche Kunden, Lieferanten und Kooperationspartner an einem Ort.",
+      icon: Users,
+      buttonText: "Kontakte anzeigen"
+    },
+    {
+      title: "Einsatzplanung",
+      description: "Synchronisieren Sie Ihre Projekttermine mit Ihrem Kalender. Planen Sie Ihre Mitarbeiter und Projekte und behalten Sie jetzt den Überblick.",
+      icon: Calendar,
+      buttonText: "Planung anzeigen"
+    },
+    {
+      title: "Buchhaltung",
+      description: "Behalten Sie Ihre Buchhaltung im Blick und erfassen Sie Einnahmen und Ausgaben und behalten jederzeit den Überblick.",
+      icon: Calculator,
+      buttonText: "Zur Buchhaltung"
+    },
+    {
+      title: "Mitarbeiterverwaltung", 
+      description: "Es liegen 0 Arbeitszeitleitträge zur Entscheidung.",
+      icon: UserCheck,
+      buttonText: "Mitarbeiter anzeigen"
+    },
+    // Third row
+    {
+      title: "Einstellungen",
+      description: "Verwalten Sie Ihre firmenbezogenen Daten. Fügen Sie Mitarbeiter hinzu oder vergeben Sie bestimmte Rechte.",
+      icon: Settings,
+      buttonText: "Firma"
+    },
+    {
+      title: "Tarifübersicht", 
+      description: "Informieren Sie sich über Ihren Tarif oder wechseln Sie diesen.",
+      icon: DollarSign,
+      buttonText: "Zum Tarif"
     }
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {dashboardStats.map((stat, index) => (
-        <Card key={index} className="hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                <p className="text-2xl font-bold">{stat.value}</p>
+    <div className="space-y-6">
+      {/* First row - 3 cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {dashboardCards.slice(0, 3).map((card, index) => (
+          <Card key={index} className="hover:shadow-lg transition-all duration-200 h-full">
+            <CardHeader className="text-center pb-4">
+              <div className="flex justify-center mb-4">
+                <div className="p-3 rounded-lg bg-muted">
+                  <card.icon className="h-8 w-8 text-primary" />
+                </div>
               </div>
-              <stat.icon className={`h-8 w-8 ${stat.color}`} />
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+              <CardTitle className="text-lg font-semibold">{card.title}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col justify-between h-full pt-0">
+              <p className="text-sm text-muted-foreground text-center mb-6 leading-relaxed">
+                {card.description}
+              </p>
+              <Button 
+                variant="outline" 
+                className="w-full mt-auto"
+                onClick={card.onClick}
+              >
+                {card.buttonText}
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Second row - 4 cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {dashboardCards.slice(3, 7).map((card, index) => (
+          <Card key={index + 3} className="hover:shadow-lg transition-all duration-200 h-full">
+            <CardHeader className="text-center pb-4">
+              <div className="flex justify-center mb-4">
+                <div className="p-3 rounded-lg bg-muted">
+                  <card.icon className="h-8 w-8 text-primary" />
+                </div>
+              </div>
+              <CardTitle className="text-lg font-semibold">{card.title}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col justify-between h-full pt-0">
+              <p className="text-sm text-muted-foreground text-center mb-6 leading-relaxed">
+                {card.description}
+              </p>
+              <Button 
+                variant="outline" 
+                className="w-full mt-auto"
+                onClick={card.onClick}
+              >
+                {card.buttonText}
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Third row - 2 cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {dashboardCards.slice(7, 9).map((card, index) => (
+          <Card key={index + 7} className="hover:shadow-lg transition-all duration-200 h-full">
+            <CardHeader className="text-center pb-4">
+              <div className="flex justify-center mb-4">
+                <div className="p-3 rounded-lg bg-muted">
+                  <card.icon className="h-8 w-8 text-primary" />
+                </div>
+              </div>
+              <CardTitle className="text-lg font-semibold">{card.title}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col justify-between h-full pt-0">
+              <p className="text-sm text-muted-foreground text-center mb-6 leading-relaxed">
+                {card.description}
+              </p>
+              <Button 
+                variant="outline" 
+                className="w-full mt-auto"
+                onClick={card.onClick}
+              >
+                {card.buttonText}
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 };
