@@ -267,8 +267,8 @@ const ProjectModule = () => {
           <h3 className="text-lg font-semibold">Aktuelle Projekte</h3>
           {projects.filter(project => project.status !== 'Abgeschlossen').map((project) => (
             <Card key={project.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6 flex flex-col h-full">
-                <div className="flex items-start justify-between mb-4">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       {getStatusIcon(project.status)}
@@ -288,7 +288,7 @@ const ProjectModule = () => {
                   </div>
                 </div>
 
-                <div className="space-y-3 flex-grow">
+                <div className="space-y-3">
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span>Fortschritt</span>
@@ -311,14 +311,6 @@ const ProjectModule = () => {
                         <Calendar className="h-4 w-4" />
                         {project.endDate}
                       </p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-gray-500 text-sm mb-1">Team:</p>
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm">{project.team.join(', ')}</span>
                     </div>
                   </div>
                 </div>
