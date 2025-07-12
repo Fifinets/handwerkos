@@ -28,6 +28,7 @@ import FinanceModule from "@/components/FinanceModule";
 import PlannerModule from "@/components/PlannerModule";
 import TimeTrackingModule from "@/components/TimeTrackingModule";
 import { DocumentModule } from "@/components/DocumentModule";
+import { CompanySettingsModule } from "@/components/CompanySettingsModule";
 import DashboardCalendar from "@/components/DashboardCalendar";
 import DashboardStats from "@/components/DashboardStats";
 import { toast } from "@/hooks/use-toast";
@@ -79,6 +80,8 @@ const Index = () => {
         return <PlannerModule />;
       case 'timetracking':
         return <TimeTrackingModule />;
+      case 'company-settings':
+        return <CompanySettingsModule />;
       default:
         return <DashboardStats />;
     }

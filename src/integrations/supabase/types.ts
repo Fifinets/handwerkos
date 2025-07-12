@@ -76,6 +76,93 @@ export type Database = {
           },
         ]
       }
+      company_settings: {
+        Row: {
+          company_address: string | null
+          company_city: string | null
+          company_country: string | null
+          company_email: string | null
+          company_name: string
+          company_phone: string | null
+          company_postal_code: string | null
+          company_website: string | null
+          created_at: string
+          default_break_duration: number | null
+          default_currency: string | null
+          default_tax_rate: number | null
+          default_working_hours_end: string | null
+          default_working_hours_start: string | null
+          email_signature: string | null
+          id: string
+          invoice_prefix: string | null
+          invoice_terms: string | null
+          is_active: boolean | null
+          logo_url: string | null
+          order_prefix: string | null
+          quote_prefix: string | null
+          quote_validity_days: number | null
+          tax_number: string | null
+          updated_at: string
+          vat_number: string | null
+        }
+        Insert: {
+          company_address?: string | null
+          company_city?: string | null
+          company_country?: string | null
+          company_email?: string | null
+          company_name?: string
+          company_phone?: string | null
+          company_postal_code?: string | null
+          company_website?: string | null
+          created_at?: string
+          default_break_duration?: number | null
+          default_currency?: string | null
+          default_tax_rate?: number | null
+          default_working_hours_end?: string | null
+          default_working_hours_start?: string | null
+          email_signature?: string | null
+          id?: string
+          invoice_prefix?: string | null
+          invoice_terms?: string | null
+          is_active?: boolean | null
+          logo_url?: string | null
+          order_prefix?: string | null
+          quote_prefix?: string | null
+          quote_validity_days?: number | null
+          tax_number?: string | null
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Update: {
+          company_address?: string | null
+          company_city?: string | null
+          company_country?: string | null
+          company_email?: string | null
+          company_name?: string
+          company_phone?: string | null
+          company_postal_code?: string | null
+          company_website?: string | null
+          created_at?: string
+          default_break_duration?: number | null
+          default_currency?: string | null
+          default_tax_rate?: number | null
+          default_working_hours_end?: string | null
+          default_working_hours_start?: string | null
+          email_signature?: string | null
+          id?: string
+          invoice_prefix?: string | null
+          invoice_terms?: string | null
+          is_active?: boolean | null
+          logo_url?: string | null
+          order_prefix?: string | null
+          quote_prefix?: string | null
+          quote_validity_days?: number | null
+          tax_number?: string | null
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address: string | null

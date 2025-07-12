@@ -37,7 +37,8 @@ const navigationItems = [
   { id: 'materials', name: 'Material', icon: Package, color: 'text-red-500' },
   { id: 'machines', name: 'Maschinen & Geräte', icon: Settings, color: 'text-indigo-500' },
   { id: 'finance', name: 'Finanzen', icon: Calculator, color: 'text-cyan-500' },
-  { id: 'planner', name: 'Planer', icon: Calendar, color: 'text-teal-500' }
+  { id: 'planner', name: 'Planer', icon: Calendar, color: 'text-teal-500' },
+  { id: 'company-settings', name: 'Firmeneinstellungen', icon: Settings, color: 'text-gray-600' }
 ];
 
 interface AppSidebarProps {
