@@ -77,12 +77,7 @@ const Index = () => {
       case 'timetracking':
         return <TimeTrackingModule />;
       default:
-        return (
-          <div className="space-y-6">
-            <DashboardStats />
-            <DashboardCalendar />
-          </div>
-        );
+        return <DashboardStats />;
     }
   };
 
