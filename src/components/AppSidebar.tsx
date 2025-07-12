@@ -31,14 +31,46 @@ const navigationItems = [
       { id: 'personal', name: 'Personal', icon: UserCheck, color: 'text-purple-500' }
     ]
   },
-  { id: 'projects', name: 'Projekte & Baustellen', icon: Building2, color: 'text-orange-500' },
-  { id: 'timetracking', name: 'Zeiterfassung', icon: Clock, color: 'text-yellow-500' },
-  { id: 'documents', name: 'Dokumente', icon: Receipt, color: 'text-emerald-500' },
-  { id: 'materials', name: 'Material', icon: Package, color: 'text-red-500' },
-  { id: 'machines', name: 'Maschinen & Geräte', icon: Settings, color: 'text-indigo-500' },
-  { id: 'finance', name: 'Finanzen', icon: Calculator, color: 'text-cyan-500' },
-  { id: 'planner', name: 'Planer', icon: Calendar, color: 'text-teal-500' },
-  { id: 'company-settings', name: 'Firmeneinstellungen', icon: Settings, color: 'text-gray-600' }
+  { 
+    id: 'projekte', 
+    name: 'Projekte', 
+    icon: Building2, 
+    color: 'text-orange-500',
+    children: [
+      { id: 'projects', name: 'Projekte & Baustellen', icon: Building2, color: 'text-orange-500' },
+      { id: 'timetracking', name: 'Zeiterfassung', icon: Clock, color: 'text-yellow-500' },
+      { id: 'planner', name: 'Planer', icon: Calendar, color: 'text-teal-500' }
+    ]
+  },
+  { 
+    id: 'ressourcen', 
+    name: 'Ressourcen', 
+    icon: Package, 
+    color: 'text-red-500',
+    children: [
+      { id: 'materials', name: 'Material', icon: Package, color: 'text-red-500' },
+      { id: 'machines', name: 'Maschinen & Geräte', icon: Settings, color: 'text-indigo-500' }
+    ]
+  },
+  { 
+    id: 'finanzen', 
+    name: 'Finanzen', 
+    icon: Calculator, 
+    color: 'text-cyan-500',
+    children: [
+      { id: 'documents', name: 'Dokumente', icon: Receipt, color: 'text-emerald-500' },
+      { id: 'finance', name: 'Finanzen', icon: Calculator, color: 'text-cyan-500' }
+    ]
+  },
+  { 
+    id: 'einstellungen', 
+    name: 'Einstellungen', 
+    icon: Settings, 
+    color: 'text-gray-600',
+    children: [
+      { id: 'company-settings', name: 'Firmeneinstellungen', icon: Settings, color: 'text-gray-600' }
+    ]
+  }
 ];
 
 interface AppSidebarProps {
