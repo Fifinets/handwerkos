@@ -84,15 +84,24 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated }: EditP
 
       // Set date range from project dates
       if (project.startDate && project.endDate) {
-        setDateRange({
-          from: new Date(project.startDate),
-          to: new Date(project.endDate)
-        });
+        const startDate = new Date(project.startDate);
+        const endDate = new Date(project.endDate);
+        
+        if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+          setDateRange({
+            from: startDate,
+            to: endDate
+          });
+        }
       } else if (project.startDate) {
-        setDateRange({
-          from: new Date(project.startDate),
-          to: undefined
-        });
+        const startDate = new Date(project.startDate);
+        
+        if (!isNaN(startDate.getTime())) {
+          setDateRange({
+            from: startDate,
+            to: undefined
+          });
+        }
       }
     }
   }, [project]);
