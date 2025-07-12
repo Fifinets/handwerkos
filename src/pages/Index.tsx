@@ -82,12 +82,12 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background">
+    <div className="min-h-screen w-full bg-background flex">
       <AppSidebar activeModule={activeModule} onModuleChange={setActiveModule} />
       
-      <div className="ml-16 flex flex-col min-h-screen">
-        {/* Header */}
-        <header className="h-16 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-30">
+      <div className="flex-1 flex flex-col">
+        {/* Header - Fixed height */}
+        <header className="h-16 border-b border-border bg-card/50 backdrop-blur-sm flex-shrink-0">
           <div className="flex items-center justify-between h-full px-6">
             <div className="flex items-center space-x-2">
               <h1 className="text-xl font-semibold">ElektroManage Pro</h1>
@@ -131,9 +131,9 @@ const Index = () => {
           </div>
         </header>
 
-        {/* Main Content */}
+        {/* Main Content - Takes remaining height */}
         <main className="flex-1 overflow-auto">
-          <div className="p-6">
+          <div className="p-6 h-full">
             {renderModule()}
           </div>
         </main>
