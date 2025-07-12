@@ -32,7 +32,7 @@ import DashboardStats from "@/components/DashboardStats";
 import { toast } from "@/hooks/use-toast";
 
 const Index = () => {
-  const { user, userRole, loading } = useAuth();
+  const { user, userRole, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const [activeModule, setActiveModule] = useState('dashboard');
 
@@ -117,6 +117,21 @@ const Index = () => {
                   {user?.email || 'Unbekannter Benutzer'}
                 </span>
               </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={async () => {
+                  await signOut();
+                  toast({
+                    title: "Erfolgreich abgemeldet",
+                    description: "Sie wurden erfolgreich abgemeldet.",
+                  });
+                  navigate('/auth');
+                }}
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Abmelden
+              </Button>
             </div>
           </div>
         </header>
