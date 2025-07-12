@@ -127,6 +127,60 @@ export type Database = {
         }
         Relationships: []
       }
+      document_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string | null
+          position: number
+          quantity: number
+          quote_id: string | null
+          total_price: number
+          unit: string | null
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id?: string | null
+          position: number
+          quantity?: number
+          quote_id?: string | null
+          total_price: number
+          unit?: string | null
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string | null
+          position?: number
+          quantity?: number
+          quote_id?: string | null
+          total_price?: number
+          unit?: string | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_items_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_absences: {
         Row: {
           approved_at: string | null
@@ -246,6 +300,84 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      invoices: {
+        Row: {
+          created_at: string
+          currency: string | null
+          customer_id: string
+          description: string | null
+          due_date: string
+          id: string
+          invoice_date: string
+          invoice_number: string
+          net_amount: number
+          notes: string | null
+          payment_terms: string | null
+          quote_id: string | null
+          status: string
+          tax_amount: number
+          tax_rate: number
+          title: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string | null
+          customer_id: string
+          description?: string | null
+          due_date: string
+          id?: string
+          invoice_date?: string
+          invoice_number: string
+          net_amount?: number
+          notes?: string | null
+          payment_terms?: string | null
+          quote_id?: string | null
+          status?: string
+          tax_amount?: number
+          tax_rate?: number
+          title: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string | null
+          customer_id?: string
+          description?: string | null
+          due_date?: string
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          net_amount?: number
+          notes?: string | null
+          payment_terms?: string | null
+          quote_id?: string | null
+          status?: string
+          tax_amount?: number
+          tax_rate?: number
+          title?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       orders: {
         Row: {
@@ -563,6 +695,71 @@ export type Database = {
           },
         ]
       }
+      quotes: {
+        Row: {
+          created_at: string
+          currency: string | null
+          customer_id: string
+          description: string | null
+          id: string
+          net_amount: number
+          notes: string | null
+          quote_date: string
+          quote_number: string
+          status: string
+          tax_amount: number
+          tax_rate: number
+          title: string
+          total_amount: number
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          created_at?: string
+          currency?: string | null
+          customer_id: string
+          description?: string | null
+          id?: string
+          net_amount?: number
+          notes?: string | null
+          quote_date?: string
+          quote_number: string
+          status?: string
+          tax_amount?: number
+          tax_rate?: number
+          title: string
+          total_amount?: number
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          created_at?: string
+          currency?: string | null
+          customer_id?: string
+          description?: string | null
+          id?: string
+          net_amount?: number
+          notes?: string | null
+          quote_date?: string
+          quote_number?: string
+          status?: string
+          tax_amount?: number
+          tax_rate?: number
+          title?: string
+          total_amount?: number
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       time_entries: {
         Row: {
           break_duration: number | null
@@ -784,7 +981,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_invoice_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       generate_order_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_quote_number: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
