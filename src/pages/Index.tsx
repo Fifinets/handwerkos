@@ -82,11 +82,10 @@ const Index = () => {
   };
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen w-full bg-background flex">
-        <AppSidebar activeModule={activeModule} onModuleChange={setActiveModule} />
-        
-        <div className="flex flex-col min-h-screen flex-1">
+    <div className="min-h-screen w-full bg-background">
+      <AppSidebar activeModule={activeModule} onModuleChange={setActiveModule} />
+      
+      <div className="ml-16 flex flex-col min-h-screen">
         {/* Header */}
         <header className="h-16 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-30">
           <div className="flex items-center justify-between h-full px-6">
@@ -138,9 +137,8 @@ const Index = () => {
             {renderModule()}
           </div>
         </main>
-        </div>
       </div>
-    </SidebarProvider>
+    </div>
   );
 };
 
