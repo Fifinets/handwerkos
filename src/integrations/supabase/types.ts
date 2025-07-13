@@ -529,6 +529,7 @@ export type Database = {
         Row: {
           city: string | null
           company_name: string | null
+          country: string | null
           created_at: string
           department: string | null
           email: string
@@ -541,13 +542,17 @@ export type Database = {
           phone: string | null
           position: string | null
           postal_code: string | null
+          referral_source: string | null
           status: string | null
           street_address: string | null
           updated_at: string
+          vat_id: string | null
+          voucher_code: string | null
         }
         Insert: {
           city?: string | null
           company_name?: string | null
+          country?: string | null
           created_at?: string
           department?: string | null
           email: string
@@ -560,13 +565,17 @@ export type Database = {
           phone?: string | null
           position?: string | null
           postal_code?: string | null
+          referral_source?: string | null
           status?: string | null
           street_address?: string | null
           updated_at?: string
+          vat_id?: string | null
+          voucher_code?: string | null
         }
         Update: {
           city?: string | null
           company_name?: string | null
+          country?: string | null
           created_at?: string
           department?: string | null
           email?: string
@@ -579,9 +588,12 @@ export type Database = {
           phone?: string | null
           position?: string | null
           postal_code?: string | null
+          referral_source?: string | null
           status?: string | null
           street_address?: string | null
           updated_at?: string
+          vat_id?: string | null
+          voucher_code?: string | null
         }
         Relationships: []
       }

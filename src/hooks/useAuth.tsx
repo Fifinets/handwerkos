@@ -80,6 +80,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           street_address: registrationData.street,
           postal_code: registrationData.zipCode,
           city: registrationData.city,
+          vat_id: registrationData.vatId,
+          country: registrationData.country,
+          voucher_code: registrationData.voucherCode,
+          referral_source: registrationData.referralSource,
         }
       }
     });
