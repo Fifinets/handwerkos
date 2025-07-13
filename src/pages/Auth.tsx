@@ -148,7 +148,7 @@ const Auth = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* ADDIGO Header */}
-      <div className="bg-orange-500 text-white p-4 text-center">
+      <div className="bg-gray-800 text-white p-4 text-center">
         <h1 className="text-xl font-bold">ADDIGO COCKPIT</h1>
       </div>
 
@@ -156,7 +156,7 @@ const Auth = () => {
         <div className="w-full max-w-4xl">
           <Card className="mt-8">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-orange-600">
+              <CardTitle className="flex items-center gap-2 text-gray-700">
                 {isPasswordSetup ? (
                   <>
                     <Key className="h-5 w-5" />
@@ -401,7 +401,7 @@ const Auth = () => {
                     <div className="space-y-4 pt-4 border-t">
                       <p className="text-sm text-gray-600">
                         Uns ist die Sicherheit Ihrer Daten sehr wichtig. Hier gelangen Sie zur{' '}
-                        <span className="text-orange-600 underline cursor-pointer">Datenschutzerklärung</span>.
+                        <span className="text-gray-700 underline cursor-pointer">Datenschutzerklärung</span>.
                         Wir behandeln die eingegebenen Daten DSGVO-konform.
                       </p>
                       
@@ -414,8 +414,8 @@ const Auth = () => {
                           />
                           <Label htmlFor="terms" className="text-sm leading-5">
                             Ja, ich habe die{' '}
-                            <span className="text-orange-600 underline cursor-pointer">AGB</span> und die{' '}
-                            <span className="text-orange-600 underline cursor-pointer">Datenschutzerklärung</span>{' '}
+                            <span className="text-gray-700 underline cursor-pointer">AGB</span> und die{' '}
+                            <span className="text-gray-700 underline cursor-pointer">Datenschutzerklärung</span>{' '}
                             zur Kenntnis genommen und bin damit einverstanden, dass die von mir eingegebenen Daten elektronisch
                             erhoben und gespeichert werden. Meine Daten werden dabei nur streng zweckgebunden für den Betrieb des Cockpits sowie zur Bearbeitung und Beantwortung
                             meiner Anfragen genutzt.
@@ -476,7 +476,7 @@ const Auth = () => {
                   <button
                     type="button"
                     onClick={() => setIsLogin(!isLogin)}
-                    className="text-orange-600 hover:underline text-sm"
+                    className="text-gray-700 hover:underline text-sm"
                   >
                     {isLogin ? 'Noch kein Konto? Registrieren' : 'Bereits ein Konto? Anmelden'}
                   </button>
@@ -487,9 +487,9 @@ const Auth = () => {
                 <div className="mt-6 text-center text-sm text-gray-600">
                   <p>
                     Bei Fragen kontaktieren Sie uns gern unter{' '}
-                    <span className="text-orange-600">support@addigo.de</span> oder{' '}
-                    <span className="text-orange-600">(+49) 351 33217217</span>,{' '}
-                    <span className="text-orange-600 underline">www.addigo.de</span>
+                    <span className="text-gray-700">support@addigo.de</span> oder{' '}
+                    <span className="text-gray-700">(+49) 351 33217217</span>,{' '}
+                    <span className="text-gray-700 underline">www.addigo.de</span>
                   </p>
                 </div>
               )}
