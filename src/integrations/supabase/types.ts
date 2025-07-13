@@ -331,6 +331,187 @@ export type Database = {
           },
         ]
       }
+      email_attachments: {
+        Row: {
+          content_type: string | null
+          created_at: string
+          email_id: string
+          file_url: string | null
+          filename: string
+          id: string
+          size_bytes: number | null
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string
+          email_id: string
+          file_url?: string | null
+          filename: string
+          id?: string
+          size_bytes?: number | null
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string
+          email_id?: string
+          file_url?: string | null
+          filename?: string
+          id?: string
+          size_bytes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_attachments_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "emails"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_categories: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      emails: {
+        Row: {
+          ai_category_id: string | null
+          ai_confidence: number | null
+          ai_extracted_data: Json | null
+          ai_sentiment: string | null
+          ai_summary: string | null
+          company_id: string | null
+          content: string | null
+          created_at: string
+          customer_id: string | null
+          html_content: string | null
+          id: string
+          in_reply_to: string | null
+          is_read: boolean | null
+          is_starred: boolean | null
+          message_id: string | null
+          priority: string | null
+          processed_at: string | null
+          processing_status: string | null
+          project_id: string | null
+          received_at: string
+          recipient_email: string
+          sender_email: string
+          sender_name: string | null
+          subject: string
+          thread_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_category_id?: string | null
+          ai_confidence?: number | null
+          ai_extracted_data?: Json | null
+          ai_sentiment?: string | null
+          ai_summary?: string | null
+          company_id?: string | null
+          content?: string | null
+          created_at?: string
+          customer_id?: string | null
+          html_content?: string | null
+          id?: string
+          in_reply_to?: string | null
+          is_read?: boolean | null
+          is_starred?: boolean | null
+          message_id?: string | null
+          priority?: string | null
+          processed_at?: string | null
+          processing_status?: string | null
+          project_id?: string | null
+          received_at?: string
+          recipient_email: string
+          sender_email: string
+          sender_name?: string | null
+          subject: string
+          thread_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_category_id?: string | null
+          ai_confidence?: number | null
+          ai_extracted_data?: Json | null
+          ai_sentiment?: string | null
+          ai_summary?: string | null
+          company_id?: string | null
+          content?: string | null
+          created_at?: string
+          customer_id?: string | null
+          html_content?: string | null
+          id?: string
+          in_reply_to?: string | null
+          is_read?: boolean | null
+          is_starred?: boolean | null
+          message_id?: string | null
+          priority?: string | null
+          processed_at?: string | null
+          processing_status?: string | null
+          project_id?: string | null
+          received_at?: string
+          recipient_email?: string
+          sender_email?: string
+          sender_name?: string | null
+          subject?: string
+          thread_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emails_ai_category_id_fkey"
+            columns: ["ai_category_id"]
+            isOneToOne: false
+            referencedRelation: "email_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emails_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emails_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emails_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_absences: {
         Row: {
           approved_at: string | null
