@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           assigned_employees: string[] | null
           color: string | null
+          company_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -35,6 +36,7 @@ export type Database = {
         Insert: {
           assigned_employees?: string[] | null
           color?: string | null
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -52,6 +54,7 @@ export type Database = {
         Update: {
           assigned_employees?: string[] | null
           color?: string | null
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -68,6 +71,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "calendar_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "calendar_events_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -76,12 +86,34 @@ export type Database = {
           },
         ]
       }
+      companies: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       company_settings: {
         Row: {
           company_address: string | null
           company_city: string | null
           company_country: string | null
           company_email: string | null
+          company_id: string | null
           company_name: string
           company_phone: string | null
           company_postal_code: string | null
@@ -110,6 +142,7 @@ export type Database = {
           company_city?: string | null
           company_country?: string | null
           company_email?: string | null
+          company_id?: string | null
           company_name?: string
           company_phone?: string | null
           company_postal_code?: string | null
@@ -138,6 +171,7 @@ export type Database = {
           company_city?: string | null
           company_country?: string | null
           company_email?: string | null
+          company_id?: string | null
           company_name?: string
           company_phone?: string | null
           company_postal_code?: string | null
@@ -161,12 +195,21 @@ export type Database = {
           updated_at?: string
           vat_number?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "company_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       customers: {
         Row: {
           address: string | null
           city: string | null
+          company_id: string | null
           company_name: string
           contact_person: string
           country: string | null
@@ -183,6 +226,7 @@ export type Database = {
         Insert: {
           address?: string | null
           city?: string | null
+          company_id?: string | null
           company_name: string
           contact_person: string
           country?: string | null
@@ -199,6 +243,7 @@ export type Database = {
         Update: {
           address?: string | null
           city?: string | null
+          company_id?: string | null
           company_name?: string
           contact_person?: string
           country?: string | null
@@ -212,10 +257,19 @@ export type Database = {
           tax_number?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "customers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       document_items: {
         Row: {
+          company_id: string | null
           created_at: string
           description: string
           id: string
@@ -228,6 +282,7 @@ export type Database = {
           unit_price: number
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           description: string
           id?: string
@@ -240,6 +295,7 @@ export type Database = {
           unit_price: number
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           description?: string
           id?: string
@@ -252,6 +308,13 @@ export type Database = {
           unit_price?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "document_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "document_items_invoice_id_fkey"
             columns: ["invoice_id"]
@@ -272,6 +335,7 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          company_id: string | null
           created_at: string
           employee_id: string
           end_date: string
@@ -289,6 +353,7 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          company_id?: string | null
           created_at?: string
           employee_id: string
           end_date: string
@@ -306,6 +371,7 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          company_id?: string | null
           created_at?: string
           employee_id?: string
           end_date?: string
@@ -329,6 +395,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "employee_absences_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "employee_absences_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
@@ -339,6 +412,7 @@ export type Database = {
       }
       employees: {
         Row: {
+          company_id: string | null
           created_at: string
           department: string | null
           email: string
@@ -355,6 +429,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           department?: string | null
           email: string
@@ -371,6 +446,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           department?: string | null
           email?: string
@@ -386,10 +462,19 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "employees_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invoices: {
         Row: {
+          company_id: string | null
           created_at: string
           currency: string | null
           customer_id: string
@@ -410,6 +495,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           currency?: string | null
           customer_id: string
@@ -430,6 +516,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           currency?: string | null
           customer_id?: string
@@ -451,6 +538,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "invoices_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
@@ -468,6 +562,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          company_id: string | null
           created_at: string
           currency: string | null
           customer_id: string
@@ -484,6 +579,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           currency?: string | null
           customer_id: string
@@ -500,6 +596,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           currency?: string | null
           customer_id?: string
@@ -517,6 +614,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "orders_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
@@ -528,6 +632,7 @@ export type Database = {
       profiles: {
         Row: {
           city: string | null
+          company_id: string
           company_name: string | null
           country: string | null
           created_at: string
@@ -551,6 +656,7 @@ export type Database = {
         }
         Insert: {
           city?: string | null
+          company_id: string
           company_name?: string | null
           country?: string | null
           created_at?: string
@@ -574,6 +680,7 @@ export type Database = {
         }
         Update: {
           city?: string | null
+          company_id?: string
           company_name?: string | null
           country?: string | null
           created_at?: string
@@ -595,10 +702,19 @@ export type Database = {
           vat_id?: string | null
           voucher_code?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_assignments: {
         Row: {
+          company_id: string | null
           created_at: string
           employee_id: string
           end_date: string | null
@@ -611,6 +727,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           employee_id: string
           end_date?: string | null
@@ -623,6 +740,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           employee_id?: string
           end_date?: string | null
@@ -635,6 +753,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "project_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_assignments_employee_id_fkey"
             columns: ["employee_id"]
@@ -759,6 +884,7 @@ export type Database = {
       projects: {
         Row: {
           color: string | null
+          company_id: string | null
           created_at: string
           customer_id: string | null
           description: string | null
@@ -772,6 +898,7 @@ export type Database = {
         }
         Insert: {
           color?: string | null
+          company_id?: string | null
           created_at?: string
           customer_id?: string | null
           description?: string | null
@@ -785,6 +912,7 @@ export type Database = {
         }
         Update: {
           color?: string | null
+          company_id?: string | null
           created_at?: string
           customer_id?: string | null
           description?: string | null
@@ -798,6 +926,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "projects_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "projects_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
@@ -808,6 +943,7 @@ export type Database = {
       }
       quotes: {
         Row: {
+          company_id: string | null
           created_at: string
           currency: string | null
           customer_id: string
@@ -826,6 +962,7 @@ export type Database = {
           valid_until: string | null
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           currency?: string | null
           customer_id: string
@@ -844,6 +981,7 @@ export type Database = {
           valid_until?: string | null
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           currency?: string | null
           customer_id?: string
@@ -863,6 +1001,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "quotes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "quotes_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
@@ -874,6 +1019,7 @@ export type Database = {
       time_entries: {
         Row: {
           break_duration: number | null
+          company_id: string | null
           created_at: string
           description: string | null
           employee_id: string
@@ -894,6 +1040,7 @@ export type Database = {
         }
         Insert: {
           break_duration?: number | null
+          company_id?: string | null
           created_at?: string
           description?: string | null
           employee_id: string
@@ -914,6 +1061,7 @@ export type Database = {
         }
         Update: {
           break_duration?: number | null
+          company_id?: string | null
           created_at?: string
           description?: string | null
           employee_id?: string
@@ -947,11 +1095,19 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "time_entries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
         ]
       }
       time_entry_corrections: {
         Row: {
           approved_by: string | null
+          company_id: string | null
           corrected_description: string | null
           corrected_end_time: string | null
           corrected_start_time: string
@@ -968,6 +1124,7 @@ export type Database = {
         }
         Insert: {
           approved_by?: string | null
+          company_id?: string | null
           corrected_description?: string | null
           corrected_end_time?: string | null
           corrected_start_time: string
@@ -984,6 +1141,7 @@ export type Database = {
         }
         Update: {
           approved_by?: string | null
+          company_id?: string | null
           corrected_description?: string | null
           corrected_end_time?: string | null
           corrected_start_time?: string
@@ -1020,6 +1178,13 @@ export type Database = {
             referencedRelation: "time_entries"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "time_entry_corrections_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_roles: {
@@ -1046,6 +1211,7 @@ export type Database = {
       working_hours_config: {
         Row: {
           break_duration: number
+          company_id: string | null
           created_at: string
           employee_id: string | null
           end_time: string
@@ -1057,6 +1223,7 @@ export type Database = {
         }
         Insert: {
           break_duration?: number
+          company_id?: string | null
           created_at?: string
           employee_id?: string | null
           end_time?: string
@@ -1068,6 +1235,7 @@ export type Database = {
         }
         Update: {
           break_duration?: number
+          company_id?: string | null
           created_at?: string
           employee_id?: string | null
           end_time?: string
@@ -1083,6 +1251,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "working_hours_config_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
