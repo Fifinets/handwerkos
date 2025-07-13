@@ -461,7 +461,7 @@ const Auth = () => {
                 
                 <Button 
                   type="submit" 
-                  className="w-full bg-blue-600 hover:bg-blue-700" 
+                  className="w-full bg-gray-800 hover:bg-gray-900 text-white" 
                   disabled={loading}
                 >
                   {loading ? 'Wird verarbeitet...' : (
