@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,17 @@ const Index = () => {
   const navigate = useNavigate();
   const [activeModule, setActiveModule] = useState('dashboard');
 
+  // Handle navigation in useEffect to avoid setState during render
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        navigate('/auth');
+      } else if (userRole === 'employee') {
+        navigate('/employee');
+      }
+    }
+  }, [user, userRole, loading, navigate]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -46,13 +57,7 @@ const Index = () => {
     );
   }
 
-  if (!user) {
-    navigate('/auth');
-    return null;
-  }
-
-  if (userRole === 'employee') {
-    navigate('/employee');
+  if (!user || userRole === 'employee') {
     return null;
   }
 
