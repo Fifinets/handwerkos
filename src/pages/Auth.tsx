@@ -101,6 +101,11 @@ const Auth = () => {
         }
       } else {
         // Registration validation
+        if (password !== confirmPassword) {
+          toast.error('Passwörter stimmen nicht überein');
+          return;
+        }
+        
         if (!acceptTerms) {
           toast.error('Bitte akzeptieren Sie die AGB und Datenschutzerklärung');
           return;
@@ -111,7 +116,22 @@ const Auth = () => {
           return;
         }
 
-        const { error } = await signUp(email, password, name, companyName);
+        // Split name into first and last name
+        const nameParts = name.trim().split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        const registrationData = {
+          firstName,
+          lastName,
+          companyName,
+          phone,
+          street,
+          zipCode,
+          city,
+        };
+
+        const { error } = await signUp(email, password, registrationData);
         if (error) {
           toast.error(error.message);
         } else {

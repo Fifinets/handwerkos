@@ -527,6 +527,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          city: string | null
+          company_name: string | null
           created_at: string
           department: string | null
           email: string
@@ -538,10 +540,14 @@ export type Database = {
           last_name: string | null
           phone: string | null
           position: string | null
+          postal_code: string | null
           status: string | null
+          street_address: string | null
           updated_at: string
         }
         Insert: {
+          city?: string | null
+          company_name?: string | null
           created_at?: string
           department?: string | null
           email: string
@@ -553,10 +559,14 @@ export type Database = {
           last_name?: string | null
           phone?: string | null
           position?: string | null
+          postal_code?: string | null
           status?: string | null
+          street_address?: string | null
           updated_at?: string
         }
         Update: {
+          city?: string | null
+          company_name?: string | null
           created_at?: string
           department?: string | null
           email?: string
@@ -568,7 +578,9 @@ export type Database = {
           last_name?: string | null
           phone?: string | null
           position?: string | null
+          postal_code?: string | null
           status?: string | null
+          street_address?: string | null
           updated_at?: string
         }
         Relationships: []
