@@ -390,7 +390,7 @@ const Auth = () => {
                           <Checkbox
                             id="terms"
                             checked={acceptTerms}
-                            onCheckedChange={setAcceptTerms}
+                            onCheckedChange={(checked) => setAcceptTerms(checked === true)}
                           />
                           <Label htmlFor="terms" className="text-sm leading-5">
                             Ja, ich habe die{' '}
@@ -406,7 +406,7 @@ const Auth = () => {
                           <Checkbox
                             id="commercial"
                             checked={acceptCommercialUse}
-                            onCheckedChange={setAcceptCommercialUse}
+                            onCheckedChange={(checked) => setAcceptCommercialUse(checked === true)}
                           />
                           <Label htmlFor="commercial" className="text-sm leading-5">
                             Hiermit bestätige ich, dass ich ADDIGO gewerblich nutzen werde.
@@ -417,7 +417,7 @@ const Auth = () => {
                           <Checkbox
                             id="support"
                             checked={agreeToSupport}
-                            onCheckedChange={setAgreeToSupport}
+                            onCheckedChange={(checked) => setAgreeToSupport(checked === true)}
                           />
                           <Label htmlFor="support" className="text-sm leading-5">
                             Ich bin einverstanden, zu Supportzwecken, Funktionsverbesserungen oder Aktualisierungen kontaktiert zu werden.
@@ -428,7 +428,7 @@ const Auth = () => {
                           <Checkbox
                             id="newsletter"
                             checked={subscribeNewsletter}
-                            onCheckedChange={setSubscribeNewsletter}
+                            onCheckedChange={(checked) => setSubscribeNewsletter(checked === true)}
                           />
                           <Label htmlFor="newsletter" className="text-sm leading-5">
                             Ich möchte den ADDIGO-Newsletter mit Tipps, Tricks und Wissenswertem zur Digitalisierung, Förderung und Arbeitserleichterung im Handwerk erhalten.
