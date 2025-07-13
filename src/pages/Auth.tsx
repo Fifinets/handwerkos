@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Settings, User, UserPlus, Key } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -15,8 +17,25 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  
+  // New registration fields
+  const [name, setName] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [voucherCode, setVoucherCode] = useState('');
+  const [vatId, setVatId] = useState('');
+  const [country, setCountry] = useState('Deutschland');
+  const [street, setStreet] = useState('');
+  const [zipCode, setZipCode] = useState('');
+  const [city, setCity] = useState('');
+  const [phone, setPhone] = useState('');
+  const [howDidYouHear, setHowDidYouHear] = useState('');
+  
+  // Checkboxes
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptCommercialUse, setAcceptCommercialUse] = useState(false);
+  const [agreeToSupport, setAgreeToSupport] = useState(false);
+  const [subscribeNewsletter, setSubscribeNewsletter] = useState(false);
+  
   const [loading, setLoading] = useState(false);
   
   const { signIn, signUp, updatePassword, user } = useAuth();
@@ -81,7 +100,18 @@ const Auth = () => {
           toast.success('Erfolgreich angemeldet!');
         }
       } else {
-        const { error } = await signUp(email, password, firstName, lastName);
+        // Registration validation
+        if (!acceptTerms) {
+          toast.error('Bitte akzeptieren Sie die AGB und Datenschutzerklärung');
+          return;
+        }
+        
+        if (!acceptCommercialUse) {
+          toast.error('Bitte bestätigen Sie die gewerbliche Nutzung');
+          return;
+        }
+
+        const { error } = await signUp(email, password, name, companyName);
         if (error) {
           toast.error(error.message);
         } else {
@@ -96,148 +126,356 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="bg-blue-600 text-white p-3 rounded-lg inline-block mb-4">
-            <Settings className="h-8 w-8" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">ElektroManager Pro</h1>
-          <p className="text-gray-600">Ihr Elektro-Unternehmen Software</p>
-        </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* ADDIGO Header */}
+      <div className="bg-orange-500 text-white p-4 text-center">
+        <h1 className="text-xl font-bold">ADDIGO COCKPIT</h1>
+      </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {isPasswordSetup ? (
-                <>
-                  <Key className="h-5 w-5" />
-                  Passwort erstellen
-                </>
-              ) : isLogin ? (
-                <>
-                  <User className="h-5 w-5" />
-                  Anmelden
-                </>
-              ) : (
-                <>
-                  <UserPlus className="h-5 w-5" />
-                  Registrieren
-                </>
-              )}
-            </CardTitle>
-            <CardDescription>
-              {isPasswordSetup 
-                ? (searchParams.get('mode') === 'employee-setup' 
-                   ? 'Willkommen! Setzen Sie Ihr Passwort, um Ihr Mitarbeiterkonto zu aktivieren' 
-                   : 'Erstellen Sie Ihr persönliches Passwort für Ihr Mitarbeiterkonto')
-                : isLogin 
-                ? 'Melden Sie sich in Ihrem Konto an' 
-                : 'Erstellen Sie ein neues Konto'
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {isPasswordSetup ? (
-                // Password setup form for new employees
-                <>
-                  <div>
-                    <Label htmlFor="password">Neues Passwort</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Mindestens 6 Zeichen"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="confirmPassword">Passwort bestätigen</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Passwort wiederholen"
-                      required
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  {!isLogin && (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="firstName">Vorname</Label>
-                        <Input
-                          id="firstName"
-                          type="text"
-                          value={firstName}
-                          onChange={(e) => setFirstName(e.target.value)}
-                          required={!isLogin}
-                        />
+      <div className="flex items-center justify-center p-4">
+        <div className="w-full max-w-4xl">
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-orange-600">
+                {isPasswordSetup ? (
+                  <>
+                    <Key className="h-5 w-5" />
+                    Passwort erstellen
+                  </>
+                ) : isLogin ? (
+                  <>
+                    <User className="h-5 w-5" />
+                    Anmelden
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-5 w-5" />
+                    Neu registrieren
+                  </>
+                )}
+              </CardTitle>
+              <CardDescription>
+                {isPasswordSetup 
+                  ? (searchParams.get('mode') === 'employee-setup' 
+                     ? 'Willkommen! Setzen Sie Ihr Passwort, um Ihr Mitarbeiterkonto zu aktivieren' 
+                     : 'Erstellen Sie Ihr persönliches Passwort für Ihr Mitarbeiterkonto')
+                  : isLogin 
+                  ? 'Melden Sie sich in Ihrem Konto an' 
+                  : 'Erstellen Sie ein neues Konto'
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {isPasswordSetup ? (
+                  // Password setup form for new employees
+                  <>
+                    <div>
+                      <Label htmlFor="password">Neues Passwort</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Mindestens 6 Zeichen"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="confirmPassword">Passwort bestätigen</Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Passwort wiederholen"
+                        required
+                      />
+                    </div>
+                  </>
+                ) : isLogin ? (
+                  // Login form
+                  <>
+                    <div>
+                      <Label htmlFor="email">E-Mail</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="password">Passwort</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </>
+                ) : (
+                  // Registration form
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Left column */}
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="name">Ihr Name</Label>
+                          <Input
+                            id="name"
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            required
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="companyName">Firmenname</Label>
+                          <Input
+                            id="companyName"
+                            type="text"
+                            value={companyName}
+                            onChange={(e) => setCompanyName(e.target.value)}
+                            required
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="email">E-Mail</Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="password">Passwort</Label>
+                          <Input
+                            id="password"
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="confirmPassword">Passwort wiederholen</Label>
+                          <Input
+                            id="confirmPassword"
+                            type="password"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            required
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="voucherCode">Gutschein-Code</Label>
+                          <Input
+                            id="voucherCode"
+                            type="text"
+                            value={voucherCode}
+                            onChange={(e) => setVoucherCode(e.target.value)}
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <Label htmlFor="lastName">Nachname</Label>
-                        <Input
-                          id="lastName"
-                          type="text"
-                          value={lastName}
-                          onChange={(e) => setLastName(e.target.value)}
-                          required={!isLogin}
-                        />
+                      
+                      {/* Right column */}
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="vatId">Umsatzsteuer-ID</Label>
+                          <Input
+                            id="vatId"
+                            type="text"
+                            value={vatId}
+                            onChange={(e) => setVatId(e.target.value)}
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="country">Land</Label>
+                          <Select value={country} onValueChange={setCountry}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Deutschland">Deutschland</SelectItem>
+                              <SelectItem value="Österreich">Österreich</SelectItem>
+                              <SelectItem value="Schweiz">Schweiz</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="street">Straße, Nr.</Label>
+                          <Input
+                            id="street"
+                            type="text"
+                            value={street}
+                            onChange={(e) => setStreet(e.target.value)}
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label htmlFor="zipCode">PLZ</Label>
+                            <Input
+                              id="zipCode"
+                              type="text"
+                              value={zipCode}
+                              onChange={(e) => setZipCode(e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="city">Ort</Label>
+                            <Input
+                              id="city"
+                              type="text"
+                              value={city}
+                              onChange={(e) => setCity(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="phone">Telefon</Label>
+                          <Input
+                            id="phone"
+                            type="tel"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="howDidYouHear">Wie sind Sie auf ADDIGO gestoßen?</Label>
+                          <Select value={howDidYouHear} onValueChange={setHowDidYouHear}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Bitte wählen..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="suchmaschine">Suchmaschine</SelectItem>
+                              <SelectItem value="empfehlung">Empfehlung</SelectItem>
+                              <SelectItem value="werbung">Werbung</SelectItem>
+                              <SelectItem value="messe">Messe</SelectItem>
+                              <SelectItem value="social-media">Social Media</SelectItem>
+                              <SelectItem value="andere">Andere</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </div>
+                    
+                    {/* Terms and conditions */}
+                    <div className="space-y-4 pt-4 border-t">
+                      <p className="text-sm text-gray-600">
+                        Uns ist die Sicherheit Ihrer Daten sehr wichtig. Hier gelangen Sie zur{' '}
+                        <span className="text-orange-600 underline cursor-pointer">Datenschutzerklärung</span>.
+                        Wir behandeln die eingegebenen Daten DSGVO-konform.
+                      </p>
+                      
+                      <div className="space-y-3">
+                        <div className="flex items-start space-x-2">
+                          <Checkbox
+                            id="terms"
+                            checked={acceptTerms}
+                            onCheckedChange={setAcceptTerms}
+                          />
+                          <Label htmlFor="terms" className="text-sm leading-5">
+                            Ja, ich habe die{' '}
+                            <span className="text-orange-600 underline cursor-pointer">AGB</span> und die{' '}
+                            <span className="text-orange-600 underline cursor-pointer">Datenschutzerklärung</span>{' '}
+                            zur Kenntnis genommen und bin damit einverstanden, dass die von mir eingegebenen Daten elektronisch
+                            erhoben und gespeichert werden. Meine Daten werden dabei nur streng zweckgebunden für den Betrieb des Cockpits sowie zur Bearbeitung und Beantwortung
+                            meiner Anfragen genutzt.
+                          </Label>
+                        </div>
+                        
+                        <div className="flex items-start space-x-2">
+                          <Checkbox
+                            id="commercial"
+                            checked={acceptCommercialUse}
+                            onCheckedChange={setAcceptCommercialUse}
+                          />
+                          <Label htmlFor="commercial" className="text-sm leading-5">
+                            Hiermit bestätige ich, dass ich ADDIGO gewerblich nutzen werde.
+                          </Label>
+                        </div>
+                        
+                        <div className="flex items-start space-x-2">
+                          <Checkbox
+                            id="support"
+                            checked={agreeToSupport}
+                            onCheckedChange={setAgreeToSupport}
+                          />
+                          <Label htmlFor="support" className="text-sm leading-5">
+                            Ich bin einverstanden, zu Supportzwecken, Funktionsverbesserungen oder Aktualisierungen kontaktiert zu werden.
+                          </Label>
+                        </div>
+                        
+                        <div className="flex items-start space-x-2">
+                          <Checkbox
+                            id="newsletter"
+                            checked={subscribeNewsletter}
+                            onCheckedChange={setSubscribeNewsletter}
+                          />
+                          <Label htmlFor="newsletter" className="text-sm leading-5">
+                            Ich möchte den ADDIGO-Newsletter mit Tipps, Tricks und Wissenswertem zur Digitalisierung, Förderung und Arbeitserleichterung im Handwerk erhalten.
+                          </Label>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+                
+                <Button 
+                  type="submit" 
+                  className="w-full bg-blue-600 hover:bg-blue-700" 
+                  disabled={loading}
+                >
+                  {loading ? 'Wird verarbeitet...' : (
+                    isPasswordSetup ? 'Passwort erstellen' : 
+                    isLogin ? 'Anmelden' : 'Registrieren'
                   )}
-                  
-                  <div>
-                    <Label htmlFor="email">E-Mail</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="password">Passwort</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                </>
+                </Button>
+              </form>
+              
+              {!isPasswordSetup && searchParams.get('mode') !== 'employee-setup' && (
+                <div className="mt-4 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setIsLogin(!isLogin)}
+                    className="text-orange-600 hover:underline text-sm"
+                  >
+                    {isLogin ? 'Noch kein Konto? Registrieren' : 'Bereits ein Konto? Anmelden'}
+                  </button>
+                </div>
               )}
               
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Wird verarbeitet...' : (
-                  isPasswordSetup ? 'Passwort erstellen' : 
-                  isLogin ? 'Anmelden' : 'Registrieren'
-                )}
-              </Button>
-            </form>
-            
-            {!isPasswordSetup && searchParams.get('mode') !== 'employee-setup' && (
-              <div className="mt-4 text-center">
-                <button
-                  type="button"
-                  onClick={() => setIsLogin(!isLogin)}
-                  className="text-blue-600 hover:underline text-sm"
-                >
-                  {isLogin ? 'Noch kein Konto? Registrieren' : 'Bereits ein Konto? Anmelden'}
-                </button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              {!isLogin && (
+                <div className="mt-6 text-center text-sm text-gray-600">
+                  <p>
+                    Bei Fragen kontaktieren Sie uns gern unter{' '}
+                    <span className="text-orange-600">support@addigo.de</span> oder{' '}
+                    <span className="text-orange-600">(+49) 351 33217217</span>,{' '}
+                    <span className="text-orange-600 underline">www.addigo.de</span>
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
