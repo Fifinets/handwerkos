@@ -36,6 +36,7 @@ import { de } from "date-fns/locale";
 import { EmailImport } from "./emails/EmailImport";
 import { EmailSync } from "./emails/EmailSync";
 import { EmailReplyDialog } from "./emails/EmailReplyDialog";
+import { useGmailConnection } from "@/hooks/useGmailConnection";
 
 interface Email {
   id: string;
@@ -89,9 +90,11 @@ export function EmailModule() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showSync, setShowSync] = useState(false);
   const [showReplyDialog, setShowReplyDialog] = useState(false);
   const [companyEmail, setCompanyEmail] = useState<string>("");
   const { toast } = useToast();
+  const { isGmailConnected, connectGmail, isConnecting } = useGmailConnection();
 
   useEffect(() => {
     fetchCompanySettings();
@@ -325,6 +328,24 @@ export function EmailModule() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          {!isGmailConnected ? (
+            <Button 
+              onClick={connectGmail}
+              disabled={isConnecting}
+              variant="default"
+            >
+              <Mail className="h-4 w-4 mr-2" />
+              {isConnecting ? "Verbinde..." : "Gmail verbinden"}
+            </Button>
+          ) : (
+            <Button 
+              onClick={() => setShowSync(!showSync)} 
+              variant="outline"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Synchronisation
+            </Button>
+          )}
           <Button 
             onClick={() => setShowImport(!showImport)} 
             variant="outline"
@@ -352,6 +373,10 @@ export function EmailModule() {
           fetchEmails();
           setShowImport(false);
         }} />
+      )}
+
+      {showSync && (
+        <EmailSync onClose={() => setShowSync(false)} />
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
