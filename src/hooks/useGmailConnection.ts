@@ -12,20 +12,59 @@ export function useGmailConnection() {
   const connectGmail = async () => {
     setIsConnecting(true);
     try {
-      // Use Supabase's built-in Google OAuth with Gmail scope
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          scopes: 'https://www.googleapis.com/auth/gmail.modify',
-          redirectTo: `${window.location.origin}/`,
-        }
+      if (!user?.id) {
+        throw new Error('Benutzer nicht angemeldet');
+      }
+
+      // Rufe unsere Edge Function auf, um die OAuth URL zu erhalten
+      const { data, error } = await supabase.functions.invoke('initiate-gmail-oauth', {
+        body: { user_id: user.id }
       });
 
       if (error) {
         throw error;
       }
 
-      // The OAuth flow will redirect to Supabase's callback URL
+      // Öffne OAuth in einem neuen Popup-Fenster
+      const popup = window.open(
+        data.authUrl,
+        'gmail-oauth',
+        'width=500,height=600,scrollbars=yes,resizable=yes'
+      );
+
+      // Lausche auf Nachrichten vom Popup
+      const handleMessage = (event: MessageEvent) => {
+        if (event.data.type === 'GMAIL_AUTH_SUCCESS') {
+          setIsConnecting(false);
+          setIsGmailConnected(true);
+          toast({
+            title: "Erfolg",
+            description: `Gmail erfolgreich verbunden: ${event.data.email}`,
+          });
+          popup?.close();
+          window.removeEventListener('message', handleMessage);
+        } else if (event.data.type === 'GMAIL_AUTH_ERROR') {
+          setIsConnecting(false);
+          toast({
+            title: "Fehler",
+            description: `Gmail-Verbindung fehlgeschlagen: ${event.data.error}`,
+            variant: "destructive",
+          });
+          popup?.close();
+          window.removeEventListener('message', handleMessage);
+        }
+      };
+
+      window.addEventListener('message', handleMessage);
+
+      // Überwache, ob das Popup geschlossen wird
+      const checkClosed = setInterval(() => {
+        if (popup?.closed) {
+          setIsConnecting(false);
+          clearInterval(checkClosed);
+          window.removeEventListener('message', handleMessage);
+        }
+      }, 1000);
 
     } catch (error) {
       console.error('Error connecting Gmail:', error);
