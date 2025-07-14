@@ -51,9 +51,7 @@ serve(async (req) => {
         code,
         client_id: clientId,
         client_secret: clientSecret,
-        redirect_uri: req.headers.get('origin')?.includes('www.handwerkos.de') 
-          ? 'https://www.handwerkos.de/auth/callback'
-          : 'https://www.handwerkos.com/auth/callback',
+        redirect_uri: `${Deno.env.get('SUPABASE_URL')}/functions/v1/gmail-oauth-callback`,
         grant_type: 'authorization_code',
       }),
     });
