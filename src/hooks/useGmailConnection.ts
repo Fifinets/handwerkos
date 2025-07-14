@@ -105,20 +105,28 @@ export function useGmailConnection() {
   };
 
   const checkGmailConnection = async () => {
-    // Check if user has Gmail connected - using any to work around type issue
-    const { data, error } = await (supabase as any)
-      .from('user_email_connections')
-      .select('*')
-      .eq('user_id', user?.id)
-      .eq('provider', 'gmail')
-      .single();
+    if (!user?.id) return;
+    
+    try {
+      // Check if user has Gmail connected - using any to work around type issue
+      const { data, error } = await (supabase as any)
+        .from('user_email_connections')
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('provider', 'gmail')
+        .eq('is_active', true)
+        .single();
 
-    if (!error && data) {
-      setIsGmailConnected(true);
-      toast({
-        title: "Erfolgreich verbunden",
-        description: "Gmail wurde erfolgreich verbunden.",
-      });
+      if (!error && data) {
+        setIsGmailConnected(true);
+        console.log('Gmail connection verified for user:', user.id);
+      } else {
+        setIsGmailConnected(false);
+        console.log('No active Gmail connection found for user:', user.id);
+      }
+    } catch (error) {
+      console.error('Error checking Gmail connection:', error);
+      setIsGmailConnected(false);
     }
   };
 

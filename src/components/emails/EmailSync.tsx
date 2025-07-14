@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Settings, RefreshCw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Settings, RefreshCw, CheckCircle, AlertCircle, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,9 +18,37 @@ interface EmailSyncProps {
 export function EmailSync({ onClose }: EmailSyncProps) {
   const [autoSync, setAutoSync] = useState(true);
   const [syncInterval, setSyncInterval] = useState("15");
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+  const [syncDetails, setSyncDetails] = useState<string>('');
   const { toast } = useToast();
   const { user } = useAuth();
-  const { isGmailConnected } = useGmailConnection();
+  const { isGmailConnected, checkGmailConnection } = useGmailConnection();
+
+  // Check connection status and last sync on component mount
+  useEffect(() => {
+    checkGmailConnection();
+    checkLastSyncTime();
+  }, []);
+
+  const checkLastSyncTime = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data } = await supabase
+        .from('email_sync_settings')
+        .select('last_sync_at')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (data?.last_sync_at) {
+        setLastSyncTime(data.last_sync_at);
+      }
+    } catch (error) {
+      console.log('No sync history found');
+    }
+  };
 
   const startEmailSync = async () => {
     if (!isGmailConnected) {
@@ -28,27 +57,81 @@ export function EmailSync({ onClose }: EmailSyncProps) {
         description: "Bitte verbinden Sie zuerst Ihr E-Mail-Konto.",
         variant: "destructive",
       });
+      setSyncStatus('error');
+      setSyncDetails('Keine Gmail-Verbindung vorhanden');
       return;
     }
 
+    setIsSyncing(true);
+    setSyncStatus('syncing');
+    setSyncDetails('Verbindung zu Gmail wird hergestellt...');
+
     try {
-      const { data, error } = await supabase.functions.invoke('sync-gmail-emails');
+      // Add timeout for better error handling
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Synchronisation-Timeout nach 30 Sekunden')), 30000)
+      );
+
+      const syncPromise = supabase.functions.invoke('sync-gmail-emails', {
+        body: { manual: true }
+      });
+
+      const { data, error } = await Promise.race([syncPromise, timeoutPromise]) as any;
 
       if (error) {
-        throw error;
+        console.error('Sync error:', error);
+        throw new Error(error.message || 'Unbekannter Synchronisationsfehler');
       }
+
+      const syncedCount = data?.totalSynced || 0;
+      setSyncStatus('success');
+      setSyncDetails(`${syncedCount} E-Mails erfolgreich synchronisiert`);
+      setLastSyncTime(new Date().toISOString());
 
       toast({
         title: "Synchronisation erfolgreich",
-        description: `${data?.totalSynced || 0} E-Mails wurden erfolgreich synchronisiert.`,
+        description: `${syncedCount} E-Mails wurden erfolgreich synchronisiert.`,
       });
-    } catch (error) {
+
+      // Update last sync time in settings
+      await supabase
+        .from('email_sync_settings')
+        .upsert({
+          user_id: user?.id,
+          last_sync_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
+        });
+
+    } catch (error: any) {
       console.error('Error syncing emails:', error);
+      setSyncStatus('error');
+      
+      let errorMessage = 'E-Mail-Synchronisation fehlgeschlagen.';
+      let errorDetails = error.message || 'Unbekannter Fehler';
+
+      // Provide specific error messages for common issues
+      if (error.message?.includes('timeout')) {
+        errorMessage = 'Synchronisation-Timeout';
+        errorDetails = 'Die Verbindung zu Gmail war zu langsam. Versuchen Sie es erneut.';
+      } else if (error.message?.includes('unauthorized') || error.message?.includes('401')) {
+        errorMessage = 'Autorisierung fehlgeschlagen';
+        errorDetails = 'Bitte verbinden Sie Gmail erneut.';
+      } else if (error.message?.includes('quota')) {
+        errorMessage = 'API-Limit erreicht';
+        errorDetails = 'Zu viele Anfragen. Versuchen Sie es später erneut.';
+      }
+
+      setSyncDetails(errorDetails);
+      
       toast({
-        title: "Fehler",
-        description: "E-Mail-Synchronisation fehlgeschlagen.",
+        title: errorMessage,
+        description: errorDetails,
         variant: "destructive",
       });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -70,11 +153,58 @@ export function EmailSync({ onClose }: EmailSyncProps) {
           setSyncInterval={setSyncInterval}
         />
         
+        {/* Sync Status Display */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Synchronisationsstatus</span>
+            <div className="flex items-center gap-2">
+              {syncStatus === 'syncing' && (
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  <RefreshCw className="h-3 w-3 animate-spin" />
+                  Synchronisiert...
+                </Badge>
+              )}
+              {syncStatus === 'success' && (
+                <Badge variant="default" className="flex items-center gap-1 bg-green-500">
+                  <CheckCircle className="h-3 w-3" />
+                  Erfolgreich
+                </Badge>
+              )}
+              {syncStatus === 'error' && (
+                <Badge variant="destructive" className="flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Fehler
+                </Badge>
+              )}
+              {syncStatus === 'idle' && lastSyncTime && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Bereit
+                </Badge>
+              )}
+            </div>
+          </div>
+          
+          {syncDetails && (
+            <p className="text-sm text-muted-foreground">{syncDetails}</p>
+          )}
+          
+          {lastSyncTime && (
+            <p className="text-xs text-muted-foreground">
+              Letzte Synchronisation: {new Date(lastSyncTime).toLocaleString('de-DE')}
+            </p>
+          )}
+        </div>
+        
         {/* Manual Sync */}
         <div className="flex items-center gap-2">
-          <Button onClick={startEmailSync} className="flex-1">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Jetzt synchronisieren
+          <Button 
+            onClick={startEmailSync} 
+            className="flex-1" 
+            disabled={isSyncing || !isGmailConnected}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+            {isSyncing ? 'Synchronisiert...' : 'Jetzt synchronisieren'}
           </Button>
           <Button onClick={onClose} variant="outline">
             Schließen

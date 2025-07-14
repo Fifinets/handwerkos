@@ -42,6 +42,23 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Log the start of sync process
+    console.log('=== Gmail Sync Started ===');
+    
+    // Get request body to check if this is a manual sync
+    let requestBody: any = {};
+    try {
+      const text = await req.text();
+      if (text) {
+        requestBody = JSON.parse(text);
+      }
+    } catch (e) {
+      // Ignore parsing errors for empty bodies
+    }
+
+    const isManualSync = requestBody.manual === true;
+    console.log('Sync type:', isManualSync ? 'Manual' : 'Automated');
+
     // Get user from auth header or use service role for cron jobs
     let userId: string | null = null;
     const authHeader = req.headers.get('authorization');
@@ -50,6 +67,9 @@ serve(async (req) => {
       const jwt = authHeader.substring(7);
       const { data: { user } } = await supabase.auth.getUser(jwt);
       userId = user?.id || null;
+      console.log('User ID from JWT:', userId);
+    } else {
+      console.log('No auth header - running as cron job');
     }
 
     // If no specific user, get all active email connections (for cron job)
@@ -70,12 +90,17 @@ serve(async (req) => {
     }
 
     if (!connections || connections.length === 0) {
+      console.log('No active Gmail connections found');
       return new Response(JSON.stringify({ 
-        message: 'No active Gmail connections found' 
+        message: 'No active Gmail connections found',
+        totalSynced: 0,
+        success: false
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    console.log(`Found ${connections.length} active Gmail connection(s)`);
 
     let totalSynced = 0;
 
@@ -128,7 +153,18 @@ serve(async (req) => {
         );
 
         if (!gmailResponse.ok) {
-          console.error(`Gmail API error for user ${connection.user_id}:`, await gmailResponse.text());
+          const errorText = await gmailResponse.text();
+          console.error(`Gmail API error for user ${connection.user_id} (${gmailResponse.status}):`, errorText);
+          
+          // Provide specific error handling for common issues
+          if (gmailResponse.status === 401) {
+            console.log('Access token expired, attempting refresh...');
+            // Token will be refreshed in next iteration
+          } else if (gmailResponse.status === 403) {
+            console.error('Gmail API quota exceeded or insufficient permissions');
+          } else if (gmailResponse.status === 429) {
+            console.error('Gmail API rate limit exceeded');
+          }
           continue;
         }
 

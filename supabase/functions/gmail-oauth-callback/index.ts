@@ -20,7 +20,9 @@ serve(async (req) => {
   }
 
   try {
+    console.log('=== Gmail OAuth Callback Started ===');
     const { code, state } = await req.json();
+    console.log('Received authorization code:', code ? 'Present' : 'Missing');
     
     if (!code) {
       throw new Error('Authorization code is required');
@@ -39,6 +41,7 @@ serve(async (req) => {
     }
 
     // Exchange authorization code for tokens
+    console.log('Exchanging code for tokens...');
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
@@ -56,8 +59,10 @@ serve(async (req) => {
     if (!tokenResponse.ok) {
       const error = await tokenResponse.text();
       console.error('Token exchange failed:', error);
-      throw new Error('Failed to exchange authorization code');
+      throw new Error(`Failed to exchange authorization code: ${error}`);
     }
+
+    console.log('Token exchange successful');
 
     const tokens: TokenResponse = await tokenResponse.json();
 
