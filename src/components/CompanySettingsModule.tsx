@@ -42,17 +42,24 @@ export function CompanySettingsModule() {
   const [settings, setSettings] = useState<CompanySettings | null>(null);
 
   // Fetch company settings
-  const { data: companySettings, isLoading } = useQuery({
+  const { data: companySettings, isLoading, error } = useQuery({
     queryKey: ["company-settings"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("company_settings")
         .select("*")
         .eq("is_active", true)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
+    },
+    retry: (failureCount, error: any) => {
+      // Don't retry if it's an RLS policy violation
+      if (error?.code === 'PGRST116' || error?.message?.includes('row-level security')) {
+        return false;
+      }
+      return failureCount < 3;
     },
   });
 
@@ -111,10 +118,54 @@ export function CompanySettingsModule() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <div className="text-muted-foreground">Fehler beim Laden der Firmeneinstellungen</div>
+        <div className="text-sm text-red-500">
+          {error.message?.includes('row-level security') 
+            ? 'Zugriff verweigert. Bitte melden Sie sich als Manager an.' 
+            : error.message}
+        </div>
+        <Button 
+          onClick={() => window.location.reload()} 
+          variant="outline"
+        >
+          Seite neu laden
+        </Button>
+      </div>
+    );
+  }
+
   if (!settings) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
         <div className="text-muted-foreground">Keine Firmeneinstellungen gefunden</div>
+        <div className="text-sm text-muted-foreground">
+          Es wurden noch keine Firmeneinstellungen konfiguriert.
+        </div>
+        <Button 
+          onClick={() => {
+            // Create default settings
+            const defaultSettings = {
+              id: crypto.randomUUID(),
+              company_name: "Meine Firma",
+              default_tax_rate: 19.00,
+              default_currency: "EUR",
+              quote_validity_days: 30,
+              invoice_prefix: "R",
+              quote_prefix: "Q", 
+              order_prefix: "A",
+              default_working_hours_start: "08:00",
+              default_working_hours_end: "17:00",
+              default_break_duration: 30,
+              invoice_terms: "30 Tage netto"
+            };
+            setSettings(defaultSettings as CompanySettings);
+          }}
+        >
+          Standard-Einstellungen erstellen
+        </Button>
       </div>
     );
   }
