@@ -20,7 +20,7 @@ export function useGmailConnection() {
       }
 
       const clientId = clientData.clientId;
-      const redirectUri = `${window.location.origin}/auth/callback`;
+      const redirectUri = 'https://handwerkos.com/auth/callback';
       const scope = 'https://www.googleapis.com/auth/gmail.modify';
       
       const authUrl = `https://accounts.google.com/oauth/authorize?` +
@@ -36,7 +36,7 @@ export function useGmailConnection() {
       
       // Listen for the OAuth callback
       const handleMessage = async (event: MessageEvent) => {
-        if (event.origin !== window.location.origin) return;
+        if (event.origin !== 'https://handwerkos.com') return;
         
         if (event.data.type === 'GMAIL_AUTH_SUCCESS') {
           const { code } = event.data;

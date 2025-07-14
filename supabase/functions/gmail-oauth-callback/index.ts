@@ -51,7 +51,7 @@ serve(async (req) => {
         code,
         client_id: clientId,
         client_secret: clientSecret,
-        redirect_uri: `${Deno.env.get('SUPABASE_URL')}/functions/v1/gmail-oauth-callback`,
+        redirect_uri: 'https://handwerkos.com/auth/callback',
         grant_type: 'authorization_code',
       }),
     });
