@@ -75,8 +75,8 @@ export function EmailSync({ onClose }: EmailSyncProps) {
   };
 
   const checkGmailConnection = async () => {
-    // Check if user has Gmail connected
-    const { data, error } = await supabase
+    // Check if user has Gmail connected - using any to work around type issue
+    const { data, error } = await (supabase as any)
       .from('user_email_connections')
       .select('*')
       .eq('user_id', user?.id)
