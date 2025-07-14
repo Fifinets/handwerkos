@@ -57,7 +57,7 @@ const handler = async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const userId = state;
-    const redirectUri = `${supabaseUrl}/functions/v1/complete-gmail-oauth`;
+    const redirectUri = `https://qgwhkjrhndeoskrxewpb.supabase.co/functions/v1/complete-gmail-oauth`;
 
     // Exchange code for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {

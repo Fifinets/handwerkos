@@ -35,7 +35,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Erstelle OAuth URL für Google
     const scope = 'https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/userinfo.email';
-    const redirectUri = `${supabaseUrl}/functions/v1/complete-gmail-oauth`;
+    const redirectUri = `https://qgwhkjrhndeoskrxewpb.supabase.co/functions/v1/complete-gmail-oauth`;
     
     const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     authUrl.searchParams.set('client_id', googleClientId);
