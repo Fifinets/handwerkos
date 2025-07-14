@@ -21,7 +21,7 @@ export function useGmailConnection() {
 
       const clientId = clientData.clientId;
       const redirectUri = `${window.location.origin}/auth/callback`;
-      const scope = 'https://www.googleapis.com/auth/gmail.readonly';
+      const scope = 'https://www.googleapis.com/auth/gmail.modify';
       
       const authUrl = `https://accounts.google.com/oauth/authorize?` +
         `client_id=${clientId}&` +
@@ -31,15 +31,64 @@ export function useGmailConnection() {
         `access_type=offline&` +
         `prompt=consent`;
 
-      // Open Gmail OAuth in new window
-      const authWindow = window.open(authUrl, 'gmail-auth', 'width=500,height=600');
+      // Create a popup window for OAuth
+      const authWindow = window.open(authUrl, 'gmail-auth', 'width=600,height=700');
       
-      // Listen for auth completion
+      // Listen for the OAuth callback
+      const handleMessage = async (event: MessageEvent) => {
+        if (event.origin !== window.location.origin) return;
+        
+        if (event.data.type === 'GMAIL_AUTH_SUCCESS') {
+          const { code } = event.data;
+          
+          try {
+            // Exchange code for tokens
+            const { data, error } = await supabase.functions.invoke('gmail-oauth-callback', {
+              body: { code }
+            });
+            
+            if (error) throw error;
+            
+            setIsGmailConnected(true);
+            toast({
+              title: "Erfolgreich verbunden",
+              description: `Gmail wurde erfolgreich verbunden: ${data.email}`,
+            });
+            
+            authWindow?.close();
+          } catch (callbackError) {
+            console.error('OAuth callback error:', callbackError);
+            toast({
+              title: "Fehler",
+              description: "Fehler beim Verarbeiten der Gmail-Verbindung.",
+              variant: "destructive",
+            });
+          }
+          
+          window.removeEventListener('message', handleMessage);
+          setIsConnecting(false);
+        }
+        
+        if (event.data.type === 'GMAIL_AUTH_ERROR') {
+          toast({
+            title: "Fehler",
+            description: "Gmail-Autorisierung fehlgeschlagen.",
+            variant: "destructive",
+          });
+          window.removeEventListener('message', handleMessage);
+          setIsConnecting(false);
+          authWindow?.close();
+        }
+      };
+      
+      window.addEventListener('message', handleMessage);
+      
+      // Check if window was closed manually
       const checkClosed = setInterval(() => {
         if (authWindow?.closed) {
           clearInterval(checkClosed);
+          window.removeEventListener('message', handleMessage);
           setIsConnecting(false);
-          // Check if connection was successful
           checkGmailConnection();
         }
       }, 1000);

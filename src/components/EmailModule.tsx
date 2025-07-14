@@ -26,13 +26,16 @@ import {
   AlertCircle,
   CheckCircle2,
   Eye,
-  EyeOff
+  EyeOff,
+  Reply
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { EmailImport } from "@/components/emails/EmailImport";
+import { EmailImport } from "./emails/EmailImport";
+import { EmailSync } from "./emails/EmailSync";
+import { EmailReplyDialog } from "./emails/EmailReplyDialog";
 
 interface Email {
   id: string;
@@ -86,6 +89,7 @@ export function EmailModule() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showReplyDialog, setShowReplyDialog] = useState(false);
   const [companyEmail, setCompanyEmail] = useState<string>("");
   const { toast } = useToast();
 
@@ -514,6 +518,14 @@ export function EmailModule() {
                     </Badge>
                     <Button
                       variant="outline"
+                      size="sm"
+                      onClick={() => setShowReplyDialog(true)}
+                    >
+                      <Reply className="h-4 w-4 mr-2" />
+                      Antworten
+                    </Button>
+                    <Button
+                      variant="outline"
                       size="icon"
                       onClick={() => markAsRead(selectedEmail.id, !selectedEmail.is_read)}
                     >
@@ -556,6 +568,20 @@ export function EmailModule() {
           )}
         </div>
       </div>
+
+      {/* Reply Dialog */}
+      {selectedEmail && (
+        <EmailReplyDialog
+          isOpen={showReplyDialog}
+          onClose={() => setShowReplyDialog(false)}
+          email={{
+            id: selectedEmail.id,
+            subject: selectedEmail.subject,
+            sender_email: selectedEmail.sender_email,
+            sender_name: selectedEmail.sender_name
+          }}
+        />
+      )}
     </div>
   );
 }

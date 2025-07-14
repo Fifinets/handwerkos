@@ -396,6 +396,36 @@ export type Database = {
         }
         Relationships: []
       }
+      email_sync_settings: {
+        Row: {
+          auto_sync_enabled: boolean
+          created_at: string
+          id: string
+          last_sync_at: string | null
+          sync_interval_minutes: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_sync_enabled?: boolean
+          created_at?: string
+          id?: string
+          last_sync_at?: string | null
+          sync_interval_minutes?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_sync_enabled?: boolean
+          created_at?: string
+          id?: string
+          last_sync_at?: string | null
+          sync_interval_minutes?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       emails: {
         Row: {
           ai_category_id: string | null
@@ -1367,6 +1397,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_email_connections: {
+        Row: {
+          access_token: string | null
+          created_at: string
+          email_address: string | null
+          id: string
+          is_active: boolean
+          provider: string
+          refresh_token: string | null
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string
+          email_address?: string | null
+          id?: string
+          is_active?: boolean
+          provider?: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string
+          email_address?: string | null
+          id?: string
+          is_active?: boolean
+          provider?: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {

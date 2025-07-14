@@ -32,20 +32,15 @@ export function EmailSync({ onClose }: EmailSyncProps) {
     }
 
     try {
-      const { error } = await supabase.functions.invoke('sync-emails', {
-        body: {
-          userId: user?.id,
-          provider: 'gmail'
-        }
-      });
+      const { data, error } = await supabase.functions.invoke('sync-gmail-emails');
 
       if (error) {
         throw error;
       }
 
       toast({
-        title: "Synchronisation gestartet",
-        description: "E-Mails werden importiert...",
+        title: "Synchronisation erfolgreich",
+        description: `${data?.totalSynced || 0} E-Mails wurden erfolgreich synchronisiert.`,
       });
     } catch (error) {
       console.error('Error syncing emails:', error);

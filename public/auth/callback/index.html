@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gmail Authorization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .success {
+            color: #27ae60;
+        }
+        .error {
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Gmail-Autorisierung</h2>
+        <div id="status">
+            <div class="loading"></div>
+            <p>Verarbeite Autorisierung...</p>
+        </div>
+    </div>
+
+    <script>
+        // Get authorization code from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const error = urlParams.get('error');
+        
+        const statusDiv = document.getElementById('status');
+        
+        if (error) {
+            statusDiv.innerHTML = `
+                <div class="error">
+                    <h3>Autorisierung fehlgeschlagen</h3>
+                    <p>Fehler: ${error}</p>
+                </div>
+            `;
+            
+            // Notify parent window of error
+            if (window.opener) {
+                window.opener.postMessage({
+                    type: 'GMAIL_AUTH_ERROR',
+                    error: error
+                }, window.location.origin);
+                window.close();
+            }
+        } else if (code) {
+            statusDiv.innerHTML = `
+                <div class="success">
+                    <h3>Autorisierung erfolgreich!</h3>
+                    <p>Verbinde mit Gmail...</p>
+                </div>
+            `;
+            
+            // Notify parent window of success
+            if (window.opener) {
+                window.opener.postMessage({
+                    type: 'GMAIL_AUTH_SUCCESS',
+                    code: code
+                }, window.location.origin);
+                window.close();
+            }
+        } else {
+            statusDiv.innerHTML = `
+                <div class="error">
+                    <h3>Ungültige Antwort</h3>
+                    <p>Kein Autorisierungscode erhalten.</p>
+                </div>
+            `;
+            
+            if (window.opener) {
+                window.opener.postMessage({
+                    type: 'GMAIL_AUTH_ERROR',
+                    error: 'No authorization code received'
+                }, window.location.origin);
+                window.close();
+            }
+        }
+        
+        // Auto-close after 3 seconds if still open
+        setTimeout(() => {
+            if (!window.closed) {
+                window.close();
+            }
+        }, 3000);
+    </script>
+</body>
+</html>
