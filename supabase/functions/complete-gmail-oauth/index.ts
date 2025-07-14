@@ -60,6 +60,10 @@ const handler = async (req: Request): Promise<Response> => {
     const redirectUri = `https://qgwhkjrhndeoskrxewpb.supabase.co/functions/v1/complete-gmail-oauth`;
 
     // Exchange code for tokens
+    console.log('Starting token exchange with redirect_uri:', redirectUri);
+    console.log('Google Client ID:', googleClientId);
+    console.log('Code received:', code ? 'YES' : 'NO');
+    
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
@@ -74,10 +78,14 @@ const handler = async (req: Request): Promise<Response> => {
       }),
     });
 
+    console.log('Token response status:', tokenResponse.status);
+    
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.text();
       console.error('Token exchange failed:', errorData);
-      throw new Error('Token exchange fehlgeschlagen');
+      console.error('Response status:', tokenResponse.status);
+      console.error('Response headers:', Object.fromEntries(tokenResponse.headers.entries()));
+      throw new Error(`Token exchange fehlgeschlagen: ${errorData}`);
     }
 
     const tokenData = await tokenResponse.json();
