@@ -86,12 +86,36 @@ export function EmailModule() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [companyEmail, setCompanyEmail] = useState<string>("");
   const { toast } = useToast();
 
   useEffect(() => {
+    fetchCompanySettings();
     fetchCategories();
-    fetchEmails();
   }, []);
+
+  useEffect(() => {
+    if (companyEmail) {
+      fetchEmails();
+    }
+  }, [companyEmail]);
+
+  const fetchCompanySettings = async () => {
+    const { data, error } = await supabase
+      .from('company_settings')
+      .select('company_email')
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching company settings:', error);
+      return;
+    }
+
+    if (data?.company_email) {
+      setCompanyEmail(data.company_email);
+    }
+  };
 
   const fetchCategories = async () => {
     const { data, error } = await supabase
@@ -108,6 +132,11 @@ export function EmailModule() {
   };
 
   const fetchEmails = async () => {
+    if (!companyEmail) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const { data, error } = await supabase
       .from('emails')
@@ -116,6 +145,7 @@ export function EmailModule() {
         email_categories (name, color, icon),
         customers (company_name)
       `)
+      .eq('recipient_email', companyEmail)
       .order('received_at', { ascending: false });
 
     if (error) {
@@ -234,7 +264,14 @@ export function EmailModule() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">E-Mails</h2>
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">E-Mails</h2>
+          {companyEmail && (
+            <p className="text-sm text-muted-foreground">
+              Für: {companyEmail}
+            </p>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <Button 
             onClick={() => setShowImport(!showImport)} 
