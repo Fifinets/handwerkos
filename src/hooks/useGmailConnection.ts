@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -49,14 +49,14 @@ export function useGmailConnection() {
     if (!user?.id) return;
     
     try {
-      // Check if user has Gmail connected - using any to work around type issue
-      const { data, error } = await (supabase as any)
+      // Check if user has Gmail connected - using maybeSingle to avoid errors when no data found
+      const { data, error } = await supabase
         .from('user_email_connections')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .eq('provider', 'gmail')
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (!error && data) {
         setIsGmailConnected(true);
@@ -70,6 +70,13 @@ export function useGmailConnection() {
       setIsGmailConnected(false);
     }
   };
+
+  // Check connection status when component mounts or user changes
+  useEffect(() => {
+    if (user?.id) {
+      checkGmailConnection();
+    }
+  }, [user?.id]);
 
   return {
     isConnecting,
