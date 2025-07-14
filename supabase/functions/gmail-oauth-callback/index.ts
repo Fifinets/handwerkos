@@ -51,7 +51,7 @@ serve(async (req) => {
         code,
         client_id: clientId,
         client_secret: clientSecret,
-        redirect_uri: 'https://handwerkos.com/auth/callback',
+        redirect_uri: 'https://www.handwerkos.com/auth/callback',
         grant_type: 'authorization_code',
       }),
     });
