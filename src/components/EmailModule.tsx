@@ -97,8 +97,56 @@ export function EmailModule() {
   useEffect(() => {
     if (companyEmail) {
       fetchEmails();
+      
+      // Set up real-time subscription for new emails
+      const channel = supabase
+        .channel('emails-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'emails',
+            filter: `recipient_email=eq.${companyEmail}`
+          },
+          (payload) => {
+            console.log('New email received:', payload);
+            // Add the new email to the list
+            setEmails(prevEmails => [payload.new as Email, ...prevEmails]);
+            toast({
+              title: "Neue E-Mail",
+              description: `Von: ${(payload.new as Email).sender_email}`,
+            });
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'emails',
+            filter: `recipient_email=eq.${companyEmail}`
+          },
+          (payload) => {
+            console.log('Email updated:', payload);
+            // Update the email in the list
+            setEmails(prevEmails => 
+              prevEmails.map(email => 
+                email.id === (payload.new as Email).id 
+                  ? { ...email, ...(payload.new as Email) }
+                  : email
+              )
+            );
+          }
+        )
+        .subscribe();
+
+      // Cleanup subscription on unmount
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
-  }, [companyEmail]);
+  }, [companyEmail, toast]);
 
   const fetchCompanySettings = async () => {
     const { data, error } = await supabase
