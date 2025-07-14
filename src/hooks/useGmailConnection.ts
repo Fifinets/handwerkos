@@ -12,27 +12,20 @@ export function useGmailConnection() {
   const connectGmail = async () => {
     setIsConnecting(true);
     try {
-      // Get Google Client ID from edge function
-      const { data: clientData, error: clientError } = await supabase.functions.invoke('get-google-client-id');
-      
-      if (clientError) {
-        throw new Error('Fehler beim Abrufen der Google Client ID');
+      // Use Supabase's built-in Google OAuth with Gmail scope
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          scopes: 'https://www.googleapis.com/auth/gmail.modify',
+          redirectTo: `${window.location.origin}/`,
+        }
+      });
+
+      if (error) {
+        throw error;
       }
 
-      const clientId = clientData.clientId;
-      const redirectUri = 'https://qgwhkjrhndeoskrxewpb.supabase.co/functions/v1/gmail-oauth-callback';
-      const scope = 'https://www.googleapis.com/auth/gmail.modify';
-      
-      const authUrl = `https://accounts.google.com/oauth/authorize?` +
-        `client_id=${clientId}&` +
-        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-        `scope=${encodeURIComponent(scope)}&` +
-        `response_type=code&` +
-        `access_type=offline&` +
-        `prompt=consent`;
-
-      // Open OAuth in current tab
-      window.location.href = authUrl;
+      // The OAuth flow will redirect to Supabase's callback URL
 
     } catch (error) {
       console.error('Error connecting Gmail:', error);
