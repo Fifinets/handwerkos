@@ -54,6 +54,11 @@ const handler = async (req: Request): Promise<Response> => {
     const googleClientId = Deno.env.get('GOOGLE_CLIENT_ID')!;
     const googleClientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')!;
 
+    // Debug logging für Secrets
+    console.log('GOOGLE_CLIENT_ID exists:', !!googleClientId);
+    console.log('GOOGLE_CLIENT_SECRET exists:', !!googleClientSecret);
+    console.log('GOOGLE_CLIENT_ID length:', googleClientId?.length || 0);
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const userId = state;
