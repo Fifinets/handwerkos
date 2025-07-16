@@ -119,8 +119,7 @@ Achte besonders auf:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo';
-',
+        model: 'gpt-3.5-turbo',
         messages: [
           { role: 'system', content: 'Du bist ein Experte für deutsche Geschäfts-E-Mails. Antworte immer mit validen JSON.' },
           { role: 'user', content: openAIPrompt }
