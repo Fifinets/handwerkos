@@ -141,7 +141,7 @@ const handler = async (req: Request): Promise<Response> => {
                 email: '${userInfo.email}' 
               }, '*');
             }
-            setTimeout(() => window.close(), 2000);
+            setTimeout(() => window.close(), 100);
           </script>
         </body>
       </html>
