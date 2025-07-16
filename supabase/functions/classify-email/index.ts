@@ -112,10 +112,18 @@ Achte besonders auf:
 - Stimmung/Ton der E-Mail (positiv, neutral, negativ)
 `;
 
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+
+    console.log('Making OpenAI API call for email classification...');
+    
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -129,8 +137,12 @@ Achte besonders auf:
       }),
     });
 
+    console.log('OpenAI response status:', openAIResponse.status);
+    
     if (!openAIResponse.ok) {
-      throw new Error(`OpenAI API error: ${openAIResponse.status}`);
+      const errorText = await openAIResponse.text();
+      console.error('OpenAI API error details:', errorText);
+      throw new Error(`OpenAI API error: ${openAIResponse.status} - ${errorText}`);
     }
 
     const openAIData = await openAIResponse.json();
