@@ -117,7 +117,7 @@ const handler = async (req: Request): Promise<Response> => {
         is_active: true,
         updated_at: new Date().toISOString(),
       }, {
-        onConflict: 'user_id,provider',
+        onConflict: 'user_id,provider,email_address',
       });
 
     if (dbError) {
