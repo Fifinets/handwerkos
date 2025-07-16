@@ -65,52 +65,29 @@ const serve_handler = async (req: Request): Promise<Response> => {
 
     const categoryList = categories?.map(c => `${c.name}: ${c.description}`).join('\n') || '';
 
-    const openAIPrompt = `
-Du bist ein KI-Assistent für die Klassifizierung deutscher Geschäfts-E-Mails. 
-Analysiere die folgende E-Mail und klassifiziere sie in eine der verfügbaren Kategorien.
+    const openAIPrompt = `Du bist ein KI-Assistent für die Klassifizierung deutscher Geschäfts-E-Mails in einem Handwerksunternehmen.  
+Analysiere den Inhalt jeder E-Mail und gib die passende Kategorie zurück.  
+Wähle genau eine der folgenden Kategorien:
 
-Verfügbare Kategorien:
-${categoryList}
+- Anfrage  
+- Auftrag  
+- Rechnung  
+- Neuigkeiten  
+- Support  
+- Spam  
+- Sonstiges
 
 E-Mail Details:
 Betreff: ${subject}
 Absender: ${senderName || senderEmail}
 Inhalt: ${content}
 
-Analysiere die E-Mail und gib das Ergebnis als JSON zurück mit folgender Struktur:
-{
-  "category": "Eine der verfügbaren Kategorien",
-  "confidence": 0.95,
-  "extractedData": {
-    "priority": "normal",
-    "customerInfo": {
-      "name": "Falls erkennbar",
-      "email": "${senderEmail}",
-      "phone": "Falls im Text erwähnt",
-      "company": "Falls erwähnt"
-    },
-    "orderInfo": {
-      "amount": "Falls Betrag erwähnt",
-      "currency": "EUR",
-      "items": ["Liste der Produkte/Services falls erwähnt"],
-      "deadline": "Falls Deadline erwähnt"
-    },
-    "sentiment": "positive/neutral/negative",
-    "keywords": ["wichtige", "begriffe", "aus", "email"],
-    "actionRequired": true,
-    "urgency": 5
-  },
-  "summary": "Kurze Zusammenfassung der E-Mail auf Deutsch"
-}
+Antwortformat:  
+Gib **ausschließlich** folgendes JSON-Format zurück:
 
-Achte besonders auf:
-- Bestellungen, Aufträge, Kaufinteresse
-- Rechnungen und Zahlungsaufforderungen  
-- Support-Anfragen und Probleme
-- Terminanfragen
-- Reklamationen oder Beschwerden
-- Stimmung/Ton der E-Mail (positiv, neutral, negativ)
-`;
+{ "Kategorie": "..." }
+
+Gib keine weitere Erklärung oder zusätzlichen Text zurück.`;
 
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -138,7 +115,21 @@ Achte besonders auf:
 
     let classification: ClassificationResult;
     try {
-      classification = JSON.parse(aiResult);
+      const simpleResult = JSON.parse(aiResult);
+      const categoryName = simpleResult.Kategorie || 'Sonstiges';
+      
+      classification = {
+        category: categoryName,
+        confidence: 0.8,
+        extractedData: {
+          priority: 'normal',
+          sentiment: 'neutral',
+          keywords: [],
+          actionRequired: false,
+          urgency: 3
+        },
+        summary: `E-Mail als ${categoryName} klassifiziert.`
+      };
     } catch (e) {
       // Fallback if JSON parsing fails
       classification = {
