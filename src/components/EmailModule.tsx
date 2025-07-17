@@ -224,6 +224,9 @@ export function EmailModule() {
     );
 
     console.log(`Starting classification of ${unprocessedEmails.length} emails`);
+    
+    let successCount = 0;
+    let errorCount = 0;
 
     // Process emails one by one with delay to avoid rate limiting
     for (let i = 0; i < unprocessedEmails.length; i++) {
@@ -231,7 +234,7 @@ export function EmailModule() {
       try {
         console.log(`Processing email ${i + 1}/${unprocessedEmails.length}: ${email.subject}`);
         
-        const { error } = await supabase.functions.invoke('classify-email', {
+        const { data, error } = await supabase.functions.invoke('classify-email', {
           body: {
             emailId: email.id,
             subject: email.subject,
@@ -243,24 +246,28 @@ export function EmailModule() {
 
         if (error) {
           console.error('Error classifying email:', error);
+          errorCount++;
         } else {
-          console.log(`Successfully classified email: ${email.subject}`);
+          console.log(`Successfully classified email: ${email.subject}`, data);
+          successCount++;
         }
         
         // Add delay between requests to avoid rate limiting
         if (i < unprocessedEmails.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
       } catch (error) {
         console.error('Error processing email:', error);
+        errorCount++;
       }
     }
 
     setProcessing(false);
-    fetchEmails();
+    await fetchEmails(); // Refresh emails to show updated classifications
+    
     toast({
-      title: "KI-Klassifizierung",
-      description: `${unprocessedEmails.length} E-Mails wurden analysiert.`,
+      title: "KI-Klassifizierung abgeschlossen",
+      description: `${successCount} E-Mails erfolgreich analysiert, ${errorCount} Fehler.`,
     });
   };
 

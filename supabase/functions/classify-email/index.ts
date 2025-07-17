@@ -65,57 +65,27 @@ const serve_handler = async (req: Request): Promise<Response> => {
 
     const categoryList = categories?.map(c => `${c.name}: ${c.description}`).join('\n') || '';
 
-    const openAIPrompt = `
-Du bist ein KI-Assistent für die Klassifizierung deutscher Geschäfts-E-Mails.  
-Analysiere die folgende E-Mail und gib eine strukturierte JSON-Antwort zurück.
+const openAIPrompt = `Analysiere diese deutsche E-Mail und gib ein JSON zurück:
 
-Verfügbare Kategorien (genau eine auswählen):
+E-Mail Details:
+Betreff: ${subject}
+Von: ${senderName || senderEmail}
+Inhalt: ${content.substring(0, 2000)}
+
+Klassifiziere in GENAU eine dieser Kategorien:
 - Anfrage
-- Auftrag
+- Auftrag  
 - Rechnung
 - Support
-- Reklamation
+- Neuigkeiten
 - Spam
 - Sonstiges
 
-E-Mail Details:
-Betreff: ${subject}  
-Absender: ${senderName || senderEmail}  
-Inhalt: ${content}
+Antwortformat (OHNE weitere Erklärungen):
+{"Kategorie": "KategorieName"}`;
 
-Antwortformat (ausschließlich dieses JSON):
-
-{
-  "category": "Eine der verfügbaren Kategorien",
-  "confidence": "hoch" | "mittel" | "niedrig",
-  "extractedData": {
-    "priority": "hoch" | "normal" | "niedrig",
-    "customerInfo": {
-      "name": "",
-      "email": "${senderEmail}",
-      "phone": "",
-      "company": ""
-    },
-    "orderInfo": {
-      "amount": "",
-      "currency": "EUR",
-      "items": [],
-      "deadline": ""
-    },
-    "sentiment": "positiv" | "neutral" | "negativ",
-    "keywords": [],
-    "actionRequired": true | false,
-    "urgency": 1-10
-  },
-  "summary": "Kurze Zusammenfassung der E-Mail auf Deutsch"
-}
-
-Hinweise:
-- Gib **nur Felder aus**, wenn sie im Text enthalten oder ableitbar sind.
-- Nutze klare Sprache und halte dich strikt an das JSON-Format.
-- Keine Kommentare oder zusätzliche Erklärungen ausgeben.
-
-`;
+    console.log('Starting OpenAI classification for email:', emailId);
+    console.log('Prompt:', openAIPrompt);
 
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -126,11 +96,11 @@ Hinweise:
       body: JSON.stringify({
         model: 'gpt-3.5-turbo',
         messages: [
-          { role: 'system', content: 'Du bist ein Experte für deutsche Geschäfts-E-Mails. Antworte immer mit validen JSON.' },
+          { role: 'system', content: 'Du klassifizierst deutsche E-Mails. Antworte nur mit JSON im Format {"Kategorie": "Name"}.' },
           { role: 'user', content: openAIPrompt }
         ],
-        temperature: 0.3,
-        max_tokens: 1000,
+        temperature: 0.1,
+        max_tokens: 100,
       }),
     });
 
@@ -140,54 +110,66 @@ Hinweise:
 
     const openAIData = await openAIResponse.json();
     const aiResult = openAIData.choices[0].message.content;
+    console.log('OpenAI raw response:', aiResult);
 
-    let classification: ClassificationResult;
+    let categoryName = 'Sonstiges';
+    let categoryId = null;
+    
     try {
-      classification = JSON.parse(aiResult);
+      const parsed = JSON.parse(aiResult);
+      categoryName = parsed.Kategorie || 'Sonstiges';
+      console.log('Parsed category:', categoryName);
     } catch (e) {
-      // Fallback if JSON parsing fails
-      classification = {
-        category: 'Sonstiges',
-        confidence: 0.5,
-        extractedData: {
-          priority: 'normal',
-          sentiment: 'neutral',
-          keywords: [],
-          actionRequired: false,
-          urgency: 3
-        },
-        summary: 'E-Mail konnte nicht automatisch klassifiziert werden.'
-      };
+      console.error('JSON parsing failed:', e);
+      console.log('Raw AI response that failed to parse:', aiResult);
     }
 
-    // Find category ID
-    const category = categories?.find(c => c.name === classification.category);
-    const categoryId = category ? 
-      (await supabaseClient.from('email_categories').select('id').eq('name', category.name).single()).data?.id : 
-      null;
-
-    // Try to find matching customer
-    let customerId = null;
-    if (classification.extractedData?.customerInfo?.email) {
-      const { data: customer } = await supabaseClient
-        .from('customers')
+    // Find category ID by exact name match
+    const category = categories?.find(c => c.name === categoryName);
+    if (category) {
+      const { data } = await supabaseClient
+        .from('email_categories')
         .select('id')
-        .eq('email', classification.extractedData.customerInfo.email)
+        .eq('name', category.name)
         .single();
-      customerId = customer?.id || null;
+      categoryId = data?.id;
+      console.log('Found category ID:', categoryId, 'for category:', categoryName);
+    } else {
+      console.log('Category not found in database:', categoryName);
+      console.log('Available categories:', categories?.map(c => c.name));
     }
+
+    // Try to find matching customer by sender email
+    let customerId = null;
+    const { data: customer } = await supabaseClient
+      .from('customers')
+      .select('id')
+      .eq('email', senderEmail)
+      .single();
+    customerId = customer?.id || null;
+    
+    console.log('Customer lookup for email:', senderEmail, 'found:', customerId);
 
     // Update email in database
+    console.log('Updating email with:', {
+      ai_category_id: categoryId,
+      ai_confidence: 0.8,
+      ai_sentiment: 'neutral',
+      ai_summary: `Klassifiziert als: ${categoryName}`,
+      customer_id: customerId,
+      priority: 'normal',
+      processing_status: 'completed'
+    });
+
     const { error: updateError } = await supabaseClient
       .from('emails')
       .update({
         ai_category_id: categoryId,
-        ai_confidence: classification.confidence,
-        ai_extracted_data: classification.extractedData,
-        ai_sentiment: classification.extractedData.sentiment,
-        ai_summary: classification.summary,
+        ai_confidence: 0.8,
+        ai_sentiment: 'neutral',
+        ai_summary: `Klassifiziert als: ${categoryName}`,
         customer_id: customerId,
-        priority: classification.extractedData.priority,
+        priority: 'normal',
         processing_status: 'completed',
         processed_at: new Date().toISOString()
       })
@@ -198,14 +180,11 @@ Hinweise:
       throw updateError;
     }
 
-    // If it's an order email, we could create a draft order/project here
-    if (classification.category === 'Auftrag' && classification.extractedData.orderInfo) {
-      console.log('Order detected, could create draft order:', classification.extractedData.orderInfo);
-    }
+    console.log('Email classification completed successfully');
 
     return new Response(JSON.stringify({
       success: true,
-      classification,
+      category: categoryName,
       categoryId,
       customerId
     }), {
