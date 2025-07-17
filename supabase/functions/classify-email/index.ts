@@ -66,50 +66,55 @@ const serve_handler = async (req: Request): Promise<Response> => {
     const categoryList = categories?.map(c => `${c.name}: ${c.description}`).join('\n') || '';
 
     const openAIPrompt = `
-Du bist ein KI-Assistent für die Klassifizierung deutscher Geschäfts-E-Mails. 
-Analysiere die folgende E-Mail und klassifiziere sie in eine der verfügbaren Kategorien.
+Du bist ein KI-Assistent für die Klassifizierung deutscher Geschäfts-E-Mails.  
+Analysiere die folgende E-Mail und gib eine strukturierte JSON-Antwort zurück.
 
-Verfügbare Kategorien:
-${categoryList}
+Verfügbare Kategorien (genau eine auswählen):
+- Anfrage
+- Auftrag
+- Rechnung
+- Support
+- Reklamation
+- Spam
+- Sonstiges
 
 E-Mail Details:
-Betreff: ${subject}
-Absender: ${senderName || senderEmail}
+Betreff: ${subject}  
+Absender: ${senderName || senderEmail}  
 Inhalt: ${content}
 
-Analysiere die E-Mail und gib das Ergebnis als JSON zurück mit folgender Struktur:
+Antwortformat (ausschließlich dieses JSON):
+
 {
   "category": "Eine der verfügbaren Kategorien",
-  "confidence": 0.95,
+  "confidence": "hoch" | "mittel" | "niedrig",
   "extractedData": {
-    "priority": "normal",
+    "priority": "hoch" | "normal" | "niedrig",
     "customerInfo": {
-      "name": "Falls erkennbar",
+      "name": "",
       "email": "${senderEmail}",
-      "phone": "Falls im Text erwähnt",
-      "company": "Falls erwähnt"
+      "phone": "",
+      "company": ""
     },
     "orderInfo": {
-      "amount": "Falls Betrag erwähnt",
+      "amount": "",
       "currency": "EUR",
-      "items": ["Liste der Produkte/Services falls erwähnt"],
-      "deadline": "Falls Deadline erwähnt"
+      "items": [],
+      "deadline": ""
     },
-    "sentiment": "positive/neutral/negative",
-    "keywords": ["wichtige", "begriffe", "aus", "email"],
-    "actionRequired": true,
-    "urgency": 5
+    "sentiment": "positiv" | "neutral" | "negativ",
+    "keywords": [],
+    "actionRequired": true | false,
+    "urgency": 1-10
   },
   "summary": "Kurze Zusammenfassung der E-Mail auf Deutsch"
 }
 
-Achte besonders auf:
-- Bestellungen, Aufträge, Kaufinteresse
-- Rechnungen und Zahlungsaufforderungen  
-- Support-Anfragen und Probleme
-- Terminanfragen
-- Reklamationen oder Beschwerden
-- Stimmung/Ton der E-Mail (positiv, neutral, negativ)
+Hinweise:
+- Gib **nur Felder aus**, wenn sie im Text enthalten oder ableitbar sind.
+- Nutze klare Sprache und halte dich strikt an das JSON-Format.
+- Keine Kommentare oder zusätzliche Erklärungen ausgeben.
+
 `;
 
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
