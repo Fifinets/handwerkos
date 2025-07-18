@@ -1,415 +1,155 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Building2, Calendar, Users, Package, AlertTriangle, CheckCircle, Clock, Plus } from "lucide-react";
-import AddProjectDialog from "./AddProjectDialog";
-import EditProjectDialog from "./EditProjectDialog";
-import ProjectDetailDialog from "./ProjectDetailDialog";
 import { supabase } from "@/integrations/supabase/client";
 
-const ProjectModule = () => {
-  const [isAddProjectOpen, setIsAddProjectOpen] = useState(false);
-  const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
-  const [isDetailProjectOpen, setIsDetailProjectOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<any>(null);
-  const [teamMembers, setTeamMembers] = useState<any[]>([]);
-  
-  // Kundendaten für die Auswahl
-  const customers = [
-    {
-      id: 1,
-      name: 'Müller GmbH',
-      contact: 'Hans Müller',
-      email: 'mueller@firma.de',
-      phone: '+49 123 456789',
-      address: 'Berlin, Hauptstraße 123',
-      projects: 3,
-      revenue: '€25.400',
-      status: 'Aktiv'
-    },
-    {
-      id: 2,
-      name: 'Schmidt AG',
-      contact: 'Anna Schmidt',
-      email: 'schmidt@ag.de',
-      phone: '+49 987 654321',
-      address: 'Hamburg, Industriestr. 45',
-      projects: 1,
-      revenue: '€8.750',
-      status: 'Aktiv'
-    },
-    {
-      id: 3,
-      name: 'Weber Bau',
-      contact: 'Peter Weber',
-      email: 'weber@bau.de',
-      phone: '+49 555 123456',
-      address: 'München, Bahnhofstr. 78',
-      projects: 5,
-      revenue: '€45.200',
-      status: 'Premium'
-    }
-  ];
+const DashboardChef = () => {
+  const [projects, setProjects] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [statusCounts, setStatusCounts] = useState({ Planung: 0, "In Bearbeitung": 0, Abgeschlossen: 0 });
+  const [topCustomers, setTopCustomers] = useState([]);
+  const [totalBudget, setTotalBudget] = useState(0);
+  const [delayedProjects, setDelayedProjects] = useState([]);
+  const [projectProgress, setProjectProgress] = useState([]);
 
-  // Echte Mitarbeiter aus der Datenbank laden (nur Employees, keine Manager)
   useEffect(() => {
-    const fetchTeamMembers = async () => {
-      try {
-        // Zuerst alle User-Rollen holen, die Employee sind
-        const { data: employeeRoles, error: rolesError } = await supabase
-          .from('user_roles')
-          .select('user_id')
-          .eq('role', 'employee');
-
-        if (rolesError) {
-          console.error('Error fetching employee roles:', rolesError);
-          return;
-        }
-
-        if (!employeeRoles || employeeRoles.length === 0) {
-          setTeamMembers([]);
-          return;
-        }
-
-        const employeeUserIds = employeeRoles.map(role => role.user_id);
-
-        // Dann die Profile dieser User holen
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('*')
-          .in('id', employeeUserIds)
-          .eq('status', 'aktiv');
-
-        if (profilesError) {
-          console.error('Error fetching profiles:', profilesError);
-          return;
-        }
-
-        const formattedMembers = profiles?.map(profile => ({
-          id: profile.id,
-          name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email,
-          role: profile.position || 'Mitarbeiter',
-          projects: [] // TODO: Echte Projekt-Zuordnungen laden
-        })) || [];
-
-        setTeamMembers(formattedMembers);
-      } catch (error) {
-        console.error('Error loading team members:', error);
-      }
-    };
-
-    fetchTeamMembers();
+    fetchProjects();
+    fetchTasks();
+    fetchTopCustomers();
   }, []);
 
-  const [projects, setProjects] = useState([
-    {
-      id: 'P2024-001',
-      name: 'Büroerweiterung Müller GmbH',
-      customer: 'Müller GmbH',
-      status: 'In Bearbeitung',
-      progress: 65,
-      startDate: '01.01.2024',
-      endDate: '15.02.2024',
-      budget: '€12.500',
-      team: ['Max Mustermann', 'Lisa Weber'],
-      location: 'Berlin, Hauptstraße 123'
-    },
-    {
-      id: 'P2024-002',
-      name: 'Werkshalle Elektrik',
-      customer: 'Schmidt AG',
-      status: 'Abgeschlossen',
-      progress: 100,
-      startDate: '15.12.2023',
-      endDate: '10.01.2024',
-      budget: '€8.750',
-      team: ['Tom Fischer', 'Anna Klein'],
-      location: 'Hamburg, Industriestr. 45'
-    },
-    {
-      id: 'P2024-003',
-      name: 'Wohnanlage Phase 2',
-      customer: 'Weber Bau',
-      status: 'Planung',
-      progress: 15,
-      startDate: '01.02.2024',
-      endDate: '30.04.2024',
-      budget: '€28.900',
-      team: ['Max Mustermann', 'Lisa Weber', 'Tom Fischer'],
-      location: 'München, Bahnhofstr. 78'
-    }
-  ]);
+  const fetchProjects = async () => {
+    const { data, error } = await supabase.from('projects').select('*');
+    if (error || !data) return;
+    setProjects(data);
 
-  const upcomingTasks = [
-    { task: 'DGUV V3 Prüfung - Schmidt AG', date: '25.01.2024', priority: 'Hoch', type: 'Wartung' },
-    { task: 'Material bestellen - Kabel 5x2.5', date: '26.01.2024', priority: 'Mittel', type: 'Beschaffung' },
-    { task: 'Abnahme Büroerweiterung', date: '28.01.2024', priority: 'Hoch', type: 'Termin' },
-    { task: 'Angebot Weber Bau Phase 3', date: '30.01.2024', priority: 'Mittel', type: 'Angebot' }
-  ];
+    const budgetSum = data.reduce((sum, p) => {
+      const cleanBudget = typeof p.budget === 'string' ? parseFloat(p.budget.replace(/[^0-9,.-]+/g, '').replace(',', '.')) : p.budget;
+      return sum + (isNaN(cleanBudget) ? 0 : cleanBudget);
+    }, 0);
+    setTotalBudget(budgetSum);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'In Bearbeitung': return 'bg-yellow-100 text-yellow-800';
-      case 'Abgeschlossen': return 'bg-green-100 text-green-800';
-      case 'Planung': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+    const counts = { Planung: 0, "In Bearbeitung": 0, Abgeschlossen: 0 };
+    const delayed = [];
+    const progressList = [];
+    const today = new Date();
+
+    data.forEach(p => {
+      if (p.status in counts) counts[p.status]++;
+      const endDate = new Date(p.end_date);
+      if (endDate < today && p.status !== 'Abgeschlossen') delayed.push(p);
+      if (typeof p.progress === 'number') {
+        progressList.push({ name: p.name, progress: p.progress });
+      }
+    });
+
+    setStatusCounts(counts);
+    setDelayedProjects(delayed);
+    setProjectProgress(progressList);
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'Hoch': return 'bg-red-100 text-red-800';
-      case 'Mittel': return 'bg-yellow-100 text-yellow-800';
-      case 'Niedrig': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  const fetchTasks = async () => {
+    const { data, error } = await supabase.from('tasks').select('*');
+    if (error || !data) return;
+    setTasks(data);
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Abgeschlossen': return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'In Bearbeitung': return <Clock className="h-4 w-4 text-yellow-600" />;
-      case 'Planung': return <Calendar className="h-4 w-4 text-blue-600" />;
-      default: return <Building2 className="h-4 w-4 text-gray-600" />;
-    }
-  };
-
-  const handleAddProject = (newProject: any) => {
-    setProjects(prev => [...prev, newProject]);
-  };
-
-  const handleEditProject = (project: any) => {
-    setSelectedProject(project);
-    setIsEditProjectOpen(true);
-  };
-
-  const handleProjectUpdated = (updatedProject: any) => {
-    setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
-  };
-
-  const handleViewDetails = (project: any) => {
-    setSelectedProject(project);
-    setIsDetailProjectOpen(true);
+  const fetchTopCustomers = async () => {
+    const { data, error } = await supabase.rpc('get_top_customers');
+    if (error || !data) return;
+    setTopCustomers(data);
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Building2 className="h-6 w-6 text-blue-600" />
-            Projekte & Baustellen
-          </h2>
-          <p className="text-gray-600">Verwalten Sie Ihre Baustellen und Projekttermine</p>
-        </div>
-        <Button 
-          className="bg-blue-600 hover:bg-blue-700"
-          onClick={() => setIsAddProjectOpen(true)}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Neues Projekt
-        </Button>
+      <h2 className="text-2xl font-bold">Dashboard – Überblick</h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card><CardContent className="p-4"><p>Aktive Projekte</p><p className="text-2xl">{statusCounts['In Bearbeitung']}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p>Abgeschlossene</p><p className="text-2xl">{statusCounts['Abgeschlossen']}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p>Gesamtbudget</p><p className="text-2xl">€{totalBudget.toLocaleString()}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p>Offene Aufgaben</p><p className="text-2xl">{tasks.length}</p></CardContent></Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Project Overview Stats */}
-        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Aktive Projekte</p>
-                  <p className="text-2xl font-bold">3</p>
-                </div>
-                <Building2 className="h-8 w-8 text-blue-600" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Abgeschlossen</p>
-                  <p className="text-2xl font-bold">1</p>
-                </div>
-                <CheckCircle className="h-8 w-8 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Gesamtbudget</p>
-                  <p className="text-2xl font-bold">€50.150</p>
-                </div>
-                <Package className="h-8 w-8 text-purple-600" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Offene Aufgaben</p>
-                  <p className="text-2xl font-bold">12</p>
-                </div>
-                <AlertTriangle className="h-8 w-8 text-orange-600" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Active Projects */}
         <div className="lg:col-span-2 space-y-4">
-          <h3 className="text-lg font-semibold">Aktuelle Projekte</h3>
-          {projects.filter(project => project.status !== 'Abgeschlossen').map((project) => (
-            <Card key={project.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      {getStatusIcon(project.status)}
-                      <h4 className="text-lg font-semibold">{project.name}</h4>
-                      <Badge className={getStatusColor(project.status)}>
-                        {project.status}
-                      </Badge>
-                    </div>
-                    <p className="text-gray-600 mb-2">{project.customer}</p>
-                    <p className="text-sm text-gray-500 flex items-center gap-1">
-                      <Building2 className="h-4 w-4" />
-                      {project.location}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-green-600">{project.budget}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Fortschritt</span>
-                      <span>{project.progress}%</span>
-                    </div>
-                    <Progress value={project.progress} className="h-2" />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-500">Start:</p>
-                      <p className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {project.startDate}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Ende:</p>
-                      <p className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {project.endDate}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-2 pt-4 mt-auto">
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => handleViewDetails(project)}
-                  >
-                    Details
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    className="bg-blue-600 hover:bg-blue-700"
-                    onClick={() => handleEditProject(project)}
-                  >
-                    Bearbeiten
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Upcoming Tasks */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Anstehende Aufgaben</h3>
           <Card>
-            <CardContent className="p-4">
-              <div className="space-y-3">
-                {upcomingTasks.map((task, index) => (
-                  <div key={index} className="p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <Badge variant="outline" className="text-xs">
-                        {task.type}
-                      </Badge>
-                      <Badge className={getPriorityColor(task.priority)}>
-                        {task.priority}
-                      </Badge>
-                    </div>
-                    <p className="text-sm font-medium mb-1">{task.task}</p>
-                    <p className="text-xs text-gray-500 flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {task.date}
-                    </p>
+            <CardHeader><CardTitle>Anstehende Aufgaben</CardTitle></CardHeader>
+            <CardContent>
+              {tasks.map((task, i) => (
+                <div key={i} className="p-2 border-b">
+                  <div className="flex justify-between">
+                    <span>{task.title}</span>
+                    <Badge>{task.priority}</Badge>
                   </div>
-                ))}
-              </div>
+                  <p className="text-sm text-gray-500 flex items-center gap-1">
+                    <Calendar className="h-4 w-4" /> {task.date}
+                  </p>
+                </div>
+              ))}
             </CardContent>
           </Card>
 
-          {/* Quick Actions */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Schnellaktionen</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4">
-              <div className="space-y-2">
-                <Button variant="outline" className="w-full justify-start">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Termin planen
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Package className="h-4 w-4 mr-2" />
-                  Material bestellen
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Users className="h-4 w-4 mr-2" />
-                  Team zuweisen
-                </Button>
-              </div>
+            <CardHeader><CardTitle>Verzögerte Projekte</CardTitle></CardHeader>
+            <CardContent>
+              {delayedProjects.length === 0 ? (
+                <p className="text-sm text-gray-500">Keine Projekte im Verzug</p>
+              ) : delayedProjects.map((p, i) => (
+                <div key={i} className="flex justify-between border-b py-1">
+                  <span>{p.name}</span>
+                  <Badge variant="destructive">überfällig</Badge>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-4">
+          <Card>
+            <CardHeader><CardTitle>Projektstatus</CardTitle></CardHeader>
+            <CardContent>
+              {Object.entries(statusCounts).map(([status, count]) => (
+                <div key={status} className="flex justify-between text-sm">
+                  <span>{status}</span>
+                  <span>{count}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>Top Kunden</CardTitle></CardHeader>
+            <CardContent>
+              {topCustomers.map((c, i) => (
+                <div key={i} className="flex justify-between text-sm">
+                  <span>{c.name}</span>
+                  <span>€{!isNaN(parseFloat(c.revenue)) ? parseFloat(c.revenue).toLocaleString() : '0'}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>Projektfortschritt</CardTitle></CardHeader>
+            <CardContent>
+              {projectProgress.map((p, i) => (
+                <div key={i} className="mb-2">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>{p.name}</span>
+                    <span>{p.progress}%</span>
+                  </div>
+                  <Progress value={p.progress} className="h-2" />
+                </div>
+              ))}
             </CardContent>
           </Card>
         </div>
       </div>
-
-      <AddProjectDialog
-        isOpen={isAddProjectOpen}
-        onClose={() => setIsAddProjectOpen(false)}
-        onProjectAdded={handleAddProject}
-        customers={customers}
-        teamMembers={teamMembers}
-      />
-
-      <EditProjectDialog
-        isOpen={isEditProjectOpen}
-        onClose={() => setIsEditProjectOpen(false)}
-        project={selectedProject}
-        onProjectUpdated={handleProjectUpdated}
-      />
-
-      <ProjectDetailDialog
-        isOpen={isDetailProjectOpen}
-        onClose={() => setIsDetailProjectOpen(false)}
-        project={selectedProject}
-      />
     </div>
   );
 };
 
-export default ProjectModule;
+export default DashboardChef;
