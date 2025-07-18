@@ -123,15 +123,33 @@ export function CustomerProjectDialog({ isOpen, onClose, email }: CustomerProjec
     try {
       let customerId = existingCustomer?.id;
 
+      // Validate required fields
+      if (!customerData.company_name.trim()) {
+        throw new Error('Firmenname ist erforderlich');
+      }
+      if (!customerData.contact_person.trim()) {
+        throw new Error('Ansprechpartner ist erforderlich');
+      }
+      if (!projectData.name.trim()) {
+        throw new Error('Projektname ist erforderlich');
+      }
+
       // Get current user's company ID
-      const { data: profileData } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('company_id')
         .single();
 
+      if (profileError) {
+        console.error('Profile error:', profileError);
+        throw new Error('Profil konnte nicht geladen werden');
+      }
+
       if (!profileData?.company_id) {
         throw new Error('Firma nicht gefunden');
       }
+
+      console.log('Creating/updating customer and project for company:', profileData.company_id);
 
       // Create or update customer
       if (!existingCustomer) {
@@ -144,44 +162,71 @@ export function CustomerProjectDialog({ isOpen, onClose, email }: CustomerProjec
           .select()
           .single();
 
-        if (customerError) throw customerError;
+        if (customerError) {
+          console.error('Customer creation error:', customerError);
+          throw new Error(`Fehler beim Erstellen des Kunden: ${customerError.message}`);
+        }
         customerId = newCustomer.id;
+        console.log('Customer created with ID:', customerId);
       } else {
         const { error: updateError } = await supabase
           .from('customers')
           .update(customerData)
           .eq('id', existingCustomer.id);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error('Customer update error:', updateError);
+          throw new Error(`Fehler beim Aktualisieren des Kunden: ${updateError.message}`);
+        }
+        console.log('Customer updated with ID:', customerId);
       }
 
-      // Create project
-      const { error: projectError } = await supabase
+      // Create project with detailed logging
+      const projectInsertData = {
+        name: projectData.name,
+        description: projectData.description || null,
+        location: projectData.location || null,
+        start_date: projectData.start_date || new Date().toISOString().split('T')[0],
+        end_date: projectData.end_date || null,
+        customer_id: customerId,
+        company_id: profileData.company_id,
+        status: 'geplant'
+      };
+
+      console.log('Creating project with data:', projectInsertData);
+
+      const { data: newProject, error: projectError } = await supabase
         .from('projects')
-        .insert({
-          name: projectData.name,
-          description: projectData.description,
-          location: projectData.location,
-          start_date: projectData.start_date || new Date().toISOString().split('T')[0],
-          end_date: projectData.end_date || null,
-          customer_id: customerId,
-          company_id: profileData.company_id,
-          status: 'geplant'
-        });
+        .insert(projectInsertData)
+        .select()
+        .single();
 
-      if (projectError) throw projectError;
+      if (projectError) {
+        console.error('Project creation error:', projectError);
+        throw new Error(`Fehler beim Erstellen des Projekts: ${projectError.message}`);
+      }
 
-      // Update email with customer ID
+      console.log('Project created successfully:', newProject);
+
+      // Update email with customer ID and project ID
       const { error: emailError } = await supabase
         .from('emails')
-        .update({ customer_id: customerId })
+        .update({ 
+          customer_id: customerId,
+          project_id: newProject.id 
+        })
         .eq('id', email.id);
 
-      if (emailError) throw emailError;
+      if (emailError) {
+        console.error('Email update error:', emailError);
+        throw new Error(`Fehler beim Aktualisieren der E-Mail: ${emailError.message}`);
+      }
+
+      console.log('Email updated successfully');
 
       toast({
         title: "Erfolgreich gespeichert",
-        description: `Kunde ${existingCustomer ? 'aktualisiert' : 'erstellt'} und Projekt angelegt.`,
+        description: `Kunde ${existingCustomer ? 'aktualisiert' : 'erstellt'} und Projekt "${newProject.name}" angelegt.`,
       });
 
       onClose();
