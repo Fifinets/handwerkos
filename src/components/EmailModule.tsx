@@ -36,6 +36,8 @@ import { de } from "date-fns/locale";
 import { EmailImport } from "./emails/EmailImport";
 import { EmailSync } from "./emails/EmailSync";
 import { EmailReplyDialog } from "./emails/EmailReplyDialog";
+import { EmailActionButtons } from "./emails/EmailActionButtons";
+import { CustomerProjectDialog } from "./emails/CustomerProjectDialog";
 import { useGmailConnection } from "@/hooks/useGmailConnection";
 
 interface Email {
@@ -52,6 +54,7 @@ interface Email {
   ai_confidence?: number;
   ai_sentiment?: string;
   ai_summary?: string;
+  ai_extracted_data?: any;
   processing_status: string;
   email_categories?: {
     name: string;
@@ -92,6 +95,7 @@ export function EmailModule() {
   const [showImport, setShowImport] = useState(false);
   const [showSync, setShowSync] = useState(false);
   const [showReplyDialog, setShowReplyDialog] = useState(false);
+  const [showCustomerProjectDialog, setShowCustomerProjectDialog] = useState(false);
   const [companyEmail, setCompanyEmail] = useState<string>("");
   const { toast } = useToast();
   const { isGmailConnected, connectGmail, isConnecting } = useGmailConnection();
@@ -326,6 +330,31 @@ export function EmailModule() {
       case 'negative': return <AlertCircle className="h-4 w-4 text-red-500" />;
       default: return <Clock className="h-4 w-4 text-yellow-500" />;
     }
+  };
+
+  const handleAcceptEmail = () => {
+    setShowCustomerProjectDialog(true);
+  };
+
+  const handleDeclineEmail = () => {
+    toast({
+      title: "Anfrage abgelehnt",
+      description: "Die E-Mail wurde als abgelehnt markiert.",
+    });
+  };
+
+  const handleFollowUp = () => {
+    toast({
+      title: "Nachfrage",
+      description: "Nachfrage-Dialog würde hier geöffnet.",
+    });
+  };
+
+  const handlePriceAdjustment = () => {
+    toast({
+      title: "Preisanpassung",
+      description: "Preisanpassungs-Dialog würde hier geöffnet.",
+    });
   };
 
   if (loading) {
@@ -563,14 +592,6 @@ export function EmailModule() {
                     </Badge>
                     <Button
                       variant="outline"
-                      size="sm"
-                      onClick={() => setShowReplyDialog(true)}
-                    >
-                      <Reply className="h-4 w-4 mr-2" />
-                      Antworten
-                    </Button>
-                    <Button
-                      variant="outline"
                       size="icon"
                       onClick={() => markAsRead(selectedEmail.id, !selectedEmail.is_read)}
                     >
@@ -593,6 +614,18 @@ export function EmailModule() {
                     <p className="text-sm text-muted-foreground">{selectedEmail.ai_summary}</p>
                   </div>
                 )}
+
+                {/* Email Action Buttons */}
+                <div className="flex justify-center pt-4">
+                  <EmailActionButtons
+                    emailCategory={selectedEmail.email_categories?.name || ""}
+                    onAccept={handleAcceptEmail}
+                    onDecline={handleDeclineEmail}
+                    onReply={() => setShowReplyDialog(true)}
+                    onFollowUp={handleFollowUp}
+                    onPriceAdjustment={handlePriceAdjustment}
+                  />
+                </div>
               </CardHeader>
               
               <CardContent>
@@ -625,6 +658,18 @@ export function EmailModule() {
             sender_email: selectedEmail.sender_email,
             sender_name: selectedEmail.sender_name
           }}
+        />
+      )}
+
+      {/* Customer Project Dialog */}
+      {selectedEmail && (
+        <CustomerProjectDialog
+          isOpen={showCustomerProjectDialog}
+          onClose={() => {
+            setShowCustomerProjectDialog(false);
+            fetchEmails(); // Refresh emails to show updated data
+          }}
+          email={selectedEmail}
         />
       )}
     </div>
