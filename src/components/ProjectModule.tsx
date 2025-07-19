@@ -1,28 +1,74 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
+import AddProjectDialog from "./AddProjectDialog";
+import EditProjectDialog from "./EditProjectDialog";
 
-const DashboardChef = () => {
+const ProjectModule = () => {
   const [projects, setProjects] = useState([]);
   const [statusCounts, setStatusCounts] = useState({ geplant: 0, in_bearbeitung: 0, abgeschlossen: 0 });
   const [topCustomers, setTopCustomers] = useState([]);
   const [totalBudget, setTotalBudget] = useState(0);
   const [delayedProjects, setDelayedProjects] = useState([]);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [customers, setCustomers] = useState([]);
+  const [teamMembers, setTeamMembers] = useState([]);
 
   useEffect(() => {
     fetchProjects();
     fetchTopCustomers();
+    fetchCustomers();
+    fetchTeamMembers();
   }, []);
+
+  const fetchCustomers = async () => {
+    const { data } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('status', 'Aktiv');
+    
+    if (data) {
+      setCustomers(data.map(customer => ({
+        id: customer.id,
+        name: customer.company_name,
+        contact: customer.contact_person,
+        email: customer.email,
+        phone: customer.phone,
+        address: customer.address,
+        projects: 0,
+        revenue: '€0',
+        status: customer.status
+      })));
+    }
+  };
+
+  const fetchTeamMembers = async () => {
+    const { data } = await supabase
+      .from('employees')
+      .select('*')
+      .eq('status', 'aktiv');
+    
+    if (data) {
+      setTeamMembers(data.map(employee => ({
+        id: employee.id,
+        name: `${employee.first_name} ${employee.last_name}`,
+        role: employee.position || 'Mitarbeiter',
+        projects: []
+      })));
+    }
+  };
 
   const fetchProjects = async () => {
     const { data, error } = await supabase.from('projects').select('*');
     if (error || !data) return;
     setProjects(data);
 
-    // Da es kein Budget-Feld gibt, setzen wir es auf 0
     setTotalBudget(0);
 
     const counts = { geplant: 0, in_bearbeitung: 0, abgeschlossen: 0 };
@@ -30,7 +76,6 @@ const DashboardChef = () => {
     const today = new Date();
 
     data.forEach(p => {
-      // Verwende die tatsächlichen Status-Werte aus der DB
       if (p.status === 'geplant') counts.geplant++;
       else if (p.status === 'in_bearbeitung') counts["in_bearbeitung"]++;
       else if (p.status === 'abgeschlossen') counts.abgeschlossen++;
@@ -48,12 +93,93 @@ const DashboardChef = () => {
   const fetchTopCustomers = async () => {
     const { data, error } = await supabase.from('customers').select('*');
     if (error || !data) return;
-    setTopCustomers(data.slice(0, 5)); // Zeige die ersten 5 Kunden
+    setTopCustomers(data.slice(0, 5));
+  };
+
+  const handleEditProject = (project) => {
+    // Transform database project to match dialog interface
+    const transformedProject = {
+      id: project.id,
+      name: project.name,
+      customer: '', // Will be filled from customer_id lookup
+      status: project.status,
+      progress: 0,
+      startDate: project.start_date,
+      endDate: project.end_date,
+      budget: '€0',
+      team: [],
+      location: project.location || ''
+    };
+    
+    setSelectedProject(transformedProject);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleProjectUpdated = (updatedProject) => {
+    // Update project in Supabase
+    const updateProject = async () => {
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          name: updatedProject.name,
+          status: updatedProject.status,
+          start_date: updatedProject.startDate,
+          end_date: updatedProject.endDate,
+          location: updatedProject.location,
+          description: updatedProject.description
+        })
+        .eq('id', updatedProject.id);
+
+      if (!error) {
+        fetchProjects();
+      }
+    };
+
+    updateProject();
+  };
+
+  const handleProjectAdded = (newProject) => {
+    // Add project to Supabase
+    const addProject = async () => {
+      // Find customer by name
+      const customer = customers.find(c => c.name === newProject.customer);
+      
+      const { error } = await supabase
+        .from('projects')
+        .insert({
+          name: newProject.name,
+          customer_id: customer?.id,
+          status: newProject.status,
+          start_date: newProject.startDate.split('.').reverse().join('-'),
+          end_date: newProject.endDate.split('.').reverse().join('-'),
+          location: newProject.location,
+          description: `Budget: ${newProject.budget}`
+        });
+
+      if (!error) {
+        fetchProjects();
+      }
+    };
+
+    addProject();
   };
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Dashboard – Überblick</h2>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold">Projekt-Dashboard</h2>
+          <p className="text-gray-600">Überblick über alle Projekte und deren Status</p>
+        </div>
+        <Button 
+          onClick={() => setIsAddDialogOpen(true)}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Neues Projekt
+        </Button>
+      </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card><CardContent className="p-4"><p>Aktive Projekte</p><p className="text-2xl">{statusCounts.in_bearbeitung}</p></CardContent></Card>
@@ -106,12 +232,16 @@ const DashboardChef = () => {
                 </div>
 
                 <div className="flex gap-2 pt-4 mt-auto">
-                  <button className="px-3 py-1 text-sm border rounded hover:bg-gray-50">
+                  <Button size="sm" variant="outline">
                     Details
-                  </button>
-                  <button className="px-3 py-1 text-sm border rounded hover:bg-gray-50">
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => handleEditProject(project)}
+                  >
                     Bearbeiten
-                  </button>
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -176,8 +306,23 @@ const DashboardChef = () => {
           </Card>
         </div>
       </div>
+
+      <AddProjectDialog
+        isOpen={isAddDialogOpen}
+        onClose={() => setIsAddDialogOpen(false)}
+        onProjectAdded={handleProjectAdded}
+        customers={customers}
+        teamMembers={teamMembers}
+      />
+
+      <EditProjectDialog
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        project={selectedProject}
+        onProjectUpdated={handleProjectUpdated}
+      />
     </div>
   );
 };
 
-export default DashboardChef;
+export default ProjectModule;
