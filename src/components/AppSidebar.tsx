@@ -93,6 +93,8 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
       onMouseLeave={() => {
         if (hoverTimeout) clearTimeout(hoverTimeout);
         setIsHovered(false);
+        // Collapse all expanded groups when the sidebar closes
+        setExpandedGroups([]);
       }}
     >
       <div className="flex flex-col h-full">
