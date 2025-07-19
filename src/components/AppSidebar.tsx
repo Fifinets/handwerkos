@@ -74,6 +74,13 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
 
   const isExpanded = isHovered;
 
+  // Collapse any open groups when the sidebar collapses
+  useEffect(() => {
+    if (!isExpanded) {
+      setExpandedGroups([]);
+    }
+  }, [isExpanded]);
+
   const toggleGroup = (groupId: string) => {
     setExpandedGroups(prev => 
       prev.includes(groupId) 
