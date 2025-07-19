@@ -219,15 +219,26 @@ const ProjectModule = () => {
                 </div>
 
                 <div className="space-y-3 flex-grow">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 gap-4 text-sm">
                     <div>
                       <p className="text-gray-500">Status:</p>
                       <p className="font-medium">{project.status}</p>
                     </div>
-                    <div>
-                      <p className="text-gray-500">Erstellt am:</p>
-                      <p>{new Date(project.created_at).toLocaleDateString()}</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Fortschritt</span>
+                      <span className="font-medium">
+                        {project.status === 'abgeschlossen' ? '100%' : 
+                         project.status === 'in_bearbeitung' ? '50%' : '10%'}
+                      </span>
                     </div>
+                    <Progress 
+                      value={project.status === 'abgeschlossen' ? 100 : 
+                             project.status === 'in_bearbeitung' ? 50 : 10} 
+                      className="h-2"
+                    />
                   </div>
                 </div>
 
