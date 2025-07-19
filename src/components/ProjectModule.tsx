@@ -64,22 +64,58 @@ const DashboardChef = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
-          <Card>
-            <CardHeader><CardTitle>Aktuelle Projekte</CardTitle></CardHeader>
-            <CardContent>
-              {projects.slice(0, 5).map((project, i) => (
-                <div key={i} className="p-2 border-b">
-                  <div className="flex justify-between">
-                    <span>{project.name}</span>
-                    <Badge>{project.status}</Badge>
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Aktuelle Projekte</h3>
+          </div>
+
+          {projects.slice(0, 5).map((project, i) => (
+            <Card key={i} className="hover:shadow-lg transition-shadow">
+              <CardContent className="p-6 flex flex-col h-full">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="text-lg font-semibold">{project.name}</h4>
+                      <Badge>{project.status}</Badge>
+                    </div>
+                    <p className="text-gray-600 mb-2">{project.description || 'Projektbeschreibung'}</p>
+                    <p className="text-sm text-gray-500">Projekt-ID: {project.id}</p>
                   </div>
-                  <p className="text-sm text-gray-500 flex items-center gap-1">
-                    <Calendar className="h-4 w-4" /> {project.start_date}
-                  </p>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500 flex items-center gap-1">
+                      <Calendar className="h-4 w-4" /> Start: {project.start_date}
+                    </p>
+                    {project.end_date && (
+                      <p className="text-sm text-gray-500 flex items-center gap-1">
+                        <Calendar className="h-4 w-4" /> Ende: {project.end_date}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              ))}
-            </CardContent>
-          </Card>
+
+                <div className="space-y-3 flex-grow">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-500">Status:</p>
+                      <p className="font-medium">{project.status}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Erstellt am:</p>
+                      <p>{new Date(project.created_at).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-4 mt-auto">
+                  <button className="px-3 py-1 text-sm border rounded hover:bg-gray-50">
+                    Details
+                  </button>
+                  <button className="px-3 py-1 text-sm border rounded hover:bg-gray-50">
+                    Bearbeiten
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
 
           <Card>
             <CardHeader><CardTitle>Verzögerte Projekte</CardTitle></CardHeader>
