@@ -7,16 +7,13 @@ import { supabase } from "@/integrations/supabase/client";
 
 const DashboardChef = () => {
   const [projects, setProjects] = useState([]);
-  const [tasks, setTasks] = useState([]);
-  const [statusCounts, setStatusCounts] = useState({ Planung: 0, "In Bearbeitung": 0, Abgeschlossen: 0 });
+  const [statusCounts, setStatusCounts] = useState({ geplant: 0, in_bearbeitung: 0, abgeschlossen: 0 });
   const [topCustomers, setTopCustomers] = useState([]);
   const [totalBudget, setTotalBudget] = useState(0);
   const [delayedProjects, setDelayedProjects] = useState([]);
-  const [projectProgress, setProjectProgress] = useState([]);
 
   useEffect(() => {
     fetchProjects();
-    fetchTasks();
     fetchTopCustomers();
   }, []);
 
@@ -25,41 +22,33 @@ const DashboardChef = () => {
     if (error || !data) return;
     setProjects(data);
 
-    const budgetSum = data.reduce((sum, p) => {
-      const cleanBudget = typeof p.budget === 'string' ? parseFloat(p.budget.replace(/[^0-9,.-]+/g, '').replace(',', '.')) : p.budget;
-      return sum + (isNaN(cleanBudget) ? 0 : cleanBudget);
-    }, 0);
-    setTotalBudget(budgetSum);
+    // Da es kein Budget-Feld gibt, setzen wir es auf 0
+    setTotalBudget(0);
 
-    const counts = { Planung: 0, "In Bearbeitung": 0, Abgeschlossen: 0 };
+    const counts = { geplant: 0, in_bearbeitung: 0, abgeschlossen: 0 };
     const delayed = [];
-    const progressList = [];
     const today = new Date();
 
     data.forEach(p => {
-      if (p.status in counts) counts[p.status]++;
-      const endDate = new Date(p.end_date);
-      if (endDate < today && p.status !== 'Abgeschlossen') delayed.push(p);
-      if (typeof p.progress === 'number') {
-        progressList.push({ name: p.name, progress: p.progress });
+      // Verwende die tatsächlichen Status-Werte aus der DB
+      if (p.status === 'geplant') counts.geplant++;
+      else if (p.status === 'in_bearbeitung') counts["in_bearbeitung"]++;
+      else if (p.status === 'abgeschlossen') counts.abgeschlossen++;
+      
+      if (p.end_date) {
+        const endDate = new Date(p.end_date);
+        if (endDate < today && p.status !== 'abgeschlossen') delayed.push(p);
       }
     });
 
     setStatusCounts(counts);
     setDelayedProjects(delayed);
-    setProjectProgress(progressList);
-  };
-
-  const fetchTasks = async () => {
-    const { data, error } = await supabase.from('tasks').select('*');
-    if (error || !data) return;
-    setTasks(data);
   };
 
   const fetchTopCustomers = async () => {
-    const { data, error } = await supabase.rpc('get_top_customers');
+    const { data, error } = await supabase.from('customers').select('*');
     if (error || !data) return;
-    setTopCustomers(data);
+    setTopCustomers(data.slice(0, 5)); // Zeige die ersten 5 Kunden
   };
 
   return (
@@ -67,25 +56,25 @@ const DashboardChef = () => {
       <h2 className="text-2xl font-bold">Dashboard – Überblick</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card><CardContent className="p-4"><p>Aktive Projekte</p><p className="text-2xl">{statusCounts['In Bearbeitung']}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p>Abgeschlossene</p><p className="text-2xl">{statusCounts['Abgeschlossen']}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p>Aktive Projekte</p><p className="text-2xl">{statusCounts.in_bearbeitung}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p>Abgeschlossene</p><p className="text-2xl">{statusCounts.abgeschlossen}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p>Gesamtbudget</p><p className="text-2xl">€{totalBudget.toLocaleString()}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p>Offene Aufgaben</p><p className="text-2xl">{tasks.length}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p>Projekte gesamt</p><p className="text-2xl">{projects.length}</p></CardContent></Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
           <Card>
-            <CardHeader><CardTitle>Anstehende Aufgaben</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Aktuelle Projekte</CardTitle></CardHeader>
             <CardContent>
-              {tasks.map((task, i) => (
+              {projects.slice(0, 5).map((project, i) => (
                 <div key={i} className="p-2 border-b">
                   <div className="flex justify-between">
-                    <span>{task.title}</span>
-                    <Badge>{task.priority}</Badge>
+                    <span>{project.name}</span>
+                    <Badge>{project.status}</Badge>
                   </div>
                   <p className="text-sm text-gray-500 flex items-center gap-1">
-                    <Calendar className="h-4 w-4" /> {task.date}
+                    <Calendar className="h-4 w-4" /> {project.start_date}
                   </p>
                 </div>
               ))}
@@ -125,25 +114,28 @@ const DashboardChef = () => {
             <CardContent>
               {topCustomers.map((c, i) => (
                 <div key={i} className="flex justify-between text-sm">
-                  <span>{c.name}</span>
-                  <span>€{!isNaN(parseFloat(c.revenue)) ? parseFloat(c.revenue).toLocaleString() : '0'}</span>
+                  <span>{c.company_name}</span>
+                  <span>{c.email}</span>
                 </div>
               ))}
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Projektfortschritt</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Projekt Übersicht</CardTitle></CardHeader>
             <CardContent>
-              {projectProgress.map((p, i) => (
-                <div key={i} className="mb-2">
-                  <div className="flex justify-between text-sm mb-1">
-                    <span>{p.name}</span>
-                    <span>{p.progress}%</span>
-                  </div>
-                  <Progress value={p.progress} className="h-2" />
-                </div>
-              ))}
+              <div className="text-sm text-gray-500">
+                Gesamt: {projects.length} Projekte
+              </div>
+              <div className="text-sm">
+                Geplant: {statusCounts.geplant}
+              </div>
+              <div className="text-sm">
+                In Bearbeitung: {statusCounts.in_bearbeitung}
+              </div>
+              <div className="text-sm">
+                Abgeschlossen: {statusCounts.abgeschlossen}
+              </div>
             </CardContent>
           </Card>
         </div>
