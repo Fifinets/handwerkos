@@ -201,8 +201,8 @@ const ProjectModule = () => {
             <h3 className="text-lg font-semibold">Aktuelle Projekte</h3>
           </div>
 
-          {projects.slice(0, 5).map((project, i) => (
-            <Card key={i} className="hover:shadow-lg transition-shadow">
+          {projects.slice(0, 5).map((project) => (
+            <Card key={project.id} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6 flex flex-col h-full">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
@@ -278,8 +278,8 @@ const ProjectModule = () => {
             <CardContent>
               {delayedProjects.length === 0 ? (
                 <p className="text-sm text-gray-500">Keine Projekte im Verzug</p>
-              ) : delayedProjects.map((p, i) => (
-                <div key={i} className="flex justify-between border-b py-1">
+              ) : delayedProjects.map((p) => (
+                <div key={p.id} className="flex justify-between border-b py-1">
                   <span>{p.name}</span>
                   <Badge variant="destructive">überfällig</Badge>
                 </div>
@@ -304,8 +304,8 @@ const ProjectModule = () => {
           <Card>
             <CardHeader><CardTitle>Top Kunden</CardTitle></CardHeader>
             <CardContent>
-              {topCustomers.map((c, i) => (
-                <div key={i} className="flex justify-between text-sm">
+              {topCustomers.map((c) => (
+                <div key={c.id} className="flex justify-between text-sm">
                   <span>{c.company_name}</span>
                   <span>{c.email}</span>
                 </div>

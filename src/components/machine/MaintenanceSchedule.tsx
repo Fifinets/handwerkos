@@ -38,8 +38,8 @@ const MaintenanceSchedule = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {upcomingMaintenance.map((maintenance, index) => (
-            <div key={index} className="p-3 bg-gray-50 rounded-lg">
+          {upcomingMaintenance.map((maintenance) => (
+            <div key={`${maintenance.machine}-${maintenance.date}`} className="p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center justify-between mb-2">
                 <Badge variant="outline" className="text-xs">
                   {maintenance.type}

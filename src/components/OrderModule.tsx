@@ -204,7 +204,7 @@ const OrderModule = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {loading ? (
           Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className="animate-pulse">
+            <Card key={`skeleton-${i}`} className="animate-pulse">
               <CardContent className="p-6">
                 <div className="space-y-3">
                   <div className="h-4 bg-gray-200 rounded w-3/4"></div>
