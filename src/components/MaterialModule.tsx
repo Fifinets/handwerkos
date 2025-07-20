@@ -258,7 +258,11 @@ const MaterialModule = () => {
                   <Button 
                     size="sm" 
                     variant="outline"
-                    onClick={() => handleShowMaterialDetails(material)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleShowMaterialDetails(material);
+                    }}
                   >
                     <Package className="h-4 w-4 mr-1" />
                     Details

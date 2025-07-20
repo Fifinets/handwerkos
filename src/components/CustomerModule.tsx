@@ -298,7 +298,11 @@ const CustomerModule = () => {
                             <Button 
                               size="sm" 
                               variant="outline"
-                              onClick={() => handleShowCustomerDetails(customer)}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleShowCustomerDetails(customer);
+                              }}
                             >
                               Details
                             </Button>

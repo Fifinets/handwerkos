@@ -253,7 +253,11 @@ const ProjectModule = () => {
                   <Button 
                     size="sm" 
                     variant="outline"
-                    onClick={() => handleShowDetails(project)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleShowDetails(project);
+                    }}
                   >
                     Details
                   </Button>
