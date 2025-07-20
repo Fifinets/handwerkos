@@ -74,6 +74,13 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
 
   const isExpanded = isHovered;
 
+  // Collapse any open groups when the sidebar collapses
+  useEffect(() => {
+    if (!isExpanded) {
+      setExpandedGroups([]);
+    }
+  }, [isExpanded]);
+
   const toggleGroup = (groupId: string) => {
     setExpandedGroups(prev => 
       prev.includes(groupId) 
@@ -93,6 +100,8 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
       onMouseLeave={() => {
         if (hoverTimeout) clearTimeout(hoverTimeout);
         setIsHovered(false);
+        // Collapse all expanded groups when the sidebar closes
+        setExpandedGroups([]);
       }}
     >
       <div className="flex flex-col h-full">
