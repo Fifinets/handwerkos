@@ -104,6 +104,11 @@ const MaterialModule = () => {
     ));
   };
 
+  const handleShowMaterialDetails = (material) => {
+    // Für jetzt als einfacher Alert - später kann hier ein Detail-Dialog geöffnet werden
+    alert(`Details für ${material.name}:\n\nKategorie: ${material.category}\nBestand: ${material.currentStock} ${material.unit}\nLieferant: ${material.supplier}\nPreis: ${material.price}`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -250,7 +255,11 @@ const MaterialModule = () => {
                 </div>
 
                 <div className="flex gap-2 pt-4 mt-auto">
-                  <Button size="sm" variant="outline">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => handleShowMaterialDetails(material)}
+                  >
                     <Package className="h-4 w-4 mr-1" />
                     Details
                   </Button>

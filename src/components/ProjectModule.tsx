@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import AddProjectDialog from "./AddProjectDialog";
 import EditProjectDialog from "./EditProjectDialog";
+import ProjectDetailDialog from "./ProjectDetailDialog";
 
 const ProjectModule = () => {
   const [projects, setProjects] = useState([]);
@@ -16,6 +17,7 @@ const ProjectModule = () => {
   const [delayedProjects, setDelayedProjects] = useState([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [customers, setCustomers] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
@@ -113,6 +115,11 @@ const ProjectModule = () => {
     
     setSelectedProject(transformedProject);
     setIsEditDialogOpen(true);
+  };
+
+  const handleShowDetails = (project) => {
+    setSelectedProject(project);
+    setIsDetailDialogOpen(true);
   };
 
   const handleProjectUpdated = (updatedProject) => {
@@ -243,7 +250,11 @@ const ProjectModule = () => {
                 </div>
 
                 <div className="flex gap-2 pt-4 mt-auto">
-                  <Button size="sm" variant="outline">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => handleShowDetails(project)}
+                  >
                     Details
                   </Button>
                   <Button 
@@ -331,6 +342,12 @@ const ProjectModule = () => {
         onClose={() => setIsEditDialogOpen(false)}
         project={selectedProject}
         onProjectUpdated={handleProjectUpdated}
+      />
+
+      <ProjectDetailDialog
+        isOpen={isDetailDialogOpen}
+        onClose={() => setIsDetailDialogOpen(false)}
+        project={selectedProject}
       />
     </div>
   );

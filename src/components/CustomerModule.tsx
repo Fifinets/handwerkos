@@ -177,6 +177,11 @@ const CustomerModule = () => {
     }
   };
 
+  const handleShowCustomerDetails = (customer: Customer) => {
+    // Für jetzt als einfacher Alert - später kann hier ein Detail-Dialog geöffnet werden
+    alert(`Details für ${customer.company_name}:\n\nKontakt: ${customer.contact_person}\nE-Mail: ${customer.email}\nStatus: ${customer.status}`);
+  };
+
   const filteredCustomers = customers.filter(customer =>
     customer.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.contact_person.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -290,7 +295,13 @@ const CustomerModule = () => {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <Button size="sm" variant="outline">Details</Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleShowCustomerDetails(customer)}
+                            >
+                              Details
+                            </Button>
                             <Button 
                               size="sm" 
                               className="bg-blue-600 hover:bg-blue-700"
