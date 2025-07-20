@@ -34,8 +34,8 @@ const PersonalSidebar = ({ onQuickAction }: PersonalSidebarProps) => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {upcomingTraining.map((training, index) => (
-              <div key={index} className="p-3 bg-gray-50 rounded-lg">
+            {upcomingTraining.map((training) => (
+              <div key={training.employee} className="p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <Badge className={getTrainingTypeColor(training.type)}>
                     {training.type}

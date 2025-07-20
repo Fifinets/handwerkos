@@ -88,8 +88,8 @@ const EmployeeCard = ({ employee, onShowDetails, onEdit }: EmployeeCardProps) =>
             <div className="mb-4">
               <p className="text-gray-500 text-sm mb-2">Qualifikationen:</p>
               <div className="flex flex-wrap gap-2">
-                {employee.qualifications.length > 0 ? employee.qualifications.map((qual, index) => (
-                  <Badge key={index} variant="outline" className="text-xs">
+                {employee.qualifications.length > 0 ? employee.qualifications.map((qual) => (
+                  <Badge key={qual} variant="outline" className="text-xs">
                     <Shield className="h-3 w-3 mr-1" />
                     {qual}
                   </Badge>

@@ -454,7 +454,7 @@ export function AddInvoiceDialog({ open, onOpenChange }: AddInvoiceDialogProps) 
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {items.map((item, index) => (
+              {items.map((item) => (
                 <div key={item.id} className="grid grid-cols-12 gap-2 items-end">
                   <div className="col-span-4 space-y-2">
                     <Label>Beschreibung *</Label>

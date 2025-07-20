@@ -186,8 +186,8 @@ const AddEmployeeDialog = ({ isOpen, onClose, onSubmit, isLoading }: AddEmployee
               </div>
               {newEmployee.qualifications.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {newEmployee.qualifications.map((qualification, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">
+                  {newEmployee.qualifications.map((qualification) => (
+                    <Badge key={qualification} variant="outline" className="text-xs">
                       <Shield className="h-3 w-3 mr-1" />
                       {qualification}
                       <button

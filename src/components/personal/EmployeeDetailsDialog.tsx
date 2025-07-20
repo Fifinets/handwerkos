@@ -101,8 +101,8 @@ const EmployeeDetailsDialog = ({ isOpen, onClose, employee }: EmployeeDetailsDia
           <div>
             <h4 className="font-medium mb-2">Qualifikationen</h4>
             <div className="flex flex-wrap gap-2">
-              {employee.qualifications.length > 0 ? employee.qualifications.map((qual, index) => (
-                <Badge key={index} variant="outline">
+              {employee.qualifications.length > 0 ? employee.qualifications.map((qual) => (
+                <Badge key={qual} variant="outline">
                   <Shield className="h-3 w-3 mr-1" />
                   {qual}
                 </Badge>
