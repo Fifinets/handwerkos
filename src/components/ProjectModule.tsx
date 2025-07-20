@@ -1,13 +1,38 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Plus } from "lucide-react";
+import { Calendar, Plus, CheckCircle, Clock, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import AddProjectDialog from "./AddProjectDialog";
 import EditProjectDialog from "./EditProjectDialog";
 import ProjectDetailDialog from "./ProjectDetailDialog";
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'In Bearbeitung':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'Abgeschlossen':
+      return 'bg-green-100 text-green-800';
+    case 'Planung':
+      return 'bg-blue-100 text-blue-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
+
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case 'In Bearbeitung':
+      return <Clock className="h-4 w-4 text-yellow-600" />;
+    case 'Abgeschlossen':
+      return <CheckCircle className="h-4 w-4 text-green-600" />;
+    case 'Planung':
+      return <AlertTriangle className="h-4 w-4 text-blue-600" />;
+    default:
+      return <CheckCircle className="h-4 w-4 text-gray-600" />;
+  }
+};
 
 const ProjectModule = () => {
   const [projects, setProjects] = useState([]);
@@ -201,25 +226,28 @@ const ProjectModule = () => {
             <h3 className="text-lg font-semibold">Aktuelle Projekte</h3>
           </div>
 
-          {projects.slice(0, 5).map((project) => (
+          {projects.filter(p => p.status !== 'Abgeschlossen').map(project => (
             <Card key={project.id} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6 flex flex-col h-full">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
+                      {getStatusIcon(project.status)}
                       <h4 className="text-lg font-semibold">{project.name}</h4>
-                      <Badge>{project.status}</Badge>
+                      <Badge className={getStatusColor(project.status)}>
+                        {project.status}
+                      </Badge>
                     </div>
                     <p className="text-gray-600 mb-2">{project.description || 'Projektbeschreibung'}</p>
                     <p className="text-sm text-gray-500">Projekt-ID: {project.id}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-500 flex items-center gap-1">
-                      <Calendar className="h-4 w-4" /> Start: {project.start_date}
+                      <Calendar className="h-4 w-4" /> Start: {new Date(project.start_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
                     </p>
                     {project.end_date && (
                       <p className="text-sm text-gray-500 flex items-center gap-1">
-                        <Calendar className="h-4 w-4" /> Ende: {project.end_date}
+                        <Calendar className="h-4 w-4" /> Ende: {new Date(project.end_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
                       </p>
                     )}
                   </div>
@@ -233,19 +261,19 @@ const ProjectModule = () => {
                     </div>
                   </div>
                   
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Fortschritt</span>
-                      <span className="font-medium">
-                        {project.status === 'abgeschlossen' ? '100%' : 
-                         project.status === 'in_bearbeitung' ? '50%' : '10%'}
-                      </span>
-                    </div>
-                    <Progress 
-                      value={project.status === 'abgeschlossen' ? 100 : 
-                             project.status === 'in_bearbeitung' ? 50 : 10} 
-                      className="h-2"
-                    />
+                  <div className="flex space-x-1 mb-4">
+                    {(() => {
+                      const start = new Date(project.start_date);
+                      const end = new Date(project.end_date);
+                      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                      const filled = Math.ceil((project.progress / 100) * days);
+                      return Array.from({ length: days }).map((_, idx) => (
+                        <div
+                          key={idx}
+                          className={`flex-1 h-2 rounded ${idx < filled ? 'bg-blue-600' : 'bg-gray-200'}`}
+                        />
+                      ));
+                    })()}
                   </div>
                 </div>
 
