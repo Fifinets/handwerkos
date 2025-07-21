@@ -226,7 +226,10 @@ const ProjectModule = () => {
             <h3 className="text-lg font-semibold">Aktuelle Projekte</h3>
           </div>
 
-          {projects.filter(p => p.status !== 'Abgeschlossen').map(project => (
+          {projects.filter(p => p.status !== 'Abgeschlossen').map(project => {
+            const endDate = project.end_date ? new Date(project.end_date) : null;
+            const isOverdue = endDate && endDate < new Date();
+            return (
             <Card key={project.id} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6 flex flex-col h-full">
                 <div className="flex items-start justify-between mb-4">
@@ -237,6 +240,9 @@ const ProjectModule = () => {
                       <Badge className={getStatusColor(project.status)}>
                         {project.status}
                       </Badge>
+                      {isOverdue && (
+                        <Badge variant="destructive">Überfällig</Badge>
+                      )}
                     </div>
                     <p className="text-gray-600 mb-2">{project.description || 'Projektbeschreibung'}</p>
                     <p className="text-sm text-gray-500">Projekt-ID: {project.id}</p>
@@ -265,12 +271,15 @@ const ProjectModule = () => {
                     {(() => {
                       const start = new Date(project.start_date);
                       const end = new Date(project.end_date);
-                      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-                      const filled = Math.ceil((project.progress / 100) * days);
-                      return Array.from({ length: days }).map((_, idx) => (
+                      const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                      const today = new Date();
+                      const daysPassed = today >= start ?
+                        Math.min(totalDays, Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1)
+                        : 0;
+                      return Array.from({ length: totalDays }).map((_, idx) => (
                         <div
                           key={idx}
-                          className={`flex-1 h-2 rounded ${idx < filled ? 'bg-blue-600' : 'bg-gray-200'}`}
+                          className={`flex-1 h-2 rounded ${idx < daysPassed ? 'bg-blue-600' : 'bg-gray-200'}`}
                         />
                       ));
                     })()}
