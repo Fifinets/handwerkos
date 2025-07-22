@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   TrendingUp, 
@@ -14,7 +15,8 @@ import {
   ChevronRight,
   Database,
   Receipt,
-  Mail
+  Mail,
+  FileText
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -32,7 +34,16 @@ const navigationItems = [
       { id: 'personal', name: 'Personal', icon: UserCheck, color: 'text-purple-500' }
     ]
   },
-  { id: 'projects', name: 'Projekte & Baustellen', icon: Building2, color: 'text-orange-500' },
+  { 
+    id: 'projekte-baustellen', 
+    name: 'Projekte & Baustellen', 
+    icon: Building2, 
+    color: 'text-orange-500',
+    children: [
+      { id: 'projects', name: 'Projekte', icon: Building2, color: 'text-orange-500' },
+      { id: 'orders', name: 'Aufträge', icon: FileText, color: 'text-blue-600' }
+    ]
+  },
   { id: 'timetracking', name: 'Zeiterfassung', icon: Clock, color: 'text-yellow-500' },
   { id: 'emails', name: 'E-Mails', icon: Mail, color: 'text-pink-500' },
   { id: 'documents', name: 'Dokumente', icon: Receipt, color: 'text-emerald-500' },
@@ -53,7 +64,7 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(['stammdaten']);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(['stammdaten', 'projekte-baustellen']);
 
   const handleSignOut = async () => {
     try {
