@@ -269,6 +269,9 @@ const ProjectModule = () => {
                   
                   <div className="flex space-x-1 mb-4">
                     {(() => {
+                      if (!project.end_date) {
+                        return null;
+                      }
                       const start = new Date(project.start_date);
                       const end = new Date(project.end_date);
                       const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
@@ -307,8 +310,9 @@ const ProjectModule = () => {
                   </Button>
                 </div>
               </CardContent>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
 
           <Card>
             <CardHeader><CardTitle>Verzögerte Projekte</CardTitle></CardHeader>
