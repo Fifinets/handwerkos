@@ -125,57 +125,72 @@ const PersonalModule = () => {
     setIsAddingEmployee(true);
 
     try {
-      console.log('Inviting employee via edge function:', newEmployee.email);
-
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('company_id')
-        .eq('id', user?.id)
-        .single();
-
-      if (profileError || !profile?.company_id) {
-        console.error('Error fetching company_id:', profileError);
-        toast.error('Konnte Unternehmens-ID nicht abrufen');
-        return;
-      }
-
-      const { error } = await supabase.functions.invoke('invite-employee', {
-        body: {
-          email: newEmployee.email,
-          first_name: newEmployee.firstName,
-          last_name: newEmployee.lastName,
-          company_id: profile.company_id
+      console.log('Attempting to register employee with:', newEmployee.email);
+      
+      // Use normal signUp instead of admin.inviteUserByEmail
+      const { data, error } = await supabase.auth.signUp({
+        email: newEmployee.email,
+        password: 'temp-password-123!', // Temporary password - user will be asked to change it
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth?mode=employee-setup`,
+          data: {
+            first_name: newEmployee.firstName,
+            last_name: newEmployee.lastName
+          }
         }
       });
 
       if (error) {
-        console.error('Invite error:', error);
+        console.error('SignUp error:', error);
         toast.error(`Fehler beim Erstellen des Mitarbeiters: ${error.message}`);
         return;
       }
 
-      try {
-        const { error: emailError } = await supabase.functions.invoke('send-employee-confirmation', {
-          body: {
-            managerEmail: user?.email || '',
-            employeeName: `${newEmployee.firstName} ${newEmployee.lastName}`.trim(),
-            employeeEmail: newEmployee.email,
-            companyName: 'Ihr Unternehmen'
-          }
-        });
+      if (data.user) {
+        console.log('User created successfully:', data.user.id);
+        
+        // Update the user role to 'employee' (it defaults to 'manager' from the trigger)
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .update({ role: 'employee' })
+          .eq('user_id', data.user.id);
 
-        if (emailError) {
-          console.error('Email sending error:', emailError);
+        if (roleError) {
+          console.error('Role update error:', roleError);
+          toast.error('Mitarbeiter erstellt, aber Rolle konnte nicht gesetzt werden');
         } else {
-          console.log('Confirmation email sent successfully');
-        }
-      } catch (emailErr) {
-        console.error('Email function error:', emailErr);
-      }
+          console.log('Role updated to employee successfully');
+          
+          // Send confirmation email to manager
+          try {
+            const { error: emailError } = await supabase.functions.invoke('send-employee-confirmation', {
+              body: {
+                managerEmail: user?.email || '',
+                employeeName: `${newEmployee.firstName} ${newEmployee.lastName}`.trim(),
+                employeeEmail: newEmployee.email,
+                companyName: 'Ihr Unternehmen' // You can make this configurable later
+              }
+            });
 
-      toast.success('Mitarbeiter erfolgreich erstellt! Der Mitarbeiter erhält eine E-Mail zur Bestätigung und Sie erhalten eine Bestätigungsmail.');
-      await fetchEmployees();
-      setIsAddEmployeeOpen(false);
+            if (emailError) {
+              console.error('Email sending error:', emailError);
+              // Don't show error to user since the main process succeeded
+            } else {
+              console.log('Confirmation email sent successfully');
+            }
+          } catch (emailErr) {
+            console.error('Email function error:', emailErr);
+            // Don't show error to user since the main process succeeded
+          }
+          
+          toast.success('Mitarbeiter erfolgreich erstellt! Der Mitarbeiter erhält eine E-Mail zur Bestätigung und Sie erhalten eine Bestätigungsmail.');
+          
+          // Refresh the employee list
+          await fetchEmployees();
+          
+          setIsAddEmployeeOpen(false);
+        }
+      }
     } catch (error) {
       console.error('Unexpected error:', error);
       toast.error('Ein unerwarteter Fehler ist aufgetreten');
