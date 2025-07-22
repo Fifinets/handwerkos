@@ -33,7 +33,7 @@ import { EmailModule } from "@/components/EmailModule";
 import DashboardCalendar from "@/components/DashboardCalendar";
 import DashboardStats from "@/components/DashboardStats";
 import { toast } from "@/hooks/use-toast";
-import OrderModule from "@/components/OrderModule";
+
 
 const Index = () => {
   const { user, userRole, loading, signOut } = useAuth();
@@ -73,8 +73,6 @@ const Index = () => {
         return <CustomerModule />;
       case 'projects':
         return <ProjectModule />;
-      case 'orders':
-        return <OrderModule />;
       case 'personal':
         return <PersonalModule />;
       case 'materials':

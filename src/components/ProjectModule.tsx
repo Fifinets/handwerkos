@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Plus, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { Calendar, Plus, CheckCircle, Clock, AlertTriangle, Building2, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import AddProjectDialog from "./AddProjectDialog";
 import EditProjectDialog from "./EditProjectDialog";
 import ProjectDetailDialog from "./ProjectDetailDialog";
+import OrderModule from "./OrderModule";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -200,17 +202,34 @@ const ProjectModule = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Projekt-Dashboard</h2>
-          <p className="text-gray-600">Überblick über alle Projekte und deren Status</p>
+          <h2 className="text-2xl font-bold">Projekte & Baustellen</h2>
+          <p className="text-gray-600">Verwalten Sie Projekte und Aufträge</p>
         </div>
-        <Button 
-          onClick={() => setIsAddDialogOpen(true)}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Neues Projekt
-        </Button>
       </div>
+
+      <Tabs defaultValue="projects" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="projects" className="flex items-center gap-2">
+            <Building2 className="h-4 w-4" />
+            Projekte
+          </TabsTrigger>
+          <TabsTrigger value="orders" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Aufträge
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="projects" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Projekt-Dashboard</h3>
+            <Button 
+              onClick={() => setIsAddDialogOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Neues Projekt
+            </Button>
+          </div>
 
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -373,6 +392,13 @@ const ProjectModule = () => {
           </Card>
         </div>
       </div>
+
+        </TabsContent>
+
+        <TabsContent value="orders">
+          <OrderModule />
+        </TabsContent>
+      </Tabs>
 
       <AddProjectDialog
         isOpen={isAddDialogOpen}
