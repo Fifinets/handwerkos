@@ -34,7 +34,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Sending employee confirmation email to:", managerEmail);
 
-    const emailResponse = await resend.emails.send({
+    // Send email to manager
+    const managerEmailResponse = await resend.emails.send({
       from: "ElektroManager Pro <onboarding@resend.dev>",
       to: [managerEmail],
       subject: `Neuer Mitarbeiter erfolgreich registriert - ${employeeName}`,
@@ -65,8 +66,7 @@ const handler = async (req: Request): Promise<Response> => {
             <div style="margin-top: 20px; padding: 15px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
               <p style="margin: 0; color: #92400e;">
                 <strong>Nächste Schritte:</strong><br>
-                Der Mitarbeiter hat eine E-Mail zur Bestätigung seiner Registrierung erhalten. 
-                Nach der Bestätigung kann er sich anmelden und sein Passwort festlegen.
+                Der Mitarbeiter hat eine separate E-Mail mit Registrierungslink erhalten und kann sich nun registrieren.
               </p>
             </div>
           </div>
@@ -79,11 +79,67 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    // Send registration email to employee
+    const registrationUrl = `${Deno.env.get("SUPABASE_URL") || "https://qgwhkjrhndeoskrxewpb.supabase.co"}/auth/v1/verify?type=signup&token=placeholder&redirect_to=${encodeURIComponent("https://lovable.dev/auth?mode=employee-setup")}`;
+    
+    const employeeEmailResponse = await resend.emails.send({
+      from: "ElektroManager Pro <onboarding@resend.dev>",
+      to: [employeeEmail],
+      subject: `Willkommen bei ElektroManager Pro - Registrierung abschließen`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background-color: #2563eb; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px;">🎉 Willkommen bei ElektroManager Pro!</h1>
+          </div>
+          
+          <div style="background-color: white; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+            <h2 style="color: #374151; margin-top: 0;">Hallo ${employeeName}!</h2>
+            
+            <p style="color: #374151; line-height: 1.6;">
+              Sie wurden als Mitarbeiter bei <strong>${companyName || 'Ihrem Unternehmen'}</strong> registriert. 
+              Um Ihr Konto zu aktivieren und Ihr Passwort zu erstellen, klicken Sie bitte auf den folgenden Link:
+            </p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="https://lovable.dev/auth?mode=employee-setup" 
+                 style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                Registrierung abschließen
+              </a>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 15px; background-color: #f3f4f6; border-radius: 4px;">
+              <p style="margin: 0; color: #374151; font-size: 14px;">
+                <strong>Was passiert als Nächstes?</strong><br>
+                1. Klicken Sie auf den Registrierungslink<br>
+                2. Erstellen Sie Ihr persönliches Passwort<br>
+                3. Melden Sie sich in Ihrem Mitarbeiterkonto an
+              </p>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 15px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
+              <p style="margin: 0; color: #92400e; font-size: 14px;">
+                <strong>Wichtiger Hinweis:</strong><br>
+                Falls der Link nicht funktioniert, kopieren Sie bitte die folgende URL in Ihren Browser:<br>
+                <code style="background-color: #f9fafb; padding: 2px 4px; border-radius: 3px;">https://lovable.dev/auth?mode=employee-setup</code>
+              </p>
+            </div>
+          </div>
+          
+          <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
+            <p>Diese E-Mail wurde automatisch von ElektroManager Pro gesendet.</p>
+            <p>Bei Fragen wenden Sie sich bitte an Ihren Vorgesetzten.</p>
+          </div>
+        </div>
+      `,
+    });
+
+    console.log("Manager email sent successfully:", managerEmailResponse);
+    console.log("Employee email sent successfully:", employeeEmailResponse);
 
     return new Response(JSON.stringify({ 
       success: true, 
-      messageId: emailResponse.data?.id 
+      managerMessageId: managerEmailResponse.data?.id,
+      employeeMessageId: employeeEmailResponse.data?.id 
     }), {
       status: 200,
       headers: {
