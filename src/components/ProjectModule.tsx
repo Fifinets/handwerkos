@@ -308,7 +308,8 @@ const ProjectModule = () => {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
 
           <Card>
             <CardHeader><CardTitle>Verzögerte Projekte</CardTitle></CardHeader>
