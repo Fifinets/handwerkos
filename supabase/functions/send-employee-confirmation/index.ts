@@ -2,8 +2,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -23,13 +21,27 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { 
-      status: 405, 
-      headers: corsHeaders 
+    return new Response("Method not allowed", {
+      status: 405,
+      headers: corsHeaders
     });
   }
 
   try {
+    const apiKey = Deno.env.get("RESEND_API_KEY");
+    if (!apiKey) {
+      const message = "Missing RESEND_API_KEY configuration";
+      console.error(message);
+      return new Response(
+        JSON.stringify({ success: false, error: message }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        },
+      );
+    }
+
+    const resend = new Resend(apiKey);
     const { managerEmail, employeeName, employeeEmail, companyName }: EmployeeConfirmationRequest = await req.json();
 
     console.log("Sending employee confirmation email to:", managerEmail);
