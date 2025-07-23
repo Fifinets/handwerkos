@@ -12,6 +12,7 @@ interface EmployeeConfirmationRequest {
   employeeName: string;
   employeeEmail: string;
   companyName?: string;
+  registrationUrl?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -42,13 +43,13 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const resend = new Resend(apiKey);
-    const { managerEmail, employeeName, employeeEmail, companyName }: EmployeeConfirmationRequest = await req.json();
+    const { managerEmail, employeeName, employeeEmail, companyName, registrationUrl }: EmployeeConfirmationRequest = await req.json();
 
     console.log("Sending employee confirmation email to:", managerEmail);
 
     // Send email to manager
     const managerEmailResponse = await resend.emails.send({
-      from: "ElektroManager Pro <onboarding@resend.dev>",
+      from: "HandwerkOS <onboarding@resend.dev>",
       to: [managerEmail],
       subject: `Neuer Mitarbeiter erfolgreich registriert - ${employeeName}`,
       html: `
@@ -92,16 +93,16 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     // Send registration email to employee
-    const registrationUrl = `${Deno.env.get("SUPABASE_URL") || "https://qgwhkjrhndeoskrxewpb.supabase.co"}/auth/v1/verify?type=signup&token=placeholder&redirect_to=${encodeURIComponent("https://lovable.dev/auth?mode=employee-setup")}`;
+    const finalRegistrationUrl = registrationUrl || `https://lovable.dev/auth?mode=employee-setup`;
     
     const employeeEmailResponse = await resend.emails.send({
-      from: "ElektroManager Pro <onboarding@resend.dev>",
+      from: "HandwerkOS <onboarding@resend.dev>",
       to: [employeeEmail],
-      subject: `Willkommen bei ElektroManager Pro - Registrierung abschließen`,
+      subject: `Willkommen bei HandwerkOS - Registrierung abschließen`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background-color: #2563eb; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
-            <h1 style="margin: 0; font-size: 24px;">🎉 Willkommen bei ElektroManager Pro!</h1>
+            <h1 style="margin: 0; font-size: 24px;">🎉 Willkommen bei HandwerkOS!</h1>
           </div>
           
           <div style="background-color: white; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
@@ -113,7 +114,7 @@ const handler = async (req: Request): Promise<Response> => {
             </p>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="https://lovable.dev/auth?mode=employee-setup" 
+              <a href="${finalRegistrationUrl}" 
                  style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
                 Registrierung abschließen
               </a>
@@ -132,13 +133,13 @@ const handler = async (req: Request): Promise<Response> => {
               <p style="margin: 0; color: #92400e; font-size: 14px;">
                 <strong>Wichtiger Hinweis:</strong><br>
                 Falls der Link nicht funktioniert, kopieren Sie bitte die folgende URL in Ihren Browser:<br>
-                <code style="background-color: #f9fafb; padding: 2px 4px; border-radius: 3px;">https://lovable.dev/auth?mode=employee-setup</code>
+                <code style="background-color: #f9fafb; padding: 2px 4px; border-radius: 3px;">${finalRegistrationUrl}</code>
               </p>
             </div>
           </div>
           
           <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
-            <p>Diese E-Mail wurde automatisch von ElektroManager Pro gesendet.</p>
+            <p>Diese E-Mail wurde automatisch von HandwerkOS gesendet.</p>
             <p>Bei Fragen wenden Sie sich bitte an Ihren Vorgesetzten.</p>
           </div>
         </div>

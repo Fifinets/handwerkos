@@ -29,9 +29,15 @@ const handler = async (req: Request): Promise<Response> => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${Deno.env.get('FRONTEND_URL') || 'https://lovable.dev'}/auth?mode=employee-setup`,
-      data: { company_id, first_name, last_name }
+    // Create user immediately instead of sending invite
+    const { data, error } = await supabase.auth.admin.createUser({
+      email: email,
+      email_confirm: false,
+      user_metadata: { 
+        company_id, 
+        first_name, 
+        last_name 
+      }
     });
 
     if (error) {
