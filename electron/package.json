@@ -1,8 +1,8 @@
 
 {
-  "name": "elektromanager-pro-desktop",
+  "name": "handwerkos-desktop",
   "version": "1.0.0",
-  "description": "ElektroManager Pro Desktop App",
+  "description": "HandwerkOS Desktop App",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -13,8 +13,8 @@
     "dist-linux": "electron-builder --linux --publish=never"
   },
   "build": {
-    "appId": "com.elektromanager.pro",
-    "productName": "ElektroManager Pro",
+    "appId": "com.handwerkos.app",
+    "productName": "HandwerkOS",
     "directories": {
       "output": "dist-electron"
     },

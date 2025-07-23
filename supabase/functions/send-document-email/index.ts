@@ -115,7 +115,7 @@ const handler = async (req: Request): Promise<Response> => {
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px;">
         <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
           <h1 style="color: #2563eb; margin: 0;">${documentTitle} ${documentData[numberField]}</h1>
-          <p style="margin: 5px 0 0 0; color: #6b7280;">ElektroManage Pro</p>
+          <p style="margin: 5px 0 0 0; color: #6b7280;">HandwerkOS</p>
         </div>
 
         <div style="margin-bottom: 20px;">
@@ -182,14 +182,14 @@ const handler = async (req: Request): Promise<Response> => {
 
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">
           <p>Bei Fragen stehen wir Ihnen gerne zur Verfügung.</p>
-          <p>Mit freundlichen Grüßen,<br>Ihr ElektroManage Pro Team</p>
+          <p>Mit freundlichen Grüßen,<br>Ihr HandwerkOS Team</p>
         </div>
       </body>
       </html>
     `;
 
     const emailResponse = await resend.emails.send({
-      from: "ElektroManage Pro <noreply@resend.dev>",
+      from: "HandwerkOS <noreply@resend.dev>",
       to: [recipientEmail],
       subject: emailSubject,
       html: emailHtml,
