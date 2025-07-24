@@ -146,8 +146,21 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    console.log("Manager email sent successfully:", managerEmailResponse);
-    console.log("Employee email sent successfully:", employeeEmailResponse);
+    console.log("Manager email response:", managerEmailResponse);
+    if (managerEmailResponse.error) {
+      console.error(
+        "Manager email error:",
+        managerEmailResponse.error
+      );
+    }
+
+    console.log("Employee email response:", employeeEmailResponse);
+    if (employeeEmailResponse.error) {
+      console.error(
+        "Employee email error:",
+        employeeEmailResponse.error
+      );
+    }
 
     return new Response(JSON.stringify({ 
       success: true, 
