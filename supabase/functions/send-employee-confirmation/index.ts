@@ -5,6 +5,9 @@ import { Resend } from "npm:resend@2.0.0";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "X-XSS-Protection": "1; mode=block",
 };
 
 interface EmployeeConfirmationRequest {
@@ -45,13 +48,36 @@ const handler = async (req: Request): Promise<Response> => {
     const resend = new Resend(apiKey);
     const { managerEmail, employeeName, employeeEmail, companyName, registrationUrl }: EmployeeConfirmationRequest = await req.json();
 
-    console.log("Sending employee confirmation email to:", managerEmail);
+    // Input validation and sanitization
+    if (!managerEmail || !employeeName || !employeeEmail) {
+      return new Response(
+        JSON.stringify({ success: false, error: "managerEmail, employeeName, and employeeEmail are required" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Validate email formats
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(managerEmail) || !emailRegex.test(employeeEmail)) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid email format" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Sanitize inputs
+    const sanitizedManagerEmail = managerEmail.trim().toLowerCase();
+    const sanitizedEmployeeEmail = employeeEmail.trim().toLowerCase();
+    const sanitizedEmployeeName = employeeName.trim().substring(0, 100);
+    const sanitizedCompanyName = companyName?.trim().substring(0, 100) || 'Ihrem Unternehmen';
+
+    console.log("Sending employee confirmation email to:", sanitizedManagerEmail);
 
     // Send email to manager
     const managerEmailResponse = await resend.emails.send({
       from: "HandwerkOS <onboarding@resend.dev>",
-      to: [managerEmail],
-      subject: `Neuer Mitarbeiter erfolgreich registriert - ${employeeName}`,
+      to: [sanitizedManagerEmail],
+      subject: `Neuer Mitarbeiter erfolgreich registriert - ${sanitizedEmployeeName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
@@ -64,11 +90,11 @@ const handler = async (req: Request): Promise<Response> => {
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
                 <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">Name:</td>
-                <td style="padding: 8px 0; color: #374151;">${employeeName}</td>
+                <td style="padding: 8px 0; color: #374151;">${sanitizedEmployeeName}</td>
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">E-Mail:</td>
-                <td style="padding: 8px 0; color: #374151;">${employeeEmail}</td>
+                <td style="padding: 8px 0; color: #374151;">${sanitizedEmployeeEmail}</td>
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">Registriert am:</td>
@@ -97,7 +123,7 @@ const handler = async (req: Request): Promise<Response> => {
     
     const employeeEmailResponse = await resend.emails.send({
       from: "HandwerkOS <onboarding@resend.dev>",
-      to: [employeeEmail],
+      to: [sanitizedEmployeeEmail],
       subject: `Willkommen bei HandwerkOS - Registrierung abschließen`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -106,10 +132,10 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
           
           <div style="background-color: white; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
-            <h2 style="color: #374151; margin-top: 0;">Hallo ${employeeName}!</h2>
+            <h2 style="color: #374151; margin-top: 0;">Hallo ${sanitizedEmployeeName}!</h2>
             
             <p style="color: #374151; line-height: 1.6;">
-              Sie wurden als Mitarbeiter bei <strong>${companyName || 'Ihrem Unternehmen'}</strong> registriert. 
+              Sie wurden als Mitarbeiter bei <strong>${sanitizedCompanyName}</strong> registriert.
               Um Ihr Konto zu aktivieren und Ihr Passwort zu erstellen, klicken Sie bitte auf den folgenden Link:
             </p>
             

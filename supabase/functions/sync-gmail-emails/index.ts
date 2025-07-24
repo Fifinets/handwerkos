@@ -4,7 +4,51 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-XSS-Protection': '1; mode=block',
 };
+
+// Rate limiting map (in production, use Redis or similar)
+const rateLimitMap = new Map();
+
+function checkRateLimit(identifier: string, maxRequests = 10, windowMs = 60000): boolean {
+  const now = Date.now();
+  const windowStart = now - windowMs;
+  
+  if (!rateLimitMap.has(identifier)) {
+    rateLimitMap.set(identifier, []);
+  }
+  
+  const requests = rateLimitMap.get(identifier);
+  
+  // Remove old requests outside the window
+  while (requests.length > 0 && requests[0] < windowStart) {
+    requests.shift();
+  }
+  
+  if (requests.length >= maxRequests) {
+    return false; // Rate limit exceeded
+  }
+  
+  requests.push(now);
+  return true;
+}
+
+function validateEmailContent(content: string): boolean {
+  if (!content || typeof content !== 'string') return false;
+  if (content.length > 1000000) return false; // 1MB limit
+  return true;
+}
+
+function sanitizeEmailContent(content: string): string {
+  if (!content) return '';
+  // Remove potentially dangerous patterns and limit length
+  return content
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+    .substring(0, 100000); // 100KB limit for safety
+}
 
 interface GmailMessage {
   id: string;
@@ -34,6 +78,15 @@ interface EmailConnection {
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Rate limiting check
+  const clientIP = req.headers.get('x-forwarded-for') || 'unknown';
+  if (!checkRateLimit(clientIP)) {
+    return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
+      status: 429,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   try {
@@ -210,15 +263,20 @@ serve(async (req) => {
             let htmlContent = '';
 
             if (message.payload.body?.data) {
-              content = decodeBase64Url(message.payload.body.data);
+              const rawContent = decodeBase64Url(message.payload.body.data);
+              if (validateEmailContent(rawContent)) {
+                content = sanitizeEmailContent(rawContent);
+              }
             } else if (message.payload.parts) {
               for (const part of message.payload.parts) {
                 if (part.body?.data) {
                   const partContent = decodeBase64Url(part.body.data);
-                  if (part.mimeType === 'text/html') {
-                    htmlContent = partContent;
-                  } else if (part.mimeType === 'text/plain') {
-                    content = partContent;
+                  if (validateEmailContent(partContent)) {
+                    if (part.mimeType === 'text/html') {
+                      htmlContent = sanitizeEmailContent(partContent);
+                    } else if (part.mimeType === 'text/plain') {
+                      content = sanitizeEmailContent(partContent);
+                    }
                   }
                 }
               }

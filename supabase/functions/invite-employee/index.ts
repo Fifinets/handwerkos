@@ -4,6 +4,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "X-XSS-Protection": "1; mode=block",
 };
 
 const handler = async (req: Request): Promise<Response> => {
@@ -18,6 +21,7 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { email, first_name, last_name, company_id } = await req.json();
 
+    // Input validation and sanitization
     if (!email || !company_id) {
       return new Response(
         JSON.stringify({ error: "email and company_id are required" }),
@@ -25,18 +29,32 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid email format" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Sanitize input strings
+    const sanitizedEmail = email.trim().toLowerCase();
+    const sanitizedFirstName = first_name?.trim().substring(0, 100) || '';
+    const sanitizedLastName = last_name?.trim().substring(0, 100) || '';
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
     // Create user immediately instead of sending invite
     const { data, error } = await supabase.auth.admin.createUser({
-      email: email,
+      email: sanitizedEmail,
       email_confirm: false,
       user_metadata: { 
         company_id, 
-        first_name, 
-        last_name 
+        first_name: sanitizedFirstName, 
+        last_name: sanitizedLastName 
       }
     });
 

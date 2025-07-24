@@ -1538,6 +1538,14 @@ export type Database = {
           | { role: string }
         Returns: boolean
       }
+      sanitize_text_input: {
+        Args: { input_text: string }
+        Returns: string
+      }
+      validate_email_content: {
+        Args: { content_text: string }
+        Returns: boolean
+      }
     }
     Enums: {
       user_role: "manager" | "employee"
