@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Settings, Plus } from "lucide-react";
 import MachineCard from "@/components/machine/MachineCard";
-import MachineStats from "@/components/machine/MachineStats";
+import MachineStatsDynamic from "@/components/machine/MachineStatsDynamic";
 import MaintenanceSchedule from "@/components/machine/MaintenanceSchedule";
 import MachineActions from "@/components/machine/MachineActions";
 import OverdueMaintenance from "@/components/machine/OverdueMaintenance";
@@ -81,7 +81,7 @@ const MachineModule = () => {
       </div>
 
       {/* Overview Stats */}
-      <MachineStats />
+      <MachineStatsDynamic machines={machines} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Machine List */}
