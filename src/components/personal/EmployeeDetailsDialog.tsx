@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Mail, Phone, Car, Clock, Calendar, MapPin, Shield } from "lucide-react";
+import EmployeeFiles from "./EmployeeFiles";
 
 interface Employee {
   id: string;
@@ -106,14 +107,16 @@ const EmployeeDetailsDialog = ({ isOpen, onClose, employee }: EmployeeDetailsDia
                   <Shield className="h-3 w-3 mr-1" />
                   {qual}
                 </Badge>
-              )) : (
-                <span className="text-sm text-gray-400">Keine Qualifikationen hinterlegt</span>
-              )}
-            </div>
-          </div>
+          )) : (
+            <span className="text-sm text-gray-400">Keine Qualifikationen hinterlegt</span>
+          )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+
+      <EmployeeFiles employeeId={employee.id} />
+    </div>
+  </DialogContent>
+</Dialog>
   );
 };
 
