@@ -19,7 +19,7 @@ import { DocumentModule } from "@/components/DocumentModule";
 import { CompanySettingsModule } from "@/components/CompanySettingsModule";
 import { EmailModule } from "@/components/EmailModule";
 import DashboardCalendar from "@/components/DashboardCalendar";
-import DashboardStats from "@/components/DashboardStats";
+import DashboardStatsWithKpis from "@/components/DashboardStatsWithKpis";
 import { toast } from "@/hooks/use-toast";
 const Index = () => {
   const {
@@ -77,7 +77,7 @@ const Index = () => {
       case 'company-settings':
         return <CompanySettingsModule />;
       default:
-        return <DashboardStats />;
+        return <DashboardStatsWithKpis onNavigate={setActiveModule} />;
     }
   };
   return <div className="min-h-screen w-full bg-background">
