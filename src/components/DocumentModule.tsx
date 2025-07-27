@@ -20,6 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AddQuoteDialog } from './AddQuoteDialog';
 import { AddInvoiceDialog } from './AddInvoiceDialog';
+import QuoteActions from './QuoteActions';
 
 interface Quote {
   id: string;
@@ -273,9 +274,9 @@ export function DocumentModule() {
                           <Button variant="ghost" size="sm" title="Bearbeiten">
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             title="Per E-Mail versenden"
                             onClick={() => handleSendEmail('quote', quote)}
                             disabled={sendEmailMutation.isPending}
@@ -285,6 +286,12 @@ export function DocumentModule() {
                           <Button variant="ghost" size="sm" title="Herunterladen">
                             <Download className="h-4 w-4" />
                           </Button>
+                          <QuoteActions
+                            quote={quote}
+                            onRefresh={() =>
+                              queryClient.invalidateQueries({ queryKey: ['quotes'] })
+                            }
+                          />
                         </div>
                       </div>
                     </div>
