@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Package, AlertTriangle, TrendingDown, TrendingUp, Plus, Search, Truck, Edit } from "lucide-react";
 import EditMaterialDialog from "./EditMaterialDialog";
+import ReorderSuggestions from "./material/ReorderSuggestions";
 
 const MaterialModule = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -358,8 +359,10 @@ const MaterialModule = () => {
                   <span className="text-xs text-yellow-600">25 Stk</span>
                 </div>
               </div>
-            </CardContent>
+          </CardContent>
           </Card>
+
+          <ReorderSuggestions materials={materials} />
         </div>
       </div>
 
