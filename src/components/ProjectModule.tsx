@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import AddProjectDialog from "./AddProjectDialog";
 import EditProjectDialog from "./EditProjectDialog";
-import ProjectDetailDialog from "./ProjectDetailDialog";
+import ProjectDetailDialogWithTasks from "./ProjectDetailDialogWithTasks";
 import OrderModule from "./OrderModule";
 
 const getStatusColor = (status: string) => {
@@ -415,7 +415,7 @@ const ProjectModule = () => {
         onProjectUpdated={handleProjectUpdated}
       />
 
-      <ProjectDetailDialog
+      <ProjectDetailDialogWithTasks
         isOpen={isDetailDialogOpen}
         onClose={() => setIsDetailDialogOpen(false)}
         project={selectedProject}
