@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calculator, Euro, FileText, TrendingUp, TrendingDown, Calendar, AlertTriangle, CheckCircle, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import RevenueExpenseSection from "@/components/RevenueExpenseSection";
 
 const FinanceModule = () => {
   const { toast } = useToast();
@@ -378,6 +379,8 @@ const FinanceModule = () => {
           </Card>
         </div>
       </div>
+
+      <RevenueExpenseSection />
     </div>
   );
 };
