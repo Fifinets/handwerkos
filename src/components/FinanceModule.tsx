@@ -7,6 +7,7 @@ import { Calculator, Euro, FileText, TrendingUp, TrendingDown, Calendar, AlertTr
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import RevenueExpenseSection from "@/components/RevenueExpenseSection";
+import RecurringInvoiceManager from "@/components/RecurringInvoiceManager";
 
 const FinanceModule = () => {
   const { toast } = useToast();
@@ -380,6 +381,7 @@ const FinanceModule = () => {
         </div>
       </div>
 
+      <RecurringInvoiceManager />
       <RevenueExpenseSection />
     </div>
   );
