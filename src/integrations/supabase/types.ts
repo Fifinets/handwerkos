@@ -1092,6 +1092,36 @@ export type Database = {
         }
         Relationships: []
       }
+      project_tasks: {
+        Row: {
+          id: string
+          project_id: string
+          name: string
+          description: string | null
+          start_date: string | null
+          end_date: string | null
+          status: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          name: string
+          description?: string | null
+          start_date?: string | null
+          end_date?: string | null
+          status?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          name?: string
+          description?: string | null
+          start_date?: string | null
+          end_date?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
           color: string | null
