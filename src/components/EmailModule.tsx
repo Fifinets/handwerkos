@@ -38,6 +38,7 @@ import { EmailSync } from "./emails/EmailSync";
 import { EmailReplyDialog } from "./emails/EmailReplyDialog";
 import { EmailActionButtons } from "./emails/EmailActionButtons";
 import { CustomerProjectDialog } from "./emails/CustomerProjectDialog";
+import EmailLinker from "./emails/EmailLinker";
 import { useGmailConnection } from "@/hooks/useGmailConnection";
 
 interface Email {
@@ -54,7 +55,7 @@ interface Email {
   ai_confidence?: number;
   ai_sentiment?: string;
   ai_summary?: string;
-  ai_extracted_data?: any;
+  ai_extracted_data?: unknown;
   processing_status: string;
   email_categories?: {
     name: string;
@@ -564,8 +565,9 @@ export function EmailModule() {
         {/* Email Detail */}
         <div className="lg:col-span-2">
           {selectedEmail ? (
-            <Card>
-              <CardHeader>
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="space-y-2">
                     <CardTitle className="text-xl">{selectedEmail.subject}</CardTitle>
@@ -634,6 +636,8 @@ export function EmailModule() {
                 </ScrollArea>
               </CardContent>
             </Card>
+            <EmailLinker emailId={selectedEmail.id} />
+          </div>
           ) : (
             <Card>
               <CardContent className="flex items-center justify-center h-96">
