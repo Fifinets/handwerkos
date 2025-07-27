@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AddQuoteDialog } from './AddQuoteDialog';
 import { AddInvoiceDialog } from './AddInvoiceDialog';
 import QuoteActions from './QuoteActions';
+import DocumentTemplateManager from './documents/DocumentTemplateManager';
 
 interface Quote {
   id: string;
@@ -220,6 +221,10 @@ export function DocumentModule() {
             <Receipt className="h-4 w-4" />
             Rechnungen ({invoices.length})
           </TabsTrigger>
+          <TabsTrigger value="templates" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Vorlagen
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="quotes" className="space-y-4">
@@ -372,6 +377,9 @@ export function DocumentModule() {
               ))}
             </div>
           )}
+        </TabsContent>
+        <TabsContent value="templates" className="space-y-4">
+          <DocumentTemplateManager />
         </TabsContent>
       </Tabs>
 
