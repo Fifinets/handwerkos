@@ -1287,6 +1287,36 @@ export type Database = {
           },
         ]
       }
+      recurring_invoices: {
+        Row: {
+          id: string
+          customer_id: string
+          amount: number
+          frequency: string
+          next_send_date: string
+          description: string | null
+          company_id: string | null
+        }
+        Insert: {
+          id?: string
+          customer_id: string
+          amount: number
+          frequency: string
+          next_send_date: string
+          description?: string | null
+          company_id?: string | null
+        }
+        Update: {
+          id?: string
+          customer_id?: string
+          amount?: number
+          frequency?: string
+          next_send_date?: string
+          description?: string | null
+          company_id?: string | null
+        }
+        Relationships: []
+      }
       time_entries: {
         Row: {
           break_duration: number | null
