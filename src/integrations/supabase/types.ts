@@ -396,6 +396,36 @@ export type Database = {
         }
         Relationships: []
       }
+      email_signatures: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_sync_settings: {
         Row: {
           auto_sync_enabled: boolean
@@ -421,6 +451,36 @@ export type Database = {
           id?: string
           last_sync_at?: string | null
           sync_interval_minutes?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      email_templates: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          name: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          name: string
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          name?: string
+          subject?: string
           updated_at?: string
           user_id?: string
         }
@@ -1089,36 +1149,6 @@ export type Database = {
           project_id?: string
           work_date?: string
           work_description?: string | null
-        }
-        Relationships: []
-      }
-      project_tasks: {
-        Row: {
-          id: string
-          project_id: string
-          name: string
-          description: string | null
-          start_date: string | null
-          end_date: string | null
-          status: string
-        }
-        Insert: {
-          id?: string
-          project_id: string
-          name: string
-          description?: string | null
-          start_date?: string | null
-          end_date?: string | null
-          status?: string
-        }
-        Update: {
-          id?: string
-          project_id?: string
-          name?: string
-          description?: string | null
-          start_date?: string | null
-          end_date?: string | null
-          status?: string
         }
         Relationships: []
       }

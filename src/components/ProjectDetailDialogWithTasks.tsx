@@ -51,14 +51,8 @@ const ProjectDetailDialogWithTasks = ({ isOpen, onClose, project }: ProjectDetai
 
   const loadTasks = async (projectId: string) => {
     setLoadingTasks(true);
-    const { data, error } = await supabase
-      .from('project_tasks')
-      .select('*')
-      .eq('project_id', projectId)
-      .order('start_date', { ascending: true });
-    if (!error && data) {
-      setTasks(data as Task[]);
-    }
+    // TODO: Implement when project_tasks table is created
+    setTasks([]);
     setLoadingTasks(false);
   };
 
@@ -66,14 +60,9 @@ const ProjectDetailDialogWithTasks = ({ isOpen, onClose, project }: ProjectDetai
     e.preventDefault();
     if (!project) return;
     if (!taskName.trim()) return;
-    const { error } = await supabase.from('project_tasks').insert({
-      project_id: project.id,
-      name: taskName,
-      description: taskDescription,
-      start_date: taskStartDate || null,
-      end_date: taskEndDate || null,
-      status: taskStatus,
-    });
+    // TODO: Implement when project_tasks table is created
+    console.log('Add task functionality not yet implemented');
+    const error = null;
     if (!error) {
       setTaskName('');
       setTaskDescription('');

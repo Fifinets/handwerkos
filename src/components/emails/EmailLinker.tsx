@@ -40,9 +40,9 @@ const EmailLinker: React.FC<EmailLinkerProps> = ({ emailId }) => {
         // Fetch projects
         const { data: projectData } = await supabase
           .from('projects')
-          .select('id, title')
+          .select('id, name')
           .eq('company_id', companyId);
-        setProjects((projectData as ProjectOption[]) || []);
+        setProjects((projectData || []).map(p => ({ id: p.id, title: p.name })));
 
         // Fetch customers
         const { data: customerData } = await supabase

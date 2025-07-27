@@ -48,7 +48,10 @@ const EmailTemplateManager: React.FC = () => {
       toast({ title: 'Bitte ausfüllen', description: 'Name und Betreff sind erforderlich.' });
       return;
     }
-    const { error } = await supabase.from('email_templates').insert(newTemplate);
+    const { error } = await supabase.from('email_templates').insert({
+      ...newTemplate,
+      user_id: (await supabase.auth.getUser()).data.user?.id
+    });
     if (error) {
       console.error(error);
       toast({ title: 'Fehler', description: 'Vorlage konnte nicht gespeichert werden.' });

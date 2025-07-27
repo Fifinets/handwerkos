@@ -21,10 +21,11 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({ quote, onRefresh }) => {
       const { data: newProject, error: insertError } = await supabase
         .from('projects')
         .insert({
-          title: quote.title,
+          name: quote.title,
           description: quote.description,
           customer_id: quote.customer_id,
           status: 'neu',
+          start_date: new Date().toISOString().split('T')[0],
         })
         .select()
         .single();

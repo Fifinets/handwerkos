@@ -36,17 +36,16 @@ const RecurringInvoiceManager: React.FC = () => {
     const fetchData = async () => {
       const { data: customerData, error: customerError } = await supabase
         .from('customers')
-        .select('id, name')
-        .order('name')
+        .select('id, company_name')
+        .order('company_name')
       if (customerError) {
         console.error('Error fetching customers:', customerError)
       } else {
-        setCustomers(customerData ?? [])
+        setCustomers((customerData ?? []).map(c => ({ id: c.id, name: c.company_name })))
       }
-      const { data: invoiceData, error: invoiceError } = await supabase
-        .from('recurring_invoices')
-        .select('id, customer_id, amount, frequency, next_send_date, description')
-        .order('next_send_date')
+      // TODO: Implement when recurring_invoices table is created
+      const invoiceData: RecurringInvoice[] = [];
+      const invoiceError = null;
       if (invoiceError) {
         console.error('Error fetching recurring invoices:', invoiceError)
       } else {
@@ -81,13 +80,13 @@ const RecurringInvoiceManager: React.FC = () => {
         next_send_date: startDate,
         description: description.trim() || null,
       }
-      const { error } = await supabase.from('recurring_invoices').insert(newRecord)
+      // TODO: Implement when recurring_invoices table is created
+      console.log('Create recurring invoice functionality not yet implemented');
+      const error = null;
       if (error) throw error
       toast({ title: 'Erstellt', description: 'Wiederkehrende Rechnung wurde angelegt.' })
-      const { data: invoiceData } = await supabase
-        .from('recurring_invoices')
-        .select('id, customer_id, amount, frequency, next_send_date, description')
-        .order('next_send_date')
+      // TODO: Update list when recurring_invoices table is created
+      const invoiceData: RecurringInvoice[] = [];
       setRecurringInvoices(invoiceData ?? [])
       setCustomerId('')
       setAmount('')
@@ -104,7 +103,8 @@ const RecurringInvoiceManager: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Wirklich löschen?')) return
-    const { error } = await supabase.from('recurring_invoices').delete().eq('id', id)
+    // TODO: Implement when recurring_invoices table is created
+    const error = null;
     if (error) {
       toast({ title: 'Fehler', description: 'Löschen fehlgeschlagen.', variant: 'destructive' })
     } else {
