@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AddQuoteDialog } from './AddQuoteDialog';
 import { AddInvoiceDialog } from './AddInvoiceDialog';
 import QuoteActions from './QuoteActions';
+import DocumentSignatureDialog from './DocumentSignatureDialog';
 
 interface Quote {
   id: string;
@@ -286,6 +287,13 @@ export function DocumentModule() {
                           <Button variant="ghost" size="sm" title="Herunterladen">
                             <Download className="h-4 w-4" />
                           </Button>
+                          <DocumentSignatureDialog
+                            documentType="quote"
+                            documentId={quote.id}
+                            onSigned={() =>
+                              queryClient.invalidateQueries({ queryKey: ['quotes'] })
+                            }
+                          />
                           <QuoteActions
                             quote={quote}
                             onRefresh={() =>
@@ -364,6 +372,13 @@ export function DocumentModule() {
                           <Button variant="ghost" size="sm" title="Herunterladen">
                             <Download className="h-4 w-4" />
                           </Button>
+                          <DocumentSignatureDialog
+                            documentType="invoice"
+                            documentId={invoice.id}
+                            onSigned={() =>
+                              queryClient.invalidateQueries({ queryKey: ['invoices'] })
+                            }
+                          />
                         </div>
                       </div>
                     </div>

@@ -690,6 +690,7 @@ export type Database = {
           currency: string | null
           customer_id: string
           description: string | null
+          signature_url: string | null
           due_date: string
           id: string
           invoice_date: string
@@ -711,6 +712,7 @@ export type Database = {
           currency?: string | null
           customer_id: string
           description?: string | null
+          signature_url?: string | null
           due_date: string
           id?: string
           invoice_date?: string
@@ -732,6 +734,7 @@ export type Database = {
           currency?: string | null
           customer_id?: string
           description?: string | null
+          signature_url?: string | null
           due_date?: string
           id?: string
           invoice_date?: string
@@ -1189,6 +1192,7 @@ export type Database = {
           currency: string | null
           customer_id: string
           description: string | null
+          signature_url: string | null
           id: string
           net_amount: number
           notes: string | null
@@ -1208,6 +1212,7 @@ export type Database = {
           currency?: string | null
           customer_id: string
           description?: string | null
+          signature_url?: string | null
           id?: string
           net_amount?: number
           notes?: string | null
@@ -1227,6 +1232,7 @@ export type Database = {
           currency?: string | null
           customer_id?: string
           description?: string | null
+          signature_url?: string | null
           id?: string
           net_amount?: number
           notes?: string | null
