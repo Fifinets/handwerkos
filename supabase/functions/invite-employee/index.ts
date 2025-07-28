@@ -52,7 +52,7 @@ const handler = async (req: Request): Promise<Response> => {
       type: 'invite',
       email: sanitizedEmail,
       options: {
-        redirectTo: `${Deno.env.get('SITE_URL') || 'https://handwerkos.com'}/auth?mode=employee-setup`,
+        redirectTo: `${Deno.env.get('SITE_URL') || 'https://handwerkos.de'}/auth?mode=employee-setup`,
         data: {
           company_id,
           first_name: sanitizedFirstName,

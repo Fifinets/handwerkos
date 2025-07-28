@@ -30,8 +30,8 @@ const Privacy = () => {
                 </p>
                 <div className="bg-muted p-4 rounded-lg">
                   <p className="font-semibold">HandwerkOS</p>
-                  <p>E-Mail: info@handwerkos.com</p>
-                  <p>Website: https://handwerkos.com</p>
+                  <p>E-Mail: info@handwerkos.de</p>
+                  <p>Website: https://handwerkos.de</p>
                 </div>
               </section>
 
@@ -164,7 +164,7 @@ const Privacy = () => {
                   Bei Fragen zum Datenschutz wenden Sie sich bitte an:
                 </p>
                 <div className="bg-muted p-4 rounded-lg">
-                  <p>E-Mail: datenschutz@handwerkos.com</p>
+                  <p>E-Mail: datenschutz@handwerkos.de</p>
                   <p>Oder nutzen Sie unser Kontaktformular auf der Website.</p>
                 </div>
               </section>

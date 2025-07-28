@@ -89,7 +89,7 @@
                         <strong>Autorisierung fehlgeschlagen</strong><br>
                         ${error === 'access_denied' ? 'Sie haben die Berechtigung verweigert.' : 'Fehler: ' + error}
                     </div>
-                    <a href="https://handwerkos.com" class="btn">Zurück zu Handwerkos</a>
+                    <a href="https://handwerkos.de" class="btn">Zurück zu Handwerkos</a>
                 `;
                 
                 // Notify parent window of error
@@ -97,7 +97,7 @@
                     window.opener.postMessage({ 
                         type: 'GMAIL_AUTH_ERROR', 
                         error: error 
-                    }, 'https://handwerkos.com');
+                    }, 'https://handwerkos.de');
                 }
                 return;
             }
@@ -110,7 +110,7 @@
                         <strong>Autorisierungscode fehlt</strong><br>
                         Bitte versuchen Sie es erneut.
                     </div>
-                    <a href="https://handwerkos.com" class="btn">Zurück zu Handwerkos</a>
+                    <a href="https://handwerkos.de" class="btn">Zurück zu Handwerkos</a>
                 `;
                 
                 // Notify parent window of error
@@ -118,7 +118,7 @@
                     window.opener.postMessage({ 
                         type: 'GMAIL_AUTH_ERROR', 
                         error: 'No authorization code received' 
-                    }, 'https://handwerkos.com');
+                    }, 'https://handwerkos.de');
                 }
                 return;
             }
@@ -160,7 +160,7 @@
                         <strong>✓ Gmail erfolgreich verbunden!</strong><br>
                         E-Mail: ${result.email || 'Unbekannt'}
                     </div>
-                    <a href="https://handwerkos.com" class="btn">Zurück zu Handwerkos</a>
+                    <a href="https://handwerkos.de" class="btn">Zurück zu Handwerkos</a>
                 `;
 
                 // Notify parent window of success
@@ -168,7 +168,7 @@
                     window.opener.postMessage({ 
                         type: 'GMAIL_AUTH_SUCCESS', 
                         email: result.email 
-                    }, 'https://handwerkos.com');
+                    }, 'https://handwerkos.de');
                 }
 
                 // Auto-close after 3 seconds
@@ -176,7 +176,7 @@
                     if (window.opener) {
                         window.close();
                     } else {
-                        window.location.href = 'https://handwerkos.com';
+                        window.location.href = 'https://handwerkos.de';
                     }
                 }, 3000);
 
@@ -189,7 +189,7 @@
                         <strong>Verbindung fehlgeschlagen</strong><br>
                         ${error.message}
                     </div>
-                    <a href="https://handwerkos.com" class="btn">Zurück zu Handwerkos</a>
+                    <a href="https://handwerkos.de" class="btn">Zurück zu Handwerkos</a>
                 `;
 
                 // Notify parent window of error
@@ -197,7 +197,7 @@
                     window.opener.postMessage({ 
                         type: 'GMAIL_AUTH_ERROR', 
                         error: error.message 
-                    }, 'https://handwerkos.com');
+                    }, 'https://handwerkos.de');
                 }
             }
         }
