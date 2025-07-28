@@ -34,7 +34,7 @@ async function generateInviteLink(email: string) {
 
 async function sendInvite(email: string, link: string) {
   const { data, error } = await resend.emails.send({
-    from: 'Acme <noreply@example.com>',
+    from: 'HandwerkOS <onboarding@no-replyhandwerkos.de>',
     to: [email],
     subject: 'Setze dein Passwort',
     html: `<p>Klicke <a href="${link}">hier</a>, um dein Passwort zu setzen.</p>`
