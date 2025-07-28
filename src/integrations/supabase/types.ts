@@ -758,6 +758,7 @@ export type Database = {
           notes: string | null
           payment_terms: string | null
           quote_id: string | null
+          signature_url: string | null
           status: string
           tax_amount: number
           tax_rate: number
@@ -779,6 +780,7 @@ export type Database = {
           notes?: string | null
           payment_terms?: string | null
           quote_id?: string | null
+          signature_url?: string | null
           status?: string
           tax_amount?: number
           tax_rate?: number
@@ -800,6 +802,7 @@ export type Database = {
           notes?: string | null
           payment_terms?: string | null
           quote_id?: string | null
+          signature_url?: string | null
           status?: string
           tax_amount?: number
           tax_rate?: number
@@ -1224,6 +1227,7 @@ export type Database = {
           notes: string | null
           quote_date: string
           quote_number: string
+          signature_url: string | null
           status: string
           tax_amount: number
           tax_rate: number
@@ -1243,6 +1247,7 @@ export type Database = {
           notes?: string | null
           quote_date?: string
           quote_number: string
+          signature_url?: string | null
           status?: string
           tax_amount?: number
           tax_rate?: number
@@ -1262,6 +1267,7 @@ export type Database = {
           notes?: string | null
           quote_date?: string
           quote_number?: string
+          signature_url?: string | null
           status?: string
           tax_amount?: number
           tax_rate?: number
@@ -1286,36 +1292,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      recurring_invoices: {
-        Row: {
-          id: string
-          customer_id: string
-          amount: number
-          frequency: string
-          next_send_date: string
-          description: string | null
-          company_id: string | null
-        }
-        Insert: {
-          id?: string
-          customer_id: string
-          amount: number
-          frequency: string
-          next_send_date: string
-          description?: string | null
-          company_id?: string | null
-        }
-        Update: {
-          id?: string
-          customer_id?: string
-          amount?: number
-          frequency?: string
-          next_send_date?: string
-          description?: string | null
-          company_id?: string | null
-        }
-        Relationships: []
       }
       time_entries: {
         Row: {
