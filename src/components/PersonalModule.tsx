@@ -197,7 +197,7 @@ const PersonalModule = () => {
     setIsEditOpen(true);
   };
 
-  const handleSaveEmployee = (editFormData: any) => {
+  const handleSaveEmployee = (editFormData: Partial<Employee>) => {
     if (!selectedEmployee) return;
 
     const updatedEmployee = {
