@@ -121,7 +121,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Send registration email to employee
     const defaultRegistrationUrl =
       Deno.env.get("EMPLOYEE_REGISTRATION_URL") ||
-      "https://handwerkos.com/auth?mode=employee-setup";
+      "https://handwerkos.de/auth?mode=employee-setup";
     const finalRegistrationUrl = registrationUrl || defaultRegistrationUrl;
     
     const employeeEmailResponse = await resend.emails.send({
