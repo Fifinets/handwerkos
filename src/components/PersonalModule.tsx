@@ -154,6 +154,11 @@ const PersonalModule = () => {
         return;
       }
 
+      if (!inviteData?.invite_link) {
+        toast.error('Kein Einladungslink erhalten');
+        return;
+      }
+
       console.log('Inviting employee via edge function:', newEmployee.email);
 
       try {
@@ -197,7 +202,7 @@ const PersonalModule = () => {
     setIsEditOpen(true);
   };
 
-  const handleSaveEmployee = (editFormData: any) => {
+  const handleSaveEmployee = (editFormData: Record<string, unknown>) => {
     if (!selectedEmployee) return;
 
     const updatedEmployee = {
