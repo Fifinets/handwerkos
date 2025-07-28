@@ -119,7 +119,10 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     // Send registration email to employee
-    const finalRegistrationUrl = registrationUrl || `https://lovable.dev/auth?mode=employee-setup`;
+    const defaultRegistrationUrl =
+      Deno.env.get("EMPLOYEE_REGISTRATION_URL") ||
+      "https://handwerkos.com/auth?mode=employee-setup";
+    const finalRegistrationUrl = registrationUrl || defaultRegistrationUrl;
     
     const employeeEmailResponse = await resend.emails.send({
       from: "HandwerkOS <onboarding@no-replyhandwerkos.de>",
