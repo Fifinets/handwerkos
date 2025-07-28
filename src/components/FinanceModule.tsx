@@ -8,7 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 // TODO: Re-enable when RevenueExpenseSection is implemented
 // import RevenueExpenseSection from "@/components/RevenueExpenseSection";
-import RecurringInvoiceManager from "@/components/RecurringInvoiceManager";
 
 const FinanceModule = () => {
   const { toast } = useToast();
@@ -382,7 +381,6 @@ const FinanceModule = () => {
         </div>
       </div>
 
-      <RecurringInvoiceManager />
       {/* TODO: Re-enable when RevenueExpenseSection is implemented */}
       {/* <RevenueExpenseSection /> */}
     </div>

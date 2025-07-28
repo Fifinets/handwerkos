@@ -47,14 +47,17 @@ const handler = async (req: Request): Promise<Response> => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Create user immediately instead of sending invite
-    const { data, error } = await supabase.auth.admin.createUser({
+    // Generate invite link for employee setup
+    const { data, error } = await supabase.auth.admin.generateLink({
+      type: 'invite',
       email: sanitizedEmail,
-      email_confirm: false,
-      user_metadata: { 
-        company_id, 
-        first_name: sanitizedFirstName, 
-        last_name: sanitizedLastName 
+      options: {
+        redirectTo: `${Deno.env.get('SITE_URL') || 'https://handwerkos.com'}/auth?mode=employee-setup`,
+        data: {
+          company_id,
+          first_name: sanitizedFirstName,
+          last_name: sanitizedLastName
+        }
       }
     });
 
@@ -66,7 +69,10 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     return new Response(
-      JSON.stringify({ user: data?.user }),
+      JSON.stringify({ 
+        user: data?.user,
+        invite_link: data?.action_link 
+      }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (err: any) {

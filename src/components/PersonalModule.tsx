@@ -139,7 +139,7 @@ const PersonalModule = () => {
         return;
       }
 
-      const { error } = await supabase.functions.invoke('invite-employee', {
+      const { data: inviteData, error } = await supabase.functions.invoke('invite-employee', {
         body: {
           email: newEmployee.email,
           first_name: newEmployee.firstName,
@@ -154,13 +154,16 @@ const PersonalModule = () => {
         return;
       }
 
+      console.log('Inviting employee via edge function:', newEmployee.email);
+
       try {
         const { error: emailError } = await supabase.functions.invoke('send-employee-confirmation', {
           body: {
             managerEmail: user?.email || '',
             employeeName: `${newEmployee.firstName} ${newEmployee.lastName}`.trim(),
             employeeEmail: newEmployee.email,
-            companyName: 'Ihr Unternehmen'
+            companyName: 'Ihr Unternehmen',
+            registrationUrl: inviteData?.invite_link
           }
         });
 
