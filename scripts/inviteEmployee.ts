@@ -19,10 +19,14 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 const resend = new Resend(RESEND_API_KEY);
 
 async function generateInviteLink(email: string) {
+  const defaultRedirect =
+    process.env.EMPLOYEE_REGISTRATION_URL ||
+    'https://handwerkos.com/auth?mode=employee-setup';
+
   const { data, error } = await supabase.auth.admin.generateLink({
     type: 'invite',
     email,
-    options: { redirectTo: 'https://lovable.dev/auth?mode=employee-setup' }
+    options: { redirectTo: defaultRedirect }
   });
 
   if (error) {
