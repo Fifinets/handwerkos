@@ -19,7 +19,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, first_name, last_name, company_id } = await req.json();
+    const { email, first_name, last_name, company_id, phone } = await req.json();
 
     // Input validation and sanitization
     if (!email || !company_id) {
@@ -42,6 +42,7 @@ const handler = async (req: Request): Promise<Response> => {
     const sanitizedEmail = email.trim().toLowerCase();
     const sanitizedFirstName = first_name?.trim().substring(0, 100) || '';
     const sanitizedLastName = last_name?.trim().substring(0, 100) || '';
+    const sanitizedPhone = phone ? phone.trim().replace(/[^0-9+]/g, '') : '';
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -51,10 +52,11 @@ const handler = async (req: Request): Promise<Response> => {
     const { data, error } = await supabase.auth.admin.createUser({
       email: sanitizedEmail,
       email_confirm: false,
-      user_metadata: { 
-        company_id, 
-        first_name: sanitizedFirstName, 
-        last_name: sanitizedLastName 
+      user_metadata: {
+        company_id,
+        first_name: sanitizedFirstName,
+        last_name: sanitizedLastName,
+        phone: sanitizedPhone
       }
     });
 

@@ -64,7 +64,8 @@ const PersonalModule = () => {
           id,
           email,
           first_name,
-          last_name
+          last_name,
+          phone
         `);
 
       if (profilesError) {
@@ -101,7 +102,7 @@ const PersonalModule = () => {
         name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email,
         position: 'Mitarbeiter', // Default position, could be stored in profiles later
         email: profile.email,
-        phone: '', // Could be added to profiles table later
+        phone: profile.phone || '',
         status: 'Aktiv',
         qualifications: [],
         license: '',
@@ -144,6 +145,7 @@ const PersonalModule = () => {
           email: newEmployee.email,
           first_name: newEmployee.firstName,
           last_name: newEmployee.lastName,
+          phone: newEmployee.phone,
           company_id: profile.company_id
         }
       });
