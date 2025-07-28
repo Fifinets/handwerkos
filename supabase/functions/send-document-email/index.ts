@@ -189,7 +189,7 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     const emailResponse = await resend.emails.send({
-      from: "HandwerkOS <noreply@resend.dev>",
+      from: "HandwerkOS <noreply@no-replyhandwerkos.de>",
       to: [recipientEmail],
       subject: emailSubject,
       html: emailHtml,

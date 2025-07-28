@@ -75,7 +75,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email to manager
     const managerEmailResponse = await resend.emails.send({
-      from: "HandwerkOS <onboarding@resend.dev>",
+      from: "HandwerkOS <onboarding@no-replyhandwerkos.de>",
       to: [sanitizedManagerEmail],
       subject: `Neuer Mitarbeiter erfolgreich registriert - ${sanitizedEmployeeName}`,
       html: `
@@ -122,7 +122,7 @@ const handler = async (req: Request): Promise<Response> => {
     const finalRegistrationUrl = registrationUrl || `https://lovable.dev/auth?mode=employee-setup`;
     
     const employeeEmailResponse = await resend.emails.send({
-      from: "HandwerkOS <onboarding@resend.dev>",
+      from: "HandwerkOS <onboarding@no-replyhandwerkos.de>",
       to: [sanitizedEmployeeEmail],
       subject: `Willkommen bei HandwerkOS - Registrierung abschließen`,
       html: `
