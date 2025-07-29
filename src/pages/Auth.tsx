@@ -60,6 +60,7 @@ const Auth = () => {
     const mode = searchParams.get('mode') || hashParams.get('mode');
 
     const initSession = async () => {
+      // Initialize session so password setup can update user without errors
       if (accessToken && refreshToken && type === 'signup') {
         await supabase.auth.setSession({
           access_token: accessToken,
