@@ -10,6 +10,7 @@ import { Settings, User, UserPlus, Key } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -52,20 +53,29 @@ const Auth = () => {
 
   useEffect(() => {
     // Check if user arrived via email confirmation link
-    const accessToken = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
-    const type = searchParams.get('type');
-    const mode = searchParams.get('mode');
-    
-    if (accessToken && refreshToken && type === 'signup') {
-      setIsPasswordSetup(true);
-      setIsLogin(false);
-    }
-    
-    // Hide login/register toggle for employee setup
-    if (mode === 'employee-setup') {
-      setIsPasswordSetup(true);
-    }
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const accessToken = searchParams.get('access_token') || hashParams.get('access_token');
+    const refreshToken = searchParams.get('refresh_token') || hashParams.get('refresh_token');
+    const type = searchParams.get('type') || hashParams.get('type');
+    const mode = searchParams.get('mode') || hashParams.get('mode');
+
+    const initSession = async () => {
+      if (accessToken && refreshToken && type === 'signup') {
+        await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        });
+        setIsPasswordSetup(true);
+        setIsLogin(false);
+      }
+
+      // Hide login/register toggle for employee setup
+      if (mode === 'employee-setup') {
+        setIsPasswordSetup(true);
+      }
+    };
+
+    initSession();
   }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
