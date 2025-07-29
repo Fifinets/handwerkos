@@ -10,6 +10,7 @@ import { Settings, User, UserPlus, Key } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -56,16 +57,24 @@ const Auth = () => {
     const refreshToken = searchParams.get('refresh_token');
     const type = searchParams.get('type');
     const mode = searchParams.get('mode');
-    
-    if (accessToken && refreshToken && type === 'signup') {
-      setIsPasswordSetup(true);
-      setIsLogin(false);
-    }
-    
-    // Hide login/register toggle for employee setup
-    if (mode === 'employee-setup') {
-      setIsPasswordSetup(true);
-    }
+
+    const initSession = async () => {
+      if (accessToken && refreshToken && type === 'signup') {
+        await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        });
+        setIsPasswordSetup(true);
+        setIsLogin(false);
+      }
+
+      // Hide login/register toggle for employee setup
+      if (mode === 'employee-setup') {
+        setIsPasswordSetup(true);
+      }
+    };
+
+    initSession();
   }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
