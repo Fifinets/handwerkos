@@ -110,7 +110,8 @@ serve(async (req) => {
     }
 
     const isManualSync = requestBody.manual === true;
-    console.log('Sync type:', isManualSync ? 'Manual' : 'Automated');
+    const forceFullSync = requestBody.forceFullSync === true;
+    console.log('Sync type:', isManualSync ? 'Manual' : 'Automated', { forceFullSync });
 
     // Get user from auth header or use service role for cron jobs
     let userId: string | null = null;
@@ -195,9 +196,39 @@ serve(async (req) => {
           continue;
         }
 
+        // Get last sync time for this user
+        const { data: syncSettings } = await supabase
+          .from('email_sync_settings')
+          .select('last_sync_at')
+          .eq('user_id', connection.user_id)
+          .single();
+
+        // Build Gmail query with date filter for incremental sync
+        let gmailQuery = 'in:inbox';
+        
+        if (forceFullSync) {
+          // For force full sync, get emails from last 7 days
+          const sevenDaysAgo = Math.floor(Date.now() / 1000) - (7 * 24 * 60 * 60);
+          gmailQuery += ` after:${sevenDaysAgo}`;
+          console.log(`Using force full sync - fetching emails from last 7 days`);
+        } else if (!isManualSync && syncSettings?.last_sync_at) {
+          // For automated sync, only get emails after last sync
+          const lastSyncDate = new Date(syncSettings.last_sync_at);
+          const afterDate = Math.floor(lastSyncDate.getTime() / 1000);
+          gmailQuery += ` after:${afterDate}`;
+          console.log(`Using incremental sync after: ${lastSyncDate.toISOString()}`);
+        } else {
+          // For manual sync or first sync, get recent emails
+          const oneDayAgo = Math.floor(Date.now() / 1000) - (24 * 60 * 60);
+          gmailQuery += ` after:${oneDayAgo}`;
+          console.log(`Using manual/first sync - fetching emails from last 24 hours`);
+        }
+
+        console.log(`Gmail query: ${gmailQuery}`);
+
         // Fetch emails from Gmail
         const gmailResponse = await fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50&q=in:inbox`,
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50&q=${encodeURIComponent(gmailQuery)}`,
           {
             headers: {
               'Authorization': `Bearer ${accessToken}`,
@@ -221,15 +252,21 @@ serve(async (req) => {
           continue;
         }
 
-        const { messages } = await gmailResponse.json();
+        const gmailData = await gmailResponse.json();
+        const { messages } = gmailData;
+
+        console.log(`Gmail API returned: ${messages ? messages.length : 0} messages for user: ${connection.user_id}`);
 
         if (!messages || messages.length === 0) {
           console.log(`No new messages for user: ${connection.user_id}`);
           continue;
         }
 
-        // Process each message
-        for (const messageRef of messages.slice(0, 10)) { // Limit to 10 messages per sync
+        // Process each message (limit based on sync type)
+        const messagesToProcess = forceFullSync ? messages.slice(0, 50) : (isManualSync ? messages.slice(0, 20) : messages.slice(0, 10));
+        console.log(`Processing ${messagesToProcess.length} messages for user: ${connection.user_id}`);
+        
+        for (const messageRef of messagesToProcess) {
           try {
             const messageResponse = await fetch(
               `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageRef.id}`,
@@ -287,12 +324,14 @@ serve(async (req) => {
               .from('emails')
               .select('id')
               .eq('message_id', message.id)
-              .single();
+              .maybeSingle();
 
             if (existingEmail) {
               console.log(`Email ${message.id} already exists, skipping`);
               continue;
             }
+
+            console.log(`Processing new email: ${subject} from ${senderEmail} at ${receivedAt}`);
 
             // Insert email into database
             const { error: insertError } = await supabase

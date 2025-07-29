@@ -50,7 +50,7 @@ export function EmailSync({ onClose }: EmailSyncProps) {
     }
   };
 
-  const startEmailSync = async () => {
+  const startEmailSync = async (forceFullSync = false) => {
     if (!isGmailConnected) {
       toast({
         title: "Keine Verbindung",
@@ -64,19 +64,17 @@ export function EmailSync({ onClose }: EmailSyncProps) {
 
     setIsSyncing(true);
     setSyncStatus('syncing');
-    setSyncDetails('Verbindung zu Gmail wird hergestellt...');
+    setSyncDetails(forceFullSync ? 'Vollständige Synchronisation läuft...' : 'Neue E-Mails werden synchronisiert...');
 
     try {
-      // Add timeout for better error handling
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Synchronisation-Timeout nach 30 Sekunden')), 30000)
-      );
+      console.log('Starting email sync...', { forceFullSync, user: user?.id });
 
-      const syncPromise = supabase.functions.invoke('sync-gmail-emails', {
-        body: { manual: true }
+      const { data, error } = await supabase.functions.invoke('sync-gmail-emails', {
+        body: { 
+          manual: true,
+          forceFullSync: forceFullSync
+        }
       });
-
-      const { data, error } = await Promise.race([syncPromise, timeoutPromise]) as any;
 
       if (error) {
         console.error('Sync error:', error);
@@ -84,9 +82,12 @@ export function EmailSync({ onClose }: EmailSyncProps) {
       }
 
       const syncedCount = data?.totalSynced || 0;
+      const message = data?.message || '';
       setSyncStatus('success');
-      setSyncDetails(`${syncedCount} E-Mails erfolgreich synchronisiert`);
+      setSyncDetails(`${syncedCount} E-Mails erfolgreich synchronisiert. ${message}`);
       setLastSyncTime(new Date().toISOString());
+
+      console.log('Sync completed:', { syncedCount, message });
 
       toast({
         title: "Synchronisation erfolgreich",
@@ -197,16 +198,27 @@ export function EmailSync({ onClose }: EmailSyncProps) {
         </div>
         
         {/* Manual Sync */}
-        <div className="flex items-center gap-2">
-          <Button 
-            onClick={startEmailSync} 
-            className="flex-1" 
-            disabled={isSyncing || !isGmailConnected}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-            {isSyncing ? 'Synchronisiert...' : 'Jetzt synchronisieren'}
-          </Button>
-          <Button onClick={onClose} variant="outline">
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-2">
+            <Button 
+              onClick={() => startEmailSync(false)} 
+              className="w-full" 
+              disabled={isSyncing || !isGmailConnected}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? 'Synchronisiert...' : 'Neue E-Mails synchronisieren'}
+            </Button>
+            <Button 
+              onClick={() => startEmailSync(true)} 
+              variant="outline"
+              className="w-full" 
+              disabled={isSyncing || !isGmailConnected}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? 'Synchronisiert...' : 'Vollständige Synchronisation (letzte 24h)'}
+            </Button>
+          </div>
+          <Button onClick={onClose} variant="outline" className="w-full">
             Schließen
           </Button>
         </div>
