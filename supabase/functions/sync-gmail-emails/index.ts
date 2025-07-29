@@ -170,18 +170,37 @@ serve(async (req) => {
         
         if (tokenExpiresAt <= now) {
           console.log('Token expired, refreshing...');
-          accessToken = await refreshAccessToken(connection.refresh_token);
-          
-          // Update the refreshed token in database
-          await supabase
-            .from('user_email_connections')
-            .update({
-              access_token: accessToken,
-              token_expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
-              updated_at: new Date().toISOString()
-            })
-            .eq('user_id', connection.user_id)
-            .eq('provider', 'gmail');
+          try {
+            accessToken = await refreshAccessToken(connection.refresh_token);
+            
+            // Update the refreshed token in database
+            await supabase
+              .from('user_email_connections')
+              .update({
+                access_token: accessToken,
+                token_expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+                updated_at: new Date().toISOString()
+              })
+              .eq('user_id', connection.user_id)
+              .eq('provider', 'gmail');
+            
+            console.log('Token refreshed and updated in database');
+          } catch (refreshError: any) {
+            console.error('Token refresh failed:', refreshError.message);
+            
+            if (refreshError.message === 'REFRESH_TOKEN_EXPIRED') {
+              // Mark connection as inactive
+              await supabase
+                .from('user_email_connections')
+                .update({ is_active: false })
+                .eq('user_id', connection.user_id)
+                .eq('provider', 'gmail');
+              
+              console.log(`Marked Gmail connection as inactive for user: ${connection.user_id}`);
+            }
+            
+            throw refreshError;
+          }
         }
 
         // Get user's company_id for email storage
@@ -406,6 +425,8 @@ async function refreshAccessToken(refreshToken: string): Promise<string> {
   const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
   const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
   
+  console.log('Attempting to refresh access token...');
+  
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: {
@@ -420,10 +441,20 @@ async function refreshAccessToken(refreshToken: string): Promise<string> {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to refresh access token');
+    const errorData = await response.text();
+    console.error(`Token refresh failed (${response.status}):`, errorData);
+    
+    if (response.status === 400 && errorData.includes('invalid_grant')) {
+      throw new Error('REFRESH_TOKEN_EXPIRED');
+    } else if (response.status === 401) {
+      throw new Error('INVALID_CREDENTIALS');
+    } else {
+      throw new Error(`Token refresh failed: ${response.status} ${errorData}`);
+    }
   }
 
   const tokens = await response.json();
+  console.log('Access token refreshed successfully');
   return tokens.access_token;
 }
 

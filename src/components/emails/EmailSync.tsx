@@ -119,6 +119,11 @@ export function EmailSync({ onClose }: EmailSyncProps) {
       } else if (error.message?.includes('unauthorized') || error.message?.includes('401')) {
         errorMessage = 'Autorisierung fehlgeschlagen';
         errorDetails = 'Bitte verbinden Sie Gmail erneut.';
+      } else if (error.message?.includes('REFRESH_TOKEN_EXPIRED')) {
+        errorMessage = 'Gmail-Verbindung abgelaufen';
+        errorDetails = 'Ihre Gmail-Autorisierung ist abgelaufen. Bitte verbinden Sie Gmail erneut.';
+        // Check connection status again to reflect the change
+        setTimeout(() => checkGmailConnection(), 1000);
       } else if (error.message?.includes('quota')) {
         errorMessage = 'API-Limit erreicht';
         errorDetails = 'Zu viele Anfragen. Versuchen Sie es später erneut.';
