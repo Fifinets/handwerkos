@@ -52,7 +52,7 @@ const Auth = () => {
   }, [user, navigate, searchParams, isPasswordSetup]);
 
   useEffect(() => {
-    // Check if user arrived via email confirmation link
+    // Check if user arrived via signup or confirmation link and set session
     const hashParams = new URLSearchParams(window.location.hash.slice(1));
     const accessToken = searchParams.get('access_token') || hashParams.get('access_token');
     const refreshToken = searchParams.get('refresh_token') || hashParams.get('refresh_token');
@@ -60,7 +60,6 @@ const Auth = () => {
     const mode = searchParams.get('mode') || hashParams.get('mode');
 
     const initSession = async () => {
-      // Initialize session so password setup can update user without errors
       if (accessToken && refreshToken && type === 'signup') {
         await supabase.auth.setSession({
           access_token: accessToken,
@@ -69,12 +68,13 @@ const Auth = () => {
         setIsPasswordSetup(true);
         setIsLogin(false);
       }
-
-      // Hide login/register toggle for employee setup
-      if (mode === 'employee-setup') {
-        setIsPasswordSetup(true);
-      }
     };
+
+    // Hide login/register toggle for employee setup
+    if (mode === 'employee-setup') {
+      setIsPasswordSetup(true);
+    }
+
 
     initSession();
   }, [searchParams]);
