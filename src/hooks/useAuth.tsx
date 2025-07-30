@@ -39,15 +39,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 .eq('user_id', session.user.id)
                 .single();
               
-              if (error) {
-                console.error('Error fetching user role:', error);
+              if (error || !data) {
+                console.error('User has no role or was deleted:', error);
+                // User exists in auth but not in our database - sign them out
+                await supabase.auth.signOut();
                 setUserRole(null);
+                setUser(null);
+                setSession(null);
               } else {
-                setUserRole(data?.role || null);
+                setUserRole(data.role || null);
               }
             } catch (error) {
               console.error('Failed to fetch user role:', error);
+              // Sign out the user as they don't exist in our database
+              await supabase.auth.signOut();
               setUserRole(null);
+              setUser(null);
+              setSession(null);
             }
           }, 0);
         } else {
