@@ -39,7 +39,7 @@ interface NewEmployee {
 
 const PersonalModule = () => {
   const { toast: showToast } = useToast();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -140,6 +140,9 @@ const PersonalModule = () => {
       }
 
       const { data: inviteData, error } = await supabase.functions.invoke('invite-employee', {
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
         body: {
           email: newEmployee.email,
           first_name: newEmployee.firstName,
@@ -158,6 +161,9 @@ const PersonalModule = () => {
 
       try {
         const { error: emailError } = await supabase.functions.invoke('send-employee-confirmation', {
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+          },
           body: {
             managerEmail: user?.email || '',
             employeeName: `${newEmployee.firstName} ${newEmployee.lastName}`.trim(),
