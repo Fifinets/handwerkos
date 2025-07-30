@@ -100,7 +100,19 @@ const Auth = () => {
         if (error) {
           toast.error(error.message);
         } else {
-          toast.success('Passwort erfolgreich erstellt! Sie sind nun angemeldet.');
+          // Force a fresh session to ensure only the employee is logged in
+          const { data: session } = await supabase.auth.getSession();
+          if (session?.session) {
+            // Sign out any existing session first
+            await supabase.auth.signOut();
+            // Set the new employee session
+            await supabase.auth.setSession({
+              access_token: session.session.access_token,
+              refresh_token: session.session.refresh_token
+            });
+          }
+          
+          toast.success('Passwort erfolgreich erstellt! Sie sind nun als Mitarbeiter angemeldet.');
           navigate('/');
         }
       } else if (isLogin) {
