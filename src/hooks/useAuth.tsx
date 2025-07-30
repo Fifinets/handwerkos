@@ -32,12 +32,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session?.user) {
           // Fetch user role
           setTimeout(async () => {
-            const { data } = await supabase
-              .from('user_roles')
-              .select('role')
-              .eq('user_id', session.user.id)
-              .single();
-            setUserRole(data?.role || null);
+            try {
+              const { data, error } = await supabase
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', session.user.id)
+                .single();
+              
+              if (error) {
+                console.error('Error fetching user role:', error);
+                setUserRole(null);
+              } else {
+                setUserRole(data?.role || null);
+              }
+            } catch (error) {
+              console.error('Failed to fetch user role:', error);
+              setUserRole(null);
+            }
           }, 0);
         } else {
           setUserRole(null);
