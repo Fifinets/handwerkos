@@ -18,15 +18,24 @@ if (!RESEND_API_KEY) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 const resend = new Resend(RESEND_API_KEY);
 
-async function generateInviteLink(email: string) {
-  const defaultRedirect =
-    process.env.EMPLOYEE_REGISTRATION_URL ||
-    'https://handwerkos.de/auth?mode=employee-setup';
-
-  const { data, error } = await supabase.auth.admin.generateLink({
-    type: 'invite',
+async function createEmployeeUser(email: string) {
+  const { data, error } = await supabase.auth.admin.createUser({
     email,
-    options: { redirectTo: defaultRedirect }
+    user_metadata: { role: 'employee' }
+  });
+
+  if (error) {
+    throw new Error(`createUser failed: ${error.message}`);
+  }
+
+  return data.user;
+}
+
+async function generateSignupLink(email: string) {
+  const { data, error } = await supabase.auth.admin.generateLink({
+    type: 'signup',
+    email,
+    options: { redirectTo: 'https://lovable.dev/welcome' }
   });
 
   if (error) {
@@ -36,36 +45,54 @@ async function generateInviteLink(email: string) {
   return data?.action_link;
 }
 
-async function sendInvite(email: string, link: string) {
-  const { data, error } = await resend.emails.send({
-    from: 'HandwerkOS <onboarding@no-replyhandwerkos.de>',
-    to: [email],
-    subject: 'Setze dein Passwort',
-    html: `<p>Klicke <a href="${link}">hier</a>, um dein Passwort zu setzen.</p>`
+async function sendInvite(email: string, name: string, link: string) {
+  const { error } = await resend.emails.send({
+    from: 'no-reply@lovable.dev',
+    to: email,
+    template: 'employee-invite',
+    variables: { name, registrationUrl: link }
   });
 
   if (error) {
     throw new Error(`Resend error: ${error.message}`);
   }
-
-  return data?.id;
 }
 
-export async function inviteEmployee(email: string) {
-  const link = await generateInviteLink(email);
-  if (!link) throw new Error('No invite link returned');
+async function insertProfile(userId: string, name: string) {
+  const { error } = await supabase
+    .from('profiles')
+    .insert({ id: userId, name, role: 'employee' });
 
-  const messageId = await sendInvite(email, link);
-  console.log('Invite sent. message ID:', messageId);
+  if (error) {
+    throw new Error(`Insert profile failed: ${error.message}`);
+  }
+}
+
+export async function inviteEmployee(email: string, name: string) {
+  try {
+    const user = await createEmployeeUser(email);
+    if (!user) throw new Error('No user returned');
+
+    const link = await generateSignupLink(email);
+    if (!link) throw new Error('No signup link returned');
+
+    await sendInvite(email, name, link);
+    await insertProfile(user.id, name);
+
+    console.log('Invite sent to', email);
+  } catch (err) {
+    console.error('inviteEmployee error', err);
+  }
 }
 
 if (require.main === module) {
   const email = process.argv[2];
-  if (!email) {
-    console.error('Usage: ts-node inviteEmployee.ts <email>');
+  const name = process.argv[3];
+  if (!email || !name) {
+    console.error('Usage: ts-node inviteEmployee.ts <email> <name>');
     process.exit(1);
   }
-  inviteEmployee(email).catch((err) => {
+  inviteEmployee(email, name).catch((err) => {
     console.error(err);
     process.exit(1);
   });
