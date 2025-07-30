@@ -53,10 +53,12 @@ const Auth = () => {
 
   useEffect(() => {
     // Check if user arrived via email confirmation link
-    const accessToken = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
-    const type = searchParams.get('type');
-    const mode = searchParams.get('mode');
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+
+    const accessToken = searchParams.get('access_token') || hashParams.get('access_token');
+    const refreshToken = searchParams.get('refresh_token') || hashParams.get('refresh_token');
+    const type = searchParams.get('type') || hashParams.get('type');
+    const mode = searchParams.get('mode') || hashParams.get('mode');
 
     const initSession = async () => {
       if (accessToken && refreshToken && type === 'signup') {
