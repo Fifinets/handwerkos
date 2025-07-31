@@ -49,7 +49,8 @@ export function CompanySettingsModule() {
         .from("company_settings")
         .select("*")
         .eq("is_active", true)
-        .maybeSingle();
+        .limit(1)
+        .single();
 
       if (error) throw error;
       return data;

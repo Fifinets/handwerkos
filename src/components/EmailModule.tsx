@@ -164,7 +164,8 @@ export function EmailModule() {
       .from('company_settings')
       .select('company_email')
       .eq('is_active', true)
-      .maybeSingle();
+      .limit(1)
+      .single();
 
     if (error) {
       console.error('Error fetching company settings:', error);
