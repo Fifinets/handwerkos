@@ -462,8 +462,9 @@ function decodeBase64Url(data: string): string {
   try {
     const base64 = data.replace(/-/g, '+').replace(/_/g, '/');
     const padding = '='.repeat((4 - base64.length % 4) % 4);
-    const decoded = atob(base64 + padding);
-    return decoded;
+    const binary = atob(base64 + padding);
+    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+    return new TextDecoder('utf-8').decode(bytes);
   } catch (error) {
     console.error('Failed to decode base64 data:', error);
     return '';

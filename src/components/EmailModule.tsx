@@ -367,7 +367,7 @@ export function EmailModule() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="h-full flex flex-col bg-background">
       {/* Top Header */}
       <div className="h-12 px-4 border-b bg-card flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -498,18 +498,6 @@ export function EmailModule() {
             </nav>
           </div>
           
-          <div className="mt-auto p-4 border-t">
-            <Button 
-              onClick={classifyAllEmails} 
-              disabled={processing}
-              variant="outline"
-              className="w-full"
-              size="sm"
-            >
-              <Brain className="h-4 w-4 mr-2" />
-              {processing ? "Analysiere..." : "KI-Analyse"}
-            </Button>
-          </div>
         </div>
 
         {/* Middle Panel - Email List */}
@@ -517,7 +505,7 @@ export function EmailModule() {
           <div className="h-12 px-4 border-b bg-card flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="font-medium">
-                {selectedCategory === "all" ? "Alle Nachrichten" : 
+                {selectedCategory === "all" ? "Alle Nachrichten" :
                  selectedCategory === "unread" ? "Ungelesen" :
                  selectedCategory === "starred" ? "Markiert" :
                  categories.find(c => c.name === selectedCategory)?.name || selectedCategory}
@@ -526,9 +514,19 @@ export function EmailModule() {
                 {filteredEmails.length}
               </Badge>
             </div>
-            <Button variant="ghost" size="icon" onClick={fetchEmails}>
-              <RefreshCw className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={fetchEmails}>
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={classifyAllEmails}
+                disabled={processing}
+              >
+                <Brain className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           
           <ScrollArea className="flex-1">
