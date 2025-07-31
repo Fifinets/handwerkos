@@ -121,10 +121,8 @@ const Index = () => {
         </header>
 
         {/* Main Content */}
-        <main
-          className={`flex-1 ${activeModule === 'emails' ? 'overflow-hidden' : 'overflow-auto'}`}
-        >
-          <div className="p-6 h-full">
+        <main className="flex-1 overflow-auto">
+          <div className="p-6">
             {renderModule()}
           </div>
         </main>
