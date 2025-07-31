@@ -367,22 +367,31 @@ export function EmailModule() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">E-Mails</h2>
+    <div className="h-screen flex flex-col bg-background">
+      {/* Top Header */}
+      <div className="h-12 px-4 border-b bg-card flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Mail className="h-5 w-5" />
+          <h1 className="font-semibold">Mail</h1>
           {companyEmail && (
-            <p className="text-sm text-muted-foreground">
-              Für: {companyEmail}
-            </p>
+            <span className="text-sm text-muted-foreground">- {companyEmail}</span>
           )}
         </div>
         <div className="flex items-center gap-2">
+          <Input
+            placeholder="Suchen (⌘+K für Filter)"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-64"
+          />
+          <Button variant="ghost" size="icon">
+            <Filter className="h-4 w-4" />
+          </Button>
           {!isGmailConnected ? (
             <Button 
               onClick={connectGmail}
               disabled={isConnecting}
-              variant="default"
+              size="sm"
             >
               <Mail className="h-4 w-4 mr-2" />
               {isConnecting ? "Verbinde..." : "Gmail verbinden"}
@@ -390,209 +399,233 @@ export function EmailModule() {
           ) : (
             <Button 
               onClick={() => setShowSync(!showSync)} 
-              variant="outline"
+              variant="ghost"
+              size="icon"
             >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Synchronisation
+              <RefreshCw className="h-4 w-4" />
             </Button>
           )}
-          <Button 
-            onClick={() => setShowImport(!showImport)} 
-            variant="outline"
-          >
-            <Mail className="h-4 w-4 mr-2" />
-            E-Mail hinzufügen
-          </Button>
-          <Button 
-            onClick={classifyAllEmails} 
-            disabled={processing}
-            variant="outline"
-          >
-            <Brain className="h-4 w-4 mr-2" />
-            {processing ? "Analysiere..." : "KI-Analyse"}
-          </Button>
-          <Button onClick={fetchEmails} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Aktualisieren
-          </Button>
         </div>
       </div>
 
       {showImport && (
-        <EmailImport onEmailImported={() => {
-          fetchEmails();
-          setShowImport(false);
-        }} />
+        <div className="p-4 border-b bg-accent/50">
+          <EmailImport onEmailImported={() => {
+            fetchEmails();
+            setShowImport(false);
+          }} />
+        </div>
       )}
 
       {showSync && (
-        <EmailSync onClose={() => setShowSync(false)} />
+        <div className="p-4 border-b bg-accent/50">
+          <EmailSync onClose={() => setShowSync(false)} />
+        </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Email List */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <Input
-                  placeholder="E-Mails durchsuchen..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="flex-1"
-                />
-                <Button variant="outline" size="icon">
-                  <Search className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
-                <TabsList className="w-full">
-                  <TabsTrigger value="all">Alle</TabsTrigger>
-                  <TabsTrigger value="unread">Ungelesen</TabsTrigger>
-                  <TabsTrigger value="starred">Markiert</TabsTrigger>
-                </TabsList>
-
-                <div className="p-3 space-y-2">
-                  {categories.map((category) => {
-                    const Icon = iconMap[category.icon as keyof typeof iconMap] || Mail;
-                    const count = emails.filter(e => e.email_categories?.name === category.name).length;
-                    
-                    return (
-                      <Button
-                        key={category.id}
-                        variant={selectedCategory === category.name ? "secondary" : "ghost"}
-                        className="w-full justify-between"
-                        onClick={() => setSelectedCategory(category.name)}
-                      >
-                        <div className="flex items-center gap-2">
-                          <Icon className="h-4 w-4" style={{ color: category.color }} />
-                          {category.name}
-                        </div>
-                        <Badge variant="outline">{count}</Badge>
-                      </Button>
-                    );
-                  })}
-                </div>
-
-                <Separator />
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Sidebar - Folders */}
+        <div className="w-64 bg-muted/30 border-r flex flex-col">
+          <div className="p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Button 
+                onClick={() => setShowImport(!showImport)} 
+                className="flex-1"
+                size="sm"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Neue E-Mail
+              </Button>
+            </div>
+            
+            <nav className="space-y-1">
+              <Button
+                variant={selectedCategory === "all" ? "secondary" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => setSelectedCategory("all")}
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Alle Nachrichten
+                <Badge variant="secondary" className="ml-auto">
+                  {emails.length}
+                </Badge>
+              </Button>
+              
+              <Button
+                variant={selectedCategory === "unread" ? "secondary" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => setSelectedCategory("unread")}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                Ungelesen
+                <Badge variant="secondary" className="ml-auto">
+                  {emails.filter(e => !e.is_read).length}
+                </Badge>
+              </Button>
+              
+              <Button
+                variant={selectedCategory === "starred" ? "secondary" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => setSelectedCategory("starred")}
+              >
+                <Star className="h-4 w-4 mr-2" />
+                Markiert
+                <Badge variant="secondary" className="ml-auto">
+                  {emails.filter(e => e.is_starred).length}
+                </Badge>
+              </Button>
+              
+              <Separator className="my-2" />
+              
+              {categories.map((category) => {
+                const Icon = iconMap[category.icon as keyof typeof iconMap] || Mail;
+                const count = emails.filter(e => e.email_categories?.name === category.name).length;
                 
-                <ScrollArea className="h-96">
-                  <div className="space-y-1 p-3">
-                    {filteredEmails.map((email) => {
-                      const Icon = email.email_categories?.icon ? 
-                        iconMap[email.email_categories.icon as keyof typeof iconMap] : Mail;
-                      
-                      return (
-                        <div
-                          key={email.id}
-                          className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                            selectedEmail?.id === email.id 
-                              ? 'bg-accent' 
-                              : 'hover:bg-accent/50'
-                          } ${!email.is_read ? 'border-l-4 border-primary' : ''}`}
-                          onClick={() => {
-                            setSelectedEmail(email);
-                            if (!email.is_read) {
-                              markAsRead(email.id, true);
-                            }
-                          }}
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-6 w-6">
-                                <AvatarFallback className="text-xs">
-                                  {email.sender_name?.[0] || email.sender_email[0].toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="text-sm font-medium truncate">
-                                {email.sender_name || email.sender_email}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {getSentimentIcon(email.ai_sentiment)}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleStar(email.id, email.is_starred);
-                                }}
-                              >
-                                <Star 
-                                  className={`h-4 w-4 ${
-                                    email.is_starred ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'
-                                  }`} 
-                                />
-                              </button>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium truncate">{email.subject}</p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {email.ai_summary || email.content.substring(0, 100) + '...'}
-                            </p>
-                            
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                {email.email_categories && Icon && (
-                                  <Badge variant="outline" className="text-xs">
-                                    <Icon className="h-3 w-3 mr-1" style={{ color: email.email_categories.color }} />
-                                    {email.email_categories.name}
-                                  </Badge>
-                                )}
-                                {email.ai_confidence && (
-                                  <Badge variant="outline" className="text-xs">
-                                    {Math.round(email.ai_confidence * 100)}%
-                                  </Badge>
-                                )}
-                              </div>
-                              <span className="text-xs text-muted-foreground">
-                                {format(new Date(email.received_at), 'dd.MM.', { locale: de })}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </ScrollArea>
-              </Tabs>
-            </CardContent>
-          </Card>
+                return (
+                  <Button
+                    key={category.id}
+                    variant={selectedCategory === category.name ? "secondary" : "ghost"}
+                    className="w-full justify-start"
+                    onClick={() => setSelectedCategory(category.name)}
+                  >
+                    <Icon className="h-4 w-4 mr-2" style={{ color: category.color }} />
+                    {category.name}
+                    <Badge variant="secondary" className="ml-auto">{count}</Badge>
+                  </Button>
+                );
+              })}
+            </nav>
+          </div>
+          
+          <div className="mt-auto p-4 border-t">
+            <Button 
+              onClick={classifyAllEmails} 
+              disabled={processing}
+              variant="outline"
+              className="w-full"
+              size="sm"
+            >
+              <Brain className="h-4 w-4 mr-2" />
+              {processing ? "Analysiere..." : "KI-Analyse"}
+            </Button>
+          </div>
         </div>
 
-        {/* Email Detail */}
-        <div className="lg:col-span-2">
-          {selectedEmail ? (
-            <Card>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="space-y-2">
-                    <CardTitle className="text-xl">{selectedEmail.subject}</CardTitle>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <User className="h-4 w-4" />
-                        {selectedEmail.sender_name || selectedEmail.sender_email}
+        {/* Middle Panel - Email List */}
+        <div className="w-96 bg-background border-r flex flex-col">
+          <div className="h-12 px-4 border-b bg-card flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">
+                {selectedCategory === "all" ? "Alle Nachrichten" : 
+                 selectedCategory === "unread" ? "Ungelesen" :
+                 selectedCategory === "starred" ? "Markiert" :
+                 categories.find(c => c.name === selectedCategory)?.name || selectedCategory}
+              </span>
+              <Badge variant="secondary">
+                {filteredEmails.length}
+              </Badge>
+            </div>
+            <Button variant="ghost" size="icon" onClick={fetchEmails}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <ScrollArea className="flex-1">
+            <div className="divide-y">
+              {filteredEmails.map((email) => {
+                const Icon = email.email_categories?.icon ? 
+                  iconMap[email.email_categories.icon as keyof typeof iconMap] : Mail;
+                
+                return (
+                  <div
+                    key={email.id}
+                    className={`p-4 cursor-pointer transition-colors hover:bg-accent/50 ${
+                      selectedEmail?.id === email.id ? 'bg-accent border-r-2 border-primary' : ''
+                    } ${!email.is_read ? 'bg-blue-50/50 border-l-2 border-blue-500' : ''}`}
+                    onClick={() => {
+                      setSelectedEmail(email);
+                      if (!email.is_read) {
+                        markAsRead(email.id, true);
+                      }
+                    }}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarFallback className="text-xs">
+                            {email.sender_name?.[0] || email.sender_email[0].toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium truncate">
+                          {email.sender_name || email.sender_email}
+                        </span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {format(new Date(selectedEmail.received_at), 'dd.MM.yyyy HH:mm', { locale: de })}
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(email.received_at), 'HH:mm', { locale: de })}
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleStar(email.id, email.is_starred);
+                          }}
+                        >
+                          <Star 
+                            className={`h-4 w-4 ${
+                              email.is_starred ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'
+                            }`} 
+                          />
+                        </button>
                       </div>
-                      {selectedEmail.customers && (
-                        <div className="flex items-center gap-1">
-                          <Badge variant="outline">{selectedEmail.customers.company_name}</Badge>
-                        </div>
-                      )}
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium truncate">{email.subject}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {email.ai_summary || email.content.substring(0, 80) + '...'}
+                      </p>
+                      
+                      <div className="flex items-center gap-2">
+                        {email.email_categories && Icon && (
+                          <Badge variant="outline" className="text-xs">
+                            <Icon className="h-3 w-3 mr-1" style={{ color: email.email_categories.color }} />
+                            {email.email_categories.name}
+                          </Badge>
+                        )}
+                        {getSentimentIcon(email.ai_sentiment)}
+                      </div>
                     </div>
                   </div>
-                  
+                );
+              })}
+            </div>
+          </ScrollArea>
+        </div>
+
+        {/* Right Panel - Email Content and Agenda */}
+        <div className="flex-1 flex">
+          {selectedEmail ? (
+            <>
+              {/* Email Content */}
+              <div className="flex-1 flex flex-col">
+                <div className="h-12 px-4 border-b bg-card flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Badge variant={getPriorityColor(selectedEmail.priority)}>
+                    <span className="font-medium text-sm truncate">{selectedEmail.subject}</span>
+                    <Badge variant={getPriorityColor(selectedEmail.priority)} className="text-xs">
                       {selectedEmail.priority}
                     </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <Button
-                      variant="outline"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowReplyDialog(true)}
+                    >
+                      <Reply className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
                       size="icon"
                       onClick={() => markAsRead(selectedEmail.id, !selectedEmail.is_read)}
                     >
@@ -601,49 +634,79 @@ export function EmailModule() {
                   </div>
                 </div>
                 
-                {selectedEmail.ai_summary && (
-                  <div className="bg-accent/50 p-3 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Brain className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">KI-Zusammenfassung</span>
-                      {selectedEmail.ai_confidence && (
-                        <Badge variant="outline" className="text-xs">
-                          {Math.round(selectedEmail.ai_confidence * 100)}% Sicherheit
-                        </Badge>
-                      )}
+                <div className="p-4 border-b">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback>
+                          {selectedEmail.sender_name?.[0] || selectedEmail.sender_email[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium text-sm">{selectedEmail.sender_name || selectedEmail.sender_email}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(selectedEmail.received_at), 'dd.MM.yyyy HH:mm', { locale: de })}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">{selectedEmail.ai_summary}</p>
+                    {selectedEmail.customers && (
+                      <Badge variant="outline">{selectedEmail.customers.company_name}</Badge>
+                    )}
                   </div>
-                )}
+                  
+                  {selectedEmail.ai_summary && (
+                    <div className="bg-accent/50 p-3 rounded-lg mb-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Brain className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium">KI-Zusammenfassung</span>
+                        {selectedEmail.ai_confidence && (
+                          <Badge variant="outline" className="text-xs">
+                            {Math.round(selectedEmail.ai_confidence * 100)}%
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{selectedEmail.ai_summary}</p>
+                    </div>
+                  )}
 
-                {/* Email Action Buttons */}
-                <div className="flex justify-center pt-4">
-                  <EmailActionButtons
-                    emailCategory={selectedEmail.email_categories?.name || ""}
-                    onAccept={handleAcceptEmail}
-                    onDecline={handleDeclineEmail}
-                    onReply={() => setShowReplyDialog(true)}
-                    onFollowUp={handleFollowUp}
-                    onPriceAdjustment={handlePriceAdjustment}
-                  />
+                  {/* Email Action Buttons */}
+                  <div className="flex justify-center">
+                    <EmailActionButtons
+                      emailCategory={selectedEmail.email_categories?.name || ""}
+                      onAccept={handleAcceptEmail}
+                      onDecline={handleDeclineEmail}
+                      onReply={() => setShowReplyDialog(true)}
+                      onFollowUp={handleFollowUp}
+                      onPriceAdjustment={handlePriceAdjustment}
+                    />
+                  </div>
                 </div>
-              </CardHeader>
-              
-              <CardContent>
-                <ScrollArea className="h-96">
-                  <div className="whitespace-pre-wrap">{selectedEmail.content}</div>
+                
+                <ScrollArea className="flex-1 p-4">
+                  <div className="whitespace-pre-wrap text-sm">{selectedEmail.content}</div>
                 </ScrollArea>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardContent className="flex items-center justify-center h-96">
-                <div className="text-center space-y-2">
-                  <Mail className="h-12 w-12 text-muted-foreground mx-auto" />
-                  <p className="text-muted-foreground">Wählen Sie eine E-Mail aus der Liste</p>
+              </div>
+              
+              {/* Agenda Sidebar */}
+              <div className="w-80 border-l bg-muted/30">
+                <div className="h-12 px-4 border-b bg-card flex items-center">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  <span className="font-medium text-sm">Agenda</span>
                 </div>
-              </CardContent>
-            </Card>
+                <div className="p-4 space-y-4">
+                  <div className="text-center text-muted-foreground text-sm">
+                    Keine Termine heute
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center space-y-2">
+                <Mail className="h-12 w-12 text-muted-foreground mx-auto" />
+                <p className="text-muted-foreground">Wählen Sie eine E-Mail aus der Liste</p>
+              </div>
+            </div>
           )}
         </div>
       </div>
