@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { User, Building, MapPin, Calendar, DollarSign, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Email {
   id: string;
@@ -62,6 +63,7 @@ export function CustomerProjectDialog({ isOpen, onClose, email }: CustomerProjec
 
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { userRole } = useAuth();
 
   useEffect(() => {
     if (isOpen) {
@@ -118,6 +120,15 @@ export function CustomerProjectDialog({ isOpen, onClose, email }: CustomerProjec
   };
 
   const handleSave = async () => {
+    if (userRole !== 'manager') {
+      toast({
+        title: 'Keine Berechtigung',
+        description: 'Nur Manager k\u00f6nnen Kunden und Projekte anlegen.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setLoading(true);
     
     try {
