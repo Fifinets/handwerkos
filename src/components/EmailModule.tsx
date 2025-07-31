@@ -206,7 +206,7 @@ export function EmailModule() {
         customers (company_name)
       `)
       .eq('recipient_email', companyEmail)
-      .order('received_at', { ascending: true });
+      .order('received_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching emails:', error);
