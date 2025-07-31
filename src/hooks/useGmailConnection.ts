@@ -13,13 +13,16 @@ export function useGmailConnection() {
     setIsConnecting(true);
     try {
       if (!user?.id) {
-        throw new Error('Benutzer nicht angemeldet');
+        throw new Error("Benutzer nicht angemeldet");
       }
 
       // Rufe unsere Edge Function auf, um die OAuth URL zu erhalten
-      const { data, error } = await supabase.functions.invoke('initiate-gmail-oauth', {
-        body: { user_id: user.id }
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "initiate-gmail-oauth",
+        {
+          body: { user_id: user.id },
+        },
+      );
 
       if (error) {
         throw error;
@@ -28,46 +31,49 @@ export function useGmailConnection() {
       // Öffne OAuth in einem neuen Popup-Fenster
       const popup = window.open(
         data.authUrl,
-        'gmail-oauth',
-        'width=500,height=600,scrollbars=yes,resizable=yes'
+        "gmail-oauth",
+        "width=500,height=600,scrollbars=yes,resizable=yes",
       );
 
       // Lausche auf Nachrichten vom Popup
       const handleMessage = (event: MessageEvent) => {
-        if (event.data.type === 'GMAIL_AUTH_SUCCESS') {
+        if (event.data.type === "GMAIL_AUTH_SUCCESS") {
           setIsConnecting(false);
           setIsGmailConnected(true);
           toast({
             title: "Erfolg",
             description: `Gmail erfolgreich verbunden: ${event.data.email}`,
           });
-          popup?.close();
-          window.removeEventListener('message', handleMessage);
-        } else if (event.data.type === 'GMAIL_AUTH_ERROR') {
+          if (popup && !popup.closed) {
+            popup.close();
+          }
+          window.removeEventListener("message", handleMessage);
+        } else if (event.data.type === "GMAIL_AUTH_ERROR") {
           setIsConnecting(false);
           toast({
             title: "Fehler",
             description: `Gmail-Verbindung fehlgeschlagen: ${event.data.error}`,
             variant: "destructive",
           });
-          popup?.close();
-          window.removeEventListener('message', handleMessage);
+          if (popup && !popup.closed) {
+            popup.close();
+          }
+          window.removeEventListener("message", handleMessage);
         }
       };
 
-      window.addEventListener('message', handleMessage);
+      window.addEventListener("message", handleMessage);
 
       // Überwache, ob das Popup geschlossen wird
       const checkClosed = setInterval(() => {
-        if (popup?.closed) {
+        if (popup && popup.closed) {
           setIsConnecting(false);
           clearInterval(checkClosed);
-          window.removeEventListener('message', handleMessage);
+          window.removeEventListener("message", handleMessage);
         }
       }, 1000);
-
     } catch (error) {
-      console.error('Error connecting Gmail:', error);
+      console.error("Error connecting Gmail:", error);
       toast({
         title: "Fehler",
         description: "Gmail-Verbindung fehlgeschlagen.",
@@ -79,26 +85,26 @@ export function useGmailConnection() {
 
   const checkGmailConnection = async () => {
     if (!user?.id) return;
-    
+
     try {
       // Check if user has Gmail connected - using maybeSingle to avoid errors when no data found
       const { data, error } = await supabase
-        .from('user_email_connections')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('provider', 'gmail')
-        .eq('is_active', true)
+        .from("user_email_connections")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("provider", "gmail")
+        .eq("is_active", true)
         .maybeSingle();
 
       if (!error && data) {
         setIsGmailConnected(true);
-        console.log('Gmail connection verified for user:', user.id);
+        console.log("Gmail connection verified for user:", user.id);
       } else {
         setIsGmailConnected(false);
-        console.log('No active Gmail connection found for user:', user.id);
+        console.log("No active Gmail connection found for user:", user.id);
       }
     } catch (error) {
-      console.error('Error checking Gmail connection:', error);
+      console.error("Error checking Gmail connection:", error);
       setIsGmailConnected(false);
     }
   };
@@ -114,6 +120,6 @@ export function useGmailConnection() {
     isConnecting,
     isGmailConnected,
     connectGmail,
-    checkGmailConnection
+    checkGmailConnection,
   };
 }
