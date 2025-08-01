@@ -22,8 +22,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUserRole = async (userId: string, retryCount = 0) => {
+  const fetchUserRole = async (userId: string) => {
     try {
+      console.log('Fetching role for user:', userId);
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
@@ -31,46 +32,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
       
       if (error) {
-        // Unterscheide zwischen verschiedenen Fehlertypen
-        if (error.code === 'PGRST116' && retryCount < 2) {
-          // Keine Rolle gefunden - retry falls es ein temporärer Fehler ist
-          console.log(`Retry ${retryCount + 1} für User Role Query`);
-          setTimeout(() => fetchUserRole(userId, retryCount + 1), 1000);
-          return;
-        } else if (error.code === 'PGRST116') {
-          // Nach mehreren Versuchen immer noch keine Rolle - User hat wahrscheinlich keine Berechtigung
-          console.error('User has no role after retries:', error);
-          await supabase.auth.signOut();
-          setUserRole(null);
-          setUser(null);
-          setSession(null);
-          return;
-        } else if (retryCount < 3) {
-          // Netzwerk- oder temporärer Datenbankfehler - retry
-          console.log(`Network/DB error, retry ${retryCount + 1}:`, error);
-          setTimeout(() => fetchUserRole(userId, retryCount + 1), 2000);
-          return;
+        console.error('Role fetch error:', error);
+        if (error.code === 'PGRST116') {
+          // Keine Rolle gefunden - setze default role
+          console.log('No role found, setting default role: employee');
+          setUserRole('employee');
         } else {
-          // Nach mehreren Versuchen immer noch Fehler - als Netzwerkproblem behandeln
-          console.error('Persistent role fetch error, keeping user logged in:', error);
-          setUserRole('employee'); // Default role als Fallback
-          return;
+          // Anderer Fehler - setze trotzdem default role um User eingeloggt zu lassen
+          console.log('Database error, setting default role: employee');
+          setUserRole('employee');
         }
+        return;
       }
       
       if (data?.role) {
+        console.log('Role found:', data.role);
         setUserRole(data.role);
       } else {
-        setUserRole('employee'); // Default role falls keine spezifische Rolle gefunden
+        console.log('No role data, setting default: employee');
+        setUserRole('employee');
       }
     } catch (error) {
-      console.error('Role fetch error:', error);
-      if (retryCount < 3) {
-        setTimeout(() => fetchUserRole(userId, retryCount + 1), 2000);
-      } else {
-        // Nach mehreren Versuchen als Netzwerkproblem behandeln
-        setUserRole('employee'); // Default role als Fallback
-      }
+      console.error('Unexpected role fetch error:', error);
+      setUserRole('employee'); // Default role als Fallback
     }
   };
 
