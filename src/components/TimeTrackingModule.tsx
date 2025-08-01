@@ -17,7 +17,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { OfflineTimeTrackingManager, GPSLocationManager, NetworkManager, type GeolocationPosition, type OfflineTimeEntry } from "@/lib/timetrackingUtils";
 import EditTimeEntryDialog from "./EditTimeEntryDialog";
@@ -116,9 +115,7 @@ const TimeTrackingModule: React.FC = () => {
   // Manager Instanzen
   const offlineManager = new OfflineTimeTrackingManager();
   const gpsManager = new GPSLocationManager();
-  const {
-    toast
-  } = useToast();
+
 
   // Initialize Service Worker and Network Status
   useEffect(() => {
@@ -160,22 +157,30 @@ const TimeTrackingModule: React.FC = () => {
     setLoading(false);
   };
   const loadCurrentEmployee = async () => {
-    const {
-      data: {
-        user
-      }
-    } = await supabase.auth.getUser();
-    if (!user) return;
-    const {
-      data,
-      error
-    } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-    if (error) {
-      console.error('Error loading current employee:', error);
-      return;
-    }
-    setCurrentEmployee(data);
-  };
+  // Erst prüfen, ob ein User eingeloggt ist
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  // Profil laden
+  const { data: currentEmpData, error: currentEmpError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
+  if (currentEmpError) {
+    toast({
+      title: 'Profil konnte nicht geladen werden',
+      description: currentEmpError.message,
+      variant: 'destructive',
+    });
+    throw currentEmpError;
+  }
+
+  setCurrentEmployee(currentEmpData);
+};
   const syncOfflineEntries = async () => {
     try {
       const offlineEntries = await offlineManager.getOfflineEntries();
@@ -249,18 +254,26 @@ const TimeTrackingModule: React.FC = () => {
     if (error) throw error;
     setProjects(data || []);
   };
-  const loadEmployees = async () => {
-    const {
-      data,
-      error
-    } = await supabase.from('profiles').select('*').not('status', 'is', null).eq('status', 'aktiv').order('last_name');
-    if (error) {
-      console.error('Error loading employees:', error);
-      throw error;
-    }
-    console.log('Loaded employees:', data);
-    setEmployees(data || []);
-  };
+const loadEmployees = async () => {
+  const { data: employeesList, error: employeesError } = await supabase
+    .from('profiles')
+    .select('*')
+    .not('status', 'is', null)
+    .eq('status', 'aktiv')
+    .order('last_name');
+
+  if (employeesError) {
+    toast({
+      title: 'Mitarbeiterliste konnte nicht geladen werden',
+      description: employeesError.message,
+      variant: 'destructive',
+    });
+    throw employeesError;
+  }
+
+  setEmployees(employeesList || []);
+};
+
   const loadWorkingHours = async () => {
     const {
       data,
