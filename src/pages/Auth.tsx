@@ -44,27 +44,45 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-  const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
 
-  const access_token =
-    searchParams.get('access_token') || hashParams.get('access_token');
-  const refresh_token =
-    searchParams.get('refresh_token') || hashParams.get('refresh_token');
-  const mode = searchParams.get('mode') || hashParams.get('mode');
+    const access_token =
+      searchParams.get('access_token') || hashParams.get('access_token');
+    const refresh_token =
+      searchParams.get('refresh_token') || hashParams.get('refresh_token');
+    const mode = searchParams.get('mode') || hashParams.get('mode');
 
-  const initSession = async () => {
-    if (access_token && refresh_token) {
-      // Session direkt setzen
-      await supabase.auth.setSession({ access_token, refresh_token });
-    }
+    const initSession = async () => {
+      if (access_token && refresh_token) {
+        try {
+          // Session setzen und warten bis sie vollständig geladen ist
+          const { data, error } = await supabase.auth.setSession({ 
+            access_token, 
+            refresh_token 
+          });
+          
+          if (error) {
+            console.error('Fehler beim Setzen der Session:', error);
+            toast.error('Fehler beim Laden der Session');
+            return;
+          }
+          
+          if (data.session) {
+            console.log('Session erfolgreich gesetzt:', data.session.user.email);
+          }
+        } catch (error) {
+          console.error('Session Setup Fehler:', error);
+          toast.error('Fehler beim Initialisieren der Session');
+        }
+      }
 
-    if (mode === 'employee-setup') {
-      setIsPasswordSetup(true);
-    }
-  };
+      if (mode === 'employee-setup') {
+        setIsPasswordSetup(true);
+      }
+    };
 
-  initSession();
-}, [searchParams]);
+    initSession();
+  }, [searchParams]);
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,22 +104,14 @@ const Auth = () => {
 
         const { error } = await updatePassword(password);
         if (error) {
-          toast.error(error.message);
+          console.error('Password update error:', error);
+          toast.error(error.message || 'Fehler beim Erstellen des Passworts');
         } else {
-          // Force a fresh session to ensure only the employee is logged in
-          const { data: session } = await supabase.auth.getSession();
-          if (session?.session) {
-            // Sign out any existing session first
-            await supabase.auth.signOut();
-            // Set the new employee session
-            await supabase.auth.setSession({
-              access_token: session.session.access_token,
-              refresh_token: session.session.refresh_token
-            });
-          }
-          
           toast.success('Passwort erfolgreich erstellt! Sie sind nun als Mitarbeiter angemeldet.');
-          navigate('/');
+          // Kurz warten damit die Session sich aktualisiert
+          setTimeout(() => {
+            navigate('/');
+          }, 1000);
         }
       } else if (isLogin) {
         const { error } = await signIn(email, password);
