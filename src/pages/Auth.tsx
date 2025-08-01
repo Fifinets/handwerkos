@@ -522,4 +522,4 @@ const Auth = () => {
   );
 };
 
-export default Auth; ich aknn das nicht finden
+export default Auth;
