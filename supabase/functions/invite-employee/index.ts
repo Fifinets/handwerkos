@@ -47,9 +47,9 @@ const handler = async (req: Request): Promise<Response> => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Generate invite link for employee setup
+    // Generate signup link for employee setup
     const { data, error } = await supabase.auth.admin.generateLink({
-      type: 'invite',
+      type: 'signup',
       email: sanitizedEmail,
       options: {
         redirectTo: `${Deno.env.get('SITE_URL') || 'https://handwerkos.de'}/auth?mode=employee-setup`,
