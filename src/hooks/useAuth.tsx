@@ -22,42 +22,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchUserRole = async (userId: string, retryCount = 0) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+      
+      if (error) {
+        // Unterscheide zwischen verschiedenen Fehlertypen
+        if (error.code === 'PGRST116' && retryCount < 2) {
+          // Keine Rolle gefunden - retry falls es ein temporärer Fehler ist
+          console.log(`Retry ${retryCount + 1} für User Role Query`);
+          setTimeout(() => fetchUserRole(userId, retryCount + 1), 1000);
+          return;
+        } else if (error.code === 'PGRST116') {
+          // Nach mehreren Versuchen immer noch keine Rolle - User hat wahrscheinlich keine Berechtigung
+          console.error('User has no role after retries:', error);
+          await supabase.auth.signOut();
+          setUserRole(null);
+          setUser(null);
+          setSession(null);
+          return;
+        } else if (retryCount < 3) {
+          // Netzwerk- oder temporärer Datenbankfehler - retry
+          console.log(`Network/DB error, retry ${retryCount + 1}:`, error);
+          setTimeout(() => fetchUserRole(userId, retryCount + 1), 2000);
+          return;
+        } else {
+          // Nach mehreren Versuchen immer noch Fehler - als Netzwerkproblem behandeln
+          console.error('Persistent role fetch error, keeping user logged in:', error);
+          setUserRole('employee'); // Default role als Fallback
+          return;
+        }
+      }
+      
+      if (data?.role) {
+        setUserRole(data.role);
+      } else {
+        setUserRole('employee'); // Default role falls keine spezifische Rolle gefunden
+      }
+    } catch (error) {
+      console.error('Role fetch error:', error);
+      if (retryCount < 3) {
+        setTimeout(() => fetchUserRole(userId, retryCount + 1), 2000);
+      } else {
+        // Nach mehreren Versuchen als Netzwerkproblem behandeln
+        setUserRole('employee'); // Default role als Fallback
+      }
+    }
+  };
+
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user role
-          setTimeout(async () => {
-            try {
-              const { data, error } = await supabase
-                .from('user_roles')
-                .select('role')
-                .eq('user_id', session.user.id)
-                .single();
-              
-              if (error || !data) {
-                console.error('User has no role or was deleted:', error);
-                // User exists in auth but not in our database - sign them out
-                await supabase.auth.signOut();
-                setUserRole(null);
-                setUser(null);
-                setSession(null);
-              } else {
-                setUserRole(data.role || null);
-              }
-            } catch (error) {
-              console.error('Failed to fetch user role:', error);
-              // Sign out the user as they don't exist in our database
-              await supabase.auth.signOut();
-              setUserRole(null);
-              setUser(null);
-              setSession(null);
-            }
-          }, 0);
+          // Fetch user role mit verbesserter Fehlerbehandlung
+          fetchUserRole(session.user.id);
         } else {
           setUserRole(null);
         }
