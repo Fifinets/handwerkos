@@ -146,9 +146,15 @@ export function CustomerProjectDialog({ isOpen, onClose, email }: CustomerProjec
       }
 
       // Get current user's company ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Benutzer nicht eingeloggt');
+      }
+
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('company_id')
+        .eq('id', user.id)
         .single();
 
       if (profileError) {
