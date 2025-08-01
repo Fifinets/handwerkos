@@ -19,7 +19,11 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, first_name, last_name, company_id } = await req.json();
+    // Debug: kompletten Raw-Body einmal ausgeben
+    const bodyText = await req.text();
+    console.log('INVITE-PAYLOAD:', bodyText);
+    // Anschließend wie gehabt parsen
+    const { email, first_name, last_name, company_id } = JSON.parse(bodyText);
 
     // Input validation and sanitization
     if (!email || !company_id) {
