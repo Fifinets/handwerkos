@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, differenceInMinutes, startOfDay, endOfDay } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { Play, Pause, Square, Clock, Calendar, User, MapPin, Filter, Plus, Settings, Users, Wifi, WifiOff, Edit } from 'lucide-react';
@@ -86,6 +87,7 @@ interface WorkingHoursConfig {
   is_default: boolean;
 }
 const TimeTrackingModule: React.FC = () => {
+  const { toast } = useToast();
   const {
     userRole
   } = useAuth();
