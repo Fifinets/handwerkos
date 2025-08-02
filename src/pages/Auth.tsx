@@ -119,6 +119,8 @@ const Auth = () => {
           toast.error(error.message);
         } else {
           toast.success('Erfolgreich angemeldet!');
+          navigate('/');  
+           }
         }
       } else {
         // Registration validation
