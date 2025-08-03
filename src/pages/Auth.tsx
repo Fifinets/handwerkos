@@ -38,7 +38,7 @@ const Auth: React.FC = () => {
   const [searchParams] = useSearchParams();
 
   // ──────────────────────────────────────────────────────────────
-  // 1) Beim Mount: URL-Hash parsen und in Supabase-Session setzen
+  // 1) Beim Mount: URL-Hash & SearchParams parsen und Session setzen
   // ──────────────────────────────────────────────────────────────
   useEffect(() => {
     const hashParams = new URLSearchParams(window.location.hash.slice(1));
@@ -46,7 +46,11 @@ const Auth: React.FC = () => {
       hashParams.get('access_token') || searchParams.get('access_token');
     const refresh_token =
       hashParams.get('refresh_token') || searchParams.get('refresh_token');
-    const mode = searchParams.get('mode');
+    const mode =
+      searchParams.get('mode') ||
+      hashParams.get('mode');
+
+    console.log('Auth:initSession →', { access_token, refresh_token, mode });
 
     if (access_token && refresh_token) {
       supabase.auth
@@ -57,7 +61,7 @@ const Auth: React.FC = () => {
             toast.error('Fehler beim Laden der Session');
             return;
           }
-          // sobald Session gesetzt, kann der Fragment entfernt werden
+          // Hash aus URL entfernen
           window.history.replaceState(
             {},
             document.title,
@@ -65,6 +69,7 @@ const Auth: React.FC = () => {
           );
         });
     }
+
     if (mode === 'employee-setup') {
       setIsPasswordSetup(true);
     }
@@ -78,51 +83,38 @@ const Auth: React.FC = () => {
     setLoading(true);
 
     try {
-      // ───────────────────────────────────────────
       // A) Passwort-Setup für eingeladene Mitarbeiter
-      // ───────────────────────────────────────────
       if (isPasswordSetup) {
-        // 1) Session auf Vorhandensein prüfen
         const { data: sessionData } = await supabase.auth.getSession();
         if (!sessionData.session) {
           toast.error(
             'Deine Session fehlt – bitte klicke den Invite-Link noch einmal aus der E-Mail an.'
           );
-          setLoading(false);
           return;
         }
 
-        // 2) Validierung
         if (password !== confirmPassword) {
           toast.error('Passwörter stimmen nicht überein');
-          setLoading(false);
           return;
         }
         if (password.length < 6) {
           toast.error('Passwort muss mindestens 6 Zeichen lang sein');
-          setLoading(false);
           return;
         }
 
-        // 3) Jetzt Passwort setzen
         const { error } = await updatePassword(password);
         if (error) {
           console.error('Fehler beim Setzen des Passworts:', error);
           toast.error(error.message || 'Fehler beim Erstellen des Passworts');
-          setLoading(false);
           return;
         }
 
-        toast.success(
-          'Passwort erfolgreich erstellt! Du wirst nun eingeloggt…'
-        );
+        toast.success('Passwort erfolgreich erstellt! Du wirst nun eingeloggt…');
         setTimeout(() => navigate('/'), 1000);
         return;
       }
 
-      // ───────────────────────────────────────────
       // B) Ganz normaler Login
-      // ───────────────────────────────────────────
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) {
@@ -131,13 +123,10 @@ const Auth: React.FC = () => {
           toast.success('Erfolgreich angemeldet!');
           navigate('/');
         }
-        setLoading(false);
         return;
       }
 
-      // ───────────────────────────────────────────
       // C) Registrierung
-      // ───────────────────────────────────────────
       // … deine Validierung & signUp-Aufruf …
     } finally {
       setLoading(false);
@@ -150,7 +139,7 @@ const Auth: React.FC = () => {
       <div className="bg-gray-800 text-white p-4 text-center">
         <h1 className="text-xl font-bold">ADDIGO COCKPIT</h1>
       </div>
-      {/* … dein Formular (genauso wie vorher) … */}
+      {/* … hier dein Formular mit Input- und Button-Komponenten … */}
     </div>
   );
 };
