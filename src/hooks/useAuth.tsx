@@ -25,12 +25,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Rolle direkt aus profiles-Tabelle holen
+  // Rolle aus user_roles-Tabelle holen
   const fetchUserRole = async (userId: string) => {
     const { data, error } = await supabase
-      .from('profiles')
+      .from('user_roles')
       .select('role')
-      .eq('id', userId)
+      .eq('user_id', userId)
       .single();
 
     if (error) {
