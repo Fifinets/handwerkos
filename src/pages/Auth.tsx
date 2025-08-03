@@ -41,50 +41,60 @@ const Auth: React.FC = () => {
   // 1) Beim Mount: URL-Hash & SearchParams parsen und Session setzen
   // ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    console.log('Current URL:', window.location.href);
-    console.log('Hash:', window.location.hash);
-    console.log('Search:', window.location.search);
-    
-    const hashParams = new URLSearchParams(window.location.hash.slice(1));
-    const access_token =
-      hashParams.get('access_token') || searchParams.get('access_token');
-    const refresh_token =
-      hashParams.get('refresh_token') || searchParams.get('refresh_token');
-    const mode =
-      searchParams.get('mode') ||
-      hashParams.get('mode');
+    const checkAuth = async () => {
+      console.log('Current URL:', window.location.href);
+      console.log('Hash:', window.location.hash);
+      console.log('Search:', window.location.search);
+      
+      const hashParams = new URLSearchParams(window.location.hash.slice(1));
+      const access_token =
+        hashParams.get('access_token') || searchParams.get('access_token');
+      const refresh_token =
+        hashParams.get('refresh_token') || searchParams.get('refresh_token');
+      const mode =
+        searchParams.get('mode') ||
+        hashParams.get('mode');
 
-    console.log('Auth:initSession →', { access_token, refresh_token, mode });
+      console.log('Auth:initSession →', { access_token, refresh_token, mode });
 
-    if (access_token && refresh_token) {
-      supabase.auth
-        .setSession({ access_token, refresh_token })
-        .then(({ data, error }) => {
-          if (error) {
-            console.error('Session konnte nicht gesetzt werden', error);
-            toast.error('Ungültiger oder abgelaufener Invite-Link. Bitte wenden Sie sich an Ihren Manager.');
-            return;
-          }
-          
-          console.log('Session erfolgreich gesetzt:', data.session);
-          
-          // Nur wenn Session erfolgreich gesetzt UND mode=employee-setup
-          if (mode === 'employee-setup' && data.session) {
-            console.log('Employee Setup Mode aktiviert');
-            setIsPasswordSetup(true);
-          }
-          
-          // Hash aus URL entfernen
-          window.history.replaceState(
-            {},
-            document.title,
-            window.location.pathname + window.location.search
-          );
-        });
-    } else if (mode === 'employee-setup') {
-      // Kein Token gefunden aber employee-setup Mode
-      toast.error('Ungültiger Invite-Link. Bitte verwenden Sie den Link aus der E-Mail.');
-    }
+      if (access_token && refresh_token) {
+        supabase.auth
+          .setSession({ access_token, refresh_token })
+          .then(({ data, error }) => {
+            if (error) {
+              console.error('Session konnte nicht gesetzt werden', error);
+              toast.error('Ungültiger oder abgelaufener Invite-Link. Bitte wenden Sie sich an Ihren Manager.');
+              return;
+            }
+            
+            console.log('Session erfolgreich gesetzt:', data.session);
+            
+            // Nur wenn Session erfolgreich gesetzt UND mode=employee-setup
+            if (mode === 'employee-setup' && data.session) {
+              console.log('Employee Setup Mode aktiviert');
+              setIsPasswordSetup(true);
+            }
+            
+            // Hash aus URL entfernen
+            window.history.replaceState(
+              {},
+              document.title,
+              window.location.pathname + window.location.search
+            );
+          });
+      } else if (mode === 'employee-setup') {
+        // Kein Token gefunden aber employee-setup Mode - prüfe ob bereits eingeloggt
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData.session) {
+          console.log('User bereits eingeloggt, aktiviere Password Setup');
+          setIsPasswordSetup(true);
+        } else {
+          toast.error('Ungültiger Invite-Link. Bitte verwenden Sie den Link aus der E-Mail.');
+        }
+      }
+    };
+
+    checkAuth();
   }, [searchParams]);
 
   // ──────────────────────────────────────────────────────────────
