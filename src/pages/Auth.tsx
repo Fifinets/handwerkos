@@ -55,12 +55,21 @@ const Auth: React.FC = () => {
     if (access_token && refresh_token) {
       supabase.auth
         .setSession({ access_token, refresh_token })
-        .then(({ error }) => {
+        .then(({ data, error }) => {
           if (error) {
             console.error('Session konnte nicht gesetzt werden', error);
-            toast.error('Fehler beim Laden der Session');
+            toast.error('Ungültiger oder abgelaufener Invite-Link. Bitte wenden Sie sich an Ihren Manager.');
             return;
           }
+          
+          console.log('Session erfolgreich gesetzt:', data.session);
+          
+          // Nur wenn Session erfolgreich gesetzt UND mode=employee-setup
+          if (mode === 'employee-setup' && data.session) {
+            console.log('Employee Setup Mode aktiviert');
+            setIsPasswordSetup(true);
+          }
+          
           // Hash aus URL entfernen
           window.history.replaceState(
             {},
@@ -68,10 +77,9 @@ const Auth: React.FC = () => {
             window.location.pathname + window.location.search
           );
         });
-    }
-
-    if (mode === 'employee-setup') {
-      setIsPasswordSetup(true);
+    } else if (mode === 'employee-setup') {
+      // Kein Token gefunden aber employee-setup Mode
+      toast.error('Ungültiger Invite-Link. Bitte verwenden Sie den Link aus der E-Mail.');
     }
   }, [searchParams]);
 
@@ -85,11 +93,20 @@ const Auth: React.FC = () => {
     try {
       // A) Passwort-Setup für eingeladene Mitarbeiter
       if (isPasswordSetup) {
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (!sessionData.session) {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        
+        console.log('Password Setup - Session Check:', { 
+          hasSession: !!sessionData.session, 
+          sessionError,
+          userId: sessionData.session?.user?.id 
+        });
+        
+        if (!sessionData.session || sessionError) {
+          console.error('Session fehlt oder ungültig:', sessionError);
           toast.error(
-            'Deine Session fehlt – bitte klicke den Invite-Link noch einmal aus der E-Mail an.'
+            'Ihre Session ist ungültig oder abgelaufen. Bitte verwenden Sie den Link aus der E-Mail erneut.'
           );
+          setIsPasswordSetup(false);
           return;
         }
 
@@ -102,6 +119,8 @@ const Auth: React.FC = () => {
           return;
         }
 
+        console.log('Attempting password update for user:', sessionData.session.user.id);
+        
         const { error } = await updatePassword(password);
         if (error) {
           console.error('Fehler beim Setzen des Passworts:', error);
@@ -109,6 +128,7 @@ const Auth: React.FC = () => {
           return;
         }
 
+        console.log('Password update successful');
         toast.success('Passwort erfolgreich erstellt! Du wirst nun eingeloggt…');
         setTimeout(() => navigate('/'), 1000);
         return;

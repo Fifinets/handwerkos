@@ -51,12 +51,19 @@ const handler = async (req: Request): Promise<Response> => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
+    // Get the request origin for dynamic redirect URL
+    const origin = req.headers.get('origin') || req.headers.get('referer') || 'https://handwerkos.de';
+    const baseUrl = origin.replace(/\/$/, ''); // Remove trailing slash
+    const redirectUrl = `${baseUrl}/auth?mode=employee-setup`;
+    
+    console.log('Generating invite with redirect URL:', redirectUrl);
+
     // Generate invite link for employee setup
     const { data, error } = await supabase.auth.admin.generateLink({
       type: 'invite',
       email: sanitizedEmail,
       options: {
-        redirectTo: `${Deno.env.get('SITE_URL') || 'https://handwerkos.de'}/auth?mode=employee-setup`,
+        redirectTo: redirectUrl,
         data: {
           company_id,
           first_name: sanitizedFirstName,
