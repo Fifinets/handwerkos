@@ -41,6 +41,10 @@ const Auth: React.FC = () => {
   // 1) Beim Mount: URL-Hash & SearchParams parsen und Session setzen
   // ──────────────────────────────────────────────────────────────
   useEffect(() => {
+    console.log('Current URL:', window.location.href);
+    console.log('Hash:', window.location.hash);
+    console.log('Search:', window.location.search);
+    
     const hashParams = new URLSearchParams(window.location.hash.slice(1));
     const access_token =
       hashParams.get('access_token') || searchParams.get('access_token');
