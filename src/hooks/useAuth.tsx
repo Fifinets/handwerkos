@@ -1,6 +1,5 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
@@ -9,7 +8,11 @@ interface AuthContextType {
   userRole: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, registrationData: any) => Promise<{ error: any }>;
+  signUp: (
+    email: string,
+    password: string,
+    registrationData: Record<string, any>
+  ) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updatePassword: (password: string) => Promise<{ error: any }>;
 }
@@ -22,154 +25,112 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Rolle direkt aus profiles-Tabelle holen
   const fetchUserRole = async (userId: string) => {
-    try {
-      console.log('Fetching role for user:', userId);
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .single();
-      
-      if (error) {
-        console.error('Role fetch error:', error);
-        if (error.code === 'PGRST116') {
-          // Keine Rolle gefunden - setze default role
-          console.log('No role found, setting default role: employee');
-          setUserRole('employee');
-        } else {
-          // Anderer Fehler - setze trotzdem default role um User eingeloggt zu lassen
-          console.log('Database error, setting default role: employee');
-          setUserRole('employee');
-        }
-        return;
-      }
-      
-      if (data?.role) {
-        console.log('Role found:', data.role);
-        setUserRole(data.role);
-      } else {
-        console.log('No role data, setting default: employee');
-        setUserRole('employee');
-      }
-    } catch (error) {
-      console.error('Unexpected role fetch error:', error);
-      setUserRole('employee'); // Default role als Fallback
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      console.warn('Role fetch error, default to employee:', error);
+      setUserRole('employee');
+    } else {
+      setUserRole(data?.role ?? 'employee');
     }
   };
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          // Fetch user role mit verbesserter Fehlerbehandlung
-          fetchUserRole(session.user.id);
-        } else {
-          setUserRole(null);
+    // 1) Beim Mount: aktuelle Session laden
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
+        if (data.session?.user) {
+          fetchUserRole(data.session.user.id);
         }
         setLoading(false);
-      }
-    );
+      });
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // 2) Listener für zukünftige Auth-Events
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('Auth state changed:', _event, session);
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
         fetchUserRole(session.user.id);
+      } else {
+        setUserRole(null);
       }
-      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
-  };
+  const signIn = (email: string, password: string) =>
+    supabase.auth.signInWithPassword({ email, password });
 
-  const signUp = async (email: string, password: string, registrationData: any) => {
-    const redirectUrl = `${window.location.origin}/auth`;
-    
-    const { error } = await supabase.auth.signUp({
+  const signUp = (
+    email: string,
+    password: string,
+    registrationData: Record<string, any>
+  ) => {
+    // Wichtig für Invite-Flow: mode=employee-setup mitsenden
+    const redirectUrl = `${window.location.origin}/auth?mode=employee-setup`;
+    return supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectUrl,
         data: {
+          // deine weiteren Felder
           first_name: registrationData.firstName,
           last_name: registrationData.lastName,
           company_name: registrationData.companyName,
-          phone: registrationData.phone,
-          street_address: registrationData.street,
-          postal_code: registrationData.zipCode,
-          city: registrationData.city,
-          vat_id: registrationData.vatId,
-          country: registrationData.country,
-          voucher_code: registrationData.voucherCode,
-          referral_source: registrationData.referralSource,
-        }
-      }
+          // …
+        },
+      },
     });
-    return { error };
   };
 
-  const updatePassword = async (password: string) => {
-    const { error } = await supabase.auth.updateUser({
-      password: password
-    });
-    return { error };
-  };
+  const updatePassword = (password: string) =>
+    supabase.auth.updateUser({ password });
 
   const signOut = async () => {
-    try {
-      // Clear local state first
-      setUser(null);
-      setSession(null);
-      setUserRole(null);
-      
-      // Then sign out from Supabase
-      await supabase.auth.signOut();
-    } catch (error) {
-      console.error('Error signing out:', error);
-      // Even if signOut fails, clear local state
-      setUser(null);
-      setSession(null);
-      setUserRole(null);
-    }
+    // State zuerst leeren, damit UI direkt reagiert
+    setUser(null);
+    setSession(null);
+    setUserRole(null);
+    await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      session,
-      userRole,
-      loading,
-      signIn,
-      signUp,
-      signOut,
-      updatePassword,
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        userRole,
+        loading,
+        signIn,
+        signUp,
+        signOut,
+        updatePassword,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 }
