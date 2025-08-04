@@ -148,7 +148,7 @@ const PersonalModule = () => {
             inviterUserId: clerkUser.id,
             emailAddress: newEmployee.email,
             role: 'org:employee',
-            redirect_url: 'https://handwerkos.de/mitarbeiter-setup'
+            redirect_url: 'https://handwerkos.de/mitarbeiter-setup?__clerk_ticket={{ticket}}' // ✅ richtige URL mit Ticket-Platzhalter
           });
         } catch (clerkErr) {
           console.error('Clerk invitation error:', clerkErr);
