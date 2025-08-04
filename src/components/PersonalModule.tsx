@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { UserCheck, Plus } from "lucide-react";
@@ -59,17 +58,9 @@ const PersonalModule = () => {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      console.log('Fetching employees...');
-
-      // Fetch profiles with employee role using a proper join
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          id,
-          email,
-          first_name,
-          last_name
-        `);
+        .select(`id, email, first_name, last_name`);
 
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
@@ -77,9 +68,6 @@ const PersonalModule = () => {
         return;
       }
 
-      console.log('Profiles data:', profilesData);
-
-      // Now fetch user roles separately and filter for employees
       const { data: rolesData, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id, role')
@@ -91,21 +79,17 @@ const PersonalModule = () => {
         return;
       }
 
-      console.log('Roles data:', rolesData);
-
-      // Filter profiles to only include employees
       const employeeIds = rolesData?.map(role => role.user_id) || [];
       const employeeProfiles = profilesData?.filter(profile => 
         employeeIds.includes(profile.id)
       ) || [];
 
-      // Transform the data to match the expected format
       const employeeList = employeeProfiles.map(profile => ({
         id: profile.id,
         name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email,
-        position: 'Mitarbeiter', // Default position, could be stored in profiles later
+        position: 'Mitarbeiter',
         email: profile.email,
-        phone: '', // Could be added to profiles table later
+        phone: '',
         status: 'Aktiv',
         qualifications: [],
         license: '',
@@ -115,8 +99,6 @@ const PersonalModule = () => {
       }));
 
       setEmployees(employeeList);
-      console.log('Loaded employees:', employeeList);
-
     } catch (error) {
       console.error('Error in fetchEmployees:', error);
       toast.error('Ein unerwarteter Fehler ist aufgetreten');
@@ -129,8 +111,6 @@ const PersonalModule = () => {
     setIsAddingEmployee(true);
 
     try {
-      console.log('Inviting employee via edge function:', newEmployee.email);
-
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('company_id')
@@ -161,8 +141,6 @@ const PersonalModule = () => {
         return;
       }
 
-      console.log('Inviting employee via edge function:', newEmployee.email);
-
       if (organization && clerkUser) {
         try {
           await clerk.organizations.createOrganizationInvitation({
@@ -187,7 +165,7 @@ const PersonalModule = () => {
             employeeName: `${newEmployee.firstName} ${newEmployee.lastName}`.trim(),
             employeeEmail: newEmployee.email,
             companyName: 'Ihr Unternehmen',
-            registrationUrl: inviteData?.invite_link
+            registrationUrl: "https://handwerkos.de/mitarbeiter-setup"
           }
         });
 
@@ -280,7 +258,6 @@ const PersonalModule = () => {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Employee List */}
         <div className="lg:col-span-2 space-y-4">
           <h3 className="text-lg font-semibold">Mitarbeiterliste</h3>
           {loading ? (
@@ -304,7 +281,6 @@ const PersonalModule = () => {
           )}
         </div>
 
-        {/* Sidebar */}
         <PersonalSidebar onQuickAction={handleQuickAction} />
       </div>
 
