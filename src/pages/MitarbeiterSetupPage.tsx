@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useSignIn, useSignUp } from '@clerk/clerk-react';
+import { useSignIn, useSignUp, useClerk } from '@clerk/clerk-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
@@ -11,6 +11,7 @@ const MitarbeiterSetupPage = () => {
 
   const { isLoaded: signUpLoaded, signUp } = useSignUp();
   const { isLoaded: signInLoaded, signIn } = useSignIn();
+  const clerk = useClerk();
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -41,12 +42,14 @@ const MitarbeiterSetupPage = () => {
     setLoading(true);
 
     try {
-      await signUp.create({ strategy: 'ticket', ticket, password });
-      await signUp.setActive({ session: signUp.createdSessionId });
+      await signUp.create({ strategy: 'ticket', ticket: ticket as string });
+      await signUp.update({ password });
+      await clerk.setActive({ session: signUp.createdSessionId as string });
     } catch {
       try {
-        await signIn.create({ strategy: 'ticket', ticket, password });
-        await signIn.setActive({ session: signIn.createdSessionId });
+        await signIn.create({ strategy: 'ticket', ticket: ticket as string });
+        await signIn.attemptFirstFactor({ strategy: 'password', password });
+        await clerk.setActive({ session: signIn.createdSessionId as string });
       } catch (err) {
         setError('Registrierung fehlgeschlagen');
         console.error(err);
