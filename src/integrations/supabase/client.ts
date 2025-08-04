@@ -13,6 +13,9 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
 });
 
+// Explicit named export for environments that require it
+export { supabase };
+
 export const createClerkSupabaseClient = (
   getToken: (options?: { template?: string }) => Promise<string | null>
 ) =>
