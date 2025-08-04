@@ -90,11 +90,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       options: {
         emailRedirectTo: redirectUrl,
         data: {
-          // deine weiteren Felder
           first_name: registrationData.firstName,
           last_name: registrationData.lastName,
           company_name: registrationData.companyName,
-          // …
+          phone: registrationData.phone,
+          street_address: registrationData.streetAddress,
+          postal_code: registrationData.postalCode,
+          city: registrationData.city,
+          country: registrationData.country,
+          vat_id: registrationData.vatId,
+          voucher_code: registrationData.voucherCode,
+          referral_source: registrationData.referralSource,
         },
       },
     });

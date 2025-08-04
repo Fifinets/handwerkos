@@ -32,6 +32,14 @@ const Auth: React.FC = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [companyName, setCompanyName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [streetAddress, setStreetAddress] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [city, setCity] = useState('');
+  const [country, setCountry] = useState('Deutschland');
+  const [vatId, setVatId] = useState('');
+  const [voucherCode, setVoucherCode] = useState('');
+  const [referralSource, setReferralSource] = useState('');
 
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, updatePassword } = useAuth();
@@ -170,7 +178,15 @@ const Auth: React.FC = () => {
       const registrationData = {
         firstName,
         lastName,
-        companyName
+        companyName,
+        phone,
+        streetAddress,
+        postalCode,
+        city,
+        country,
+        vatId,
+        voucherCode,
+        referralSource
       };
 
       const { error } = await signUp(email, password, registrationData);
@@ -193,7 +209,7 @@ const Auth: React.FC = () => {
       
       {/* Main Content */}
       <div className="flex items-center justify-center min-h-[calc(100vh-80px)] p-4">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-2xl">
           <CardHeader className="text-center">
             <CardTitle className="flex items-center justify-center gap-2">
               {isPasswordSetup ? (
@@ -275,60 +291,190 @@ const Auth: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">Vorname</Label>
-                    <Input
-                      id="firstName"
-                      type="text"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      required
-                      placeholder="Ihr Vorname"
-                    />
+                  {/* Persönliche Daten */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">
+                      Persönliche Daten
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="firstName">Vorname *</Label>
+                        <Input
+                          id="firstName"
+                          type="text"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          required
+                          placeholder="Ihr Vorname"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="lastName">Nachname *</Label>
+                        <Input
+                          id="lastName"
+                          type="text"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          required
+                          placeholder="Ihr Nachname"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">E-Mail *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        placeholder="ihre@email.de"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Telefon</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="+49 123 456789"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Nachname</Label>
-                    <Input
-                      id="lastName"
-                      type="text"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      required
-                      placeholder="Ihr Nachname"
-                    />
+
+                  {/* Firmendaten */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">
+                      Firmendaten
+                    </h3>
+                    <div className="space-y-2">
+                      <Label htmlFor="companyName">Firmenname *</Label>
+                      <Input
+                        id="companyName"
+                        type="text"
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        required
+                        placeholder="Ihre Firma"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="vatId">USt-IdNr.</Label>
+                      <Input
+                        id="vatId"
+                        type="text"
+                        value={vatId}
+                        onChange={(e) => setVatId(e.target.value)}
+                        placeholder="DE123456789"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="companyName">Firma</Label>
-                    <Input
-                      id="companyName"
-                      type="text"
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                      required
-                      placeholder="Ihre Firma"
-                    />
+
+                  {/* Adresse */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">
+                      Adresse
+                    </h3>
+                    <div className="space-y-2">
+                      <Label htmlFor="streetAddress">Straße & Hausnummer</Label>
+                      <Input
+                        id="streetAddress"
+                        type="text"
+                        value={streetAddress}
+                        onChange={(e) => setStreetAddress(e.target.value)}
+                        placeholder="Musterstraße 123"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="postalCode">PLZ</Label>
+                        <Input
+                          id="postalCode"
+                          type="text"
+                          value={postalCode}
+                          onChange={(e) => setPostalCode(e.target.value)}
+                          placeholder="12345"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="city">Stadt</Label>
+                        <Input
+                          id="city"
+                          type="text"
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          placeholder="Musterstadt"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="country">Land</Label>
+                      <Select value={country} onValueChange={setCountry}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Land auswählen" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Deutschland">Deutschland</SelectItem>
+                          <SelectItem value="Österreich">Österreich</SelectItem>
+                          <SelectItem value="Schweiz">Schweiz</SelectItem>
+                          <SelectItem value="Niederlande">Niederlande</SelectItem>
+                          <SelectItem value="Belgien">Belgien</SelectItem>
+                          <SelectItem value="Frankreich">Frankreich</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">E-Mail</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      placeholder="ihre@email.de"
-                    />
+
+                  {/* Zusätzliche Angaben */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">
+                      Zusätzliche Angaben (optional)
+                    </h3>
+                    <div className="space-y-2">
+                      <Label htmlFor="voucherCode">Gutscheincode</Label>
+                      <Input
+                        id="voucherCode"
+                        type="text"
+                        value={voucherCode}
+                        onChange={(e) => setVoucherCode(e.target.value)}
+                        placeholder="Falls vorhanden"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="referralSource">Wie haben Sie von uns erfahren?</Label>
+                      <Select value={referralSource} onValueChange={setReferralSource}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Bitte auswählen" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Google">Google</SelectItem>
+                          <SelectItem value="Social Media">Social Media</SelectItem>
+                          <SelectItem value="Empfehlung">Empfehlung</SelectItem>
+                          <SelectItem value="Werbung">Werbung</SelectItem>
+                          <SelectItem value="Messe">Messe</SelectItem>
+                          <SelectItem value="Sonstiges">Sonstiges</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Passwort</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      placeholder="Mindestens 6 Zeichen"
-                    />
+
+                  {/* Passwort */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">
+                      Passwort
+                    </h3>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Passwort *</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        placeholder="Mindestens 6 Zeichen"
+                      />
+                    </div>
                   </div>
                 </>
               )}
