@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useClerk, useOrganization, useUser } from '@clerk/clerk-react';
 import PersonalStats from "./personal/PersonalStats";
 import EmployeeCard from "./personal/EmployeeCard";
 import AddEmployeeDialog from "./personal/AddEmployeeDialog";
@@ -40,6 +41,9 @@ interface NewEmployee {
 const PersonalModule = () => {
   const { toast: showToast } = useToast();
   const { user, session } = useAuth();
+  const { clerk } = useClerk();
+  const { organization } = useOrganization();
+  const { user: clerkUser } = useUser();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -158,6 +162,20 @@ const PersonalModule = () => {
       }
 
       console.log('Inviting employee via edge function:', newEmployee.email);
+
+      if (organization && clerkUser) {
+        try {
+          await clerk.organizations.createOrganizationInvitation({
+            organizationId: organization.id,
+            inviterUserId: clerkUser.id,
+            emailAddress: newEmployee.email,
+            role: 'org:employee',
+            redirect_url: 'https://handwerkos.de/mitarbeiter-setup'
+          });
+        } catch (clerkErr) {
+          console.error('Clerk invitation error:', clerkErr);
+        }
+      }
 
       try {
         const { error: emailError } = await supabase.functions.invoke('send-employee-confirmation', {
