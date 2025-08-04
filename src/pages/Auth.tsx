@@ -29,8 +29,9 @@ const Auth: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
-  // … deine Registrierungsfelder …
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [companyName, setCompanyName] = useState('');
 
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, updatePassword } = useAuth();
@@ -161,7 +162,23 @@ const Auth: React.FC = () => {
       }
 
       // C) Registrierung
-      // … deine Validierung & signUp-Aufruf …
+      if (password.length < 6) {
+        toast.error('Passwort muss mindestens 6 Zeichen lang sein');
+        return;
+      }
+
+      const registrationData = {
+        firstName,
+        lastName,
+        companyName
+      };
+
+      const { error } = await signUp(email, password, registrationData);
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success('Registrierung erfolgreich! Bitte bestätigen Sie Ihre E-Mail.');
+      }
     } finally {
       setLoading(false);
     }
@@ -173,7 +190,180 @@ const Auth: React.FC = () => {
       <div className="bg-gray-800 text-white p-4 text-center">
         <h1 className="text-xl font-bold">ADDIGO COCKPIT</h1>
       </div>
-      {/* … hier dein Formular mit Input- und Button-Komponenten … */}
+      
+      {/* Main Content */}
+      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="flex items-center justify-center gap-2">
+              {isPasswordSetup ? (
+                <>
+                  <Key className="h-5 w-5" />
+                  Passwort erstellen
+                </>
+              ) : isLogin ? (
+                <>
+                  <User className="h-5 w-5" />
+                  Anmeldung
+                </>
+              ) : (
+                <>
+                  <UserPlus className="h-5 w-5" />
+                  Registrierung
+                </>
+              )}
+            </CardTitle>
+            <CardDescription>
+              {isPasswordSetup
+                ? 'Erstellen Sie Ihr Passwort für Ihren Account'
+                : isLogin
+                ? 'Melden Sie sich in Ihrem Account an'
+                : 'Erstellen Sie einen neuen Account'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {isPasswordSetup ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Neues Passwort</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      placeholder="Mindestens 6 Zeichen"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Passwort bestätigen</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      placeholder="Passwort wiederholen"
+                    />
+                  </div>
+                </>
+              ) : isLogin ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">E-Mail</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      placeholder="ihre@email.de"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Passwort</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      placeholder="Ihr Passwort"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">Vorname</Label>
+                    <Input
+                      id="firstName"
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      required
+                      placeholder="Ihr Vorname"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Nachname</Label>
+                    <Input
+                      id="lastName"
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      required
+                      placeholder="Ihr Nachname"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="companyName">Firma</Label>
+                    <Input
+                      id="companyName"
+                      type="text"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      required
+                      placeholder="Ihre Firma"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">E-Mail</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      placeholder="ihre@email.de"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Passwort</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      placeholder="Mindestens 6 Zeichen"
+                    />
+                  </div>
+                </>
+              )}
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    {isPasswordSetup ? 'Wird erstellt...' : isLogin ? 'Wird angemeldet...' : 'Wird registriert...'}
+                  </div>
+                ) : isPasswordSetup ? (
+                  'Passwort erstellen'
+                ) : isLogin ? (
+                  'Anmelden'
+                ) : (
+                  'Registrieren'
+                )}
+              </Button>
+
+              {!isPasswordSetup && (
+                <div className="text-center">
+                  <Button
+                    type="button"
+                    variant="link"
+                    onClick={() => setIsLogin(!isLogin)}
+                    className="text-sm"
+                  >
+                    {isLogin ? 'Noch kein Account? Registrieren' : 'Bereits registriert? Anmelden'}
+                  </Button>
+                </div>
+              )}
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
