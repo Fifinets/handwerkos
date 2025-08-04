@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth, SignInButton } from '@clerk/clerk-react'
 import { createClerkSupabaseClient } from '@/integrations/supabase/client'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 interface Project {
   id: string
@@ -10,7 +11,7 @@ interface Project {
 
 export const MeineProjekte = () => {
   const { isLoaded, userId, getToken } = useAuth()
-  const supabase = useMemo(() => createClerkSupabaseClient(getToken), [getToken])
+  const supabase = useMemo(() => createClerkSupabaseClient(getToken), [getToken]) as SupabaseClient
   const [projects, setProjects] = useState<Project[]>([])
 
   useEffect(() => {

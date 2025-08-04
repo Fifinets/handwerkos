@@ -40,7 +40,7 @@ interface NewEmployee {
 const PersonalModule = () => {
   const { toast: showToast } = useToast();
   const { user, session } = useAuth();
-  const { clerk } = useClerk();
+  const clerk = useClerk();
   const { organization } = useOrganization();
   const { user: clerkUser } = useUser();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -125,14 +125,14 @@ const PersonalModule = () => {
 
       const { data: inviteData, error } = await supabase.functions.invoke('invite-employee', {
         headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-        },
+          Authorization: `Bearer ${session?.access_token ?? ''}`,
+        } as Record<string, string>,
         body: {
           email: newEmployee.email,
           first_name: newEmployee.firstName,
           last_name: newEmployee.lastName,
-          company_id: profile.company_id
-        }
+          company_id: profile.company_id,
+        },
       });
 
       if (error) {
@@ -143,12 +143,12 @@ const PersonalModule = () => {
 
       if (organization && clerkUser) {
         try {
-          await clerk.organizations.createOrganizationInvitation({
+          await (clerk as any).createOrganizationInvitation({
             organizationId: organization.id,
             inviterUserId: clerkUser.id,
             emailAddress: newEmployee.email,
             role: 'org:employee',
-            redirect_url: 'https://handwerkos.de/mitarbeiter-setup?__clerk_ticket={{ticket}}' // ✅ richtige URL mit Ticket-Platzhalter
+            redirectUrl: 'https://handwerkos.de/mitarbeiter-setup?__clerk_ticket={{ticket}}',
           });
         } catch (clerkErr) {
           console.error('Clerk invitation error:', clerkErr);
@@ -158,15 +158,15 @@ const PersonalModule = () => {
       try {
         const { error: emailError } = await supabase.functions.invoke('send-employee-confirmation', {
           headers: {
-            Authorization: `Bearer ${session?.access_token}`,
-          },
+            Authorization: `Bearer ${session?.access_token ?? ''}`,
+          } as Record<string, string>,
           body: {
             managerEmail: user?.email || '',
             employeeName: `${newEmployee.firstName} ${newEmployee.lastName}`.trim(),
             employeeEmail: newEmployee.email,
             companyName: 'Ihr Unternehmen',
-            registrationUrl: "https://handwerkos.de/mitarbeiter-setup"
-          }
+            registrationUrl: "https://handwerkos.de/mitarbeiter-setup",
+          },
         });
 
         if (emailError) {

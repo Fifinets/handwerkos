@@ -20,9 +20,9 @@ export const createClerkSupabaseClient = (
 ) =>
   createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     global: {
-      fetch: async (url, options = {}) => {
+      fetch: async (url, options: RequestInit = {}) => {
         const token = await getToken({ template: 'supabase' });
-        const headers = new Headers(options?.headers);
+        const headers = new Headers(options.headers);
         if (token) {
           headers.set('Authorization', `Bearer ${token}`);
         }
