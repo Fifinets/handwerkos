@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useHybridAuth } from '@/hooks/useHybridAuth';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +27,7 @@ const Index = () => {
     userRole,
     loading,
     signOut
-  } = useAuth();
+  } = useHybridAuth();
   const navigate = useNavigate();
   const [activeModule, setActiveModule] = useState('dashboard');
 

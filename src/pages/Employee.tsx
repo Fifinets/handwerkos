@@ -17,33 +17,17 @@ import {
   MapPin,
   Navigation
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useHybridAuth } from "@/hooks/useHybridAuth";
 import { toast } from "sonner";
 import LocationBasedTimeTracking from "@/components/LocationBasedTimeTracking";
 import ManagerTimeView from "@/components/ManagerTimeView";
 import { supabase } from "@/integrations/supabase/client";
 
 const Employee = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, userRole: hybridUserRole, loading } = useHybridAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('material');
-  const [userRole, setUserRole] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      if (!user?.id) return;
-      
-      const { data } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single();
-      
-      setUserRole(data?.role || null);
-    };
-
-    fetchUserRole();
-  }, [user?.id]);
+  // Use userRole from hybrid auth instead of local state
 
   const handleSignOut = async () => {
     await signOut();
@@ -98,7 +82,7 @@ const Employee = () => {
   );
 
   const renderTimeForm = () => {
-    if (userRole === 'manager') {
+    if (hybridUserRole === 'manager') {
       return <ManagerTimeView />;
     }
     return <LocationBasedTimeTracking employeeId={user?.id || ''} />;
@@ -173,7 +157,7 @@ const Employee = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              {userRole === 'manager' && (
+              {hybridUserRole === 'manager' && (
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -189,7 +173,7 @@ const Employee = () => {
                   {user?.email}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {userRole === 'manager' ? 'Manager (Mitarbeiter-Ansicht)' : 'Mitarbeiter'}
+                  {hybridUserRole === 'manager' ? 'Manager (Mitarbeiter-Ansicht)' : 'Mitarbeiter'}
                 </p>
               </div>
               <Button variant="outline" onClick={handleSignOut}>

@@ -4,8 +4,9 @@ import { UserCheck, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
-import { useClerk, useOrganization, useUser } from '@clerk/clerk-react';
+import { useHybridAuth } from "@/hooks/useHybridAuth";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RoleManagement } from "./RoleManagement";
 import PersonalStats from "./personal/PersonalStats";
 import EmployeeCard from "./personal/EmployeeCard";
 import AddEmployeeDialog from "./personal/AddEmployeeDialog";
@@ -39,10 +40,7 @@ interface NewEmployee {
 
 const PersonalModule = () => {
   const { toast: showToast } = useToast();
-  const { user, session } = useAuth();
-  const clerk = useClerk();
-  const { organization } = useOrganization();
-  const { user: clerkUser } = useUser();
+  const { user, session, organization, clerkUser, isManager } = useHybridAuth();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -141,19 +139,7 @@ const PersonalModule = () => {
         return;
       }
 
-      if (organization && clerkUser) {
-        try {
-          await (clerk as any).createOrganizationInvitation({
-            organizationId: organization.id,
-            inviterUserId: clerkUser.id,
-            emailAddress: newEmployee.email,
-            role: 'org:employee',
-            redirect_url: 'https://handwerkos.de/mitarbeiter-setup?__clerk_ticket={{ticket}}',
-          });
-        } catch (clerkErr) {
-          console.error('Clerk invitation error:', clerkErr);
-        }
-      }
+      // Clerk invitation is now handled by RoleManagement component
 
       try {
         const { error: emailError } = await supabase.functions.invoke('send-employee-confirmation', {
@@ -241,14 +227,24 @@ const PersonalModule = () => {
           </h2>
           <p className="text-gray-600">Mitarbeiterdaten und Qualifikationen verwalten</p>
         </div>
-        <Button 
-          className="bg-blue-600 hover:bg-blue-700"
-          onClick={() => setIsAddEmployeeOpen(true)}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Mitarbeiter hinzufügen
-        </Button>
       </div>
+
+      <Tabs defaultValue="employees" className="w-full">
+        <TabsList>
+          <TabsTrigger value="employees">Mitarbeiterliste</TabsTrigger>
+          {isManager && <TabsTrigger value="roles">Rollen-Management</TabsTrigger>}
+        </TabsList>
+        
+        <TabsContent value="employees" className="space-y-6">
+          <div className="flex justify-end">
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => setIsAddEmployeeOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Mitarbeiter hinzufügen
+            </Button>
+          </div>
 
       <PersonalStats
         totalEmployees={employees.length}
@@ -282,7 +278,15 @@ const PersonalModule = () => {
         </div>
 
         <PersonalSidebar onQuickAction={handleQuickAction} />
-      </div>
+        </div>
+        </TabsContent>
+        
+        {isManager && (
+          <TabsContent value="roles">
+            <RoleManagement />
+          </TabsContent>
+        )}
+      </Tabs>
 
       <AddEmployeeDialog
         isOpen={isAddEmployeeOpen}
