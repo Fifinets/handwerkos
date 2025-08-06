@@ -28,29 +28,9 @@ const Employee = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('material');
 
-  console.log('=== EMPLOYEE PAGE DEBUG ===');
-  console.log('Current URL:', window.location.href);
-  console.log('User:', user);
-  console.log('UserRole:', userRole);
-  console.log('Loading:', loading);
-
-  // Quick test - show something immediately
-  return (
-    <div className="min-h-screen bg-blue-100 p-8">
-      <h1 className="text-3xl font-bold text-blue-800">EMPLOYEE PAGE LOADED!</h1>
-      <div className="mt-4">
-        <p>URL: {window.location.href}</p>
-        <p>User: {user ? user.email : 'Not logged in'}</p>
-        <p>Role: {userRole || 'No role'}</p>
-        <p>Loading: {loading ? 'Yes' : 'No'}</p>
-      </div>
-    </div>
-  );
-
   // Auth check
   useEffect(() => {
     if (!loading && !user) {
-      console.log('No user found, redirecting to auth');
       navigate('/auth');
     }
   }, [user, loading, navigate]);
