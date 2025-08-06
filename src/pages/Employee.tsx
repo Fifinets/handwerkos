@@ -108,7 +108,7 @@ const Employee = () => {
   );
 
   const renderTimeForm = () => {
-    if (hybridUserRole === 'manager') {
+    if (userRole === 'manager') {
       return <ManagerTimeView />;
     }
     return <LocationBasedTimeTracking employeeId={user?.id || ''} />;
@@ -183,11 +183,11 @@ const Employee = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              {hybridUserRole === 'manager' && (
+              {userRole === 'manager' && (
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate('/manager')}
                 >
                   <Navigation className="h-4 w-4 mr-2" />
                   Zurück zum Manager-Dashboard
@@ -199,7 +199,7 @@ const Employee = () => {
                   {user?.email}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {hybridUserRole === 'manager' ? 'Manager (Mitarbeiter-Ansicht)' : 'Mitarbeiter'}
+                  {userRole === 'manager' ? 'Manager (Mitarbeiter-Ansicht)' : 'Mitarbeiter'}
                 </p>
               </div>
               <Button variant="outline" onClick={handleSignOut}>
