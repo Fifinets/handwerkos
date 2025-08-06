@@ -47,63 +47,60 @@ const Auth: React.FC = () => {
   const [searchParams] = useSearchParams();
 
   // ──────────────────────────────────────────────────────────────
-  // 1) Beim Mount: URL-Hash & SearchParams parsen und Session setzen
+  // 1) Employee invitation token handling
   // ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkEmployeeInvitation = async () => {
       console.log('Current URL:', window.location.href);
-      console.log('Hash:', window.location.hash);
-      console.log('Search:', window.location.search);
+      console.log('Search params:', window.location.search);
       
-      const hashParams = new URLSearchParams(window.location.hash.slice(1));
-      const access_token =
-        hashParams.get('access_token') || searchParams.get('access_token');
-      const refresh_token =
-        hashParams.get('refresh_token') || searchParams.get('refresh_token');
-      const mode =
-        searchParams.get('mode') ||
-        hashParams.get('mode');
+      const mode = searchParams.get('mode');
+      const inviteToken = searchParams.get('token');
 
-      console.log('Auth:initSession →', { access_token, refresh_token, mode });
+      console.log('Auth check:', { mode, inviteToken });
 
-      if (access_token && refresh_token) {
-        supabase.auth
-          .setSession({ access_token, refresh_token })
-          .then(({ data, error }) => {
-            if (error) {
-              console.error('Session konnte nicht gesetzt werden', error);
-              toast.error('Ungültiger oder abgelaufener Invite-Link. Bitte wenden Sie sich an Ihren Manager.');
-              return;
-            }
-            
-            console.log('Session erfolgreich gesetzt:', data.session);
-            
-            // Nur wenn Session erfolgreich gesetzt UND mode=employee-setup
-            if (mode === 'employee-setup' && data.session) {
-              console.log('Employee Setup Mode aktiviert');
-              setIsPasswordSetup(true);
-            }
-            
-            // Hash aus URL entfernen
-            window.history.replaceState(
-              {},
-              document.title,
-              window.location.pathname + window.location.search
-            );
-          });
-      } else if (mode === 'employee-setup') {
-        // Kein Token gefunden aber employee-setup Mode - prüfe ob bereits eingeloggt
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (sessionData.session) {
-          console.log('User bereits eingeloggt, aktiviere Password Setup');
+      if (mode === 'employee-setup' && inviteToken) {
+        console.log('Processing employee invitation token:', inviteToken);
+        
+        try {
+          // Validate invitation token
+          const { data: invitation, error: inviteError } = await supabase
+            .from('employee_invitations')
+            .select('*')
+            .eq('invite_token', inviteToken)
+            .eq('status', 'pending')
+            .single();
+
+          if (inviteError || !invitation) {
+            console.error('Invalid invitation token:', inviteError);
+            toast.error('Ungültiger oder abgelaufener Einladungslink. Bitte wenden Sie sich an Ihren Manager.');
+            return;
+          }
+
+          // Check if token is expired
+          if (new Date(invitation.expires_at) < new Date()) {
+            console.error('Invitation token expired');
+            toast.error('Dieser Einladungslink ist abgelaufen. Bitte fordern Sie eine neue Einladung an.');
+            return;
+          }
+
+          console.log('Valid invitation found:', invitation);
+          setEmail(invitation.email);
           setIsPasswordSetup(true);
-        } else {
-          toast.error('Ungültiger Invite-Link. Bitte verwenden Sie den Link aus der E-Mail.');
+          
+          // Store invitation data for later use
+          (window as any).invitationData = invitation;
+
+        } catch (error) {
+          console.error('Error validating invitation:', error);
+          toast.error('Fehler beim Validieren der Einladung.');
         }
+      } else if (mode === 'employee-setup' && !inviteToken) {
+        toast.error('Fehlender Einladungstoken. Bitte verwenden Sie den vollständigen Link aus der E-Mail.');
       }
     };
 
-    checkAuth();
+    checkEmployeeInvitation();
   }, [searchParams]);
 
   // ──────────────────────────────────────────────────────────────
@@ -116,19 +113,10 @@ const Auth: React.FC = () => {
     try {
       // A) Passwort-Setup für eingeladene Mitarbeiter
       if (isPasswordSetup) {
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        const invitationData = (window as any).invitationData;
         
-        console.log('Password Setup - Session Check:', { 
-          hasSession: !!sessionData.session, 
-          sessionError,
-          userId: sessionData.session?.user?.id 
-        });
-        
-        if (!sessionData.session || sessionError) {
-          console.error('Session fehlt oder ungültig:', sessionError);
-          toast.error(
-            'Ihre Session ist ungültig oder abgelaufen. Bitte verwenden Sie den Link aus der E-Mail erneut.'
-          );
+        if (!invitationData) {
+          toast.error('Einladungsdaten nicht gefunden. Bitte verwenden Sie den Link aus der E-Mail erneut.');
           setIsPasswordSetup(false);
           return;
         }
@@ -142,18 +130,56 @@ const Auth: React.FC = () => {
           return;
         }
 
-        console.log('Attempting password update for user:', sessionData.session.user.id);
+        console.log('Creating account for employee:', invitationData.email);
         
-        const { error } = await updatePassword(password);
-        if (error) {
-          console.error('Fehler beim Setzen des Passworts:', error);
-          toast.error(error.message || 'Fehler beim Erstellen des Passworts');
-          return;
-        }
+        try {
+          // Create Supabase user account
+          const { data: authData, error: signUpError } = await supabase.auth.signUp({
+            email: invitationData.email,
+            password: password,
+            options: {
+              data: {
+                first_name: invitationData.employee_data?.firstName || '',
+                last_name: invitationData.employee_data?.lastName || '',
+                company_id: invitationData.company_id
+              }
+            }
+          });
 
-        console.log('Password update successful');
-        toast.success('Passwort erfolgreich erstellt! Du wirst nun eingeloggt…');
-        setTimeout(() => navigate('/'), 1000);
+          if (signUpError) {
+            console.error('Error creating user account:', signUpError);
+            toast.error(signUpError.message || 'Fehler beim Erstellen des Kontos');
+            return;
+          }
+
+          if (authData.user) {
+            // Mark invitation as accepted
+            await supabase
+              .from('employee_invitations')
+              .update({ status: 'accepted' })
+              .eq('invite_token', invitationData.invite_token);
+
+            // Create user role as employee
+            await supabase
+              .from('user_roles')
+              .insert({
+                user_id: authData.user.id,
+                role: 'employee'
+              });
+
+            console.log('Employee account created successfully');
+            toast.success('Konto erfolgreich erstellt! Sie können sich jetzt anmelden.');
+            
+            // Redirect to login
+            setIsPasswordSetup(false);
+            setIsLogin(true);
+            setPassword('');
+            setConfirmPassword('');
+          }
+        } catch (error) {
+          console.error('Error during employee registration:', error);
+          toast.error('Fehler beim Erstellen des Kontos');
+        }
         return;
       }
 

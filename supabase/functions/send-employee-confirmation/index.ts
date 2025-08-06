@@ -118,7 +118,8 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    // Send registration email to employee
+    // Send registration email to employee  
+    // Note: registrationUrl should already include the token parameter
     const defaultRegistrationUrl =
       Deno.env.get("EMPLOYEE_REGISTRATION_URL") ||
       "https://handwerkos.de/auth?mode=employee-setup";

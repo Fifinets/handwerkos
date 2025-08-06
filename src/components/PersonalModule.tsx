@@ -4,7 +4,7 @@ import { UserCheck, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useHybridAuth } from "@/hooks/useHybridAuth";
+import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 
 import PersonalStats from "./personal/PersonalStats";
 import EmployeeCard from "./personal/EmployeeCard";
@@ -39,7 +39,7 @@ interface NewEmployee {
 
 const PersonalModule = () => {
   const { toast: showToast } = useToast();
-  const { user, session, inviteToOrganization } = useHybridAuth();
+  const { user, session, inviteEmployee } = useSupabaseAuth();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -108,76 +108,26 @@ const PersonalModule = () => {
     setIsAddingEmployee(true);
 
     try {
-      // Invite to Clerk Organization first
-      const inviteResult = await inviteToOrganization(newEmployee.email, 'basic_member');
+      console.log('Creating Supabase employee invitation:', newEmployee);
+
+      // Use pure Supabase invitation
+      const inviteResult = await inviteEmployee(newEmployee.email, {
+        firstName: newEmployee.firstName,
+        lastName: newEmployee.lastName,
+        position: newEmployee.position,
+        phone: newEmployee.phone,
+        license: newEmployee.license,
+        qualifications: newEmployee.qualifications
+      });
       
       if (!inviteResult.success) {
-        console.error('Clerk invitation error:', inviteResult.error);
+        console.error('Supabase invitation error:', inviteResult.error);
         toast.error(`Fehler beim Senden der Einladung: ${inviteResult.error}`);
         return;
       }
 
-      // Get company_id and manager data for employee record
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('company_id, email, first_name, last_name')
-        .eq('id', user?.id)
-        .single();
-
-      if (profileError || !profile?.company_id) {
-        console.error('Error fetching profile:', profileError);
-        toast.error('Konnte Profil-Daten nicht abrufen');
-        return;
-      }
-
-      // Get company name
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .select('name')
-        .eq('id', profile.company_id)
-        .single();
-
-      // Create employee record in Supabase with additional details
-      const { error: employeeError } = await supabase
-        .from('employees')
-        .upsert({
-          email: newEmployee.email,
-          first_name: newEmployee.firstName,
-          last_name: newEmployee.lastName,
-          position: newEmployee.position,
-          phone: newEmployee.phone,
-          company_id: profile.company_id,
-          status: 'eingeladen'
-        });
-
-      if (employeeError) {
-        console.error('Employee creation error:', employeeError);
-        toast.error('Fehler beim Erstellen des Mitarbeiter-Datensatzes');
-        return;
-      }
-
-      // Send custom invitation email via Supabase Edge Function
-      try {
-        const { data, error: emailError } = await supabase.functions.invoke('send-employee-confirmation', {
-          body: {
-            managerEmail: profile.email,
-            employeeName: `${newEmployee.firstName} ${newEmployee.lastName}`,
-            employeeEmail: newEmployee.email,
-            companyName: company?.name || 'Ihrem Unternehmen',
-            registrationUrl: `${window.location.origin}/mitarbeiter-setup`
-          }
-        });
-
-        if (emailError) {
-          console.error('Email sending error:', emailError);
-          toast.error('Mitarbeiter wurde erstellt, aber E-Mail konnte nicht gesendet werden');
-        } else {
-          toast.success('Mitarbeiter erfolgreich eingeladen! Der Mitarbeiter erhält eine E-Mail mit der Einladung.');
-        }
-      } catch (emailError) {
-        console.error('Email function error:', emailError);
-        toast.error('Mitarbeiter wurde erstellt, aber E-Mail konnte nicht gesendet werden');
-      }
+      toast.success(`Mitarbeiter ${newEmployee.firstName} ${newEmployee.lastName} wurde erfolgreich eingeladen! 
+        Eine Einladungs-E-Mail wurde an ${newEmployee.email} gesendet.`);
 
       await fetchEmployees();
       setIsAddEmployeeOpen(false);
