@@ -108,6 +108,16 @@ const PersonalModule = () => {
     setIsAddingEmployee(true);
 
     try {
+      // Invite to Clerk Organization first
+      const inviteResult = await inviteToOrganization(newEmployee.email, 'basic_member');
+      
+      if (!inviteResult.success) {
+        console.error('Clerk invitation error:', inviteResult.error);
+        toast.error(`Fehler beim Senden der Einladung: ${inviteResult.error}`);
+        return;
+      }
+
+      // Get company_id for employee record
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('company_id')
@@ -120,71 +130,26 @@ const PersonalModule = () => {
         return;
       }
 
-      const { data: supabaseInviteData, error } = await supabase.functions.invoke('invite-employee', {
-        headers: {
-          Authorization: `Bearer ${session?.access_token ?? ''}`,
-        } as Record<string, string>,
-        body: {
+      // Create employee record in Supabase with additional details
+      const { error: employeeError } = await supabase
+        .from('employees')
+        .upsert({
           email: newEmployee.email,
           first_name: newEmployee.firstName,
           last_name: newEmployee.lastName,
+          position: newEmployee.position,
+          phone: newEmployee.phone,
           company_id: profile.company_id,
-        },
-      });
+          status: 'eingeladen'
+        });
 
-      if (error) {
-        console.error('Invite error:', error);
-        toast.error(`Fehler beim Erstellen des Mitarbeiters: ${error.message}`);
+      if (employeeError) {
+        console.error('Employee creation error:', employeeError);
+        toast.error('Fehler beim Erstellen des Mitarbeiter-Datensatzes');
         return;
       }
 
-      // Create Supabase auth invitation
-      const { data: authInviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
-        newEmployee.email,
-        {
-          redirectTo: `${window.location.origin}/auth?mode=employee_setup`,
-          data: {
-            first_name: newEmployee.firstName,
-            last_name: newEmployee.lastName,
-            company_id: user?.user_metadata?.company_id
-          }
-        }
-      );
-
-      if (inviteError) {
-        console.error('Supabase invitation error:', inviteError);
-        showToast({
-          title: "Fehler",
-          description: "Einladung konnte nicht versendet werden.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      try {
-        const { error: emailError } = await supabase.functions.invoke('send-employee-confirmation', {
-          headers: {
-            Authorization: `Bearer ${session?.access_token ?? ''}`,
-          } as Record<string, string>,
-          body: {
-            managerEmail: user?.email || '',
-            employeeName: `${newEmployee.firstName} ${newEmployee.lastName}`.trim(),
-            employeeEmail: newEmployee.email,
-            companyName: 'Ihr Unternehmen',
-            registrationUrl: "https://handwerkos.de/mitarbeiter-setup",
-          },
-        });
-
-        if (emailError) {
-          console.error('Email sending error:', emailError);
-        } else {
-          console.log('Confirmation email sent successfully');
-        }
-      } catch (emailErr) {
-        console.error('Email function error:', emailErr);
-      }
-
-      toast.success('Mitarbeiter erfolgreich erstellt! Der Mitarbeiter erhält eine E-Mail zur Bestätigung und Sie erhalten eine Bestätigungsmail.');
+      toast.success('Mitarbeiter erfolgreich eingeladen! Der Mitarbeiter erhält eine E-Mail mit der Einladung.');
       await fetchEmployees();
       setIsAddEmployeeOpen(false);
     } catch (error) {

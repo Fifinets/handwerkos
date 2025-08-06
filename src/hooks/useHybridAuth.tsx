@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { useUser, useOrganization, useOrganizationList } from '@clerk/clerk-react';
+import { useUser, useOrganization, useOrganizationList, useAuth } from '@clerk/clerk-react';
 import type { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, createClerkSupabaseClient } from '@/integrations/supabase/client';
 
 interface HybridAuthContextType {
   // Supabase auth
@@ -39,6 +39,7 @@ export function HybridAuthProvider({ children }: { children: React.ReactNode }) 
   const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
   const { organization, membership } = useOrganization();
   const { userMemberships } = useOrganizationList();
+  const { getToken } = useAuth();
 
   // Derived state
   const organizationRole = membership?.role || null;
@@ -61,38 +62,37 @@ export function HybridAuthProvider({ children }: { children: React.ReactNode }) 
     }
   };
 
-  // Sync Clerk user with Supabase if needed
+  // Create Clerk-authenticated Supabase client
+  const getClerkSupabaseClient = () => createClerkSupabaseClient(getToken);
+
+  // Sync Clerk user with Supabase using proper token flow
   const syncUserWithSupabase = async () => {
-    if (!clerkUser) return;
+    if (!clerkUser || !getToken) return;
 
-    // Check if user exists in Supabase
-    const { data: existingUser } = await supabase.auth.getUser();
-    
-    if (!existingUser.user) {
-      // User not in Supabase, create/sign them in
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: clerkUser.primaryEmailAddress?.emailAddress || '',
-        password: 'clerk-managed-user' // Placeholder, Clerk manages actual auth
-      });
-
-      if (error && error.message.includes('Invalid login credentials')) {
-        // User doesn't exist, create them
-        const { error: signUpError } = await supabase.auth.signUp({
-          email: clerkUser.primaryEmailAddress?.emailAddress || '',
-          password: 'clerk-managed-user',
-          options: {
-            data: {
-              first_name: clerkUser.firstName,
-              last_name: clerkUser.lastName,
-              clerk_user_id: clerkUser.id
-            }
-          }
-        });
-        
-        if (signUpError) {
-          console.error('Failed to create Supabase user:', signUpError);
-        }
+    try {
+      // Get Supabase token from Clerk
+      const token = await getToken({ template: 'supabase' });
+      if (!token) {
+        console.warn('No Supabase token available from Clerk');
+        return;
       }
+
+      // Use Clerk-authenticated client to check user status
+      const clerkSupabase = getClerkSupabaseClient();
+      const { data: userData, error } = await clerkSupabase.auth.getUser();
+      
+      if (error || !userData.user) {
+        console.warn('User not found in Supabase, will be created by trigger');
+        return;
+      }
+
+      // Update session with Clerk token
+      setUser(userData.user);
+      if (userData.user) {
+        fetchUserRole(userData.user.id);
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
     }
   };
 
@@ -137,46 +137,32 @@ export function HybridAuthProvider({ children }: { children: React.ReactNode }) 
 
   const inviteToOrganization = async (email: string, role: string = 'basic_member') => {
     if (!organization || !canInviteMembers) {
-      return { success: false, error: 'No permission to invite members' };
+      return { success: false, error: 'Keine Berechtigung zum Einladen von Mitarbeitern' };
     }
 
     try {
       // Invite via Clerk Organization
-      await organization.inviteMember({
+      const invitation = await organization.inviteMember({
         emailAddress: email,
         role: role
       });
 
-      // Also create employee record in Supabase
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('company_id')
-        .eq('id', user?.id)
-        .single();
-
-      if (profile?.company_id) {
-        await supabase.from('employees').insert({
-          email,
-          first_name: '',
-          last_name: '',
-          company_id: profile.company_id,
-          status: 'eingeladen'
-        });
-      }
-
+      console.log('Clerk invitation sent:', invitation);
       return { success: true };
     } catch (error) {
+      console.error('Clerk invitation failed:', error);
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Failed to invite member' 
+        error: error instanceof Error ? error.message : 'Einladung fehlgeschlagen' 
       };
     }
   };
 
   const updateMemberRole = async (userId: string, role: string) => {
     try {
-      // Update role in Supabase
-      const { error } = await supabase
+      // Use Clerk-authenticated client for role updates
+      const clerkSupabase = getClerkSupabaseClient();
+      const { error } = await clerkSupabase
         .from('user_roles')
         .upsert({ 
           user_id: userId, 
@@ -189,7 +175,7 @@ export function HybridAuthProvider({ children }: { children: React.ReactNode }) 
     } catch (error) {
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Failed to update role' 
+        error: error instanceof Error ? error.message : 'Rolle konnte nicht aktualisiert werden' 
       };
     }
   };

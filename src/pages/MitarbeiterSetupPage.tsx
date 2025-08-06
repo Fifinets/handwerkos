@@ -1,124 +1,177 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { Input } from '@/components/ui/input';
+import { useNavigate } from 'react-router-dom';
+import { useSignUp } from '@clerk/clerk-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 
 const MitarbeiterSetupPage = () => {
-  const [searchParams] = useSearchParams();
-  const access_token = searchParams.get('access_token');
-  const refresh_token = searchParams.get('refresh_token');
+  const { signUp, isLoaded, setActive } = useSignUp();
   const navigate = useNavigate();
-
+  
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isReady, setIsReady] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    if (access_token && refresh_token) {
-      // Set session from tokens
-      supabase.auth.setSession({
-        access_token,
-        refresh_token
-      }).then(({ data, error }) => {
-        if (error) {
-          console.error('Session error:', error);
-          setError('Ungültiger Einladungslink');
-        } else {
-          setIsReady(true);
-        }
-      });
-    } else {
-      setError('Ungültiger Einladungslink - Token fehlen');
+    // Check if we have an invitation token or if user should complete signup
+    if (signUp?.status === 'missing_requirements') {
+      // User was invited and needs to complete their profile
+      if (signUp.emailAddress) {
+        setEmail(signUp.emailAddress);
+      }
     }
-  }, [access_token, refresh_token]);
+  }, [signUp]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (!password || !confirmPassword) {
-      setError('Bitte beide Felder ausfüllen');
-      return;
-    }
 
     if (password !== confirmPassword) {
       setError('Passwörter stimmen nicht überein');
       return;
     }
 
+    if (password.length < 8) {
+      setError('Passwort muss mindestens 8 Zeichen lang sein');
+      return;
+    }
+
+    if (!isLoaded || !signUp) {
+      setError('Registrierung nicht verfügbar');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Update the user's password
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: password
+      // Complete the sign up process
+      const result = await signUp.update({
+        password,
+        firstName,
+        lastName,
       });
 
-      if (updateError) {
-        throw updateError;
+      if (result.status === 'complete') {
+        // Set the active session
+        await setActive({ session: result.createdSessionId });
+        toast.success('Konto erfolgreich erstellt!');
+        navigate('/employee');
+      } else {
+        // Handle other statuses if needed
+        console.log('Sign up status:', result.status);
+        setError('Registrierung konnte nicht abgeschlossen werden');
       }
-
-      toast.success('Passwort erfolgreich gesetzt');
-      navigate('/employee');
     } catch (err: any) {
-      console.error('Password update error:', err);
-      setError('Passwort konnte nicht gesetzt werden');
+      console.error('Sign up error:', err);
+      setError(err.errors?.[0]?.message || 'Registrierung fehlgeschlagen');
+    } finally {
       setLoading(false);
     }
   };
 
-  if (!isReady) {
+  if (!isLoaded) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        Mitarbeiter-Setup wird geladen...
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500">Lädt...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-50 px-4">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-md bg-white shadow-lg rounded-xl p-6 space-y-5"
-      >
-        <h1 className="text-2xl font-bold text-center text-blue-600">Passwort festlegen</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold">Willkommen im Team!</CardTitle>
+          <CardDescription>
+            Vervollständigen Sie Ihr Profil, um loszulegen
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">Vorname</Label>
+                <Input
+                  id="firstName"
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Nachname</Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">Passwort</label>
-          <Input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Neues Passwort eingeben"
-          />
-        </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">E-Mail</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled
+                className="bg-gray-50"
+              />
+            </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">Passwort bestätigen</label>
-          <Input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="Passwort wiederholen"
-          />
-        </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Passwort</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+              />
+            </div>
 
-        {error && (
-          <div className="text-red-500 text-sm text-center">{error}</div>
-        )}
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Passwort bestätigen</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={8}
+              />
+            </div>
 
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={loading}
-        >
-          {loading ? 'Wird erstellt...' : 'Konto aktivieren'}
-        </Button>
-      </form>
+            {error && (
+              <div className="text-red-600 text-sm bg-red-50 p-3 rounded-md">
+                {error}
+              </div>
+            )}
+
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={loading}
+            >
+              {loading ? 'Wird erstellt...' : 'Konto erstellen'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 };
