@@ -5,8 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useHybridAuth } from "@/hooks/useHybridAuth";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RoleManagement } from "./RoleManagement";
+
 import PersonalStats from "./personal/PersonalStats";
 import EmployeeCard from "./personal/EmployeeCard";
 import AddEmployeeDialog from "./personal/AddEmployeeDialog";
@@ -40,7 +39,7 @@ interface NewEmployee {
 
 const PersonalModule = () => {
   const { toast: showToast } = useToast();
-  const { user, session, organization, clerkUser, isManager } = useHybridAuth();
+  const { user, session, inviteToOrganization } = useHybridAuth();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -139,7 +138,13 @@ const PersonalModule = () => {
         return;
       }
 
-      // Clerk invitation is now handled by RoleManagement component
+      // Invite to Clerk Organization
+      const clerkResult = await inviteToOrganization(newEmployee.email, 'basic_member');
+      
+      if (!clerkResult.success) {
+        console.error('Clerk invitation error:', clerkResult.error);
+        // Continue with Supabase-only flow if Clerk fails
+      }
 
       try {
         const { error: emailError } = await supabase.functions.invoke('send-employee-confirmation', {
@@ -229,13 +234,7 @@ const PersonalModule = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="employees" className="w-full">
-        <TabsList>
-          <TabsTrigger value="employees">Mitarbeiterliste</TabsTrigger>
-          {isManager && <TabsTrigger value="roles">Rollen-Management</TabsTrigger>}
-        </TabsList>
-        
-        <TabsContent value="employees" className="space-y-6">
+      <div className="space-y-6">
           <div className="flex justify-end">
             <Button 
               className="bg-blue-600 hover:bg-blue-700"
@@ -279,14 +278,7 @@ const PersonalModule = () => {
 
         <PersonalSidebar onQuickAction={handleQuickAction} />
         </div>
-        </TabsContent>
-        
-        {isManager && (
-          <TabsContent value="roles">
-            <RoleManagement />
-          </TabsContent>
-        )}
-      </Tabs>
+      </div>
 
       <AddEmployeeDialog
         isOpen={isAddEmployeeOpen}
