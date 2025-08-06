@@ -27,7 +27,39 @@ const Employee = () => {
   const { user, signOut, userRole, loading } = useSupabaseAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('material');
-  // Use userRole from hybrid auth instead of local state
+
+  console.log('=== EMPLOYEE PAGE DEBUG ===');
+  console.log('User:', user);
+  console.log('UserRole:', userRole);
+  console.log('Loading:', loading);
+
+  // Auth check
+  useEffect(() => {
+    if (!loading && !user) {
+      console.log('No user found, redirecting to auth');
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500">Wird geladen...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500">Nicht angemeldet. Weiterleitung...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSignOut = async () => {
     await signOut();
