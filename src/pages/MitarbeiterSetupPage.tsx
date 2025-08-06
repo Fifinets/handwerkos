@@ -1,17 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useSignIn, useSignUp, useClerk } from '@clerk/clerk-react';
+import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 const MitarbeiterSetupPage = () => {
   const [searchParams] = useSearchParams();
-  const ticket = searchParams.get('__clerk_ticket');
+  const access_token = searchParams.get('access_token');
+  const refresh_token = searchParams.get('refresh_token');
   const navigate = useNavigate();
-
-  const { isLoaded: signUpLoaded, signUp } = useSignUp();
-  const { isLoaded: signInLoaded, signIn } = useSignIn();
-  const clerk = useClerk();
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -20,10 +18,23 @@ const MitarbeiterSetupPage = () => {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    if (ticket && signUpLoaded && signInLoaded) {
-      setIsReady(true);
+    if (access_token && refresh_token) {
+      // Set session from tokens
+      supabase.auth.setSession({
+        access_token,
+        refresh_token
+      }).then(({ data, error }) => {
+        if (error) {
+          console.error('Session error:', error);
+          setError('Ungültiger Einladungslink');
+        } else {
+          setIsReady(true);
+        }
+      });
+    } else {
+      setError('Ungültiger Einladungslink - Token fehlen');
     }
-  }, [ticket, signUpLoaded, signInLoaded]);
+  }, [access_token, refresh_token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,23 +53,22 @@ const MitarbeiterSetupPage = () => {
     setLoading(true);
 
     try {
-      await signUp.create({ strategy: 'ticket', ticket: ticket as string });
-      await signUp.update({ password });
-      await clerk.setActive({ session: signUp.createdSessionId as string });
-    } catch {
-      try {
-        await signIn.create({ strategy: 'ticket', ticket: ticket as string });
-        await signIn.attemptFirstFactor({ strategy: 'password', password });
-        await clerk.setActive({ session: signIn.createdSessionId as string });
-      } catch (err) {
-        setError('Registrierung fehlgeschlagen');
-        console.error(err);
-        setLoading(false);
-        return;
-      }
-    }
+      // Update the user's password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: password
+      });
 
-    navigate('/employee');
+      if (updateError) {
+        throw updateError;
+      }
+
+      toast.success('Passwort erfolgreich gesetzt');
+      navigate('/employee');
+    } catch (err: any) {
+      console.error('Password update error:', err);
+      setError('Passwort konnte nicht gesetzt werden');
+      setLoading(false);
+    }
   };
 
   if (!isReady) {

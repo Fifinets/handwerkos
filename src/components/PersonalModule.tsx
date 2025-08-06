@@ -120,7 +120,7 @@ const PersonalModule = () => {
         return;
       }
 
-      const { data: inviteData, error } = await supabase.functions.invoke('invite-employee', {
+      const { data: supabaseInviteData, error } = await supabase.functions.invoke('invite-employee', {
         headers: {
           Authorization: `Bearer ${session?.access_token ?? ''}`,
         } as Record<string, string>,
@@ -138,12 +138,27 @@ const PersonalModule = () => {
         return;
       }
 
-      // Invite to Clerk Organization
-      const clerkResult = await inviteToOrganization(newEmployee.email, 'basic_member');
-      
-      if (!clerkResult.success) {
-        console.error('Clerk invitation error:', clerkResult.error);
-        // Continue with Supabase-only flow if Clerk fails
+      // Create Supabase auth invitation
+      const { data: authInviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
+        newEmployee.email,
+        {
+          redirectTo: `${window.location.origin}/auth?mode=employee_setup`,
+          data: {
+            first_name: newEmployee.firstName,
+            last_name: newEmployee.lastName,
+            company_id: user?.user_metadata?.company_id
+          }
+        }
+      );
+
+      if (inviteError) {
+        console.error('Supabase invitation error:', inviteError);
+        showToast({
+          title: "Fehler",
+          description: "Einladung konnte nicht versendet werden.",
+          variant: "destructive",
+        });
+        return;
       }
 
       try {
