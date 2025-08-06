@@ -17,14 +17,14 @@ import {
   MapPin,
   Navigation
 } from "lucide-react";
-import { useHybridAuth } from "@/hooks/useHybridAuth";
+import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { toast } from "sonner";
 import LocationBasedTimeTracking from "@/components/LocationBasedTimeTracking";
 import ManagerTimeView from "@/components/ManagerTimeView";
 import { supabase } from "@/integrations/supabase/client";
 
 const Employee = () => {
-  const { user, signOut, userRole: hybridUserRole, loading } = useHybridAuth();
+  const { user, signOut, userRole, loading } = useSupabaseAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('material');
   // Use userRole from hybrid auth instead of local state

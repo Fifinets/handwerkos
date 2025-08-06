@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useHybridAuth } from '@/hooks/useHybridAuth';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +27,7 @@ interface UserRole {
 }
 
 export function RoleManagement() {
-  const { organization, canInviteMembers, inviteToOrganization, updateMemberRole, user } = useHybridAuth();
+  const { organization, canInviteMembers, inviteToOrganization, updateMemberRole, user } = useSupabaseAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [inviteEmail, setInviteEmail] = useState('');

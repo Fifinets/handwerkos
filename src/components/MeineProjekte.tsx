@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useAuth, SignInButton } from '@clerk/clerk-react'
-import { createClerkSupabaseClient } from '@/integrations/supabase/client'
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
+import { supabase } from '@/integrations/supabase/client'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 interface Project {
@@ -10,30 +10,29 @@ interface Project {
 }
 
 export const MeineProjekte = () => {
-  const { isLoaded, userId, getToken } = useAuth()
-  const supabase = useMemo(() => createClerkSupabaseClient(getToken), [getToken]) as SupabaseClient
+  const { user, loading } = useSupabaseAuth()
   const [projects, setProjects] = useState<Project[]>([])
 
   useEffect(() => {
-    if (!userId) return
+    if (!user?.id) return
     const load = async () => {
       const { data, error } = await supabase
         .from('projects')
         .select('id, name, description')
-        .eq('profile_id', userId)
+        .eq('profile_id', user.id)
       if (!error && data) {
         setProjects(data as Project[])
       }
     }
     load()
-  }, [userId, supabase])
+  }, [user?.id])
 
-  if (!isLoaded) {
+  if (loading) {
     return <div>Laden...</div>
   }
 
-  if (!userId) {
-    return <SignInButton />
+  if (!user) {
+    return <div>Bitte anmelden</div>
   }
 
   return (
