@@ -190,7 +190,7 @@ const Auth: React.FC = () => {
           toast.error(error.message);
         } else {
           toast.success('Erfolgreich angemeldet!');
-          navigate('/');
+          navigate('/manager');
         }
         return;
       }
