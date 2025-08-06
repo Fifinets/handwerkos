@@ -154,7 +154,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       }
 
       // Send invitation email via Edge Function
-      const registrationUrl = `${window.location.origin}/auth?mode=employee-setup&token=${inviteToken}`;
+      const registrationUrl = `${window.location.origin}/mitarbeiter-setup?token=${inviteToken}`;
       
       const { data: profile } = await supabase
         .from('profiles')
