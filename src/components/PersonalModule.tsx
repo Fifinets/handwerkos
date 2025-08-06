@@ -117,18 +117,25 @@ const PersonalModule = () => {
         return;
       }
 
-      // Get company_id for employee record
+      // Get company_id and manager data for employee record
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('company_id')
+        .select('company_id, email, first_name, last_name')
         .eq('id', user?.id)
         .single();
 
       if (profileError || !profile?.company_id) {
-        console.error('Error fetching company_id:', profileError);
-        toast.error('Konnte Unternehmens-ID nicht abrufen');
+        console.error('Error fetching profile:', profileError);
+        toast.error('Konnte Profil-Daten nicht abrufen');
         return;
       }
+
+      // Get company name
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .select('name')
+        .eq('id', profile.company_id)
+        .single();
 
       // Create employee record in Supabase with additional details
       const { error: employeeError } = await supabase
@@ -149,7 +156,29 @@ const PersonalModule = () => {
         return;
       }
 
-      toast.success('Mitarbeiter erfolgreich eingeladen! Der Mitarbeiter erhält eine E-Mail mit der Einladung.');
+      // Send custom invitation email via Supabase Edge Function
+      try {
+        const { data, error: emailError } = await supabase.functions.invoke('send-employee-confirmation', {
+          body: {
+            managerEmail: profile.email,
+            employeeName: `${newEmployee.firstName} ${newEmployee.lastName}`,
+            employeeEmail: newEmployee.email,
+            companyName: company?.name || 'Ihrem Unternehmen',
+            registrationUrl: `${window.location.origin}/mitarbeiter-setup`
+          }
+        });
+
+        if (emailError) {
+          console.error('Email sending error:', emailError);
+          toast.error('Mitarbeiter wurde erstellt, aber E-Mail konnte nicht gesendet werden');
+        } else {
+          toast.success('Mitarbeiter erfolgreich eingeladen! Der Mitarbeiter erhält eine E-Mail mit der Einladung.');
+        }
+      } catch (emailError) {
+        console.error('Email function error:', emailError);
+        toast.error('Mitarbeiter wurde erstellt, aber E-Mail konnte nicht gesendet werden');
+      }
+
       await fetchEmployees();
       setIsAddEmployeeOpen(false);
     } catch (error) {
