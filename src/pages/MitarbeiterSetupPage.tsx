@@ -24,14 +24,27 @@ const MitarbeiterSetupPage = () => {
     const validateInvitation = async () => {
       const token = searchParams.get('token');
       
+      console.log('=== DEBUGGING TOKEN VALIDATION ===');
+      console.log('URL:', window.location.href);
+      console.log('Token from URL:', token);
+      
       if (!token) {
+        console.error('No token found in URL');
         toast.error('Fehlender Einladungstoken. Bitte verwenden Sie den vollständigen Link aus der E-Mail.');
         return;
       }
 
-      console.log('Validating invitation token:', token);
-      
       try {
+        console.log('Attempting to validate token:', token);
+        
+        // First, let's check if the table exists and what's in it
+        const { data: allInvitations, error: listError } = await supabase
+          .from('employee_invitations')
+          .select('*');
+          
+        console.log('All invitations in DB:', allInvitations);
+        console.log('List error:', listError);
+        
         // Validate invitation token
         const { data: invitation, error: inviteError } = await supabase
           .from('employee_invitations')
@@ -40,28 +53,48 @@ const MitarbeiterSetupPage = () => {
           .eq('status', 'pending')
           .single();
 
-        if (inviteError || !invitation) {
-          console.error('Invalid invitation token:', inviteError);
-          toast.error('Ungültiger oder abgelaufener Einladungslink. Bitte wenden Sie sich an Ihren Manager.');
+        console.log('Query result:', { invitation, inviteError });
+
+        if (inviteError) {
+          console.error('Database error:', inviteError);
+          if (inviteError.code === 'PGRST116') {
+            toast.error('Einladung nicht gefunden. Möglicherweise wurde sie bereits verwendet oder ist abgelaufen.');
+          } else {
+            toast.error(`Datenbankfehler: ${inviteError.message}`);
+          }
+          return;
+        }
+
+        if (!invitation) {
+          console.error('No invitation found for token');
+          toast.error('Ungültiger Einladungslink. Bitte wenden Sie sich an Ihren Manager.');
           return;
         }
 
         // Check if token is expired
-        if (new Date(invitation.expires_at) < new Date()) {
+        const expiryDate = new Date(invitation.expires_at);
+        const now = new Date();
+        console.log('Token expires:', expiryDate);
+        console.log('Current time:', now);
+        console.log('Is expired:', expiryDate < now);
+        
+        if (expiryDate < now) {
           console.error('Invitation token expired');
           toast.error('Dieser Einladungslink ist abgelaufen. Bitte fordern Sie eine neue Einladung an.');
           return;
         }
 
         console.log('Valid invitation found:', invitation);
+        console.log('Employee data:', invitation.employee_data);
+        
         setEmail(invitation.email);
         setFirstName(invitation.employee_data?.firstName || '');
         setLastName(invitation.employee_data?.lastName || '');
         setInvitationData(invitation);
         
       } catch (error) {
-        console.error('Error validating invitation:', error);
-        toast.error('Fehler beim Validieren der Einladung.');
+        console.error('Exception during validation:', error);
+        toast.error(`Fehler beim Validieren der Einladung: ${error.message}`);
       }
     };
 
