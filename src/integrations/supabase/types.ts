@@ -681,6 +681,71 @@ export type Database = {
           },
         ]
       }
+      employee_invitations: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          email: string
+          employee_data: Json | null
+          expires_at: string
+          first_name: string
+          id: string
+          invite_token: string
+          invited_by: string
+          last_name: string
+          license: string | null
+          phone: string | null
+          position: string | null
+          qualifications: string[] | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          email: string
+          employee_data?: Json | null
+          expires_at: string
+          first_name: string
+          id?: string
+          invite_token: string
+          invited_by: string
+          last_name: string
+          license?: string | null
+          phone?: string | null
+          position?: string | null
+          qualifications?: string[] | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          email?: string
+          employee_data?: Json | null
+          expires_at?: string
+          first_name?: string
+          id?: string
+          invite_token?: string
+          invited_by?: string
+          last_name?: string
+          license?: string | null
+          phone?: string | null
+          position?: string | null
+          qualifications?: string[] | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_invitations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           company_id: string | null
@@ -693,8 +758,10 @@ export type Database = {
           hourly_rate: number | null
           id: string
           last_name: string
+          license: string | null
           phone: string | null
           position: string | null
+          qualifications: string[] | null
           status: string
           updated_at: string
           user_id: string | null
@@ -710,8 +777,10 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           last_name: string
+          license?: string | null
           phone?: string | null
           position?: string | null
+          qualifications?: string[] | null
           status?: string
           updated_at?: string
           user_id?: string | null
@@ -727,8 +796,10 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           last_name?: string
+          license?: string | null
           phone?: string | null
           position?: string | null
+          qualifications?: string[] | null
           status?: string
           updated_at?: string
           user_id?: string | null
