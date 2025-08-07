@@ -38,9 +38,11 @@ import { EmailSync } from "./emails/EmailSync";
 import { EmailReplyDialog } from "./emails/EmailReplyDialog";
 import { EmailActionButtons } from "./emails/EmailActionButtons";
 import { CustomerProjectDialog } from "./emails/CustomerProjectDialog";
+import { EmailContentRenderer } from "./emails/EmailContentRenderer";
 import { useGmailConnection } from "@/hooks/useGmailConnection";
 import { cleanEmailContent } from "@/utils/emailContentCleaner";
 import { cleanContentForUtf8, validateEmailContent } from "@/utils/emailEncoding";
+import { parseEmailContent, shouldDisplayAsHtml, sanitizeHtmlContent, getPreferredContentType } from "@/utils/emailMimeParser";
 import "@/styles/email-content.css";
 
 interface Email {
@@ -202,6 +204,7 @@ export function EmailModule() {
   const [showReplyDialog, setShowReplyDialog] = useState(false);
   const [showCustomerProjectDialog, setShowCustomerProjectDialog] = useState(false);
   const [companyEmail, setCompanyEmail] = useState<string>("");
+  const [displayMode, setDisplayMode] = useState<'html' | 'text'>(getPreferredContentType());
   const { toast } = useToast();
   const { isGmailConnected, connectGmail, isConnecting } = useGmailConnection();
 
@@ -788,26 +791,7 @@ export function EmailModule() {
                 </div>
                 
                 <ScrollArea className="flex-1 p-4">
-                  <div 
-                    className="text-sm leading-relaxed max-w-none email-content"
-                    dangerouslySetInnerHTML={{ 
-                      __html: cleanEmailContent(
-                        cleanContentForUtf8(selectedEmail.content), 
-                        {
-                          removeDecorations: true,
-                          fixImages: true,
-                          preserveFormatting: true,
-                          addPhoneLinks: true
-                        }
-                      )
-                    }}
-                    style={{
-                      wordWrap: 'break-word',
-                      overflowWrap: 'break-word',
-                      lineHeight: '1.6',
-                      color: '#374151'
-                    }}
-                  />
+                  <EmailContentRenderer content={selectedEmail.content} />
                 </ScrollArea>
               </div>
               
