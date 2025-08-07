@@ -84,6 +84,55 @@ const iconMap = {
   Mail,
 };
 
+// Function to properly format email content
+const formatEmailContent = (content: string): string => {
+  if (!content) return '';
+  
+  // Check if content is already HTML
+  const isHTML = /<[a-z][\s\S]*>/i.test(content);
+  
+  if (isHTML) {
+    // Clean and sanitize HTML content
+    return content
+      // Fix encoding issues
+      .replace(/&auml;/g, 'ä')
+      .replace(/&ouml;/g, 'ö')
+      .replace(/&uuml;/g, 'ü')
+      .replace(/&Auml;/g, 'Ä')
+      .replace(/&Ouml;/g, 'Ö')
+      .replace(/&Uuml;/g, 'Ü')
+      .replace(/&szlig;/g, 'ß')
+      .replace(/&euro;/g, '€')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      // Ensure images are responsive
+      .replace(/<img([^>]*?)>/g, '<img$1 style="max-width: 100%; height: auto; border-radius: 4px; margin: 8px 0;">')
+      // Style links
+      .replace(/<a([^>]*?)>/g, '<a$1 style="color: #2563eb; text-decoration: underline;">');
+  } else {
+    // Convert plain text to HTML with proper formatting
+    return content
+      // Fix encoding issues in plain text
+      .replace(/Ã¤/g, 'ä')
+      .replace(/Ã¶/g, 'ö')
+      .replace(/Ã¼/g, 'ü')
+      .replace(/Ã„/g, 'Ä')
+      .replace(/Ã–/g, 'Ö')
+      .replace(/Ãœ/g, 'Ü')
+      .replace(/ÃŸ/g, 'ß')
+      .replace(/â‚¬/g, '€')
+      // Convert line breaks to HTML
+      .replace(/\r\n|\r|\n/g, '<br>')
+      // Convert URLs to links
+      .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color: #2563eb; text-decoration: underline;" target="_blank" rel="noopener">$1</a>')
+      // Convert email addresses to links
+      .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" style="color: #2563eb; text-decoration: underline;">$1</a>');
+  }
+};
+
 export function EmailModule() {
   const [emails, setEmails] = useState<Email[]>([]);
   const [categories, setCategories] = useState<EmailCategory[]>([]);
@@ -683,7 +732,16 @@ export function EmailModule() {
                 </div>
                 
                 <ScrollArea className="flex-1 p-4">
-                  <div className="whitespace-pre-wrap text-sm">{selectedEmail.content}</div>
+                  <div 
+                    className="text-sm leading-relaxed max-w-none email-content"
+                    dangerouslySetInnerHTML={{ 
+                      __html: formatEmailContent(selectedEmail.content) 
+                    }}
+                    style={{
+                      wordWrap: 'break-word',
+                      overflowWrap: 'break-word'
+                    }}
+                  />
                 </ScrollArea>
               </div>
               
