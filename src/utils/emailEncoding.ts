@@ -213,33 +213,71 @@ export function validateEmailContent(content: string): {
   issues: string[];
   suggestions: string[];
 } {
+  if (!content) {
+    return { isValid: true, issues: [], suggestions: [] };
+  }
+
   const issues: string[] = [];
   const suggestions: string[] = [];
   
-  // Check for broken UTF-8 sequences
-  if (/[âÍÂ­Â]/.test(content)) {
+  // Check for broken UTF-8 sequences (more comprehensive)
+  const brokenUtf8Patterns = [
+    /âÍ/g,           // Broken decorative characters
+    /Â­/g,           // Broken soft hyphens  
+    /Â /g,           // Broken non-breaking spaces
+    /Ã[¤¶¼„–œŸ]/g,  // Double-encoded German characters
+    /â€[™œ"]/g,      // Broken smart quotes
+    /â€[""]/g,       // Broken dashes
+    /Â(?![A-Za-z])/g // Stray UTF-8 artifacts
+  ];
+  
+  let hasBrokenUtf8 = false;
+  for (const pattern of brokenUtf8Patterns) {
+    if (pattern.test(content)) {
+      hasBrokenUtf8 = true;
+      break;
+    }
+  }
+  
+  if (hasBrokenUtf8) {
     issues.push('Broken UTF-8 sequences detected');
-    suggestions.push('Run cleanContentForUtf8() to fix encoding issues');
+    suggestions.push('Content will be automatically cleaned during display');
   }
   
-  // Check for smart quotes that might cause issues
+  // Check for smart quotes that might cause issues (but don't flag as critical)
   if (/[""'']/g.test(content)) {
-    issues.push('Smart quotes detected');
-    suggestions.push('Consider replacing with standard quotes for better compatibility');
+    // Only add as suggestion, not as issue
+    suggestions.push('Smart quotes found - will be normalized for better compatibility');
   }
   
-  // Check for emojis (might not display in all clients)
+  // Check for emojis (informational only)
   if (/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu.test(content)) {
-    issues.push('Emojis detected');
-    suggestions.push('Consider using text alternatives for better email client compatibility');
+    suggestions.push('Emojis detected - may not display in all email clients');
   }
   
-  // Check for very long lines (email clients may wrap awkwardly)
+  // Check for very long lines (informational, will be auto-fixed)
   const lines = content.split('\n');
   const longLines = lines.filter(line => line.length > 78);
   if (longLines.length > 0) {
     issues.push(`${longLines.length} lines longer than 78 characters`);
-    suggestions.push('Consider breaking long lines for better email formatting');
+    suggestions.push('Long lines will be automatically wrapped for better email formatting');
+  }
+  
+  // Check for suspicious HTML patterns that might not render well
+  if (/<style\s*>/i.test(content)) {
+    issues.push('External CSS styles detected');
+    suggestions.push('Email clients may ignore <style> tags - inline styles recommended');
+  }
+  
+  if (/<script\s*>/i.test(content)) {
+    issues.push('JavaScript detected');
+    suggestions.push('JavaScript will be removed for security - use static content only');
+  }
+  
+  // Check for relative URLs
+  if (/(?:src|href)\s*=\s*["'][^"']*(?:^(?!https?:\/\/|mailto:|tel:))[^"']*["']/i.test(content)) {
+    issues.push('Relative URLs detected');
+    suggestions.push('Use absolute URLs for better email client compatibility');
   }
   
   return {
@@ -247,4 +285,102 @@ export function validateEmailContent(content: string): {
     issues,
     suggestions
   };
+}
+
+/**
+ * Auto-fix common email content issues
+ */
+export function autoFixEmailContent(content: string): {
+  fixedContent: string;
+  appliedFixes: string[];
+} {
+  if (!content) {
+    return { fixedContent: '', appliedFixes: [] };
+  }
+
+  const appliedFixes: string[] = [];
+  let fixedContent = content;
+  
+  // Fix broken UTF-8 sequences
+  const originalLength = fixedContent.length;
+  fixedContent = cleanContentForUtf8(fixedContent);
+  if (fixedContent.length !== originalLength || 
+      !/[âÍÂ­Â]/.test(fixedContent)) {
+    appliedFixes.push('Fixed broken UTF-8 encoding sequences');
+  }
+  
+  // Break long lines
+  const lines = fixedContent.split('\n');
+  const longLinesCount = lines.filter(line => line.length > 78).length;
+  if (longLinesCount > 0) {
+    fixedContent = breakLongLines(fixedContent);
+    appliedFixes.push(`Wrapped ${longLinesCount} long lines for better formatting`);
+  }
+  
+  // Remove dangerous HTML elements
+  const originalHtml = fixedContent;
+  fixedContent = fixedContent
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<object[^>]*>[\s\S]*?<\/object>/gi, '')
+    .replace(/<embed[^>]*>/gi, '')
+    .replace(/javascript:/gi, '');
+    
+  if (originalHtml !== fixedContent) {
+    appliedFixes.push('Removed potentially unsafe HTML elements');
+  }
+  
+  // Normalize whitespace
+  const beforeWhitespace = fixedContent;
+  fixedContent = fixedContent
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+    
+  if (beforeWhitespace !== fixedContent) {
+    appliedFixes.push('Normalized whitespace and line breaks');
+  }
+  
+  return { fixedContent, appliedFixes };
+}
+
+/**
+ * Break long lines in content while preserving structure
+ */
+function breakLongLines(content: string, maxLength: number = 78): string {
+  const lines = content.split('\n');
+  const brokenLines: string[] = [];
+  
+  for (const line of lines) {
+    if (line.length <= maxLength) {
+      brokenLines.push(line);
+    } else {
+      // Check if line is HTML tag or contains HTML
+      if (/<[^>]+>/.test(line)) {
+        // For HTML lines, be more careful about breaking
+        brokenLines.push(line); // Keep HTML lines intact for now
+      } else {
+        // Break plain text lines at word boundaries
+        const words = line.split(' ');
+        let currentLine = '';
+        
+        for (const word of words) {
+          if (currentLine.length + word.length + 1 <= maxLength) {
+            currentLine += (currentLine ? ' ' : '') + word;
+          } else {
+            if (currentLine) {
+              brokenLines.push(currentLine);
+            }
+            currentLine = word;
+          }
+        }
+        
+        if (currentLine) {
+          brokenLines.push(currentLine);
+        }
+      }
+    }
+  }
+  
+  return brokenLines.join('\n');
 }

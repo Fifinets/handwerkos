@@ -30,16 +30,234 @@ export interface EmailHeaders {
 }
 
 /**
- * Parse email content and extract HTML/text parts
+ * Parse email content and extract HTML/text parts with preprocessing
  */
 export function parseEmailContent(rawContent: string): ParsedEmailContent {
-  const headers = parseEmailHeaders(rawContent);
+  // Preprocess content to fix common issues
+  const preprocessedContent = preprocessEmailContent(rawContent);
+  const headers = parseEmailHeaders(preprocessedContent);
+  
+  let result: ParsedEmailContent;
   
   if (headers.multipart && headers.boundary) {
-    return parseMultipartEmail(rawContent, headers);
+    result = parseMultipartEmail(preprocessedContent, headers);
   } else {
-    return parseSinglePartEmail(rawContent, headers);
+    result = parseSinglePartEmail(preprocessedContent, headers);
   }
+  
+  // Post-process all content parts
+  return postProcessParsedContent(result);
+}
+
+/**
+ * Preprocess email content to fix common issues before parsing
+ */
+function preprocessEmailContent(content: string): string {
+  if (!content) return '';
+  
+  return content
+    // Fix line ending issues
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    
+    // Fix common encoding issues early
+    .replace(/â‚¬/g, '€')
+    .replace(/Ã¤/g, 'ä')
+    .replace(/Ã¶/g, 'ö')
+    .replace(/Ã¼/g, 'ü')
+    .replace(/Ã„/g, 'Ä')
+    .replace(/Ã–/g, 'Ö')
+    .replace(/Ãœ/g, 'Ü')
+    .replace(/ÃŸ/g, 'ß')
+    
+    // Remove broken decorative sequences
+    .replace(/âÍ+/g, '')
+    .replace(/Â­+/g, '')
+    .replace(/Â +/g, ' ')
+    .replace(/Â/g, '')
+    
+    // Fix smart quotes and dashes
+    .replace(/â€™/g, "'")
+    .replace(/â€œ/g, '"')
+    .replace(/â€/g, '"')
+    .replace(/â€"/g, '—')
+    .replace(/â€"/g, '–')
+    
+    // Clean up excessive whitespace
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/**
+ * Post-process parsed content to ensure quality
+ */
+function postProcessParsedContent(parsed: ParsedEmailContent): ParsedEmailContent {
+  // Clean and format HTML content
+  if (parsed.htmlContent) {
+    parsed.htmlContent = cleanAndFormatContent(parsed.htmlContent);
+  }
+  
+  // Clean and format plain text content
+  if (parsed.plainTextContent) {
+    parsed.plainTextContent = cleanAndFormatContent(parsed.plainTextContent);
+  }
+  
+  // Update preferred content
+  if (parsed.htmlContent && shouldPreferHtml(parsed.htmlContent)) {
+    parsed.preferredContent = parsed.htmlContent;
+    parsed.contentType = 'html';
+  } else if (parsed.plainTextContent) {
+    parsed.preferredContent = parsed.plainTextContent;
+    parsed.contentType = 'text';
+  } else {
+    parsed.preferredContent = cleanAndFormatContent(parsed.preferredContent);
+  }
+  
+  return parsed;
+}
+
+/**
+ * Clean and format content with line breaking and encoding fixes
+ */
+function cleanAndFormatContent(content: string): string {
+  if (!content) return '';
+  
+  let cleaned = content
+    // Final encoding cleanup
+    .replace(/â‚¬/g, '€').replace(/Ã¤/g, 'ä').replace(/Ã¶/g, 'ö').replace(/Ã¼/g, 'ü')
+    .replace(/Ã„/g, 'Ä').replace(/Ã–/g, 'Ö').replace(/Ãœ/g, 'Ü').replace(/ÃŸ/g, 'ß')
+    .replace(/â€™/g, "'").replace(/â€œ/g, '"').replace(/â€/g, '"')
+    .replace(/â€"/g, '—').replace(/â€"/g, '–')
+    .replace(/âÍ+/g, '').replace(/Â­+/g, '').replace(/Â +/g, ' ').replace(/Â/g, '')
+    
+    // Normalize whitespace
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n[ \t]+/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n');
+  
+  // Break long lines for better email formatting
+  cleaned = breakLongLines(cleaned);
+  
+  return cleaned.trim();
+}
+
+/**
+ * Break long lines for better email client compatibility
+ */
+function breakLongLines(content: string, maxLength: number = 78): string {
+  if (!content) return '';
+  
+  // Check if content is HTML (don't break HTML tags)
+  const isHTML = /<[a-z][\s\S]*>/i.test(content);
+  
+  if (isHTML) {
+    return breakHtmlLines(content, maxLength);
+  } else {
+    return breakPlainTextLines(content, maxLength);
+  }
+}
+
+/**
+ * Break long lines in plain text content
+ */
+function breakPlainTextLines(content: string, maxLength: number): string {
+  const lines = content.split('\n');
+  const brokenLines: string[] = [];
+  
+  for (const line of lines) {
+    if (line.length <= maxLength) {
+      brokenLines.push(line);
+    } else {
+      // Break long lines at word boundaries
+      const words = line.split(' ');
+      let currentLine = '';
+      
+      for (const word of words) {
+        if (currentLine.length + word.length + 1 <= maxLength) {
+          currentLine += (currentLine ? ' ' : '') + word;
+        } else {
+          if (currentLine) {
+            brokenLines.push(currentLine);
+          }
+          
+          // Handle very long words
+          if (word.length > maxLength) {
+            // Break at URL boundaries or hyphens
+            const brokenWord = breakLongWord(word, maxLength);
+            brokenLines.push(...brokenWord);
+            currentLine = '';
+          } else {
+            currentLine = word;
+          }
+        }
+      }
+      
+      if (currentLine) {
+        brokenLines.push(currentLine);
+      }
+    }
+  }
+  
+  return brokenLines.join('\n');
+}
+
+/**
+ * Break long lines in HTML content more carefully
+ */
+function breakHtmlLines(content: string, maxLength: number): string {
+  // For HTML, we only break very long text nodes, not the HTML structure
+  return content.replace(/>[^<]{78,}</g, (match) => {
+    const textContent = match.substring(1);
+    const brokenText = breakPlainTextLines(textContent, maxLength);
+    return '>' + brokenText;
+  });
+}
+
+/**
+ * Break very long words (like URLs) at appropriate points
+ */
+function breakLongWord(word: string, maxLength: number): string[] {
+  if (word.length <= maxLength) return [word];
+  
+  const result: string[] = [];
+  let remaining = word;
+  
+  while (remaining.length > maxLength) {
+    // Try to break at natural points
+    let breakPoint = maxLength;
+    
+    // Look for good break points (slashes, hyphens, dots)
+    for (let i = maxLength - 10; i < maxLength; i++) {
+      if ('/-.?&='.includes(remaining[i])) {
+        breakPoint = i + 1;
+        break;
+      }
+    }
+    
+    result.push(remaining.substring(0, breakPoint));
+    remaining = remaining.substring(breakPoint);
+  }
+  
+  if (remaining) {
+    result.push(remaining);
+  }
+  
+  return result;
+}
+
+/**
+ * Determine if HTML content should be preferred over plain text
+ */
+function shouldPreferHtml(htmlContent: string): boolean {
+  if (!htmlContent) return false;
+  
+  // Count meaningful HTML elements (not just line breaks)
+  const meaningfulHtmlTags = (htmlContent.match(/<(?!br\s*\/?>)[a-z][^>]*>/gi) || []).length;
+  
+  // Prefer HTML if it has meaningful formatting
+  return meaningfulHtmlTags > 2;
 }
 
 /**
