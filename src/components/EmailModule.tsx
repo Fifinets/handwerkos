@@ -39,6 +39,8 @@ import { EmailReplyDialog } from "./emails/EmailReplyDialog";
 import { EmailActionButtons } from "./emails/EmailActionButtons";
 import { CustomerProjectDialog } from "./emails/CustomerProjectDialog";
 import { useGmailConnection } from "@/hooks/useGmailConnection";
+import { cleanEmailContent } from "@/utils/emailContentCleaner";
+import "@/styles/email-content.css";
 
 interface Email {
   id: string;
@@ -84,17 +86,52 @@ const iconMap = {
   Mail,
 };
 
-// Function to properly format email content
+// Function to properly format email content with comprehensive encoding fixes
 const formatEmailContent = (content: string): string => {
   if (!content) return '';
   
+  // First, fix all UTF-8 encoding issues
+  let cleanedContent = content
+    // Fix common UTF-8 encoding problems
+    .replace(/â‚¬/g, '€')  // Euro symbol
+    .replace(/Ã¤/g, 'ä')   // ä
+    .replace(/Ã¶/g, 'ö')   // ö
+    .replace(/Ã¼/g, 'ü')   // ü
+    .replace(/Ã„/g, 'Ä')   // Ä
+    .replace(/Ã–/g, 'Ö')   // Ö
+    .replace(/Ãœ/g, 'Ü')   // Ü
+    .replace(/ÃŸ/g, 'ß')   // ß
+    
+    // Fix broken UTF-8 sequences that appear as strange characters
+    .replace(/âÍ/g, '')     // Remove broken decorative characters
+    .replace(/Â­/g, '')     // Remove soft hyphens that appear broken
+    .replace(/Â /g, ' ')     // Fix non-breaking spaces
+    .replace(/Â/g, '')      // Remove stray UTF-8 artifacts
+    
+    // Fix other common encoding issues
+    .replace(/â€™/g, "'")   // Right single quotation mark
+    .replace(/â€œ/g, '"')   // Left double quotation mark
+    .replace(/â€/g, '"')    // Right double quotation mark
+    .replace(/â€"/g, '—')   // Em dash
+    .replace(/â€"/g, '–')   // En dash
+    .replace(/â€¢/g, '•')   // Bullet point
+    .replace(/â€¦/g, '…')   // Horizontal ellipsis
+    
+    // Remove sequences of broken characters that are often decorative
+    .replace(/[âÍÂ­]{5,}/g, '') // Remove long sequences of broken chars
+    .replace(/(\s*[âÍÂ­]\s*){3,}/g, '') // Remove repeated broken chars with spaces
+    
+    // Clean up excessive whitespace
+    .replace(/\s+/g, ' ')   // Multiple spaces to single space
+    .replace(/^\s+|\s+$/g, ''); // Trim leading/trailing whitespace
+  
   // Check if content is already HTML
-  const isHTML = /<[a-z][\s\S]*>/i.test(content);
+  const isHTML = /<[a-z][\s\S]*>/i.test(cleanedContent);
   
   if (isHTML) {
     // Clean and sanitize HTML content
-    return content
-      // Fix encoding issues
+    return cleanedContent
+      // Fix HTML entity encoding issues
       .replace(/&auml;/g, 'ä')
       .replace(/&ouml;/g, 'ö')
       .replace(/&uuml;/g, 'ü')
@@ -108,28 +145,46 @@ const formatEmailContent = (content: string): string => {
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
-      // Ensure images are responsive
-      .replace(/<img([^>]*?)>/g, '<img$1 style="max-width: 100%; height: auto; border-radius: 4px; margin: 8px 0;">')
-      // Style links
-      .replace(/<a([^>]*?)>/g, '<a$1 style="color: #2563eb; text-decoration: underline;">');
+      .replace(/&apos;/g, "'")
+      .replace(/&mdash;/g, '—')
+      .replace(/&ndash;/g, '–')
+      .replace(/&hellip;/g, '…')
+      .replace(/&lsquo;/g, "'")
+      .replace(/&rsquo;/g, "'")
+      .replace(/&ldquo;/g, '"')
+      .replace(/&rdquo;/g, '"')
+      
+      // Ensure images are responsive and have alt text
+      .replace(/<img([^>]*?)>/g, (match, attrs) => {
+        if (!attrs.includes('alt=')) {
+          attrs += ' alt="Bild"';
+        }
+        return `<img${attrs} style="max-width: 100%; height: auto; border-radius: 4px; margin: 8px 0; display: block;">`;
+      })
+      
+      // Style links for better visibility
+      .replace(/<a([^>]*?)>/g, '<a$1 style="color: #2563eb; text-decoration: underline;">')
+      
+      // Remove any remaining broken character sequences in HTML
+      .replace(/>[\s]*[âÍÂ­\s]*</g, '><');
+      
   } else {
     // Convert plain text to HTML with proper formatting
-    return content
-      // Fix encoding issues in plain text
-      .replace(/Ã¤/g, 'ä')
-      .replace(/Ã¶/g, 'ö')
-      .replace(/Ã¼/g, 'ü')
-      .replace(/Ã„/g, 'Ä')
-      .replace(/Ã–/g, 'Ö')
-      .replace(/Ãœ/g, 'Ü')
-      .replace(/ÃŸ/g, 'ß')
-      .replace(/â‚¬/g, '€')
+    return cleanedContent
       // Convert line breaks to HTML
       .replace(/\r\n|\r|\n/g, '<br>')
+      
       // Convert URLs to links
-      .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color: #2563eb; text-decoration: underline;" target="_blank" rel="noopener">$1</a>')
+      .replace(/(https?:\/\/[^\s<>"]+)/g, '<a href="$1" style="color: #2563eb; text-decoration: underline;" target="_blank" rel="noopener noreferrer">$1</a>')
+      
       // Convert email addresses to links
-      .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" style="color: #2563eb; text-decoration: underline;">$1</a>');
+      .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" style="color: #2563eb; text-decoration: underline;">$1</a>')
+      
+      // Convert phone numbers to links (German format)
+      .replace(/(\+49\s?[\d\s\-\/\(\)]{8,}|\b0[\d\s\-\/\(\)]{8,})/g, '<a href="tel:$1" style="color: #2563eb; text-decoration: underline;">$1</a>')
+      
+      // Preserve paragraph breaks
+      .replace(/\n\s*\n/g, '<br><br>');
   }
 };
 
@@ -632,7 +687,7 @@ export function EmailModule() {
                     <div className="space-y-1">
                       <p className="text-sm font-medium truncate">{email.subject}</p>
                       <p className="text-xs text-muted-foreground line-clamp-2">
-                        {email.ai_summary || email.content.substring(0, 80) + '...'}
+                        {email.ai_summary || cleanEmailContent(email.content, { removeDecorations: true }).replace(/<[^>]*>/g, '').substring(0, 80) + '...'}
                       </p>
                       
                       <div className="flex items-center gap-2">
@@ -735,11 +790,18 @@ export function EmailModule() {
                   <div 
                     className="text-sm leading-relaxed max-w-none email-content"
                     dangerouslySetInnerHTML={{ 
-                      __html: formatEmailContent(selectedEmail.content) 
+                      __html: cleanEmailContent(selectedEmail.content, {
+                        removeDecorations: true,
+                        fixImages: true,
+                        preserveFormatting: true,
+                        addPhoneLinks: true
+                      })
                     }}
                     style={{
                       wordWrap: 'break-word',
-                      overflowWrap: 'break-word'
+                      overflowWrap: 'break-word',
+                      lineHeight: '1.6',
+                      color: '#374151'
                     }}
                   />
                 </ScrollArea>

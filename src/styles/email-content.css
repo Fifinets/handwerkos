@@ -1,0 +1,189 @@
+/* Email content styling for better display */
+.email-content {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.6;
+  color: #374151;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+/* Improve readability of email text */
+.email-content p {
+  margin: 0.75rem 0;
+  line-height: 1.6;
+}
+
+.email-content p:first-child {
+  margin-top: 0;
+}
+
+.email-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Style email headers and formatting */
+.email-content h1,
+.email-content h2,
+.email-content h3,
+.email-content h4,
+.email-content h5,
+.email-content h6 {
+  margin: 1rem 0 0.5rem 0;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #1f2937;
+}
+
+/* Style email links */
+.email-content a {
+  color: #2563eb !important;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.email-content a:hover {
+  color: #1d4ed8 !important;
+}
+
+/* Style email images */
+.email-content img {
+  max-width: 100% !important;
+  height: auto !important;
+  border-radius: 4px;
+  margin: 8px 0;
+  display: block;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Style email tables */
+.email-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.email-content td,
+.email-content th {
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.email-content th {
+  background-color: #f9fafb;
+  font-weight: 600;
+}
+
+/* Style email lists */
+.email-content ul,
+.email-content ol {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+}
+
+.email-content li {
+  margin: 0.25rem 0;
+}
+
+/* Style email blockquotes */
+.email-content blockquote {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid #3b82f6;
+  background-color: #f8fafc;
+  border-radius: 0 4px 4px 0;
+  font-style: italic;
+}
+
+/* Style email code blocks */
+.email-content pre,
+.email-content code {
+  font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+  background-color: #f1f5f9;
+  border-radius: 3px;
+}
+
+.email-content pre {
+  padding: 1rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+}
+
+.email-content code {
+  padding: 2px 4px;
+  font-size: 0.875em;
+}
+
+/* Handle long text and prevent overflow */
+.email-content {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Style email signatures */
+.email-content .email-signature {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+/* Style email disclaimers */
+.email-content .email-disclaimer {
+  margin-top: 1.5rem;
+  padding: 0.75rem;
+  background-color: #f9fafb;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: #6b7280;
+  border-left: 3px solid #d1d5db;
+}
+
+/* Responsive design for mobile */
+@media (max-width: 640px) {
+  .email-content {
+    font-size: 0.875rem;
+  }
+  
+  .email-content img {
+    margin: 4px 0;
+  }
+  
+  .email-content table {
+    font-size: 0.75rem;
+  }
+  
+  .email-content td,
+  .email-content th {
+    padding: 4px 8px;
+  }
+}
+
+/* Clean up broken formatting */
+.email-content br + br + br {
+  display: none;
+}
+
+.email-content p:empty {
+  display: none;
+}
+
+/* Style for forwarded/replied emails */
+.email-content .email-thread {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: #f8fafc;
+  border-left: 3px solid #cbd5e1;
+  border-radius: 0 4px 4px 0;
+}
+
+.email-content .email-thread-header {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
