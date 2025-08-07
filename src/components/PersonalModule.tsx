@@ -67,6 +67,14 @@ const PersonalModule = () => {
         return;
       }
       
+      // First, let's debug by getting ALL employees for this company
+      const { data: allEmployeesData, error: debugError } = await supabase
+        .from('employees')
+        .select('id, email, status, user_id, company_id')
+        .eq('company_id', companyId);
+      
+      console.log('DEBUG - All employees for company:', allEmployeesData);
+      
       // Fetch employees filtered by company and exclude invited employees (status = 'eingeladen')
       const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
