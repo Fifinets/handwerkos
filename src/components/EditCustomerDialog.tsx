@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -174,7 +173,7 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <Tabs defaultValue="kontaktdetails" className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-6 h-12">
               <TabsTrigger value="ansprechpartner">ANSPRECHPARTNER</TabsTrigger>
               <TabsTrigger value="kontaktdetails">KONTAKTDETAILS</TabsTrigger>
               <TabsTrigger value="adresse">ADRESSE</TabsTrigger>
