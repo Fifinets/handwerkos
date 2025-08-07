@@ -40,6 +40,7 @@ import { EmailActionButtons } from "./emails/EmailActionButtons";
 import { CustomerProjectDialog } from "./emails/CustomerProjectDialog";
 import { useGmailConnection } from "@/hooks/useGmailConnection";
 import { cleanEmailContent } from "@/utils/emailContentCleaner";
+import { cleanContentForUtf8, validateEmailContent } from "@/utils/emailEncoding";
 import "@/styles/email-content.css";
 
 interface Email {
@@ -687,7 +688,7 @@ export function EmailModule() {
                     <div className="space-y-1">
                       <p className="text-sm font-medium truncate">{email.subject}</p>
                       <p className="text-xs text-muted-foreground line-clamp-2">
-                        {email.ai_summary || cleanEmailContent(email.content, { removeDecorations: true }).replace(/<[^>]*>/g, '').substring(0, 80) + '...'}
+                        {email.ai_summary || cleanEmailContent(cleanContentForUtf8(email.content), { removeDecorations: true }).replace(/<[^>]*>/g, '').substring(0, 80) + '...'}
                       </p>
                       
                       <div className="flex items-center gap-2">
@@ -790,12 +791,15 @@ export function EmailModule() {
                   <div 
                     className="text-sm leading-relaxed max-w-none email-content"
                     dangerouslySetInnerHTML={{ 
-                      __html: cleanEmailContent(selectedEmail.content, {
-                        removeDecorations: true,
-                        fixImages: true,
-                        preserveFormatting: true,
-                        addPhoneLinks: true
-                      })
+                      __html: cleanEmailContent(
+                        cleanContentForUtf8(selectedEmail.content), 
+                        {
+                          removeDecorations: true,
+                          fixImages: true,
+                          preserveFormatting: true,
+                          addPhoneLinks: true
+                        }
+                      )
                     }}
                     style={{
                       wordWrap: 'break-word',

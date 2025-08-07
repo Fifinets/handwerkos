@@ -298,28 +298,88 @@ serve(async (req) => {
     const htmlContent = createEmailReplyTemplate(templateOptions);
     const plainTextContent = createPlainTextReply(templateOptions);
 
-    // Create multipart email with proper MIME boundaries
+    // Email encoding utilities (duplicated for Deno compatibility)
+    function encodeEmailSubject(subject: string): string {
+      if (!subject) return '';
+      
+      // Check if subject contains non-ASCII characters
+      if (!/[^\x00-\x7F]/.test(subject)) {
+        return subject; // No encoding needed
+      }
+      
+      // RFC 2047 encoding: =?charset?encoding?encoded-text?=
+      const utf8Bytes = new TextEncoder().encode(subject);
+      const base64Encoded = btoa(String.fromCharCode(...utf8Bytes));
+      
+      return `=?UTF-8?B?${base64Encoded}?=`;
+    }
+
+    function cleanContentForUtf8(content: string): string {
+      if (!content) return '';
+      
+      return content
+        // Fix common encoding issues first
+        .replace(/â‚¬/g, '€')     // Euro symbol
+        .replace(/Ã¤/g, 'ä')      // ä
+        .replace(/Ã¶/g, 'ö')      // ö
+        .replace(/Ã¼/g, 'ü')      // ü
+        .replace(/Ã„/g, 'Ä')      // Ä
+        .replace(/Ã–/g, 'Ö')      // Ö
+        .replace(/Ãœ/g, 'Ü')      // Ü
+        .replace(/ÃŸ/g, 'ß')      // ß
+        
+        // Fix smart quotes and dashes
+        .replace(/â€™/g, "'")     // Right single quotation mark
+        .replace(/â€œ/g, '"')     // Left double quotation mark  
+        .replace(/â€/g, '"')      // Right double quotation mark
+        .replace(/â€"/g, '—')     // Em dash
+        .replace(/â€"/g, '–')     // En dash
+        
+        // Remove broken decorative characters
+        .replace(/âÍ/g, '')       // Remove broken decorative chars
+        .replace(/Â­/g, '')       // Remove soft hyphens
+        .replace(/Â /g, ' ')      // Fix non-breaking spaces
+        .replace(/Â/g, '')        // Remove stray artifacts
+        
+        // Normalize line endings
+        .replace(/\r\n|\r|\n/g, '\n')
+        
+        // Clean up excessive whitespace
+        .replace(/\s{3,}/g, '  ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+    }
+
+    // Create multipart email with proper UTF-8 encoding
     const boundary = `boundary_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+    
+    // Clean content for proper UTF-8 encoding
+    const cleanHtmlContent = cleanContentForUtf8(htmlContent);
+    const cleanPlainTextContent = cleanContentForUtf8(plainTextContent);
+    const encodedSubject = encodeEmailSubject(replySubject);
     
     const emailMessage = [
       `To: ${replyTo}`,
-      `Subject: ${replySubject}`,
+      `Subject: ${encodedSubject}`,
       `In-Reply-To: ${originalEmail.message_id}`,
       `References: ${originalEmail.message_id}`,
       'MIME-Version: 1.0',
-      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      `Content-Type: multipart/alternative; boundary="${boundary}"; charset=utf-8`,
+      'Content-Transfer-Encoding: 8bit',
+      '',
+      'This is a multi-part message in MIME format.',
       '',
       `--${boundary}`,
       'Content-Type: text/plain; charset=utf-8',
       'Content-Transfer-Encoding: 8bit',
       '',
-      plainTextContent,
+      cleanPlainTextContent,
       '',
       `--${boundary}`,
       'Content-Type: text/html; charset=utf-8',
       'Content-Transfer-Encoding: 8bit',
       '',
-      htmlContent,
+      cleanHtmlContent,
       '',
       `--${boundary}--`
     ].join('\r\n');

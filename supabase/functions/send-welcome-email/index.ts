@@ -242,7 +242,36 @@ serve(async (req) => {
       }
     );
 
-    const plainTextContent = `
+    // Email encoding utilities (duplicated for Deno compatibility)
+    function encodeEmailSubject(subject: string): string {
+      if (!subject) return '';
+      
+      // Check if subject contains non-ASCII characters
+      if (!/[^\x00-\x7F]/.test(subject)) {
+        return subject; // No encoding needed
+      }
+      
+      // RFC 2047 encoding: =?charset?encoding?encoded-text?=
+      const utf8Bytes = new TextEncoder().encode(subject);
+      const base64Encoded = btoa(String.fromCharCode(...utf8Bytes));
+      
+      return `=?UTF-8?B?${base64Encoded}?=`;
+    }
+
+    function cleanContentForUtf8(content: string): string {
+      if (!content) return '';
+      
+      return content
+        // Fix common encoding issues
+        .replace(/â‚¬/g, '€').replace(/Ã¤/g, 'ä').replace(/Ã¶/g, 'ö').replace(/Ã¼/g, 'ü')
+        .replace(/Ã„/g, 'Ä').replace(/Ã–/g, 'Ö').replace(/Ãœ/g, 'Ü').replace(/ÃŸ/g, 'ß')
+        .replace(/â€™/g, "'").replace(/â€œ/g, '"').replace(/â€/g, '"')
+        .replace(/â€"/g, '—').replace(/â€"/g, '–')
+        .replace(/âÍ/g, '').replace(/Â­/g, '').replace(/Â /g, ' ').replace(/Â/g, '')
+        .replace(/\r\n|\r|\n/g, '\n').replace(/\s{3,}/g, '  ').replace(/\n{3,}/g, '\n\n').trim();
+    }
+
+    const plainTextContent = cleanContentForUtf8(`
 Willkommen bei ${companyName}!
 
 Hallo ${employeeName},
@@ -256,28 +285,36 @@ Bei Fragen können Sie sich jederzeit an unser Support-Team wenden.
 Mit freundlichen Grüßen,
 ${companyName}
 ${companyEmail}
-    `.trim();
+    `.trim());
 
-    // Create the email message in RFC 2822 format
+    const cleanHtmlContent = cleanContentForUtf8(htmlContent);
+    const encodedSubject = encodeEmailSubject(`Willkommen bei ${companyName} - Ihr Account ist bereit`);
+
+    // Create the email message with proper UTF-8 encoding
+    const boundary = `boundary_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+    
     const emailMessage = [
       `To: ${employeeEmail}`,
-      `Subject: Willkommen bei ${companyName} - Ihr Account ist bereit`,
+      `Subject: ${encodedSubject}`,
       'MIME-Version: 1.0',
-      'Content-Type: multipart/alternative; boundary="boundary123"',
+      `Content-Type: multipart/alternative; boundary="${boundary}"; charset=utf-8`,
+      'Content-Transfer-Encoding: 8bit',
       '',
-      '--boundary123',
+      'This is a multi-part message in MIME format.',
+      '',
+      `--${boundary}`,
       'Content-Type: text/plain; charset=utf-8',
-      'Content-Transfer-Encoding: quoted-printable',
+      'Content-Transfer-Encoding: 8bit',
       '',
       plainTextContent,
       '',
-      '--boundary123',
+      `--${boundary}`,
       'Content-Type: text/html; charset=utf-8',
-      'Content-Transfer-Encoding: quoted-printable',
+      'Content-Transfer-Encoding: 8bit',
       '',
-      htmlContent,
+      cleanHtmlContent,
       '',
-      '--boundary123--'
+      `--${boundary}--`
     ].join('\r\n');
 
     // Encode the message in base64url
