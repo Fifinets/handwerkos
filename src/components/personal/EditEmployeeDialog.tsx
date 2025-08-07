@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Shield, X } from "lucide-react";
 
 interface Employee {
   id: string;
@@ -27,6 +29,7 @@ interface EditFormData {
   phone: string;
   status: string;
   license: string;
+  qualifications: string[];
   currentProject: string;
   hoursThisMonth: number;
   vacationDays: number;
@@ -47,10 +50,13 @@ const EditEmployeeDialog = ({ isOpen, onClose, employee, onSave }: EditEmployeeD
     phone: '',
     status: 'Aktiv',
     license: '',
+    qualifications: [],
     currentProject: '',
     hoursThisMonth: 0,
     vacationDays: 0
   });
+
+  const [qualificationInput, setQualificationInput] = useState('');
 
   useEffect(() => {
     if (employee) {
@@ -61,6 +67,7 @@ const EditEmployeeDialog = ({ isOpen, onClose, employee, onSave }: EditEmployeeD
         phone: employee.phone,
         status: employee.status,
         license: employee.license,
+        qualifications: employee.qualifications || [],
         currentProject: employee.currentProject,
         hoursThisMonth: employee.hoursThisMonth,
         vacationDays: employee.vacationDays
@@ -73,6 +80,30 @@ const EditEmployeeDialog = ({ isOpen, onClose, employee, onSave }: EditEmployeeD
       ...prev,
       [field]: value
     }));
+  };
+
+  const addQualification = () => {
+    if (qualificationInput.trim() && !editFormData.qualifications.includes(qualificationInput.trim())) {
+      setEditFormData(prev => ({
+        ...prev,
+        qualifications: [...prev.qualifications, qualificationInput.trim()]
+      }));
+      setQualificationInput('');
+    }
+  };
+
+  const removeQualification = (qualification: string) => {
+    setEditFormData(prev => ({
+      ...prev,
+      qualifications: prev.qualifications.filter(q => q !== qualification)
+    }));
+  };
+
+  const handleQualificationKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addQualification();
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -144,6 +175,52 @@ const EditEmployeeDialog = ({ isOpen, onClose, employee, onSave }: EditEmployeeD
                 <SelectItem value="Krank">Krank</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="license">Führerschein</Label>
+            <Input
+              id="license"
+              value={editFormData.license}
+              onChange={(e) => handleInputChange('license', e.target.value)}
+              placeholder="z.B. B, BE"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="qualifications">Qualifikationen</Label>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  id="qualifications"
+                  type="text"
+                  value={qualificationInput}
+                  onChange={(e) => setQualificationInput(e.target.value)}
+                  onKeyPress={handleQualificationKeyPress}
+                  placeholder="z.B. VDE 0100, Erste Hilfe"
+                />
+                <Button type="button" onClick={addQualification} size="sm">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              {editFormData.qualifications.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {editFormData.qualifications.map((qualification) => (
+                    <Badge key={qualification} variant="outline" className="text-xs">
+                      <Shield className="h-3 w-3 mr-1" />
+                      {qualification}
+                      <button
+                        type="button"
+                        onClick={() => removeQualification(qualification)}
+                        className="ml-1 hover:text-red-600"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div>

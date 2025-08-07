@@ -75,7 +75,7 @@ const PersonalModule = () => {
       
       console.log('DEBUG - All employees for company:', allEmployeesData);
       
-      // Fetch employees (without profiles join for now)
+      // Fetch employees (with qualifications and license if columns exist)
       const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
         .select(`
@@ -88,7 +88,9 @@ const PersonalModule = () => {
           position,
           status,
           company_id,
-          created_at
+          created_at,
+          qualifications,
+          license
         `)
         .eq('company_id', companyId)
         .neq('status', 'eingeladen')
@@ -130,8 +132,12 @@ const PersonalModule = () => {
           email: employee.email,
           phone: employee.phone || '',
           status: employee.status === 'eingeladen' ? 'Eingeladen' : 'Aktiv',
-          qualifications: [], // Default empty array until DB is updated
-          license: '', // Default empty string until DB is updated
+          qualifications: employee.qualifications ? 
+            (typeof employee.qualifications === 'string' ? 
+              JSON.parse(employee.qualifications) : 
+              employee.qualifications
+            ) : [],
+          license: employee.license || '',
           currentProject: '-',
           hoursThisMonth: 0,
           vacationDays: 25
@@ -194,25 +200,67 @@ const PersonalModule = () => {
     setIsEditOpen(true);
   };
 
-  const handleSaveEmployee = (editFormData: Partial<Employee>) => {
+  const handleSaveEmployee = async (editFormData: Partial<Employee>) => {
     if (!selectedEmployee) return;
 
-    const updatedEmployee = {
-      ...selectedEmployee,
-      ...editFormData
-    };
+    try {
+      // Extract first and last name from the full name if needed
+      const nameParts = editFormData.name?.split(' ') || [];
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
 
-    setEmployees(prev => prev.map(emp => 
-      emp.id === selectedEmployee.id ? updatedEmployee : emp
-    ));
+      // Update employee in database
+      const { error } = await supabase
+        .from('employees')
+        .update({
+          first_name: firstName,
+          last_name: lastName,
+          position: editFormData.position,
+          phone: editFormData.phone,
+          status: editFormData.status,
+          license: editFormData.license,
+          qualifications: editFormData.qualifications ? JSON.stringify(editFormData.qualifications) : '[]'
+        })
+        .eq('id', selectedEmployee.id);
 
-    showToast({
-      title: "Erfolg",
-      description: "Mitarbeiter wurde erfolgreich aktualisiert."
-    });
+      if (error) {
+        console.error('Error updating employee:', error);
+        toast.error(`Fehler beim Aktualisieren: ${error.message}`);
+        return;
+      }
 
-    setIsEditOpen(false);
-    setSelectedEmployee(null);
+      // Also update profile if user_id exists
+      if (selectedEmployee.id && firstName && lastName) {
+        await supabase
+          .from('profiles')
+          .update({
+            first_name: firstName,
+            last_name: lastName
+          })
+          .eq('id', selectedEmployee.id);
+      }
+
+      // Update local state
+      const updatedEmployee = {
+        ...selectedEmployee,
+        ...editFormData
+      };
+
+      setEmployees(prev => prev.map(emp => 
+        emp.id === selectedEmployee.id ? updatedEmployee : emp
+      ));
+
+      showToast({
+        title: "Erfolg",
+        description: "Mitarbeiter wurde erfolgreich aktualisiert."
+      });
+
+      setIsEditOpen(false);
+      setSelectedEmployee(null);
+    } catch (error) {
+      console.error('Error saving employee:', error);
+      toast.error('Fehler beim Speichern der Mitarbeiteränderungen');
+    }
   };
 
   const handleQuickAction = (action: string) => {
