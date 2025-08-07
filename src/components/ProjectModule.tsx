@@ -222,9 +222,9 @@ const ProjectModule = () => {
         <TabsContent value="projects" className="space-y-6">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Projekt-Dashboard</h3>
-            <Button 
+            <Button
               onClick={() => setIsAddDialogOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700"
+              
             >
               <Plus className="h-4 w-4 mr-2" />
               Neues Projekt
@@ -309,7 +309,7 @@ const ProjectModule = () => {
                 </div>
 
                 <div className="flex gap-2 pt-4 mt-auto">
-                  <Button 
+                  <Button
                     size="sm" 
                     variant="outline"
                     onClick={(e) => {
@@ -320,7 +320,7 @@ const ProjectModule = () => {
                   >
                     Details
                   </Button>
-                  <Button 
+                  <Button
                     size="sm" 
                     variant="outline"
                     onClick={() => handleEditProject(project)}

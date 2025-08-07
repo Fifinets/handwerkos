@@ -358,7 +358,7 @@ export function DocumentModule() {
                           <Button variant="ghost" size="sm" title="Bearbeiten">
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button 
+                          <Button
                             variant="ghost" 
                             size="sm" 
                             title="Per E-Mail versenden"

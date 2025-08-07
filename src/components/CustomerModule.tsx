@@ -203,8 +203,8 @@ const CustomerModule = () => {
           </h2>
           <p className="text-gray-600">Verwalten Sie Ihre Kunden und Auftragsdaten</p>
         </div>
-        <Button 
-          className="bg-blue-600 hover:bg-blue-700"
+        <Button
+          
           onClick={() => setIsAddCustomerOpen(true)}
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -295,7 +295,7 @@ const CustomerModule = () => {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <Button 
+                            <Button
                               size="sm" 
                               variant="outline"
                               onClick={(e) => {
@@ -306,9 +306,9 @@ const CustomerModule = () => {
                             >
                               Details
                             </Button>
-                            <Button 
+                            <Button
                               size="sm" 
-                              className="bg-blue-600 hover:bg-blue-700"
+                              
                               onClick={() => handleEditCustomer(customer)}
                             >
                               Bearbeiten
@@ -386,7 +386,7 @@ const CustomerModule = () => {
                 </div>
               </div>
               <div className="flex gap-2 mt-6">
-                <Button className="bg-blue-600 hover:bg-blue-700">
+                <Button >
                   <FileText className="h-4 w-4 mr-2" />
                   Angebot erstellen
                 </Button>

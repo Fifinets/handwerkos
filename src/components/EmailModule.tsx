@@ -388,7 +388,7 @@ export function EmailModule() {
             <Filter className="h-4 w-4" />
           </Button>
           {!isGmailConnected ? (
-            <Button 
+            <Button
               onClick={connectGmail}
               disabled={isConnecting}
               size="sm"
@@ -397,7 +397,7 @@ export function EmailModule() {
               {isConnecting ? "Verbinde..." : "Gmail verbinden"}
             </Button>
           ) : (
-            <Button 
+            <Button
               onClick={() => setShowSync(!showSync)} 
               variant="ghost"
               size="icon"
@@ -429,7 +429,7 @@ export function EmailModule() {
         <div className="w-64 bg-muted/30 border-r flex flex-col">
           <div className="p-4">
             <div className="flex items-center gap-2 mb-4">
-              <Button 
+              <Button
                 onClick={() => setShowImport(!showImport)} 
                 className="flex-1"
                 size="sm"
@@ -499,7 +499,7 @@ export function EmailModule() {
           </div>
           
           <div className="mt-auto p-4 border-t">
-            <Button 
+            <Button
               onClick={classifyAllEmails} 
               disabled={processing}
               variant="outline"

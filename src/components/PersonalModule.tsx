@@ -288,8 +288,8 @@ const PersonalModule = () => {
 
       <div className="space-y-6">
           <div className="flex justify-end">
-            <Button 
-              className="bg-blue-600 hover:bg-blue-700"
+            <Button
+              
               onClick={() => setIsAddEmployeeOpen(true)}
             >
               <Plus className="h-4 w-4 mr-2" />

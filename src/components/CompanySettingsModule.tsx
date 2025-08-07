@@ -128,7 +128,7 @@ export function CompanySettingsModule() {
             ? 'Zugriff verweigert. Bitte melden Sie sich als Manager an.' 
             : error.message}
         </div>
-        <Button 
+        <Button
           onClick={() => window.location.reload()} 
           variant="outline"
         >
@@ -145,7 +145,7 @@ export function CompanySettingsModule() {
         <div className="text-sm text-muted-foreground">
           Es wurden noch keine Firmeneinstellungen konfiguriert.
         </div>
-        <Button 
+        <Button
           onClick={() => {
             // Create default settings
             const defaultSettings = {

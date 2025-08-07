@@ -180,9 +180,9 @@ const OrderModule = () => {
           </h2>
           <p className="text-gray-600">Verwalten Sie alle Aufträge und deren Status</p>
         </div>
-        <Button 
+        <Button
           onClick={() => setIsAddDialogOpen(true)}
-          className="bg-blue-600 hover:bg-blue-700"
+          
         >
           <Plus className="h-4 w-4 mr-2" />
           Neuer Auftrag

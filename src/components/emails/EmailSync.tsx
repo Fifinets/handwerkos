@@ -205,7 +205,7 @@ export function EmailSync({ onClose }: EmailSyncProps) {
         {/* Manual Sync */}
         <div className="space-y-3">
           <div className="grid grid-cols-1 gap-2">
-            <Button 
+            <Button
               onClick={() => startEmailSync(false)} 
               className="w-full" 
               disabled={isSyncing || !isGmailConnected}
@@ -213,7 +213,7 @@ export function EmailSync({ onClose }: EmailSyncProps) {
               <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
               {isSyncing ? 'Synchronisiert...' : 'Neue E-Mails synchronisieren'}
             </Button>
-            <Button 
+            <Button
               onClick={() => startEmailSync(true)} 
               variant="outline"
               className="w-full" 

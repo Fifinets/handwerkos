@@ -184,7 +184,7 @@ const Employee = () => {
             </div>
             <div className="flex items-center gap-4">
               {userRole === 'manager' && (
-                <Button 
+                <Button
                   variant="outline" 
                   size="sm"
                   onClick={() => navigate('/manager')}

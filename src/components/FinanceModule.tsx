@@ -153,7 +153,7 @@ const FinanceModule = () => {
             <FileText className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700">
+          <Button >
             <Plus className="h-4 w-4 mr-2" />
             Neue Rechnung
           </Button>

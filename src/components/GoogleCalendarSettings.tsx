@@ -184,7 +184,7 @@ const GoogleCalendarSettings: React.FC<GoogleCalendarSettingsProps> = ({ onCalen
                 <p className="text-sm text-muted-foreground mb-4">
                   Verbinden Sie sich mit Google Calendar, um Ihre Termine zu importieren.
                 </p>
-                <Button 
+                <Button
                   onClick={connectToGoogle} 
                   disabled={isLoading}
                   className="w-full"
@@ -251,7 +251,7 @@ const GoogleCalendarSettings: React.FC<GoogleCalendarSettingsProps> = ({ onCalen
               </Card>
 
               <div className="flex gap-2">
-                <Button 
+                <Button
                   onClick={syncCalendars} 
                   disabled={isLoading}
                   className="flex-1"
@@ -268,7 +268,7 @@ const GoogleCalendarSettings: React.FC<GoogleCalendarSettingsProps> = ({ onCalen
                     </>
                   )}
                 </Button>
-                <Button 
+                <Button
                   variant="outline" 
                   onClick={disconnectGoogle}
                   disabled={isLoading}

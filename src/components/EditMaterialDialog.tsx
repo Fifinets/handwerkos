@@ -200,7 +200,7 @@ const EditMaterialDialog = ({ isOpen, onClose, material, onMaterialUpdated }: Ed
             <Button type="button" variant="outline" onClick={onClose} className="flex-1">
               Abbrechen
             </Button>
-            <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700">
+            <Button type="submit" className="flex-1">
               Speichern
             </Button>
           </div>

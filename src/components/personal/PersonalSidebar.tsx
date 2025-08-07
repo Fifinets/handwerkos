@@ -61,7 +61,7 @@ const PersonalSidebar = ({ onQuickAction }: PersonalSidebarProps) => {
         </CardHeader>
         <CardContent className="p-4">
           <div className="space-y-2">
-            <Button 
+            <Button
               variant="outline" 
               className="w-full justify-start"
               onClick={() => onQuickAction('Urlaub planen')}
@@ -69,7 +69,7 @@ const PersonalSidebar = ({ onQuickAction }: PersonalSidebarProps) => {
               <Calendar className="h-4 w-4 mr-2" />
               Urlaub planen
             </Button>
-            <Button 
+            <Button
               variant="outline" 
               className="w-full justify-start"
               onClick={() => onQuickAction('Arbeitszeiten')}
@@ -77,7 +77,7 @@ const PersonalSidebar = ({ onQuickAction }: PersonalSidebarProps) => {
               <Clock className="h-4 w-4 mr-2" />
               Arbeitszeiten
             </Button>
-            <Button 
+            <Button
               variant="outline" 
               className="w-full justify-start"
               onClick={() => onQuickAction('Schulung buchen')}
@@ -85,7 +85,7 @@ const PersonalSidebar = ({ onQuickAction }: PersonalSidebarProps) => {
               <GraduationCap className="h-4 w-4 mr-2" />
               Schulung buchen
             </Button>
-            <Button 
+            <Button
               variant="outline" 
               className="w-full justify-start"
               onClick={() => onQuickAction('Zertifikate')}

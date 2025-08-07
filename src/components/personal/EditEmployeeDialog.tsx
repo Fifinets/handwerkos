@@ -257,7 +257,7 @@ const EditEmployeeDialog = ({ isOpen, onClose, employee, onSave }: EditEmployeeD
             <Button type="button" variant="outline" onClick={onClose}>
               Abbrechen
             </Button>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+            <Button type="submit" >
               Speichern
             </Button>
           </div>

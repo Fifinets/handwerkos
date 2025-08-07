@@ -74,7 +74,7 @@ const MachineModule = () => {
           </h2>
           <p className="text-gray-600">Verwalten Sie Ihren Maschinenpark und Wartungsintervalle</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
+        <Button >
           <Plus className="h-4 w-4 mr-2" />
           Gerät hinzufügen
         </Button>

@@ -513,7 +513,7 @@ const AddCustomerDialog = ({ isOpen, onClose, onCustomerAdded }: AddCustomerDial
             <Button type="button" variant="outline" onClick={onClose} className="flex-1">
               Abbrechen
             </Button>
-            <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700">
+            <Button type="submit" className="flex-1">
               Kunde hinzufügen
             </Button>
           </div>

@@ -461,7 +461,7 @@ const LocationBasedTimeTracking: React.FC<LocationBasedTimeTrackingProps> = ({ e
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
-            <Button 
+            <Button
               onClick={handleStartWork}
               disabled={!isInRange || !!activeTimeEntry}
               size="lg"
@@ -470,7 +470,7 @@ const LocationBasedTimeTracking: React.FC<LocationBasedTimeTrackingProps> = ({ e
               <Play className="h-5 w-5 mr-2" />
               Arbeitsbeginn
             </Button>
-            <Button 
+            <Button
               onClick={handleEndWork}
               disabled={!activeTimeEntry}
               variant="outline"

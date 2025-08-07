@@ -260,7 +260,7 @@ const MitarbeiterSetupPage = () => {
               </div>
             )}
 
-            <Button 
+            <Button
               type="submit" 
               className="w-full" 
               disabled={loading}

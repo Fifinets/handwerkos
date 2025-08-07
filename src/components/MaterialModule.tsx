@@ -125,7 +125,7 @@ const MaterialModule = () => {
             <Truck className="h-4 w-4 mr-2" />
             Bestellung
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700">
+          <Button >
             <Plus className="h-4 w-4 mr-2" />
             Material hinzufügen
           </Button>
@@ -256,7 +256,7 @@ const MaterialModule = () => {
                 </div>
 
                 <div className="flex gap-2 pt-4 mt-auto">
-                  <Button 
+                  <Button
                     size="sm" 
                     variant="outline"
                     onClick={(e) => {
@@ -268,7 +268,7 @@ const MaterialModule = () => {
                     <Package className="h-4 w-4 mr-1" />
                     Details
                   </Button>
-                  <Button 
+                  <Button
                     size="sm" 
                     variant="outline"
                     onClick={() => handleEditMaterial(material)}

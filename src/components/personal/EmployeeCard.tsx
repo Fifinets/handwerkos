@@ -102,16 +102,16 @@ const EmployeeCard = ({ employee, onShowDetails, onEdit }: EmployeeCardProps) =>
         </div>
 
         <div className="flex gap-2 mt-auto">
-          <Button 
+          <Button
             size="sm" 
             variant="outline"
             onClick={() => onShowDetails(employee)}
           >
             Details
           </Button>
-          <Button 
+          <Button
             size="sm" 
-            className="bg-blue-600 hover:bg-blue-700"
+            
             onClick={() => onEdit(employee)}
           >
             <Edit className="h-4 w-4 mr-1" />

@@ -208,7 +208,7 @@ const AddEmployeeDialog = ({ isOpen, onClose, onSubmit, isLoading }: AddEmployee
             <Button type="button" variant="outline" onClick={handleClose}>
               Abbrechen
             </Button>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
+            <Button type="submit"  disabled={isLoading}>
               {isLoading ? 'Wird erstellt...' : 'Mitarbeiter erstellen'}
             </Button>
           </div>
