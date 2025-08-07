@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 
-// Email template functions (duplicated from src/utils/emailTemplates.ts for Deno)
+// Email-client compatible HTML template (table-based, inline CSS only)
 function createEmailReplyTemplate(options: {
   originalSubject: string;
   originalSender: string;
@@ -21,75 +21,78 @@ function createEmailReplyTemplate(options: {
     unsubscribeUrl = '#'
   } = options;
 
-  return `<!DOCTYPE html>
-<html lang="de" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+  return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Re: ${originalSubject}</title>
-    <style type="text/css">
-        @media only screen and (max-width: 600px) {
-            .mobile-center { text-align: center !important; }
-            .mobile-full-width { width: 100% !important; }
-            .mobile-padding { padding: 20px !important; }
-            .mobile-hide { display: none !important; }
-            .mobile-button {
-                display: block !important;
-                width: auto !important;
-                min-height: 44px !important;
-                padding: 12px 20px !important;
-                text-align: center !important;
-            }
-        }
-    </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, Helvetica, sans-serif;">
-    <div style="display: none; max-height: 0; overflow: hidden; font-size: 1px; line-height: 1px; color: #f4f4f4;">
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, Helvetica, Verdana, sans-serif; font-size: 14px; line-height: 1.4; color: #333333;">
+    
+    <!-- Preheader Text -->
+    <div style="display: none; font-size: 1px; color: #f4f4f4; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
         Antwort von ${senderName} auf: ${originalSubject}
     </div>
     
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f4f4f4;">
+    <!-- Wrapper Table -->
+    <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f4f4f4; margin: 0; padding: 0;">
         <tr>
-            <td align="center" valign="top" style="padding: 20px 10px;">
-                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" class="mobile-full-width">
+            <td align="center" valign="top" style="padding: 20px 15px;">
+                
+                <!-- Main Container Table -->
+                <table cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; background-color: #ffffff; margin: 0 auto;">
                     
+                    <!-- Header Section -->
                     <tr>
-                        <td align="center" style="padding: 30px 40px 20px; background-color: #1a365d; border-radius: 8px 8px 0 0;" class="mobile-padding">
-                            <h1 style="margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 24px; font-weight: bold; color: #ffffff; line-height: 1.2;">
+                        <td align="center" valign="top" style="padding: 30px 40px 20px 40px; background-color: #2c3e50;">
+                            <h1 style="margin: 0; padding: 0; font-family: Arial, Helvetica, Verdana, sans-serif; font-size: 24px; font-weight: bold; color: #ffffff; line-height: 1.2;">
                                 ${companyName}
                             </h1>
                         </td>
                     </tr>
                     
+                    <!-- Content Section -->
                     <tr>
-                        <td style="padding: 40px;" class="mobile-padding">
-                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                        <td align="left" valign="top" style="padding: 40px;">
+                            <!-- Reply Header -->
+                            <table cellpadding="0" cellspacing="0" border="0" width="100%">
                                 <tr>
-                                    <td>
-                                        <h2 style="margin: 0 0 20px 0; font-family: Arial, Helvetica, sans-serif; font-size: 20px; font-weight: bold; color: #1a365d; line-height: 1.2;">
+                                    <td style="padding-bottom: 20px;">
+                                        <h2 style="margin: 0; padding: 0; font-family: Arial, Helvetica, Verdana, sans-serif; font-size: 20px; font-weight: bold; color: #2c3e50; line-height: 1.2;">
                                             Antwort auf: ${originalSubject}
                                         </h2>
                                     </td>
                                 </tr>
+                            </table>
+                            
+                            <!-- Original Message Info -->
+                            <table cellpadding="0" cellspacing="0" border="0" width="100%">
                                 <tr>
-                                    <td style="padding: 20px; background-color: #f8f9fa; border-left: 4px solid #1a365d; margin-bottom: 30px;">
-                                        <p style="margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #6c757d; line-height: 1.4;">
+                                    <td style="padding: 20px; background-color: #f8f9fa; border-left: 4px solid #2c3e50;">
+                                        <p style="margin: 0; padding: 0; font-family: Arial, Helvetica, Verdana, sans-serif; font-size: 14px; color: #6c757d; line-height: 1.4;">
                                             <strong>Ursprüngliche Nachricht von:</strong> ${originalSender}
                                         </p>
                                     </td>
                                 </tr>
+                            </table>
+                            
+                            <!-- Reply Content -->
+                            <table cellpadding="0" cellspacing="0" border="0" width="100%">
                                 <tr>
-                                    <td>
-                                        <div style="font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #333333; line-height: 1.6;">
+                                    <td style="padding: 30px 0 20px 0;">
+                                        <p style="margin: 0; padding: 0; font-family: Arial, Helvetica, Verdana, sans-serif; font-size: 16px; color: #333333; line-height: 1.6;">
                                             ${replyContent.replace(/\n/g, '<br>')}
-                                        </div>
+                                        </p>
                                     </td>
                                 </tr>
+                            </table>
+                            
+                            <!-- Signature -->
+                            <table cellpadding="0" cellspacing="0" border="0" width="100%">
                                 <tr>
-                                    <td style="padding-top: 30px;">
-                                        <p style="margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #6c757d; line-height: 1.4;">
+                                    <td style="padding-top: 30px; border-top: 1px solid #e9ecef;">
+                                        <p style="margin: 0; padding: 0; font-family: Arial, Helvetica, Verdana, sans-serif; font-size: 14px; color: #6c757d; line-height: 1.4;">
                                             Mit freundlichen Grüßen,<br>
                                             <strong>${senderName}</strong>
                                         </p>
@@ -99,35 +102,72 @@ function createEmailReplyTemplate(options: {
                         </td>
                     </tr>
                     
+                    <!-- Footer Section -->
                     <tr>
-                        <td style="padding: 30px 40px; background-color: #f8f9fa; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;" class="mobile-padding">
-                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                        <td align="center" valign="top" style="padding: 30px 40px; background-color: #f8f9fa; border-top: 1px solid #e9ecef;">
+                            <table cellpadding="0" cellspacing="0" border="0" width="100%">
                                 <tr>
                                     <td align="center" style="padding-bottom: 20px;">
-                                        <p style="margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #6c757d; line-height: 1.4;">
-                                            <strong>${companyName}</strong><br>
-                                            ${companyEmail ? `E-Mail: <a href="mailto:${companyEmail}" style="color: #1a365d; text-decoration: none;">${companyEmail}</a>` : ''}
+                                        <p style="margin: 0; padding: 0; font-family: Arial, Helvetica, Verdana, sans-serif; font-size: 14px; color: #6c757d; line-height: 1.4;">
+                                            <strong>${companyName}</strong>
+                                            ${companyEmail ? `<br>E-Mail: <a href="mailto:${companyEmail}" style="color: #2c3e50; text-decoration: none;" target="_blank">${companyEmail}</a>` : ''}
                                         </p>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td align="center" style="border-top: 1px solid #e9ecef; padding-top: 20px;">
-                                        <p style="margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #adb5bd; line-height: 1.4;">
-                                            Sie erhalten diese E-Mail, weil Sie ein registrierter Nutzer von ${companyName} sind.<br>
-                                            <a href="${unsubscribeUrl}" style="color: #6c757d; text-decoration: underline;">Abmelden</a>
+                                        <p style="margin: 0; padding: 0; font-family: Arial, Helvetica, Verdana, sans-serif; font-size: 12px; color: #adb5bd; line-height: 1.4;">
+                                            Sie erhalten diese E-Mail, weil Sie ein registrierter Nutzer von ${companyName} sind.
+                                            <br><a href="${unsubscribeUrl}" style="color: #6c757d; text-decoration: underline;" target="_blank">Abmelden</a>
                                         </p>
                                     </td>
                                 </tr>
                             </table>
                         </td>
                     </tr>
-                    
                 </table>
             </td>
         </tr>
     </table>
 </body>
 </html>`;
+}
+
+// Plain text version of reply email
+function createPlainTextReply(options: {
+  originalSubject: string;
+  originalSender: string;
+  replyContent: string;
+  senderName: string;
+  companyName?: string;
+  companyEmail?: string;
+  unsubscribeUrl?: string;
+}): string {
+  const {
+    originalSubject,
+    originalSender,
+    replyContent,
+    senderName,
+    companyName = 'HandwerkOS',
+    companyEmail = '',
+    unsubscribeUrl = '#'
+  } = options;
+
+  return `Antwort auf: ${originalSubject}
+
+Ursprüngliche Nachricht von: ${originalSender}
+
+${replyContent}
+
+Mit freundlichen Grüßen,
+${senderName}
+
+---
+${companyName}
+${companyEmail ? `E-Mail: ${companyEmail}` : ''}
+
+Sie erhalten diese E-Mail, weil Sie ein registrierter Nutzer von ${companyName} sind.
+Abmelden: ${unsubscribeUrl}`;
 }
 
 const corsHeaders = {
@@ -244,8 +284,8 @@ serve(async (req) => {
       }
     }
 
-    // Create HTML email content
-    const htmlContent = createEmailReplyTemplate({
+    // Create both HTML and plain text versions
+    const templateOptions = {
       originalSubject: originalEmail.subject,
       originalSender: originalEmail.sender_name || originalEmail.sender_email,
       replyContent,
@@ -253,30 +293,35 @@ serve(async (req) => {
       companyName,
       companyEmail,
       unsubscribeUrl: `${Deno.env.get('SUPABASE_URL')}/unsubscribe?email=${replyTo}`
-    });
+    };
 
-    // Create the email message in RFC 2822 format with HTML content
+    const htmlContent = createEmailReplyTemplate(templateOptions);
+    const plainTextContent = createPlainTextReply(templateOptions);
+
+    // Create multipart email with proper MIME boundaries
+    const boundary = `boundary_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+    
     const emailMessage = [
       `To: ${replyTo}`,
       `Subject: ${replySubject}`,
       `In-Reply-To: ${originalEmail.message_id}`,
       `References: ${originalEmail.message_id}`,
       'MIME-Version: 1.0',
-      'Content-Type: multipart/alternative; boundary="boundary123"',
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
       '',
-      '--boundary123',
+      `--${boundary}`,
       'Content-Type: text/plain; charset=utf-8',
-      'Content-Transfer-Encoding: quoted-printable',
+      'Content-Transfer-Encoding: 8bit',
       '',
-      replyContent,
+      plainTextContent,
       '',
-      '--boundary123',
+      `--${boundary}`,
       'Content-Type: text/html; charset=utf-8',
-      'Content-Transfer-Encoding: quoted-printable',
+      'Content-Transfer-Encoding: 8bit',
       '',
       htmlContent,
       '',
-      '--boundary123--'
+      `--${boundary}--`
     ].join('\r\n');
 
     // Encode the message in base64url
