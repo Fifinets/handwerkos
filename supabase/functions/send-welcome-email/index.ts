@@ -1,25 +1,17 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
 
-// Email template functions (duplicated from src/utils/emailTemplates.ts for Deno)
-function createEmailReplyTemplate(options: {
-  originalSubject: string;
-  originalSender: string;
-  replyContent: string;
-  senderName: string;
-  companyName?: string;
-  companyEmail?: string;
-  unsubscribeUrl?: string;
-}): string {
-  const {
-    originalSubject,
-    originalSender,
-    replyContent,
-    senderName,
-    companyName = 'HandwerkOS',
-    companyEmail = '',
-    unsubscribeUrl = '#'
-  } = options;
+// Welcome email template
+function createWelcomeTemplate(
+  employeeName: string,
+  companyName: string,
+  loginUrl: string,
+  options: {
+    companyEmail?: string;
+    unsubscribeUrl?: string;
+  }
+): string {
+  const { companyEmail = '', unsubscribeUrl = '#' } = options;
 
   return `<!DOCTYPE html>
 <html lang="de" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -28,13 +20,12 @@ function createEmailReplyTemplate(options: {
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Re: ${originalSubject}</title>
+    <title>Willkommen bei ${companyName}</title>
     <style type="text/css">
         @media only screen and (max-width: 600px) {
             .mobile-center { text-align: center !important; }
             .mobile-full-width { width: 100% !important; }
             .mobile-padding { padding: 20px !important; }
-            .mobile-hide { display: none !important; }
             .mobile-button {
                 display: block !important;
                 width: auto !important;
@@ -47,7 +38,7 @@ function createEmailReplyTemplate(options: {
 </head>
 <body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, Helvetica, sans-serif;">
     <div style="display: none; max-height: 0; overflow: hidden; font-size: 1px; line-height: 1px; color: #f4f4f4;">
-        Antwort von ${senderName} auf: ${originalSubject}
+        Willkommen ${employeeName}! Ihr Account ist bereit.
     </div>
     
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f4f4f4;">
@@ -68,30 +59,40 @@ function createEmailReplyTemplate(options: {
                             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                                 <tr>
                                     <td>
-                                        <h2 style="margin: 0 0 20px 0; font-family: Arial, Helvetica, sans-serif; font-size: 20px; font-weight: bold; color: #1a365d; line-height: 1.2;">
-                                            Antwort auf: ${originalSubject}
+                                        <h2 style="margin: 0 0 20px 0; font-family: Arial, Helvetica, sans-serif; font-size: 24px; font-weight: bold; color: #1a365d; line-height: 1.2;">
+                                            Willkommen bei ${companyName}!
                                         </h2>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 20px; background-color: #f8f9fa; border-left: 4px solid #1a365d; margin-bottom: 30px;">
-                                        <p style="margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #6c757d; line-height: 1.4;">
-                                            <strong>Ursprüngliche Nachricht von:</strong> ${originalSender}
+                                    <td>
+                                        <p style="margin: 0 0 20px 0; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #333333; line-height: 1.6;">
+                                            Hallo ${employeeName},
+                                        </p>
+                                        <p style="margin: 0 0 20px 0; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #333333; line-height: 1.6;">
+                                            herzlich willkommen im Team! Ihr Account wurde erfolgreich erstellt und Sie können sich ab sofort in unserem System anmelden.
                                         </p>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td>
-                                        <div style="font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #333333; line-height: 1.6;">
-                                            ${replyContent.replace(/\n/g, '<br>')}
-                                        </div>
+                                    <td align="center" style="padding: 30px 0;">
+                                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td style="background-color: #1a365d; border-radius: 6px; padding: 0;">
+                                                    <a href="${loginUrl}" 
+                                                       style="display: inline-block; padding: 14px 28px; font-family: Arial, Helvetica, sans-serif; font-size: 16px; font-weight: bold; color: #ffffff; text-decoration: none; min-height: 44px; line-height: 1.2;"
+                                                       class="mobile-button">
+                                                        Jetzt anmelden
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        </table>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td style="padding-top: 30px;">
-                                        <p style="margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #6c757d; line-height: 1.4;">
-                                            Mit freundlichen Grüßen,<br>
-                                            <strong>${senderName}</strong>
+                                    <td>
+                                        <p style="margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #333333; line-height: 1.6;">
+                                            Bei Fragen können Sie sich jederzeit an unser Support-Team wenden.
                                         </p>
                                     </td>
                                 </tr>
@@ -135,10 +136,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface EmailReplyRequest {
-  emailId: string;
-  replyContent: string;
-  subject?: string;
+interface WelcomeEmailRequest {
+  employeeEmail: string;
+  employeeName: string;
+  loginUrl?: string;
 }
 
 serve(async (req) => {
@@ -147,10 +148,10 @@ serve(async (req) => {
   }
 
   try {
-    const { emailId, replyContent, subject }: EmailReplyRequest = await req.json();
+    const { employeeEmail, employeeName, loginUrl }: WelcomeEmailRequest = await req.json();
 
-    if (!emailId || !replyContent) {
-      throw new Error('Email ID and reply content are required');
+    if (!employeeEmail || !employeeName) {
+      throw new Error('Employee email and name are required');
     }
 
     const supabase = createClient(
@@ -171,18 +172,30 @@ serve(async (req) => {
       throw new Error('Invalid user token');
     }
 
-    // Get the original email
-    const { data: originalEmail, error: emailError } = await supabase
-      .from('emails')
-      .select('*')
-      .eq('id', emailId)
+    // Get user's company information
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', user.id)
       .single();
 
-    if (emailError || !originalEmail) {
-      throw new Error('Original email not found');
+    let companyName = 'HandwerkOS';
+    let companyEmail = '';
+
+    if (profile?.company_id) {
+      const { data: companySettings } = await supabase
+        .from('company_settings')
+        .select('company_name, company_email')
+        .eq('company_id', profile.company_id)
+        .single();
+      
+      if (companySettings) {
+        companyName = companySettings.company_name || companyName;
+        companyEmail = companySettings.company_email || companyEmail;
+      }
     }
 
-    // Get user's Gmail connection
+    // Get Gmail connection for sending
     const { data: connection, error: connectionError } = await supabase
       .from('user_email_connections')
       .select('*')
@@ -217,50 +230,38 @@ serve(async (req) => {
         .eq('provider', 'gmail');
     }
 
-    // Prepare the reply
-    const replySubject = subject || `Re: ${originalEmail.subject}`;
-    const replyTo = originalEmail.sender_email;
-
-    // Get user profile for company information
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .eq('id', user.id)
-      .single();
-
-    let companyName = 'HandwerkOS';
-    let companyEmail = connection.email_address;
-
-    if (profile?.company_id) {
-      const { data: companySettings } = await supabase
-        .from('company_settings')
-        .select('company_name, company_email')
-        .eq('company_id', profile.company_id)
-        .single();
-      
-      if (companySettings) {
-        companyName = companySettings.company_name || companyName;
-        companyEmail = companySettings.company_email || companyEmail;
-      }
-    }
-
     // Create HTML email content
-    const htmlContent = createEmailReplyTemplate({
-      originalSubject: originalEmail.subject,
-      originalSender: originalEmail.sender_name || originalEmail.sender_email,
-      replyContent,
-      senderName: user.email || 'Unbekannt',
+    const defaultLoginUrl = loginUrl || `${Deno.env.get('SUPABASE_URL')}/auth/login`;
+    const htmlContent = createWelcomeTemplate(
+      employeeName,
       companyName,
-      companyEmail,
-      unsubscribeUrl: `${Deno.env.get('SUPABASE_URL')}/unsubscribe?email=${replyTo}`
-    });
+      defaultLoginUrl,
+      {
+        companyEmail,
+        unsubscribeUrl: `${Deno.env.get('SUPABASE_URL')}/unsubscribe?email=${employeeEmail}`
+      }
+    );
 
-    // Create the email message in RFC 2822 format with HTML content
+    const plainTextContent = `
+Willkommen bei ${companyName}!
+
+Hallo ${employeeName},
+
+herzlich willkommen im Team! Ihr Account wurde erfolgreich erstellt und Sie können sich ab sofort in unserem System anmelden.
+
+Jetzt anmelden: ${defaultLoginUrl}
+
+Bei Fragen können Sie sich jederzeit an unser Support-Team wenden.
+
+Mit freundlichen Grüßen,
+${companyName}
+${companyEmail}
+    `.trim();
+
+    // Create the email message in RFC 2822 format
     const emailMessage = [
-      `To: ${replyTo}`,
-      `Subject: ${replySubject}`,
-      `In-Reply-To: ${originalEmail.message_id}`,
-      `References: ${originalEmail.message_id}`,
+      `To: ${employeeEmail}`,
+      `Subject: Willkommen bei ${companyName} - Ihr Account ist bereit`,
       'MIME-Version: 1.0',
       'Content-Type: multipart/alternative; boundary="boundary123"',
       '',
@@ -268,7 +269,7 @@ serve(async (req) => {
       'Content-Type: text/plain; charset=utf-8',
       'Content-Transfer-Encoding: quoted-printable',
       '',
-      replyContent,
+      plainTextContent,
       '',
       '--boundary123',
       'Content-Type: text/html; charset=utf-8',
@@ -285,7 +286,7 @@ serve(async (req) => {
       .replace(/\//g, '_')
       .replace(/=+$/, '');
 
-    // Send the reply via Gmail API
+    // Send the email via Gmail API
     const gmailResponse = await fetch(
       'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
       {
@@ -295,8 +296,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          raw: encodedMessage,
-          threadId: originalEmail.thread_id
+          raw: encodedMessage
         }),
       }
     );
@@ -304,45 +304,23 @@ serve(async (req) => {
     if (!gmailResponse.ok) {
       const error = await gmailResponse.text();
       console.error('Gmail API error:', error);
-      throw new Error('Failed to send email reply');
+      throw new Error('Failed to send welcome email');
     }
 
     const sentMessage = await gmailResponse.json();
 
-    // Store the sent reply in our database
-    if (profile?.company_id) {
-      await supabase
-        .from('emails')
-        .insert({
-          message_id: sentMessage.id,
-          thread_id: originalEmail.thread_id,
-          subject: replySubject,
-          sender_email: connection.email_address,
-          sender_name: user.email,
-          recipient_email: replyTo,
-          content: htmlContent,
-          received_at: new Date().toISOString(),
-          company_id: profile.company_id,
-          processing_status: 'processed',
-          is_read: true,
-          is_starred: false,
-          priority: 'normal',
-          in_reply_to: originalEmail.message_id
-        });
-    }
-
-    console.log('Email reply sent successfully:', sentMessage.id);
+    console.log('Welcome email sent successfully:', sentMessage.id);
 
     return new Response(JSON.stringify({ 
       success: true,
       messageId: sentMessage.id,
-      message: 'Reply sent successfully'
+      message: 'Welcome email sent successfully'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in send-email-reply:', error);
+    console.error('Error in send-welcome-email:', error);
     return new Response(JSON.stringify({ 
       error: error.message 
     }), {

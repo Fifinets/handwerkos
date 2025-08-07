@@ -170,19 +170,37 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         .eq('id', companyId)
         .single();
 
-      const { error: emailError } = await supabase.functions.invoke('send-employee-confirmation', {
-        body: {
-          managerEmail: profile?.email || user.email,
-          employeeName: `${employeeData.firstName} ${employeeData.lastName}`,
-          employeeEmail: email,
-          companyName: company?.name || 'Ihrem Unternehmen',
-          registrationUrl: registrationUrl
-        }
-      });
+      // Try to send professional HTML invitation email first
+      try {
+        const { error: welcomeEmailError } = await supabase.functions.invoke('send-welcome-email', {
+          body: {
+            employeeEmail: email,
+            employeeName: `${employeeData.firstName} ${employeeData.lastName}`,
+            loginUrl: registrationUrl
+          }
+        });
 
-      if (emailError) {
-        console.error('Email sending error:', emailError);
-        // Don't fail the invitation if email fails
+        if (welcomeEmailError) {
+          console.warn('Welcome email failed, trying fallback:', welcomeEmailError);
+          throw welcomeEmailError;
+        }
+        console.log('Professional welcome email sent successfully');
+      } catch (welcomeError) {
+        // Fallback to original invitation email
+        const { error: emailError } = await supabase.functions.invoke('send-employee-confirmation', {
+          body: {
+            managerEmail: profile?.email || user.email,
+            employeeName: `${employeeData.firstName} ${employeeData.lastName}`,
+            employeeEmail: email,
+            companyName: company?.name || 'Ihrem Unternehmen',
+            registrationUrl: registrationUrl
+          }
+        });
+
+        if (emailError) {
+          console.error('Email sending error:', emailError);
+          // Don't fail the invitation if email fails
+        }
       }
 
       return { success: true };
