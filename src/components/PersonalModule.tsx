@@ -67,7 +67,7 @@ const PersonalModule = () => {
         return;
       }
       
-      // Fetch employees filtered by company
+      // Fetch employees filtered by company (without qualifications/license for now to avoid column errors)
       const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
         .select(`
@@ -79,8 +79,6 @@ const PersonalModule = () => {
           phone,
           position,
           status,
-          qualifications,
-          license,
           company_id,
           created_at
         `)
@@ -94,7 +92,7 @@ const PersonalModule = () => {
         return;
       }
 
-      // Map employee data - no need to filter by roles since we're already filtering by company
+      // Map employee data - set default values for qualifications and license until DB migration runs
       const employeeList = employeesData?.map(employee => ({
         id: employee.id,
         name: `${employee.first_name || ''} ${employee.last_name || ''}`.trim() || employee.email,
@@ -102,12 +100,8 @@ const PersonalModule = () => {
         email: employee.email,
         phone: employee.phone || '',
         status: employee.status === 'eingeladen' ? 'Eingeladen' : 'Aktiv',
-        qualifications: employee.qualifications ? 
-          (typeof employee.qualifications === 'string' ? 
-            JSON.parse(employee.qualifications) : 
-            employee.qualifications
-          ) : [],
-        license: employee.license || '',
+        qualifications: [], // Default empty array until DB is updated
+        license: '', // Default empty string until DB is updated
         currentProject: '-',
         hoursThisMonth: 0,
         vacationDays: 25
