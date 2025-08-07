@@ -135,7 +135,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         return { success: false, error: 'Fehler beim Erstellen der Einladung' };
       }
 
-      // Create employee record
+      // Create employee record (without qualifications/license for now due to missing DB columns)
       const { error: employeeError } = await supabase
         .from('employees')
         .upsert({
@@ -144,8 +144,6 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
           last_name: employeeData.lastName,
           position: employeeData.position,
           phone: employeeData.phone,
-          qualifications: Array.isArray(employeeData.qualifications) ? JSON.stringify(employeeData.qualifications) : employeeData.qualifications,
-          license: employeeData.license,
           company_id: companyId,
           status: 'eingeladen'
         });
