@@ -39,7 +39,7 @@ interface NewEmployee {
 
 const PersonalModule = () => {
   const { toast: showToast } = useToast();
-  const { user, session, inviteEmployee } = useSupabaseAuth();
+  const { user, session, inviteEmployee, companyId } = useSupabaseAuth();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -55,16 +55,34 @@ const PersonalModule = () => {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select(`id, email, first_name, last_name`);
+      
+      // Check if company ID is available
+      if (!companyId) {
+        console.error('No company ID available');
+        return;
+      }
+      
+      // Fetch employees with their related user data, filtered by company
+      const { data: employeesData, error: employeesError } = await supabase
+        .from('employees')
+        .select(`
+          *,
+          profiles!employees_user_id_fkey (
+            id,
+            email,
+            first_name,
+            last_name
+          )
+        `)
+        .eq('company_id', companyId);
 
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-        toast.error('Fehler beim Laden der Profile');
+      if (employeesError) {
+        console.error('Error fetching employees:', employeesError);
+        toast.error('Fehler beim Laden der Mitarbeiter');
         return;
       }
 
+      // Get user roles to filter only employees
       const { data: rolesData, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id, role')
@@ -76,24 +94,28 @@ const PersonalModule = () => {
         return;
       }
 
-      const employeeIds = rolesData?.map(role => role.user_id) || [];
-      const employeeProfiles = profilesData?.filter(profile => 
-        employeeIds.includes(profile.id)
-      ) || [];
-
-      const employeeList = employeeProfiles.map(profile => ({
-        id: profile.id,
-        name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email,
-        position: 'Mitarbeiter',
-        email: profile.email,
-        phone: '',
-        status: 'Aktiv',
-        qualifications: [],
-        license: '',
-        currentProject: '-',
-        hoursThisMonth: 0,
-        vacationDays: 25
-      }));
+      const employeeUserIds = rolesData?.map(role => role.user_id) || [];
+      
+      // Filter and map employee data
+      const employeeList = employeesData
+        ?.filter(employee => employee.user_id && employeeUserIds.includes(employee.user_id))
+        .map(employee => ({
+          id: employee.id,
+          name: `${employee.first_name || ''} ${employee.last_name || ''}`.trim() || employee.email,
+          position: employee.position || 'Mitarbeiter',
+          email: employee.email,
+          phone: employee.phone || '',
+          status: employee.status === 'eingeladen' ? 'Eingeladen' : 'Aktiv',
+          qualifications: employee.qualifications ? 
+            (typeof employee.qualifications === 'string' ? 
+              JSON.parse(employee.qualifications) : 
+              employee.qualifications
+            ) : [],
+          license: employee.license || '',
+          currentProject: '-',
+          hoursThisMonth: 0,
+          vacationDays: 25
+        })) || [];
 
       setEmployees(employeeList);
     } catch (error) {
