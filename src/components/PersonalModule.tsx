@@ -67,7 +67,7 @@ const PersonalModule = () => {
         return;
       }
       
-      // Fetch employees filtered by company (without qualifications/license for now to avoid column errors)
+      // Fetch employees filtered by company and exclude invited employees (status = 'eingeladen')
       const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
         .select(`
@@ -83,6 +83,8 @@ const PersonalModule = () => {
           created_at
         `)
         .eq('company_id', companyId)
+        .neq('status', 'eingeladen')
+        .not('user_id', 'is', null)
         .order('created_at', { ascending: false });
 
       if (employeesError) {
