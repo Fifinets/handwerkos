@@ -34,13 +34,27 @@ const DashboardStatsWithKpis: React.FC<{ onNavigate?: (moduleId: string) => void
       if (!projectError && projectData) {
         setOpenProjects(projectData.filter((p) => p.status !== 'abgeschlossen').length);
       }
-      // Active employees
-      const { data: employeeData, error: employeeError } = await supabase
-        .from('employees')
-        .select('id')
-        .eq('status', 'aktiv');
-      if (!employeeError && employeeData) {
-        setActiveEmployees(employeeData.length);
+      // Active employees (only registered employees from same company)
+      const { data: currentUserProfile } = await supabase.auth.getUser();
+      if (currentUserProfile?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('id', currentUserProfile.user.id)
+          .single();
+
+        if (profile?.company_id) {
+          const { data: employeeData, error: employeeError } = await supabase
+            .from('employees')
+            .select('id')
+            .eq('company_id', profile.company_id)
+            .neq('status', 'eingeladen')
+            .not('user_id', 'is', null);
+          
+          if (!employeeError && employeeData) {
+            setActiveEmployees(employeeData.length);
+          }
+        }
       }
       // Open invoices (status == 'offen')
       const { data: invoiceData, error: invoiceError } = await supabase

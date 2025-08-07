@@ -128,14 +128,33 @@ const PlannerModule: React.FC = () => {
   }
 
   const loadEmployees = async () => {
-    const { data, error } = await supabase
-      .from('employees')
-      .select('*')
-      .eq('status', 'aktiv')
-      .order('last_name')
-    
-    if (error) throw error
-    setEmployees(data || [])
+    try {
+      // Get current user's company ID
+      const { data: currentUserProfile } = await supabase.auth.getUser();
+      if (!currentUserProfile?.user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', currentUserProfile.user.id)
+        .single();
+
+      if (!profile?.company_id) return;
+
+      // Load only registered, active employees from the same company
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('company_id', profile.company_id)
+        .neq('status', 'eingeladen')
+        .not('user_id', 'is', null)
+        .order('last_name')
+      
+      if (error) throw error
+      setEmployees(data || [])
+    } catch (error) {
+      console.error('Error loading employees:', error);
+    }
   }
 
   const loadAbsences = async () => {

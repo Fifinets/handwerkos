@@ -78,18 +78,37 @@ const ProjectModule = () => {
   };
 
   const fetchTeamMembers = async () => {
-    const { data } = await supabase
-      .from('employees')
-      .select('*')
-      .eq('status', 'aktiv');
-    
-    if (data) {
-      setTeamMembers(data.map(employee => ({
-        id: employee.id,
-        name: `${employee.first_name} ${employee.last_name}`,
-        role: employee.position || 'Mitarbeiter',
-        projects: []
-      })));
+    try {
+      // Get current user's company ID
+      const { data: currentUserProfile } = await supabase.auth.getUser();
+      if (!currentUserProfile?.user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', currentUserProfile.user.id)
+        .single();
+
+      if (!profile?.company_id) return;
+
+      // Load only registered, active employees from the same company
+      const { data } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('company_id', profile.company_id)
+        .neq('status', 'eingeladen')
+        .not('user_id', 'is', null);
+      
+      if (data) {
+        setTeamMembers(data.map(employee => ({
+          id: employee.id,
+          name: `${employee.first_name} ${employee.last_name}`,
+          role: employee.position || 'Mitarbeiter',
+          projects: []
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching team members:', error);
     }
   };
 

@@ -255,23 +255,57 @@ const TimeTrackingModule: React.FC = () => {
     setProjects(data || []);
   };
 const loadEmployees = async () => {
-  const { data: employeesList, error: employeesError } = await supabase
-    .from('profiles')
-    .select('*')
-    .not('status', 'is', null)
-    .eq('status', 'aktiv')
-    .order('last_name');
+  try {
+    // Get current user's company ID (you might need to get this from auth context)
+    const { data: currentUserProfile } = await supabase.auth.getUser();
+    if (!currentUserProfile?.user) return;
 
-  if (employeesError) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', currentUserProfile.user.id)
+      .single();
+
+    if (!profile?.company_id) {
+      console.error('No company ID found for current user');
+      return;
+    }
+
+    // Load only registered, active employees from the same company (same logic as PersonalModule)
+    const { data: employeesData, error: employeesError } = await supabase
+      .from('employees')
+      .select(`
+        id,
+        user_id,
+        first_name,
+        last_name,
+        email,
+        status,
+        company_id
+      `)
+      .eq('company_id', profile.company_id)
+      .neq('status', 'eingeladen')
+      .not('user_id', 'is', null)
+      .order('last_name');
+
+    if (employeesError) {
+      toast({
+        title: 'Mitarbeiterliste konnte nicht geladen werden',
+        description: employeesError.message,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setEmployees(employeesData || []);
+  } catch (error) {
+    console.error('Error loading employees:', error);
     toast({
-      title: 'Mitarbeiterliste konnte nicht geladen werden',
-      description: employeesError.message,
+      title: 'Fehler beim Laden der Mitarbeiter',
+      description: 'Ein unerwarteter Fehler ist aufgetreten',
       variant: 'destructive',
     });
-    throw employeesError;
   }
-
-  setEmployees(employeesList || []);
 };
 
   const loadWorkingHours = async () => {
