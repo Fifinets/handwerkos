@@ -6,6 +6,7 @@
   max-width: 100%;
   overflow-wrap: break-word;
   word-wrap: break-word;
+  font-size: 15px;
 }
 
 /* Improve readability of email text */
@@ -40,10 +41,27 @@
   color: #2563eb !important;
   text-decoration: underline;
   transition: color 0.2s;
+  font-weight: 500;
 }
 
 .email-content a:hover {
   color: #1d4ed8 !important;
+  background-color: #f0f9ff;
+  padding: 2px 4px;
+  border-radius: 3px;
+  text-decoration: none;
+}
+
+/* Special styling for CTA links */
+.email-content a[style*="background-color"] {
+  display: inline-block;
+  margin: 4px 2px;
+  transition: all 0.2s;
+}
+
+.email-content a[style*="background-color"]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 /* Style email images */

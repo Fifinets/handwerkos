@@ -177,18 +177,30 @@ function fixHTMLContent(content: string, options: { fixImages: boolean; preserve
 }
 
 /**
- * Format plain text content
+ * Format plain text content with intelligent paragraph detection
  */
 function formatPlainTextContent(content: string, options: { addPhoneLinks: boolean; maxLineLength: number }): string {
   let textContent = content;
 
-  // Convert line breaks to HTML
+  // Detect and format email signatures
+  textContent = formatEmailSignature(textContent);
+
+  // Detect and format headers/sections
+  textContent = formatEmailSections(textContent);
+
+  // Convert line breaks to HTML, but preserve paragraph structure
   textContent = textContent.replace(/\r\n|\r|\n/g, '<br>');
 
-  // Convert URLs to links
+  // Convert URLs to links (improved pattern)
   textContent = textContent.replace(
-    /(https?:\/\/[^\s<>"]+)/g,
-    '<a href="$1" style="color: #2563eb; text-decoration: underline;" target="_blank" rel="noopener noreferrer">$1</a>'
+    /(?<!\()\s*(https?:\/\/[^\s<>")\]]+)(?!\s*\))/g,
+    ' <a href="$1" style="color: #2563eb; text-decoration: underline; font-weight: 500;" target="_blank" rel="noopener noreferrer">$1</a>'
+  );
+
+  // Convert URLs in parentheses to cleaner format
+  textContent = textContent.replace(
+    /\(\s*(https?:\/\/[^\s<>")\]]+)\s*\)/g,
+    '<div style="margin: 8px 0;"><a href="$1" style="color: #2563eb; text-decoration: underline; font-weight: 500; display: inline-block; padding: 4px 8px; background-color: #f1f5f9; border-radius: 4px;" target="_blank" rel="noopener noreferrer">🔗 Link ansehen</a></div>'
   );
 
   // Convert email addresses to links
@@ -205,10 +217,162 @@ function formatPlainTextContent(content: string, options: { addPhoneLinks: boole
     );
   }
 
-  // Preserve paragraph breaks
-  textContent = textContent.replace(/(<br>\s*){2,}/g, '<br><br>');
+  // Create proper paragraphs from sentence breaks
+  textContent = formatIntoParagraphs(textContent);
+
+  // Format social media and footer links
+  textContent = formatSocialLinks(textContent);
 
   return textContent;
+}
+
+/**
+ * Format email signatures and footers
+ */
+function formatEmailSignature(content: string): string {
+  // Detect signature patterns
+  const signaturePatterns = [
+    /(\nBest regards?,.*?)$/si,
+    /(\nMit freundlichen Grüßen,.*?)$/si,
+    /(\nCheers?,.*?)$/si,
+    /(\n[A-Z][a-z]+ [A-Z][a-z]+\s*$)/m,
+    /(©\d{4}.*?$)/si,
+    /(Unsubscribe.*?$)/si
+  ];
+
+  let formattedContent = content;
+
+  signaturePatterns.forEach(pattern => {
+    formattedContent = formattedContent.replace(pattern, (match) => {
+      return `\n<div class="email-signature" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5e7eb; font-size: 0.875rem; color: #6b7280;">${match.trim()}</div>`;
+    });
+  });
+
+  return formattedContent;
+}
+
+/**
+ * Format email sections and headers
+ */
+function formatEmailSections(content: string): string {
+  let formattedContent = content;
+
+  // Format section headers (lines that end with colon or are followed by multiple lines)
+  formattedContent = formattedContent.replace(
+    /^([A-Z][^.!?]*[:])$/gm,
+    '<h3 style="margin: 20px 0 10px 0; font-weight: 600; color: #1f2937; font-size: 1.1rem;">$1</h3>'
+  );
+
+  // Format emphasis on standalone lines
+  formattedContent = formattedContent.replace(
+    /^([A-Z][A-Z\s]{10,})$/gm,
+    '<div style="font-weight: 600; color: #1f2937; margin: 15px 0;">$1</div>'
+  );
+
+  return formattedContent;
+}
+
+/**
+ * Create proper paragraphs from content with intelligent text analysis
+ */
+function formatIntoParagraphs(content: string): string {
+  // First, split by common paragraph markers and line patterns
+  let text = content.replace(/<br\s*\/?>/g, '\n');
+  
+  // Split content into potential paragraphs using multiple delimiters
+  const chunks = text.split(/\n{2,}|\.\s+(?=[A-Z])|[.!?]\s+(?=Hi |Hello |Dear |Check |Explore |Follow |Got |In the |Best |Mit freund)/);
+  
+  const paragraphs = [];
+  
+  chunks.forEach(chunk => {
+    let trimmedChunk = chunk.trim();
+    if (!trimmedChunk) return;
+    
+    // Detect different types of content
+    if (isEmailGreeting(trimmedChunk)) {
+      paragraphs.push(`<p style="margin: 0 0 20px 0; line-height: 1.6; font-weight: 500;">${trimmedChunk}</p>`);
+    } else if (isEmailSignature(trimmedChunk)) {
+      paragraphs.push(`<div class="email-signature" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 0.875rem; color: #6b7280;">${trimmedChunk}</div>`);
+    } else if (isCallToAction(trimmedChunk)) {
+      paragraphs.push(`<div style="margin: 20px 0; padding: 12px; background-color: #f0f9ff; border-left: 4px solid #0ea5e9; border-radius: 4px;">${trimmedChunk}</div>`);
+    } else if (isSocialLinks(trimmedChunk)) {
+      paragraphs.push(`<div style="margin: 16px 0; padding: 8px 0;">${formatSocialLinksInline(trimmedChunk)}</div>`);
+    } else {
+      // Regular paragraph
+      paragraphs.push(`<p style="margin: 0 0 16px 0; line-height: 1.6;">${trimmedChunk}</p>`);
+    }
+  });
+
+  return paragraphs.join('');
+}
+
+/**
+ * Check if text is an email greeting
+ */
+function isEmailGreeting(text: string): boolean {
+  return /^(Hi |Hello |Dear |Hallo |Liebe[r]? |Sehr geehrte[r]?)/i.test(text) && text.length < 100;
+}
+
+/**
+ * Check if text is an email signature
+ */
+function isEmailSignature(text: string): boolean {
+  return /^(Best regards?|Mit freundlichen Grüßen|Cheers?|Greetings|Viele Grüße)/i.test(text) ||
+         /^[A-Z][a-z]+ [A-Z][a-z]+\s*$/m.test(text) ||
+         /(Developer|Manager|CEO|CTO|Founder)/i.test(text);
+}
+
+/**
+ * Check if text is a call to action
+ */
+function isCallToAction(text: string): boolean {
+  return /(Work smarter|Use templates|Explore|Check|Follow|Submit|Take shortcuts|Don't miss)/i.test(text) &&
+         text.length < 200;
+}
+
+/**
+ * Check if text contains social media links
+ */
+function isSocialLinks(text: string): boolean {
+  return /(GitHub|Discord|LinkedIn|YouTube|Twitter|Facebook|Instagram)/i.test(text) &&
+         /(github\.com|discord\.gg|linkedin\.com|youtube\.com|twitter\.com)/i.test(text);
+}
+
+/**
+ * Format social links inline
+ */
+function formatSocialLinksInline(text: string): string {
+  return text
+    .replace(/(GitHub|Discord|LinkedIn|YouTube|Twitter)/gi, '<strong>$1</strong>')
+    .replace(/Follow us on/gi, '<strong>Follow us on</strong>');
+}
+
+/**
+ * Format social media and footer links
+ */
+function formatSocialLinks(content: string): string {
+  const socialPatterns = [
+    { pattern: /Github\s*\(/g, replacement: '<strong>GitHub</strong> (' },
+    { pattern: /Discord\s*\(/g, replacement: '<strong>Discord</strong> (' },
+    { pattern: /Linkedin\s*\(/g, replacement: '<strong>LinkedIn</strong> (' },
+    { pattern: /YouTube\s*\(/g, replacement: '<strong>YouTube</strong> (' },
+    { pattern: /Follow us on/g, replacement: '<strong>Follow us on</strong>' },
+    { pattern: /Automate without limits/g, replacement: '<strong style="font-size: 1.1rem; color: #1f2937;">Automate without limits</strong>' }
+  ];
+
+  let formattedContent = content;
+
+  socialPatterns.forEach(({ pattern, replacement }) => {
+    formattedContent = formattedContent.replace(pattern, replacement);
+  });
+
+  // Format the footer section
+  formattedContent = formattedContent.replace(
+    /(n8n GmbH,.*?Unsubscribe.*?)$/si,
+    '<div class="email-disclaimer" style="margin-top: 24px; padding: 16px; background-color: #f8fafc; border-radius: 6px; font-size: 0.75rem; color: #6b7280; border-left: 3px solid #cbd5e1;">$1</div>'
+  );
+
+  return formattedContent;
 }
 
 /**
