@@ -49,78 +49,76 @@ const PersonalModule = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
 
   useEffect(() => {
-    fetchEmployees();
-  }, []);
+    if (companyId) {
+      fetchEmployees();
+    }
+  }, [companyId]);
 
   const fetchEmployees = async () => {
     try {
       setLoading(true);
       
+      console.log('fetchEmployees called with companyId:', companyId);
+      
       // Check if company ID is available
       if (!companyId) {
         console.error('No company ID available');
+        setLoading(false);
         return;
       }
       
-      // Fetch employees with their related user data, filtered by company
+      // Fetch employees filtered by company
       const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
         .select(`
-          *,
-          profiles!employees_user_id_fkey (
-            id,
-            email,
-            first_name,
-            last_name
-          )
+          id,
+          user_id,
+          first_name,
+          last_name,
+          email,
+          phone,
+          position,
+          status,
+          qualifications,
+          license,
+          company_id,
+          created_at
         `)
-        .eq('company_id', companyId);
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
 
       if (employeesError) {
         console.error('Error fetching employees:', employeesError);
-        toast.error('Fehler beim Laden der Mitarbeiter');
+        toast.error(`Fehler beim Laden der Mitarbeiter: ${employeesError.message}`);
+        setLoading(false);
         return;
       }
 
-      // Get user roles to filter only employees
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role')
-        .eq('role', 'employee');
+      // Map employee data - no need to filter by roles since we're already filtering by company
+      const employeeList = employeesData?.map(employee => ({
+        id: employee.id,
+        name: `${employee.first_name || ''} ${employee.last_name || ''}`.trim() || employee.email,
+        position: employee.position || 'Mitarbeiter',
+        email: employee.email,
+        phone: employee.phone || '',
+        status: employee.status === 'eingeladen' ? 'Eingeladen' : 'Aktiv',
+        qualifications: employee.qualifications ? 
+          (typeof employee.qualifications === 'string' ? 
+            JSON.parse(employee.qualifications) : 
+            employee.qualifications
+          ) : [],
+        license: employee.license || '',
+        currentProject: '-',
+        hoursThisMonth: 0,
+        vacationDays: 25
+      })) || [];
 
-      if (rolesError) {
-        console.error('Error fetching roles:', rolesError);
-        toast.error('Fehler beim Laden der Rollen');
-        return;
-      }
-
-      const employeeUserIds = rolesData?.map(role => role.user_id) || [];
-      
-      // Filter and map employee data
-      const employeeList = employeesData
-        ?.filter(employee => employee.user_id && employeeUserIds.includes(employee.user_id))
-        .map(employee => ({
-          id: employee.id,
-          name: `${employee.first_name || ''} ${employee.last_name || ''}`.trim() || employee.email,
-          position: employee.position || 'Mitarbeiter',
-          email: employee.email,
-          phone: employee.phone || '',
-          status: employee.status === 'eingeladen' ? 'Eingeladen' : 'Aktiv',
-          qualifications: employee.qualifications ? 
-            (typeof employee.qualifications === 'string' ? 
-              JSON.parse(employee.qualifications) : 
-              employee.qualifications
-            ) : [],
-          license: employee.license || '',
-          currentProject: '-',
-          hoursThisMonth: 0,
-          vacationDays: 25
-        })) || [];
+      console.log('Loaded employees:', employeeList);
 
       setEmployees(employeeList);
     } catch (error) {
       console.error('Error in fetchEmployees:', error);
-      toast.error('Ein unerwarteter Fehler ist aufgetreten');
+      toast.error(`Ein unerwarteter Fehler ist aufgetreten: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`);
     } finally {
       setLoading(false);
     }
