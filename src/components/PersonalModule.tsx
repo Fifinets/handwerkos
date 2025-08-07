@@ -75,7 +75,7 @@ const PersonalModule = () => {
       
       console.log('DEBUG - All employees for company:', allEmployeesData);
       
-      // Fetch employees filtered by company and exclude invited employees (status = 'eingeladen')
+      // Fetch employees with profile data for correct names
       const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
         .select(`
@@ -88,7 +88,11 @@ const PersonalModule = () => {
           position,
           status,
           company_id,
-          created_at
+          created_at,
+          profiles!inner (
+            first_name,
+            last_name
+          )
         `)
         .eq('company_id', companyId)
         .neq('status', 'eingeladen')
@@ -102,20 +106,27 @@ const PersonalModule = () => {
         return;
       }
 
-      // Map employee data - set default values for qualifications and license until DB migration runs
-      const employeeList = employeesData?.map(employee => ({
-        id: employee.id,
-        name: `${employee.first_name || ''} ${employee.last_name || ''}`.trim() || employee.email,
-        position: employee.position || 'Mitarbeiter',
-        email: employee.email,
-        phone: employee.phone || '',
-        status: employee.status === 'eingeladen' ? 'Eingeladen' : 'Aktiv',
-        qualifications: [], // Default empty array until DB is updated
-        license: '', // Default empty string until DB is updated
-        currentProject: '-',
-        hoursThisMonth: 0,
-        vacationDays: 25
-      })) || [];
+      // Map employee data - use profile names if available, fallback to employee names
+      const employeeList = employeesData?.map(employee => {
+        const profileFirstName = employee.profiles?.first_name;
+        const profileLastName = employee.profiles?.last_name;
+        const firstName = profileFirstName || employee.first_name || '';
+        const lastName = profileLastName || employee.last_name || '';
+        
+        return {
+          id: employee.id,
+          name: `${firstName} ${lastName}`.trim() || employee.email,
+          position: employee.position || 'Mitarbeiter',
+          email: employee.email,
+          phone: employee.phone || '',
+          status: employee.status === 'eingeladen' ? 'Eingeladen' : 'Aktiv',
+          qualifications: [], // Default empty array until DB is updated
+          license: '', // Default empty string until DB is updated
+          currentProject: '-',
+          hoursThisMonth: 0,
+          vacationDays: 25
+        };
+      }) || [];
 
       console.log('Loaded employees:', employeeList);
 
