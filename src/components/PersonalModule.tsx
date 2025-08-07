@@ -75,7 +75,7 @@ const PersonalModule = () => {
       
       console.log('DEBUG - All employees for company:', allEmployeesData);
       
-      // Fetch employees with profile data for correct names
+      // Fetch employees (without profiles join for now)
       const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
         .select(`
@@ -88,11 +88,7 @@ const PersonalModule = () => {
           position,
           status,
           company_id,
-          created_at,
-          profiles!inner (
-            first_name,
-            last_name
-          )
+          created_at
         `)
         .eq('company_id', companyId)
         .neq('status', 'eingeladen')
@@ -106,12 +102,26 @@ const PersonalModule = () => {
         return;
       }
 
+      // Fetch profile names separately for employees with user_id
+      const userIds = employeesData?.filter(emp => emp.user_id).map(emp => emp.user_id) || [];
+      let profilesData = [];
+      
+      if (userIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .in('id', userIds);
+        
+        if (!profilesError) {
+          profilesData = profiles || [];
+        }
+      }
+
       // Map employee data - use profile names if available, fallback to employee names
       const employeeList = employeesData?.map(employee => {
-        const profileFirstName = employee.profiles?.first_name;
-        const profileLastName = employee.profiles?.last_name;
-        const firstName = profileFirstName || employee.first_name || '';
-        const lastName = profileLastName || employee.last_name || '';
+        const profile = profilesData.find(p => p.id === employee.user_id);
+        const firstName = profile?.first_name || employee.first_name || '';
+        const lastName = profile?.last_name || employee.last_name || '';
         
         return {
           id: employee.id,
