@@ -22,10 +22,13 @@ export function cleanEmailContent(content: string, options: EmailCleaningOptions
     fixImages = true,
     preserveFormatting = true,
     addPhoneLinks = true,
-    maxLineLength = 80
+    maxLineLength = 78
   } = options;
 
   let cleanedContent = content;
+
+  // Step 0: Preprocess email content (handles complex cases like Airbnb)
+  cleanedContent = preprocessEmailContent(cleanedContent);
 
   // Step 1: Fix UTF-8 encoding issues
   cleanedContent = fixUTF8Encoding(cleanedContent);
@@ -47,6 +50,51 @@ export function cleanEmailContent(content: string, options: EmailCleaningOptions
   cleanedContent = finalCleanup(cleanedContent);
 
   return cleanedContent;
+}
+
+/**
+ * Preprocess email content to handle complex cases
+ */
+function preprocessEmailContent(content: string): string {
+  let processed = content;
+
+  // Handle long lines by adding breaks at natural points
+  processed = processed.replace(/(.{78,}?)(\s|$)/g, (match, line, ending) => {
+    if (line.includes('http') && !line.includes(' ')) {
+      // Don't break URLs
+      return match;
+    }
+    return line + '\n' + ending;
+  });
+
+  // Fix broken character sequences that appear in Airbnb/other service emails
+  processed = processed
+    .replace(/Ã¤/g, 'ä')
+    .replace(/Ã¶/g, 'ö') 
+    .replace(/Ã¼/g, 'ü')
+    .replace(/Ã„/g, 'Ä')
+    .replace(/Ã–/g, 'Ö')
+    .replace(/Ãœ/g, 'Ü')
+    .replace(/ÃŸ/g, 'ß')
+    .replace(/Ã/g, 'Ü') // Common encoding error for 'Ü'
+    .replace(/FÃR/g, 'FÜR')
+    .replace(/SCHREIBENB/g, 'SCHREIBEN\nB');
+
+  // Handle URLs that are split across lines or have encoding issues
+  processed = processed.replace(/https?:\/\/[^\s]+/g, (url) => {
+    return url.replace(/\s/g, '').replace(/=+$/, '');
+  });
+
+  // Fix common email formatting issues - split rating options properly
+  processed = processed.replace(/]([A-Z][a-z]+)\[/g, ']\n\n$1\n[');
+
+  // Handle email signatures and footers better
+  processed = processed.replace(/(Airbnb Ireland UC8.*?Ireland)/, '\n\n---\n$1');
+
+  // Clean up excessive whitespace but preserve intentional breaks
+  processed = processed.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n');
+
+  return processed;
 }
 
 /**
@@ -182,11 +230,17 @@ function fixHTMLContent(content: string, options: { fixImages: boolean; preserve
 function formatPlainTextContent(content: string, options: { addPhoneLinks: boolean; maxLineLength: number }): string {
   let textContent = content;
 
+  // Break long lines at natural points before processing
+  textContent = wrapLongLines(textContent, options.maxLineLength);
+
   // Detect and format email signatures
   textContent = formatEmailSignature(textContent);
 
-  // Detect and format headers/sections
+  // Detect and format headers/sections  
   textContent = formatEmailSections(textContent);
+
+  // Handle special Airbnb/service email patterns
+  textContent = formatServiceEmails(textContent);
 
   // Convert line breaks to HTML, but preserve paragraph structure
   textContent = textContent.replace(/\r\n|\r|\n/g, '<br>');
@@ -194,13 +248,13 @@ function formatPlainTextContent(content: string, options: { addPhoneLinks: boole
   // Convert URLs to links (improved pattern)
   textContent = textContent.replace(
     /(?<!\()\s*(https?:\/\/[^\s<>")\]]+)(?!\s*\))/g,
-    ' <a href="$1" style="color: #2563eb; text-decoration: underline; font-weight: 500;" target="_blank" rel="noopener noreferrer">$1</a>'
+    ' <a href="$1" style="color: #2563eb; text-decoration: underline; font-weight: 500; word-break: break-all;" target="_blank" rel="noopener noreferrer">🔗 Link ansehen</a>'
   );
 
-  // Convert URLs in parentheses to cleaner format
+  // Convert URLs in square brackets or parentheses to cleaner format
   textContent = textContent.replace(
-    /\(\s*(https?:\/\/[^\s<>")\]]+)\s*\)/g,
-    '<div style="margin: 8px 0;"><a href="$1" style="color: #2563eb; text-decoration: underline; font-weight: 500; display: inline-block; padding: 4px 8px; background-color: #f1f5f9; border-radius: 4px;" target="_blank" rel="noopener noreferrer">🔗 Link ansehen</a></div>'
+    /[\[\(]\s*(https?:\/\/[^\s<>")\]]+)\s*[\]\)]/g,
+    '<div style="margin: 8px 0;"><a href="$1" style="color: #2563eb; text-decoration: underline; font-weight: 500; display: inline-block; padding: 4px 8px; background-color: #f1f5f9; border-radius: 4px; word-break: break-all;" target="_blank" rel="noopener noreferrer">🔗 Link ansehen</a></div>'
   );
 
   // Convert email addresses to links
@@ -224,6 +278,62 @@ function formatPlainTextContent(content: string, options: { addPhoneLinks: boole
   textContent = formatSocialLinks(textContent);
 
   return textContent;
+}
+
+/**
+ * Wrap long lines at natural break points
+ */
+function wrapLongLines(content: string, maxLength: number): string {
+  return content.split('\n').map(line => {
+    if (line.length <= maxLength) return line;
+    
+    // Don't break URLs
+    if (/^https?:\/\//.test(line.trim())) return line;
+    
+    // Find natural break points
+    const words = line.split(' ');
+    const wrapped = [];
+    let currentLine = '';
+    
+    for (const word of words) {
+      if ((currentLine + ' ' + word).length <= maxLength) {
+        currentLine += (currentLine ? ' ' : '') + word;
+      } else {
+        if (currentLine) wrapped.push(currentLine);
+        currentLine = word;
+      }
+    }
+    
+    if (currentLine) wrapped.push(currentLine);
+    return wrapped.join('\n');
+  }).join('\n');
+}
+
+/**
+ * Format service emails (Airbnb, booking sites, etc.)
+ */
+function formatServiceEmails(content: string): string {
+  let formatted = content;
+  
+  // Format rating/review prompts
+  formatted = formatted.replace(
+    /(DU HAST NUR NOCH \d+ TAGE? ZEIT[^\.]+)/gi,
+    '<div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; margin: 16px 0; font-weight: 600;">$1</div>'
+  );
+  
+  // Format rating options
+  formatted = formatted.replace(
+    /(Schrecklich|Schlecht|Okay|Gut|Sehr gut)(\[\s*https[^\]]+\])/gi,
+    '<div style="margin: 8px 0; padding: 8px 12px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;"><strong>$1</strong> $2</div>'
+  );
+  
+  // Format call-to-action text
+  formatted = formatted.replace(
+    /(Bewerte deinen Aufenthalt|Eine Bewertung schreiben|Dies ist deine letzte Chance)/gi,
+    '<strong style="color: #1f2937;">$1</strong>'
+  );
+  
+  return formatted;
 }
 
 /**
