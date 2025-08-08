@@ -12,11 +12,11 @@ import OrderModule from "./OrderModule";
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'In Bearbeitung':
+    case 'in_bearbeitung':
       return 'bg-yellow-100 text-yellow-800';
-    case 'Abgeschlossen':
+    case 'abgeschlossen':
       return 'bg-green-100 text-green-800';
-    case 'Planung':
+    case 'geplant':
       return 'bg-blue-100 text-blue-800';
     default:
       return 'bg-gray-100 text-gray-800';
@@ -25,14 +25,27 @@ const getStatusColor = (status: string) => {
 
 const getStatusIcon = (status: string) => {
   switch (status) {
-    case 'In Bearbeitung':
+    case 'in_bearbeitung':
       return <Clock className="h-4 w-4 text-yellow-600" />;
-    case 'Abgeschlossen':
+    case 'abgeschlossen':
       return <CheckCircle className="h-4 w-4 text-green-600" />;
-    case 'Planung':
+    case 'geplant':
       return <AlertTriangle className="h-4 w-4 text-blue-600" />;
     default:
       return <CheckCircle className="h-4 w-4 text-gray-600" />;
+  }
+};
+
+const getStatusDisplayName = (status: string) => {
+  switch (status) {
+    case 'in_bearbeitung':
+      return 'In Bearbeitung';
+    case 'abgeschlossen':
+      return 'Abgeschlossen';
+    case 'geplant':
+      return 'Planung';
+    default:
+      return status;
   }
 };
 
@@ -150,7 +163,7 @@ const ProjectModule = () => {
       id: project.id,
       name: project.name,
       customer: '', // Will be filled from customer_id lookup
-      status: project.status,
+      status: getStatusDisplayName(project.status), // Convert to German display name
       progress: 0,
       startDate: project.start_date,
       endDate: project.end_date,
@@ -171,11 +184,18 @@ const ProjectModule = () => {
   const handleProjectUpdated = (updatedProject) => {
     // Update project in Supabase
     const updateProject = async () => {
+      // Map German status to database values
+      const statusMapping = {
+        'Planung': 'geplant',
+        'In Bearbeitung': 'in_bearbeitung', 
+        'Abgeschlossen': 'abgeschlossen'
+      };
+      
       const { error } = await supabase
         .from('projects')
         .update({
           name: updatedProject.name,
-          status: updatedProject.status,
+          status: statusMapping[updatedProject.status] || updatedProject.status,
           start_date: updatedProject.startDate,
           end_date: updatedProject.endDate,
           location: updatedProject.location,
@@ -184,7 +204,7 @@ const ProjectModule = () => {
         .eq('id', updatedProject.id);
 
       if (!error) {
-        fetchProjects();
+        await fetchProjects();
       }
     };
 
@@ -197,20 +217,31 @@ const ProjectModule = () => {
       // Find customer by name
       const customer = customers.find(c => c.name === newProject.customer);
       
-      const { error } = await supabase
+      // Map German status to database values
+      const statusMapping = {
+        'Planung': 'geplant',
+        'In Bearbeitung': 'in_bearbeitung', 
+        'Abgeschlossen': 'abgeschlossen'
+      };
+      
+      const { data, error } = await supabase
         .from('projects')
         .insert({
           name: newProject.name,
           customer_id: customer?.id,
-          status: newProject.status,
+          status: statusMapping[newProject.status] || 'geplant',
           start_date: newProject.startDate.split('.').reverse().join('-'),
           end_date: newProject.endDate.split('.').reverse().join('-'),
           location: newProject.location,
           description: `Budget: ${newProject.budget}`
-        });
+        })
+        .select();
 
-      if (!error) {
-        fetchProjects();
+      if (error) {
+        console.error('Error creating project:', error);
+      } else {
+        console.log('Project created successfully:', data);
+        await fetchProjects(); // Wait for refetch to complete
       }
     };
 
@@ -264,7 +295,7 @@ const ProjectModule = () => {
             <h3 className="text-lg font-semibold">Aktuelle Projekte</h3>
           </div>
 
-          {projects.filter(p => p.status !== 'Abgeschlossen').map(project => {
+          {projects.filter(p => p.status !== 'abgeschlossen').map(project => {
             const endDate = project.end_date ? new Date(project.end_date) : null;
             const isOverdue = endDate && endDate < new Date();
             return (
@@ -276,7 +307,7 @@ const ProjectModule = () => {
                       {getStatusIcon(project.status)}
                       <h4 className="text-lg font-semibold">{project.name}</h4>
                       <Badge className={getStatusColor(project.status)}>
-                        {project.status}
+                        {getStatusDisplayName(project.status)}
                       </Badge>
                       {isOverdue && (
                         <Badge variant="destructive">Überfällig</Badge>
@@ -301,7 +332,7 @@ const ProjectModule = () => {
                   <div className="grid grid-cols-1 gap-4 text-sm">
                     <div>
                       <p className="text-gray-500">Status:</p>
-                      <p className="font-medium">{project.status}</p>
+                      <p className="font-medium">{getStatusDisplayName(project.status)}</p>
                     </div>
                   </div>
                   
@@ -373,7 +404,7 @@ const ProjectModule = () => {
             <CardContent>
               {Object.entries(statusCounts).map(([status, count]) => (
                 <div key={status} className="flex justify-between text-sm">
-                  <span>{status}</span>
+                  <span>{getStatusDisplayName(status)}</span>
                   <span>{count}</span>
                 </div>
               ))}
@@ -399,13 +430,13 @@ const ProjectModule = () => {
                 Gesamt: {projects.length} Projekte
               </div>
               <div className="text-sm">
-                Geplant: {statusCounts.geplant}
+                {getStatusDisplayName('geplant')}: {statusCounts.geplant}
               </div>
               <div className="text-sm">
-                In Bearbeitung: {statusCounts.in_bearbeitung}
+                {getStatusDisplayName('in_bearbeitung')}: {statusCounts.in_bearbeitung}
               </div>
               <div className="text-sm">
-                Abgeschlossen: {statusCounts.abgeschlossen}
+                {getStatusDisplayName('abgeschlossen')}: {statusCounts.abgeschlossen}
               </div>
             </CardContent>
           </Card>
