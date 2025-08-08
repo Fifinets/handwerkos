@@ -24,6 +24,10 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(
         `
         <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>OAuth Fehler</title>
+          </head>
           <body>
             <h1>OAuth Fehler</h1>
             <p>Es gab einen Fehler bei der Gmail-Verbindung: ${error}</p>
@@ -33,7 +37,7 @@ const handler = async (req: Request): Promise<Response> => {
       `,
         {
           status: 400,
-          headers: { "Content-Type": "text/html" },
+          headers: { "Content-Type": "text/html; charset=utf-8" },
         },
       );
     }
@@ -42,6 +46,10 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(
         `
         <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>OAuth Fehler</title>
+          </head>
           <body>
             <h1>OAuth Fehler</h1>
             <p>Fehlende Parameter für OAuth-Callback</p>
@@ -51,7 +59,7 @@ const handler = async (req: Request): Promise<Response> => {
       `,
         {
           status: 400,
-          headers: { "Content-Type": "text/html" },
+          headers: { "Content-Type": "text/html; charset=utf-8" },
         },
       );
     }
@@ -148,11 +156,26 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       `
       <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Gmail Verbindung erfolgreich</title>
+          <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5; }
+            .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: inline-block; }
+            h1 { color: #4CAF50; margin-bottom: 20px; }
+            p { margin: 10px 0; color: #333; }
+            button { background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-top: 20px; }
+            button:hover { background: #45a049; }
+          </style>
+        </head>
         <body>
-          <h1>Gmail erfolgreich verbunden!</h1>
-          <p>Ihr Gmail-Account (${userInfo.email}) wurde erfolgreich verbunden.</p>
-          <p>Sie können dieses Fenster jetzt schließen.</p>
-          <button onclick="window.close()">Fenster schließen</button>
+          <div class="container">
+            <h1>✅ Gmail erfolgreich verbunden!</h1>
+            <p>Ihr Gmail-Account <strong>${userInfo.email}</strong> wurde erfolgreich verbunden.</p>
+            <p>Sie können dieses Fenster jetzt schließen.</p>
+            <button onclick="window.close()">Fenster schließen</button>
+          </div>
           <script>
             if (window.opener) {
               window.opener.postMessage({
@@ -167,7 +190,7 @@ const handler = async (req: Request): Promise<Response> => {
     `,
       {
         status: 200,
-        headers: { "Content-Type": "text/html" },
+        headers: { "Content-Type": "text/html; charset=utf-8" },
       },
     );
   } catch (error: any) {
@@ -175,10 +198,26 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       `
       <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Gmail Verbindung fehlgeschlagen</title>
+          <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5; }
+            .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: inline-block; }
+            h1 { color: #f44336; margin-bottom: 20px; }
+            p { margin: 10px 0; color: #333; }
+            button { background: #f44336; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-top: 20px; }
+            button:hover { background: #d32f2f; }
+          </style>
+        </head>
         <body>
-          <h1>Fehler</h1>
-          <p>Es gab einen Fehler bei der Gmail-Verbindung: ${error.message}</p>
-          <button onclick="window.close()">Fenster schließen</button>
+          <div class="container">
+            <h1>❌ Fehler</h1>
+            <p>Es gab einen Fehler bei der Gmail-Verbindung:</p>
+            <p><strong>${error.message}</strong></p>
+            <button onclick="window.close()">Fenster schließen</button>
+          </div>
           <script>
             if (window.opener) {
               window.opener.postMessage({
@@ -193,7 +232,7 @@ const handler = async (req: Request): Promise<Response> => {
     `,
       {
         status: 500,
-        headers: { "Content-Type": "text/html" },
+        headers: { "Content-Type": "text/html; charset=utf-8" },
       },
     );
   }

@@ -44,6 +44,8 @@ export function useGmailConnection() {
             title: "Erfolg",
             description: `Gmail erfolgreich verbunden: ${event.data.email}`,
           });
+          // Aktualisiere den Verbindungsstatus
+          checkGmailConnection();
           if (popup && !popup.closed) {
             popup.close();
           }
