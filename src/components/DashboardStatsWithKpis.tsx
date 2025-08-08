@@ -58,13 +58,20 @@ const DashboardStatsWithKpis: React.FC<{ onNavigate?: (moduleId: string) => void
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('company_id, role')
+          .select('company_id')
           .eq('id', currentUserProfile.user.id)
           .single();
 
         if (!profile?.company_id) return;
-        
-        setCurrentUserRole(profile.role);
+
+        // Fetch user role from user_roles
+        const { data: roleRow } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', currentUserProfile.user.id)
+          .maybeSingle();
+        const role = roleRow?.role || null;
+        setCurrentUserRole(role);
         const companyId = profile.company_id;
         const today = new Date().toISOString().split('T')[0];
 
@@ -78,9 +85,9 @@ const DashboardStatsWithKpis: React.FC<{ onNavigate?: (moduleId: string) => void
         // 2. Ungelesene E-Mails
         const { data: emailsData } = await supabase
           .from('emails')
-          .select('id, subject, sender_name, classification, created_at')
+          .select('id, subject, sender_name, created_at, is_read')
           .eq('company_id', companyId)
-          .eq('read', false)
+          .eq('is_read', false)
           .order('created_at', { ascending: false })
           .limit(5);
 
@@ -101,17 +108,17 @@ const DashboardStatsWithKpis: React.FC<{ onNavigate?: (moduleId: string) => void
         // 5. Heutige Arbeitsstunden
         const { data: timeEntriesData } = await supabase
           .from('time_entries')
-          .select('duration_minutes')
+          .select('start_time, end_time, break_duration')
           .eq('company_id', companyId)
           .gte('start_time', today + 'T00:00:00')
           .lt('start_time', today + 'T23:59:59');
 
         // 6. Mitarbeiter-Status (nur für Manager)
         let employeesData: any[] = [];
-        if (profile.role === 'manager') {
+        if (role === 'manager') {
           const { data } = await supabase
             .from('employees')
-            .select('name, status')
+            .select('first_name, last_name, status')
             .eq('company_id', companyId)
             .neq('status', 'eingeladen');
           employeesData = data || [];
@@ -126,7 +133,13 @@ const DashboardStatsWithKpis: React.FC<{ onNavigate?: (moduleId: string) => void
           .lt('start_date', new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
 
         const totalOpenAmount = invoicesData?.reduce((sum, inv) => sum + (inv.total_amount || 0), 0) || 0;
-        const todayMinutes = timeEntriesData?.reduce((sum, entry) => sum + (entry.duration_minutes || 0), 0) || 0;
+        const todayMinutes = (timeEntriesData || []).reduce((sum, entry: any) => {
+          const start = entry.start_time ? new Date(entry.start_time).getTime() : 0;
+          const end = entry.end_time ? new Date(entry.end_time).getTime() : 0;
+          if (!start || !end) return sum;
+          const diffMin = Math.max(0, (end - start) / 60000 - (entry.break_duration || 0));
+          return sum + diffMin;
+        }, 0);
         
         setKpiData({
           openOrders: ordersData?.length || 0,
@@ -135,8 +148,8 @@ const DashboardStatsWithKpis: React.FC<{ onNavigate?: (moduleId: string) => void
           openInvoices: invoicesData?.length || 0,
           totalOpenAmount,
           todayHours: Math.round(todayMinutes / 60 * 10) / 10,
-          activeEmployees: employeesData.map(emp => ({
-            name: emp.name,
+          activeEmployees: employeesData.map((emp: any) => ({
+            name: `${emp.first_name || ''} ${emp.last_name || ''}`.trim(),
             status: emp.status === 'aktiv' ? 'active' : 'offline',
             hours: 0
           })),
@@ -145,10 +158,10 @@ const DashboardStatsWithKpis: React.FC<{ onNavigate?: (moduleId: string) => void
             time: format(new Date(apt.start_date), 'HH:mm', { locale: de }),
             employees: 1
           })) || [],
-          recentEmails: emailsData?.map(email => ({
+          recentEmails: emailsData?.map((email: any) => ({
             subject: email.subject,
             from: email.sender_name,
-            category: email.classification || 'Allgemein',
+            category: 'Allgemein',
             time: format(new Date(email.created_at), 'HH:mm', { locale: de })
           })) || []
         });

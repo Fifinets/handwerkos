@@ -219,7 +219,7 @@ const PersonalModule = () => {
           phone: editFormData.phone,
           status: editFormData.status,
           license: editFormData.license,
-          qualifications: editFormData.qualifications ? JSON.stringify(editFormData.qualifications) : '[]'
+          qualifications: (editFormData.qualifications ? JSON.stringify(editFormData.qualifications) : '[]') as any
         })
         .eq('id', selectedEmployee.id);
 

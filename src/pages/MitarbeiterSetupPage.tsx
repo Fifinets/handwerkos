@@ -88,13 +88,13 @@ const MitarbeiterSetupPage = () => {
         console.log('Employee data:', invitation.employee_data);
         
         setEmail(invitation.email);
-        setFirstName(invitation.employee_data?.firstName || '');
-        setLastName(invitation.employee_data?.lastName || '');
+        setFirstName((invitation.employee_data as any)?.firstName || '');
+        setLastName((invitation.employee_data as any)?.lastName || '');
         setInvitationData(invitation);
         
-      } catch (error) {
+      } catch (error: any) {
         console.error('Exception during validation:', error);
-        toast.error(`Fehler beim Validieren der Einladung: ${error.message}`);
+        toast.error(`Fehler beim Validieren der Einladung: ${error?.message}`);
       }
     };
 

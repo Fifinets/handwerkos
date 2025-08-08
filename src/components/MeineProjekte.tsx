@@ -18,8 +18,7 @@ export const MeineProjekte = () => {
     const load = async () => {
       const { data, error } = await supabase
         .from('projects')
-        .select('id, name, description')
-        .eq('profile_id', user.id)
+        .select('id, name, description');
       if (!error && data) {
         setProjects(data as Project[])
       }

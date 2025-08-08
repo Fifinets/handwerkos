@@ -78,17 +78,9 @@ const ProjectModule = () => {
         console.log('  - Count:', count);
         console.log('  - Can access projects table:', !error);
         
-        // Test if we can insert (without actually inserting)
-        const { error: insertTestError } = await supabase
-          .from('projects')
-          .insert({})
-          .select()
-          .limit(0);
-          
-        console.log('  - Can insert to projects table:', !insertTestError || insertTestError.message.includes('null value'));
-        if (insertTestError) {
-          console.log('  - Insert test error:', insertTestError);
-        }
+        // Skip insert capability test to avoid type errors in strict TS
+        // Previously attempted a dummy insert here.
+        
         
       } catch (testError) {
         console.error('💥 Database connection test failed:', testError);
@@ -201,30 +193,27 @@ const ProjectModule = () => {
       console.log('✅ Projects fetched:', data.length, 'projects');
       console.log('📋 Project data:', data);
       setProjects(data);
+
+      // compute derived metrics
+      setTotalBudget(0);
+      const counts = { geplant: 0, in_bearbeitung: 0, abgeschlossen: 0 } as any;
+      const delayed: any[] = [];
+      const today = new Date();
+      data.forEach((p: any) => {
+        if (p.status === 'geplant') counts.geplant++;
+        else if (p.status === 'in_bearbeitung') counts["in_bearbeitung"]++;
+        else if (p.status === 'abgeschlossen') counts.abgeschlossen++;
+        if (p.end_date) {
+          const endDate = new Date(p.end_date);
+          if (endDate < today && p.status !== 'abgeschlossen') delayed.push(p);
+        }
+      });
+      setStatusCounts(counts);
+      setDelayedProjects(delayed);
     } catch (err) {
       console.error('💥 Error in fetchProjects:', err);
       return;
     }
-
-    setTotalBudget(0);
-
-    const counts = { geplant: 0, in_bearbeitung: 0, abgeschlossen: 0 };
-    const delayed = [];
-    const today = new Date();
-
-    data.forEach(p => {
-      if (p.status === 'geplant') counts.geplant++;
-      else if (p.status === 'in_bearbeitung') counts["in_bearbeitung"]++;
-      else if (p.status === 'abgeschlossen') counts.abgeschlossen++;
-      
-      if (p.end_date) {
-        const endDate = new Date(p.end_date);
-        if (endDate < today && p.status !== 'abgeschlossen') delayed.push(p);
-      }
-    });
-
-    setStatusCounts(counts);
-    setDelayedProjects(delayed);
   };
 
   const fetchTopCustomers = async () => {

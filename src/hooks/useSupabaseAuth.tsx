@@ -128,7 +128,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
           expires_at: inviteExpiry.toISOString(),
           employee_data: employeeData,
           status: 'pending'
-        });
+        } as any);
 
       if (inviteError) {
         console.error('Error creating invitation:', inviteError);
@@ -148,7 +148,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
           license: employeeData.license || '',
           company_id: companyId,
           status: 'eingeladen'
-        });
+        } as any);
 
       if (employeeError) {
         console.error('Error creating employee:', employeeError);
