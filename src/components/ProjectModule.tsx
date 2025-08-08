@@ -63,6 +63,36 @@ const ProjectModule = () => {
   const [teamMembers, setTeamMembers] = useState([]);
 
   useEffect(() => {
+    // Test database connection first
+    const testConnection = async () => {
+      try {
+        const { data, error, count } = await supabase
+          .from('projects')
+          .select('*', { count: 'exact', head: true });
+        
+        console.log('🔗 Database connection test:');
+        console.log('  - Error:', error);
+        console.log('  - Count:', count);
+        console.log('  - Can access projects table:', !error);
+        
+        // Test if we can insert (without actually inserting)
+        const { error: insertTestError } = await supabase
+          .from('projects')
+          .insert({})
+          .select()
+          .limit(0);
+          
+        console.log('  - Can insert to projects table:', !insertTestError || insertTestError.message.includes('null value'));
+        if (insertTestError) {
+          console.log('  - Insert test error:', insertTestError);
+        }
+        
+      } catch (testError) {
+        console.error('💥 Database connection test failed:', testError);
+      }
+    };
+    
+    testConnection();
     fetchProjects();
     fetchTopCustomers();
     fetchCustomers();
@@ -126,8 +156,21 @@ const ProjectModule = () => {
   };
 
   const fetchProjects = async () => {
+    console.log('🔄 Fetching projects...');
     const { data, error } = await supabase.from('projects').select('*');
-    if (error || !data) return;
+    
+    if (error) {
+      console.error('❌ Error fetching projects:', error);
+      return;
+    }
+    
+    if (!data) {
+      console.log('⚠️ No project data returned');
+      return;
+    }
+    
+    console.log('✅ Projects fetched:', data.length, 'projects');
+    console.log('📋 Project data:', data);
     setProjects(data);
 
     setTotalBudget(0);
@@ -212,36 +255,72 @@ const ProjectModule = () => {
   };
 
   const handleProjectAdded = (newProject) => {
+    console.log('🆕 Adding new project:', newProject);
+    
     // Add project to Supabase
     const addProject = async () => {
-      // Find customer by name
-      const customer = customers.find(c => c.name === newProject.customer);
-      
-      // Map German status to database values
-      const statusMapping = {
-        'Planung': 'geplant',
-        'In Bearbeitung': 'in_bearbeitung', 
-        'Abgeschlossen': 'abgeschlossen'
-      };
-      
-      const { data, error } = await supabase
-        .from('projects')
-        .insert({
+      try {
+        // Find customer by name
+        const customer = customers.find(c => c.name === newProject.customer);
+        console.log('👤 Found customer:', customer);
+        
+        // Map German status to database values
+        const statusMapping = {
+          'Planung': 'geplant',
+          'In Bearbeitung': 'in_bearbeitung', 
+          'Abgeschlossen': 'abgeschlossen'
+        };
+        
+        // Handle date formatting more safely
+        let startDate = null;
+        let endDate = null;
+        
+        try {
+          if (newProject.startDate) {
+            if (newProject.startDate.includes('.')) {
+              startDate = newProject.startDate.split('.').reverse().join('-');
+            } else {
+              startDate = newProject.startDate;
+            }
+          }
+          
+          if (newProject.endDate) {
+            if (newProject.endDate.includes('.')) {
+              endDate = newProject.endDate.split('.').reverse().join('-');
+            } else {
+              endDate = newProject.endDate;
+            }
+          }
+        } catch (dateError) {
+          console.warn('⚠️ Date formatting error:', dateError);
+        }
+        
+        const projectData = {
           name: newProject.name,
-          customer_id: customer?.id,
+          customer_id: customer?.id || null,
           status: statusMapping[newProject.status] || 'geplant',
-          start_date: newProject.startDate.split('.').reverse().join('-'),
-          end_date: newProject.endDate.split('.').reverse().join('-'),
+          start_date: startDate,
+          end_date: endDate,
           location: newProject.location,
           description: `Budget: ${newProject.budget}`
-        })
-        .select();
+        };
+        
+        console.log('📝 Inserting project data:', projectData);
+        
+        const { data, error } = await supabase
+          .from('projects')
+          .insert(projectData)
+          .select();
 
-      if (error) {
-        console.error('Error creating project:', error);
-      } else {
-        console.log('Project created successfully:', data);
-        await fetchProjects(); // Wait for refetch to complete
+        if (error) {
+          console.error('❌ Error creating project:', error);
+        } else {
+          console.log('✅ Project created successfully:', data);
+          console.log('🔄 Refreshing projects list...');
+          await fetchProjects(); // Wait for refetch to complete
+        }
+      } catch (err) {
+        console.error('💥 Unexpected error in addProject:', err);
       }
     };
 
