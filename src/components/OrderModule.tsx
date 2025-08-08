@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import AddOrderDialog from "./AddOrderDialog";
 import EditOrderDialog from "./EditOrderDialog";
+import OrderDetailView from "./OrderDetailView";
 
 interface Order {
   id: string;
@@ -38,6 +39,8 @@ const OrderModule = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isOrderDetailViewOpen, setIsOrderDetailViewOpen] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -170,6 +173,11 @@ const OrderModule = () => {
     order.status.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleDoubleClickOrder = (order: Order) => {
+    setSelectedOrderId(order.id);
+    setIsOrderDetailViewOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -235,7 +243,11 @@ const OrderModule = () => {
           </div>
         ) : (
           filteredOrders.map((order) => (
-            <Card key={order.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+            <Card 
+              key={order.id} 
+              className="hover:shadow-lg transition-shadow cursor-pointer"
+              onDoubleClick={() => handleDoubleClickOrder(order)}
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -337,6 +349,17 @@ const OrderModule = () => {
             setIsEditDialogOpen(false);
             setSelectedOrder(null);
           }}
+        />
+      )}
+
+      {selectedOrderId && (
+        <OrderDetailView
+          isOpen={isOrderDetailViewOpen}
+          onClose={() => {
+            setIsOrderDetailViewOpen(false);
+            setSelectedOrderId(null);
+          }}
+          orderId={selectedOrderId}
         />
       )}
     </div>

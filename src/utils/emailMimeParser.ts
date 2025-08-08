@@ -122,7 +122,7 @@ function postProcessParsedContent(parsed: ParsedEmailContent): ParsedEmailConten
  */
 function cleanAndFormatContent(content: string): string {
   if (!content) return '';
-  
+    
   let cleaned = content
     // Final encoding cleanup
     .replace(/â‚¬/g, '€').replace(/Ã¤/g, 'ä').replace(/Ã¶/g, 'ö').replace(/Ã¼/g, 'ü')
@@ -541,25 +541,10 @@ export function sanitizeHtmlContent(html: string): string {
     .replace(/javascript:/gi, '')
     .replace(/on\w+\s*=/gi, '')
     
-    // Extract and preserve CSS styles while removing problematic ones
-    .replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (match, css) => {
-      // Remove problematic CSS that interferes with the app
-      const cleanCss = css
-        .replace(/body\s*\{[^}]*\}/gi, '') // Remove body styles
-        .replace(/html\s*\{[^}]*\}/gi, '') // Remove html styles
-        .replace(/\*\s*\{[^}]*\}/gi, '') // Remove universal selector
-        .replace(/!important/gi, '') // Remove !important declarations
-        // Fix email-specific layout issues
-        .replace(/position:\s*absolute/gi, 'position: relative') // Convert absolute positioning
-        .replace(/position:\s*fixed/gi, 'position: relative') // Convert fixed positioning
-        .replace(/width:\s*100%(?!\w)/gi, 'max-width: 100%') // Prevent width overflow
-        .replace(/height:\s*auto/gi, 'min-height: auto') // Better height handling
-        .replace(/display:\s*table/gi, 'display: block') // Convert table display to block
-        .replace(/display:\s*table-cell/gi, 'display: block') // Convert table-cell to block
-        .trim();
-      
-      return cleanCss ? `<style scoped>${cleanCss}</style>` : '';
-    })
+    // Remove <style> tags and their content completely (they interfere with page styling)
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<style\b[^>]*>[\s\S]*$/gi, '') // Handle unclosed style tags
+    .replace(/^\s*[a-z#.][^{]*\{[^}]*\}\s*/gim, '') // Remove standalone CSS rules
     
     // Remove <head> section entirely if present
     .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '')
@@ -609,19 +594,14 @@ function extractEmailContent(html: string): string {
     /<div[^>]*>[\s\S]*?<\/div>/gi
   ];
   
-  // Improve table structures while preserving layout
+  // Clean up table structures while preserving content
   content = content
-    // Convert table-based layout to flexbox/block layout but preserve structure
-    .replace(/<table([^>]*)>/gi, '<div class="email-table"$1 style="display: block; width: 100%;">')
-    .replace(/<\/table>/gi, '</div>')
-    .replace(/<tbody([^>]*)>/gi, '<div class="email-tbody"$1>')
-    .replace(/<\/tbody>/gi, '</div>')
-    .replace(/<tr([^>]*)>/gi, '<div class="email-row"$1 style="display: flex; flex-wrap: wrap; margin-bottom: 8px;">')
-    .replace(/<\/tr>/gi, '</div>')
-    .replace(/<td([^>]*)>/gi, '<div class="email-cell"$1 style="flex: 1; padding: 4px; vertical-align: top;">')
-    .replace(/<\/td>/gi, '</div>')
-    .replace(/<th([^>]*)>/gi, '<div class="email-header"$1 style="flex: 1; padding: 4px; font-weight: bold;">')
-    .replace(/<\/th>/gi, '</div>')
+    // Remove table structure but keep content
+    .replace(/<\/?table[^>]*>/gi, '')
+    .replace(/<\/?tbody[^>]*>/gi, '')
+    .replace(/<\/?tr[^>]*>/gi, '<div>')
+    .replace(/<\/?td[^>]*>/gi, '')
+    .replace(/<\/?th[^>]*>/gi, '')
     
     // Convert common email elements to better structure
     .replace(/<font[^>]*>([\s\S]*?)<\/font>/gi, '<span>$1</span>')

@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import AddProjectDialog from "./AddProjectDialog";
 import EditProjectDialog from "./EditProjectDialog";
 import ProjectDetailDialogWithTasks from "./ProjectDetailDialogWithTasks";
+import ProjectDetailView from "./ProjectDetailView";
 import OrderModule from "./OrderModule";
 
 const getStatusColor = (status: string) => {
@@ -58,7 +59,9 @@ const ProjectModule = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [isProjectDetailViewOpen, setIsProjectDetailViewOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [customers, setCustomers] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
 
@@ -254,6 +257,11 @@ const ProjectModule = () => {
     setIsDetailDialogOpen(true);
   };
 
+  const handleDoubleClickProject = (project) => {
+    setSelectedProjectId(project.id);
+    setIsProjectDetailViewOpen(true);
+  };
+
   const handleProjectUpdated = (updatedProject) => {
     // Update project in Supabase
     const updateProject = async () => {
@@ -429,7 +437,11 @@ const ProjectModule = () => {
             const endDate = project.end_date ? new Date(project.end_date) : null;
             const isOverdue = endDate && endDate < new Date();
             return (
-            <Card key={project.id} className="hover:shadow-lg transition-shadow">
+            <Card 
+              key={project.id} 
+              className="hover:shadow-lg transition-shadow cursor-pointer"
+              onDoubleClick={() => handleDoubleClickProject(project)}
+            >
               <CardContent className="p-6 flex flex-col h-full">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
@@ -600,6 +612,17 @@ const ProjectModule = () => {
         onClose={() => setIsDetailDialogOpen(false)}
         project={selectedProject}
       />
+
+      {selectedProjectId && (
+        <ProjectDetailView
+          isOpen={isProjectDetailViewOpen}
+          onClose={() => {
+            setIsProjectDetailViewOpen(false);
+            setSelectedProjectId(null);
+          }}
+          projectId={selectedProjectId}
+        />
+      )}
     </div>
   );
 };
