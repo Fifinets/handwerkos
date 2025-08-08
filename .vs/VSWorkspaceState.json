@@ -1,0 +1,10 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\src",
+    "\\src\\components",
+    "\\src\\utils"
+  ],
+  "SelectedNode": "\\src\\utils\\emailMimeParser.ts",
+  "PreviewInSolutionExplorer": false
+}

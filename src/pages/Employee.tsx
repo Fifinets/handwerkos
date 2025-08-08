@@ -21,12 +21,30 @@ import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { toast } from "sonner";
 import LocationBasedTimeTracking from "@/components/LocationBasedTimeTracking";
 import ManagerTimeView from "@/components/ManagerTimeView";
+import MobileEmployeeApp from "@/components/employee/MobileEmployeeApp";
 import { supabase } from "@/integrations/supabase/client";
 
 const Employee = () => {
   const { user, signOut, userRole, loading } = useSupabaseAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('material');
+  const [useMobileView, setUseMobileView] = useState(false);
+
+  // Detect mobile device and screen size
+  useEffect(() => {
+    const checkMobileView = () => {
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isSmallScreen = window.innerWidth <= 768;
+      const isTouch = 'ontouchstart' in window;
+      
+      setUseMobileView(isMobile || (isSmallScreen && isTouch));
+    };
+    
+    checkMobileView();
+    window.addEventListener('resize', checkMobileView);
+    
+    return () => window.removeEventListener('resize', checkMobileView);
+  }, []);
 
   // Auth check
   useEffect(() => {
@@ -167,6 +185,11 @@ const Employee = () => {
     }
   };
 
+  // If mobile device detected, use mobile app interface
+  if (useMobileView) {
+    return <MobileEmployeeApp />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -178,10 +201,21 @@ const Employee = () => {
                 <Settings className="h-6 w-6" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">ElektroManager Pro</h1>
+                <h1 className="text-xl font-bold text-gray-900">HandwerkOS</h1>
                 <p className="text-sm text-gray-500">Mitarbeiter Portal</p>
               </div>
             </div>
+            
+            {/* Mobile View Toggle für Desktop-Testing */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setUseMobileView(!useMobileView)}
+              className="hidden lg:flex"
+            >
+              <MapPin className="h-4 w-4 mr-2" />
+              Mobile Ansicht
+            </Button>
             <div className="flex items-center gap-4">
               {userRole === 'manager' && (
                 <Button

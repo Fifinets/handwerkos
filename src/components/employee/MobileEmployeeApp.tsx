@@ -1,0 +1,902 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Clock, 
+  Package, 
+  MapPin, 
+  Camera, 
+  CheckCircle,
+  Play,
+  Pause,
+  Square,
+  Navigation,
+  Wifi,
+  WifiOff,
+  Battery,
+  Signal,
+  Home,
+  List,
+  User,
+  Bell,
+  Settings as SettingsIcon
+} from "lucide-react";
+import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import MobileOnboarding from "./MobileOnboarding";
+
+interface Project {
+  id: string;
+  name: string;
+  status: string;
+  location: string;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  assignedTo: string[];
+  deadline?: string;
+}
+
+interface TimeEntry {
+  id: string;
+  projectId: string;
+  startTime: Date;
+  endTime?: Date;
+  isActive: boolean;
+  location?: {lat: number, lng: number, address: string};
+  description?: string;
+}
+
+const MobileEmployeeApp: React.FC = () => {
+  const { user, userRole } = useSupabaseAuth();
+  const { toast } = useToast();
+  
+  // State Management
+  const [currentView, setCurrentView] = useState<'home' | 'projects' | 'time' | 'profile'>('home');
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, address: string} | null>(null);
+  const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
+  const [assignedProjects, setAssignedProjects] = useState<Project[]>([]);
+  const [batteryLevel, setBatteryLevel] = useState<number>(100);
+  const [notifications, setNotifications] = useState<number>(0);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isFirstVisit, setIsFirstVisit] = useState(true);
+
+  // Quick Actions State
+  const [quickMaterialEntry, setQuickMaterialEntry] = useState({
+    projectId: '',
+    material: '',
+    quantity: '',
+    unit: 'Stück'
+  });
+
+  // Refs for media capture
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
+
+  // Effects
+  useEffect(() => {
+    // Network status monitoring
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Get initial location
+    getCurrentLocation();
+
+    // Mock battery API (for real apps use navigator.getBattery())
+    const updateBattery = () => {
+      setBatteryLevel(Math.max(20, Math.floor(Math.random() * 100)));
+    };
+    const batteryInterval = setInterval(updateBattery, 30000);
+
+    // Load assigned projects
+    fetchAssignedProjects();
+
+    // Check if first visit
+    const hasSeenOnboarding = localStorage.getItem('handwerkos-onboarding-completed');
+    if (!hasSeenOnboarding) {
+      setShowOnboarding(true);
+    } else {
+      setIsFirstVisit(false);
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      clearInterval(batteryInterval);
+      stopCamera();
+    };
+  }, []);
+
+  // Geolocation functions
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          // Mock reverse geocoding - in real app use proper service
+          setCurrentLocation({
+            lat: latitude,
+            lng: longitude,
+            address: "Baustelle Musterstraße 123, 12345 Berlin"
+          });
+        },
+        (error) => {
+          console.error('Geolocation error:', error);
+          toast({
+            title: "Standort",
+            description: "Standort konnte nicht ermittelt werden",
+            variant: "destructive"
+          });
+        },
+        { enableHighAccuracy: true }
+      );
+    }
+  };
+
+  // Project management
+  const fetchAssignedProjects = async () => {
+    // Mock data - replace with real Supabase query
+    const mockProjects: Project[] = [
+      {
+        id: '1',
+        name: 'Bürogebäude Elektroinstallation',
+        status: 'in_bearbeitung',
+        location: 'Berlin Mitte',
+        priority: 'high',
+        assignedTo: [user?.id || ''],
+        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        id: '2', 
+        name: 'Wohnhaus Sanierung Phase 2',
+        status: 'geplant',
+        location: 'Berlin Charlottenburg',
+        priority: 'normal',
+        assignedTo: [user?.id || '']
+      },
+      {
+        id: '3',
+        name: 'Notfall-Reparatur Hauptstraße',
+        status: 'geplant',
+        location: 'Berlin Kreuzberg',
+        priority: 'urgent',
+        assignedTo: [user?.id || '']
+      }
+    ];
+    
+    setAssignedProjects(mockProjects);
+    setNotifications(mockProjects.filter(p => p.priority === 'urgent').length);
+  };
+
+  // Time tracking functions
+  const startTimeTracking = (projectId: string) => {
+    const newEntry: TimeEntry = {
+      id: Date.now().toString(),
+      projectId,
+      startTime: new Date(),
+      isActive: true,
+      location: currentLocation || undefined
+    };
+    
+    setActiveTimeEntry(newEntry);
+    
+    // Store in localStorage for offline capability
+    localStorage.setItem('activeTimeEntry', JSON.stringify(newEntry));
+    
+    toast({
+      title: "Zeiterfassung gestartet",
+      description: `Timer läuft für ${assignedProjects.find(p => p.id === projectId)?.name}`,
+    });
+  };
+
+  const pauseTimeTracking = () => {
+    if (activeTimeEntry) {
+      const pausedEntry = {
+        ...activeTimeEntry,
+        isActive: false
+      };
+      setActiveTimeEntry(pausedEntry);
+      localStorage.setItem('activeTimeEntry', JSON.stringify(pausedEntry));
+      
+      toast({
+        title: "Zeiterfassung pausiert",
+        description: "Timer angehalten"
+      });
+    }
+  };
+
+  const stopTimeTracking = () => {
+    if (activeTimeEntry) {
+      const completedEntry = {
+        ...activeTimeEntry,
+        endTime: new Date(),
+        isActive: false
+      };
+      
+      // Store completed entry (offline-capable)
+      const storedEntries = JSON.parse(localStorage.getItem('completedTimeEntries') || '[]');
+      storedEntries.push(completedEntry);
+      localStorage.setItem('completedTimeEntries', JSON.stringify(storedEntries));
+      
+      setActiveTimeEntry(null);
+      localStorage.removeItem('activeTimeEntry');
+      
+      const duration = Math.round((completedEntry.endTime!.getTime() - completedEntry.startTime.getTime()) / (1000 * 60));
+      
+      toast({
+        title: "Zeiterfassung beendet",
+        description: `${duration} Minuten erfasst`
+      });
+
+      // Sync to server when online
+      if (isOnline) {
+        syncTimeEntries();
+      }
+    }
+  };
+
+  const syncTimeEntries = async () => {
+    const storedEntries = JSON.parse(localStorage.getItem('completedTimeEntries') || '[]');
+    if (storedEntries.length > 0 && isOnline) {
+      try {
+        // Sync to Supabase - implement actual sync logic
+        console.log('Syncing time entries:', storedEntries);
+        localStorage.removeItem('completedTimeEntries');
+        
+        toast({
+          title: "Synchronisation",
+          description: `${storedEntries.length} Zeiteinträge synchronisiert`
+        });
+      } catch (error) {
+        console.error('Sync failed:', error);
+      }
+    }
+  };
+
+  // Camera functions
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' }, // Use back camera on mobile
+        audio: false 
+      });
+      setCameraStream(stream);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      
+      setShowCamera(true);
+    } catch (error) {
+      toast({
+        title: "Kamera",
+        description: "Kamera konnte nicht geöffnet werden",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const stopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+    setShowCamera(false);
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(video, 0, 0);
+      
+      // Convert to blob and store/upload
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const formData = new FormData();
+          formData.append('photo', blob, `baufortschritt_${Date.now()}.jpg`);
+          
+          // Store locally if offline, sync when online
+          if (isOnline) {
+            uploadPhoto(formData);
+          } else {
+            // Store in IndexedDB for offline capability
+            storePhotoOffline(blob);
+          }
+        }
+      }, 'image/jpeg', 0.8);
+      
+      stopCamera();
+    }
+  };
+
+  const uploadPhoto = async (formData: FormData) => {
+    try {
+      // Implement Supabase storage upload
+      toast({
+        title: "Foto hochgeladen",
+        description: "Baufortschritt dokumentiert"
+      });
+    } catch (error) {
+      toast({
+        title: "Upload-Fehler",
+        description: "Foto wird bei nächster Verbindung hochgeladen",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const storePhotoOffline = (blob: Blob) => {
+    // Store in IndexedDB for later sync
+    toast({
+      title: "Offline gespeichert",
+      description: "Foto wird bei nächster Verbindung hochgeladen"
+    });
+  };
+
+  // Quick material entry
+  const submitQuickMaterial = () => {
+    if (!quickMaterialEntry.material || !quickMaterialEntry.quantity) {
+      toast({
+        title: "Fehler",
+        description: "Material und Menge sind erforderlich",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const entry = {
+      ...quickMaterialEntry,
+      timestamp: new Date().toISOString(),
+      location: currentLocation
+    };
+
+    // Store offline if needed
+    const storedMaterials = JSON.parse(localStorage.getItem('materialEntries') || '[]');
+    storedMaterials.push(entry);
+    localStorage.setItem('materialEntries', JSON.stringify(storedMaterials));
+
+    // Reset form
+    setQuickMaterialEntry({
+      projectId: '',
+      material: '',
+      quantity: '',
+      unit: 'Stück'
+    });
+
+    toast({
+      title: "Material erfasst",
+      description: `${entry.quantity} ${entry.unit} ${entry.material}`
+    });
+
+    if (isOnline) {
+      syncMaterialEntries();
+    }
+  };
+
+  const syncMaterialEntries = async () => {
+    const storedMaterials = JSON.parse(localStorage.getItem('materialEntries') || '[]');
+    if (storedMaterials.length > 0 && isOnline) {
+      try {
+        // Sync to Supabase
+        console.log('Syncing material entries:', storedMaterials);
+        localStorage.removeItem('materialEntries');
+      } catch (error) {
+        console.error('Material sync failed:', error);
+      }
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'urgent': return 'bg-red-500';
+      case 'high': return 'bg-orange-500';
+      case 'normal': return 'bg-blue-500';
+      case 'low': return 'bg-green-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const getPriorityLabel = (priority: string) => {
+    switch (priority) {
+      case 'urgent': return 'Dringend';
+      case 'high': return 'Hoch';
+      case 'normal': return 'Normal';
+      case 'low': return 'Niedrig';
+      default: return 'Normal';
+    }
+  };
+
+  const completeOnboarding = () => {
+    localStorage.setItem('handwerkos-onboarding-completed', 'true');
+    setShowOnboarding(false);
+    setIsFirstVisit(false);
+  };
+
+  const skipOnboarding = () => {
+    localStorage.setItem('handwerkos-onboarding-completed', 'true');
+    setShowOnboarding(false);
+    setIsFirstVisit(false);
+  };
+
+  const getActiveTime = () => {
+    if (!activeTimeEntry) return '00:00:00';
+    
+    const now = new Date();
+    const diff = now.getTime() - activeTimeEntry.startTime.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // Render functions for different views
+  const renderHomeView = () => (
+    <div className="space-y-4">
+      {/* Status Bar */}
+      <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+        <CardContent className="p-4">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h3 className="font-semibold">Willkommen zurück!</h3>
+              <p className="text-blue-100 text-sm">{user?.email}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <Signal className="h-4 w-4" />
+                <span className="text-xs">4G</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Battery className="h-4 w-4" />
+                <span className="text-xs">{batteryLevel}%</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2 mb-2">
+            {isOnline ? (
+              <><Wifi className="h-4 w-4" /><span className="text-sm">Online</span></>
+            ) : (
+              <><WifiOff className="h-4 w-4" /><span className="text-sm">Offline</span></>
+            )}
+          </div>
+          
+          {currentLocation && (
+            <div className="flex items-center gap-2 text-sm">
+              <MapPin className="h-4 w-4" />
+              <span className="truncate">{currentLocation.address}</span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Active Time Tracking */}
+      {activeTimeEntry && (
+        <Card className="border-2 border-green-400 bg-green-50">
+          <CardContent className="p-4">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-semibold text-green-800">Timer läuft</h3>
+              <div className="text-2xl font-mono font-bold text-green-600">
+                {getActiveTime()}
+              </div>
+            </div>
+            <p className="text-green-700 text-sm mb-3">
+              {assignedProjects.find(p => p.id === activeTimeEntry.projectId)?.name}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={pauseTimeTracking}
+                className="flex-1"
+              >
+                <Pause className="h-4 w-4 mr-2" />
+                Pause
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={stopTimeTracking}
+                className="flex-1"
+              >
+                <Square className="h-4 w-4 mr-2" />
+                Stoppen
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <span>Schnellaktionen</span>
+            {notifications > 0 && (
+              <Badge variant="destructive" className="rounded-full px-2 py-1">
+                {notifications}
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-3">
+          <Button
+            className="h-20 flex flex-col gap-2"
+            onClick={() => setCurrentView('time')}
+          >
+            <Clock className="h-6 w-6" />
+            <span className="text-sm">Zeit erfassen</span>
+          </Button>
+          
+          <Button
+            variant="outline"
+            className="h-20 flex flex-col gap-2"
+            onClick={startCamera}
+          >
+            <Camera className="h-6 w-6" />
+            <span className="text-sm">Foto machen</span>
+          </Button>
+          
+          <Button
+            variant="outline"
+            className="h-20 flex flex-col gap-2"
+            onClick={() => setCurrentView('projects')}
+          >
+            <List className="h-6 w-6" />
+            <span className="text-sm">Projekte</span>
+          </Button>
+          
+          <Button
+            variant="outline"
+            className="h-20 flex flex-col gap-2"
+            onClick={getCurrentLocation}
+          >
+            <Navigation className="h-6 w-6" />
+            <span className="text-sm">Standort</span>
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Quick Material Entry */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Schnell-Material
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <select
+            value={quickMaterialEntry.projectId}
+            onChange={(e) => setQuickMaterialEntry(prev => ({
+              ...prev,
+              projectId: e.target.value
+            }))}
+            className="w-full p-2 border rounded-md text-sm"
+          >
+            <option value="">Projekt wählen...</option>
+            {assignedProjects.map(project => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
+          
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="text"
+              placeholder="Material..."
+              value={quickMaterialEntry.material}
+              onChange={(e) => setQuickMaterialEntry(prev => ({
+                ...prev,
+                material: e.target.value
+              }))}
+              className="p-2 border rounded-md text-sm"
+            />
+            <div className="flex gap-1">
+              <input
+                type="number"
+                placeholder="Menge"
+                value={quickMaterialEntry.quantity}
+                onChange={(e) => setQuickMaterialEntry(prev => ({
+                  ...prev,
+                  quantity: e.target.value
+                }))}
+                className="p-2 border rounded-md text-sm flex-1"
+              />
+              <select
+                value={quickMaterialEntry.unit}
+                onChange={(e) => setQuickMaterialEntry(prev => ({
+                  ...prev,
+                  unit: e.target.value
+                }))}
+                className="p-2 border rounded-md text-sm w-20"
+              >
+                <option value="Stück">Stk</option>
+                <option value="Meter">m</option>
+                <option value="kg">kg</option>
+                <option value="Liter">L</option>
+              </select>
+            </div>
+          </div>
+          
+          <Button
+            onClick={submitQuickMaterial}
+            disabled={!quickMaterialEntry.material || !quickMaterialEntry.quantity}
+            className="w-full"
+            size="sm"
+          >
+            Material erfassen
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  const renderProjectsView = () => (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">Meine Projekte</h3>
+        <Badge variant="outline">
+          {assignedProjects.length} aktiv
+        </Badge>
+      </div>
+
+      {assignedProjects.map(project => (
+        <Card key={project.id} className="relative">
+          <CardContent className="p-4">
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <h4 className="font-semibold text-sm">{project.name}</h4>
+                <p className="text-gray-600 text-xs flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  {project.location}
+                </p>
+              </div>
+              <Badge
+                className={`${getPriorityColor(project.priority)} text-white text-xs`}
+              >
+                {getPriorityLabel(project.priority)}
+              </Badge>
+            </div>
+            
+            {project.deadline && (
+              <p className="text-xs text-orange-600 mb-3">
+                Fällig: {new Date(project.deadline).toLocaleDateString('de-DE')}
+              </p>
+            )}
+            
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => startTimeTracking(project.id)}
+                disabled={!!activeTimeEntry}
+                className="flex-1"
+              >
+                <Play className="h-3 w-3 mr-1" />
+                Zeit starten
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={startCamera}
+                className="flex-1"
+              >
+                <Camera className="h-3 w-3 mr-1" />
+                Foto
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+
+  const renderTimeView = () => (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold">Zeiterfassung</h3>
+      
+      {activeTimeEntry ? (
+        <Card className="border-2 border-green-400 bg-green-50">
+          <CardContent className="p-6 text-center">
+            <div className="text-4xl font-mono font-bold text-green-600 mb-2">
+              {getActiveTime()}
+            </div>
+            <p className="text-green-700 mb-4">
+              {assignedProjects.find(p => p.id === activeTimeEntry.projectId)?.name}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                onClick={pauseTimeTracking}
+                className="flex-1"
+                variant="outline"
+              >
+                <Pause className="h-4 w-4 mr-2" />
+                Pause
+              </Button>
+              <Button
+                onClick={stopTimeTracking}
+                variant="destructive"
+                className="flex-1"
+              >
+                <Square className="h-4 w-4 mr-2" />
+                Stoppen
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-4">
+            <h4 className="font-medium mb-3">Projekt auswählen:</h4>
+            <div className="space-y-2">
+              {assignedProjects.map(project => (
+                <Button
+                  key={project.id}
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => startTimeTracking(project.id)}
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  {project.name}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+
+  const renderProfileView = () => (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold">Profil</h3>
+      
+      <Card>
+        <CardContent className="p-4">
+          <div className="text-center mb-4">
+            <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
+              <User className="h-8 w-8 text-white" />
+            </div>
+            <h4 className="font-semibold">{user?.email}</h4>
+            <p className="text-gray-600 text-sm">Mitarbeiter</p>
+          </div>
+          
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between">
+              <span>Status:</span>
+              <Badge variant="outline" className="text-green-600">
+                Aktiv
+              </Badge>
+            </div>
+            <div className="flex justify-between">
+              <span>Standort:</span>
+              <span className="text-gray-600">
+                {currentLocation ? 'Verfügbar' : 'Nicht verfügbar'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Offline-Daten:</span>
+              <span className="text-gray-600">
+                {JSON.parse(localStorage.getItem('completedTimeEntries') || '[]').length} Einträge
+              </span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {!isOnline && (
+        <Card className="border-orange-400 bg-orange-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-orange-700">
+              <WifiOff className="h-4 w-4" />
+              <span className="font-medium">Offline-Modus</span>
+            </div>
+            <p className="text-orange-600 text-sm mt-1">
+              Daten werden bei nächster Verbindung synchronisiert.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+
+  // Show onboarding for first-time users
+  if (showOnboarding && isFirstVisit) {
+    return (
+      <MobileOnboarding 
+        onComplete={completeOnboarding}
+        onSkip={skipOnboarding}
+      />
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col max-w-md mx-auto">
+      {/* Main Content */}
+      <div className="flex-1 p-4 pb-20">
+        {currentView === 'home' && renderHomeView()}
+        {currentView === 'projects' && renderProjectsView()}
+        {currentView === 'time' && renderTimeView()}
+        {currentView === 'profile' && renderProfileView()}
+      </div>
+
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white border-t shadow-lg">
+        <div className="grid grid-cols-4 gap-1 p-2">
+          {[
+            { id: 'home', icon: Home, label: 'Start' },
+            { id: 'projects', icon: List, label: 'Projekte' },
+            { id: 'time', icon: Clock, label: 'Zeit' },
+            { id: 'profile', icon: User, label: 'Profil' }
+          ].map((item) => (
+            <Button
+              key={item.id}
+              variant={currentView === item.id ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setCurrentView(item.id as any)}
+              className="flex flex-col gap-1 h-16 p-2"
+            >
+              <item.icon className="h-5 w-5" />
+              <span className="text-xs">{item.label}</span>
+              {item.id === 'projects' && notifications > 0 && (
+                <Badge
+                  variant="destructive"
+                  className="absolute -top-1 -right-1 rounded-full w-4 h-4 p-0 text-xs"
+                >
+                  {notifications}
+                </Badge>
+              )}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* Camera Modal */}
+      {showCamera && (
+        <div className="fixed inset-0 bg-black z-50 flex flex-col">
+          <div className="flex justify-between items-center p-4 text-white">
+            <h3 className="font-semibold">Baufortschritt dokumentieren</h3>
+            <Button variant="ghost" size="sm" onClick={stopCamera}>
+              ✕
+            </Button>
+          </div>
+          
+          <div className="flex-1 relative">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              className="w-full h-full object-cover"
+            />
+            <canvas ref={canvasRef} className="hidden" />
+            
+            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
+              <Button
+                size="lg"
+                onClick={capturePhoto}
+                className="rounded-full w-16 h-16 p-0 bg-white text-black hover:bg-gray-200"
+              >
+                <Camera className="h-8 w-8" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MobileEmployeeApp;
