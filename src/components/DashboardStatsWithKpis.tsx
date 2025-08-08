@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Building2, Users, DollarSign, CheckSquare } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Building2, Users, DollarSign, CheckSquare, Wrench, Mail, FileText, Euro, Clock, Calendar, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
+import { de } from 'date-fns/locale';
 
 /**
  * DashboardStatsWithKpis fetches real data from Supabase and displays
@@ -19,107 +23,298 @@ interface DashboardCard {
   onClick?: () => void;
 }
 
+interface KPIData {
+  openOrders: number;
+  unreadEmails: number;
+  openQuotes: number;
+  openInvoices: number;
+  totalOpenAmount: number;
+  todayHours: number;
+  activeEmployees: { name: string; status: 'active' | 'paused' | 'offline'; hours: number }[];
+  todayAppointments: { project: string; time: string; employees: number }[];
+  recentEmails: { subject: string; from: string; category: string; time: string }[];
+}
+
 const DashboardStatsWithKpis: React.FC<{ onNavigate?: (moduleId: string) => void }> = ({ onNavigate }) => {
-  const [openProjects, setOpenProjects] = useState(0);
-  const [activeEmployees, setActiveEmployees] = useState(0);
-  const [openInvoices, setOpenInvoices] = useState(0);
+  const [kpiData, setKpiData] = useState<KPIData>({
+    openOrders: 0,
+    unreadEmails: 0,
+    openQuotes: 0,
+    openInvoices: 0,
+    totalOpenAmount: 0,
+    todayHours: 0,
+    activeEmployees: [],
+    todayAppointments: [],
+    recentEmails: []
+  });
   const [loading, setLoading] = useState(true);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     const loadKpis = async () => {
-      // Open projects: status not 'abgeschlossen'
-      const { data: projectData, error: projectError } = await supabase
-        .from('projects')
-        .select('status');
-      if (!projectError && projectData) {
-        setOpenProjects(projectData.filter((p) => p.status !== 'abgeschlossen').length);
-      }
-      // Active employees (only registered employees from same company)
-      const { data: currentUserProfile } = await supabase.auth.getUser();
-      if (currentUserProfile?.user) {
+      try {
+        const { data: currentUserProfile } = await supabase.auth.getUser();
+        if (!currentUserProfile?.user) return;
+
         const { data: profile } = await supabase
           .from('profiles')
-          .select('company_id')
+          .select('company_id, role')
           .eq('id', currentUserProfile.user.id)
           .single();
 
-        if (profile?.company_id) {
-          const { data: employeeData, error: employeeError } = await supabase
+        if (!profile?.company_id) return;
+        
+        setCurrentUserRole(profile.role);
+        const companyId = profile.company_id;
+        const today = new Date().toISOString().split('T')[0];
+
+        // 1. Offene Aufträge
+        const { data: ordersData } = await supabase
+          .from('projects')
+          .select('id, status')
+          .eq('company_id', companyId)
+          .neq('status', 'abgeschlossen');
+
+        // 2. Ungelesene E-Mails
+        const { data: emailsData } = await supabase
+          .from('emails')
+          .select('id, subject, sender_name, classification, created_at')
+          .eq('company_id', companyId)
+          .eq('read', false)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        // 3. Offene Angebote
+        const { data: quotesData } = await supabase
+          .from('quotes')
+          .select('id, status')
+          .eq('company_id', companyId)
+          .eq('status', 'versendet');
+
+        // 4. Offene Rechnungen
+        const { data: invoicesData } = await supabase
+          .from('invoices')
+          .select('id, total_amount')
+          .eq('company_id', companyId)
+          .eq('status', 'offen');
+
+        // 5. Heutige Arbeitsstunden
+        const { data: timeEntriesData } = await supabase
+          .from('time_entries')
+          .select('duration_minutes')
+          .eq('company_id', companyId)
+          .gte('start_time', today + 'T00:00:00')
+          .lt('start_time', today + 'T23:59:59');
+
+        // 6. Mitarbeiter-Status (nur für Manager)
+        let employeesData: any[] = [];
+        if (profile.role === 'manager') {
+          const { data } = await supabase
             .from('employees')
-            .select('id')
-            .eq('company_id', profile.company_id)
-            .neq('status', 'eingeladen')
-            .not('user_id', 'is', null);
-          
-          if (!employeeError && employeeData) {
-            setActiveEmployees(employeeData.length);
-          }
+            .select('name, status')
+            .eq('company_id', companyId)
+            .neq('status', 'eingeladen');
+          employeesData = data || [];
         }
+
+        // 7. Heutige Termine
+        const { data: appointmentsData } = await supabase
+          .from('projects')
+          .select('name, start_date')
+          .eq('company_id', companyId)
+          .gte('start_date', today)
+          .lt('start_date', new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+
+        const totalOpenAmount = invoicesData?.reduce((sum, inv) => sum + (inv.total_amount || 0), 0) || 0;
+        const todayMinutes = timeEntriesData?.reduce((sum, entry) => sum + (entry.duration_minutes || 0), 0) || 0;
+        
+        setKpiData({
+          openOrders: ordersData?.length || 0,
+          unreadEmails: emailsData?.length || 0,
+          openQuotes: quotesData?.length || 0,
+          openInvoices: invoicesData?.length || 0,
+          totalOpenAmount,
+          todayHours: Math.round(todayMinutes / 60 * 10) / 10,
+          activeEmployees: employeesData.map(emp => ({
+            name: emp.name,
+            status: emp.status === 'aktiv' ? 'active' : 'offline',
+            hours: 0
+          })),
+          todayAppointments: appointmentsData?.map(apt => ({
+            project: apt.name,
+            time: format(new Date(apt.start_date), 'HH:mm', { locale: de }),
+            employees: 1
+          })) || [],
+          recentEmails: emailsData?.map(email => ({
+            subject: email.subject,
+            from: email.sender_name,
+            category: email.classification || 'Allgemein',
+            time: format(new Date(email.created_at), 'HH:mm', { locale: de })
+          })) || []
+        });
+      } catch (error) {
+        console.error('Fehler beim Laden der KPIs:', error);
+      } finally {
+        setLoading(false);
       }
-      // Open invoices (status == 'offen')
-      const { data: invoiceData, error: invoiceError } = await supabase
-        .from('invoices')
-        .select('id')
-        .eq('status', 'offen');
-      if (!invoiceError && invoiceData) {
-        setOpenInvoices(invoiceData.length);
-      }
-      setLoading(false);
     };
     loadKpis();
   }, []);
 
-  const cards: DashboardCard[] = [
-    {
-      title: 'Aktive Projekte',
-      description: loading ? '…' : `${openProjects} laufende Projekte`,
-      icon: Building2,
-      buttonText: 'Projekte',
-      onClick: () => onNavigate?.('projects'),
-    },
-    {
-      title: 'Auslastung',
-      description: loading ? '…' : `${activeEmployees} aktive Mitarbeiter`,
-      icon: Users,
-      buttonText: 'Mitarbeiter',
-      onClick: () => onNavigate?.('employees'),
-    },
-    {
-      title: 'Offene Rechnungen',
-      description: loading ? '…' : `${openInvoices} offen`,
-      icon: DollarSign,
-      buttonText: 'Buchhaltung',
-      onClick: () => onNavigate?.('finance'),
-    },
-    {
-      title: 'Neue Aufgabe',
-      description: 'Leg eine Aufgabe oder einen Zeitstempel an',
-      icon: CheckSquare,
-      buttonText: 'Aufgabe',
-      onClick: () => onNavigate?.('tasks'),
-    },
-  ];
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {cards.map((card) => (
-        <Card
-          key={card.title}
-          className="flex flex-col justify-between cursor-pointer"
-          onClick={card.onClick}
-        >
-          <CardHeader className="flex flex-row items-center gap-3">
-            <card.icon className="w-6 h-6 text-blue-500" />
-            <CardTitle>{card.title}</CardTitle>
-          </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600 mb-4">{card.description}</p>
-              <Button variant="outline" className="w-full">
-                {card.buttonText}
-              </Button>
+    <div className="space-y-6">
+      {/* 1. Aktuelle Kennzahlen (KPIs) */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4">📊 Aktuelle Kennzahlen</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <Card className="cursor-pointer hover:bg-muted/50" onClick={() => onNavigate?.('projects')}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Wrench className="w-5 h-5 text-blue-600" />
+                <span className="font-medium">Offene Aufträge</span>
+              </div>
+              <p className="text-2xl font-bold text-blue-600">{loading ? '…' : kpiData.openOrders}</p>
+              <p className="text-sm text-muted-foreground">in Bearbeitung</p>
             </CardContent>
+          </Card>
+
+          <Card className="cursor-pointer hover:bg-muted/50" onClick={() => onNavigate?.('emails')}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Mail className="w-5 h-5 text-green-600" />
+                <span className="font-medium">Ungelesene E-Mails</span>
+              </div>
+              <p className="text-2xl font-bold text-green-600">{loading ? '…' : kpiData.unreadEmails}</p>
+              <p className="text-sm text-muted-foreground">neue Anfragen</p>
+            </CardContent>
+          </Card>
+
+          <Card className="cursor-pointer hover:bg-muted/50" onClick={() => onNavigate?.('finance')}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <FileText className="w-5 h-5 text-orange-600" />
+                <span className="font-medium">Offene Angebote</span>
+              </div>
+              <p className="text-2xl font-bold text-orange-600">{loading ? '…' : kpiData.openQuotes}</p>
+              <p className="text-sm text-muted-foreground">versendet</p>
+            </CardContent>
+          </Card>
+
+          <Card className="cursor-pointer hover:bg-muted/50" onClick={() => onNavigate?.('finance')}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Euro className="w-5 h-5 text-red-600" />
+                <span className="font-medium">Offene Rechnungen</span>
+              </div>
+              <p className="text-2xl font-bold text-red-600">{loading ? '…' : kpiData.openInvoices}</p>
+              <p className="text-sm text-muted-foreground">{loading ? '' : `${kpiData.totalOpenAmount.toFixed(0)} €`}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="cursor-pointer hover:bg-muted/50" onClick={() => onNavigate?.('timetracking')}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-5 h-5 text-purple-600" />
+                <span className="font-medium">Stunden heute</span>
+              </div>
+              <p className="text-2xl font-bold text-purple-600">{loading ? '…' : kpiData.todayHours}</p>
+              <p className="text-sm text-muted-foreground">gearbeitet</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* 2. Heute / Nächste Termine */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4">📅 Heute / Nächste Termine</h2>
+        <Card>
+          <CardContent className="p-4">
+            {loading ? (
+              <p className="text-muted-foreground">Lade Termine...</p>
+            ) : kpiData.todayAppointments.length === 0 ? (
+              <p className="text-muted-foreground">Keine Termine für heute</p>
+            ) : (
+              <div className="space-y-3">
+                {kpiData.todayAppointments.map((appointment, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Calendar className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <p className="font-medium">{appointment.project}</p>
+                        <p className="text-sm text-muted-foreground">{appointment.time} Uhr ({appointment.employees} Mitarbeiter)</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
         </Card>
-      ))}
+      </div>
+
+      {/* 3. Mitarbeiterübersicht (nur für Manager) */}
+      {currentUserRole === 'manager' && (
+        <div>
+          <h2 className="text-xl font-semibold mb-4">👥 Mitarbeiterübersicht</h2>
+          <Card>
+            <CardContent className="p-4">
+              {loading ? (
+                <p className="text-muted-foreground">Lade Mitarbeiter...</p>
+              ) : kpiData.activeEmployees.length === 0 ? (
+                <p className="text-muted-foreground">Keine aktiven Mitarbeiter</p>
+              ) : (
+                <div className="space-y-3">
+                  {kpiData.activeEmployees.map((employee, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full ${
+                          employee.status === 'active' ? 'bg-green-500' :
+                          employee.status === 'paused' ? 'bg-yellow-500' : 'bg-red-500'
+                        }`} />
+                        <span className="font-medium">{employee.name}</span>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => onNavigate?.('timetracking')}>
+                        Zeitbericht
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* 4. Letzte E-Mails / Kundenanfragen */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4">📨 Letzte E-Mails / Kundenanfragen</h2>
+        <Card>
+          <CardContent className="p-4">
+            {loading ? (
+              <p className="text-muted-foreground">Lade E-Mails...</p>
+            ) : kpiData.recentEmails.length === 0 ? (
+              <p className="text-muted-foreground">Keine neuen E-Mails</p>
+            ) : (
+              <div className="space-y-3">
+                {kpiData.recentEmails.map((email, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 cursor-pointer" onClick={() => onNavigate?.('emails')}>
+                    <div className="flex items-center gap-3">
+                      <Mail className="w-5 h-5 text-blue-600" />
+                      <div className="flex-1">
+                        <p className="font-medium truncate">{email.subject}</p>
+                        <p className="text-sm text-muted-foreground">von {email.from} • {email.time}</p>
+                      </div>
+                    </div>
+                    <Badge variant={email.category === 'Anfrage' ? 'default' : 'secondary'}>
+                      {email.category}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
