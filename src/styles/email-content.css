@@ -76,21 +76,41 @@
 
 /* Style email tables */
 .email-content table {
-  width: 100%;
+  width: 100% !important;
+  max-width: 100% !important;
   border-collapse: collapse;
+  margin: 1rem 0;
+  table-layout: auto !important;
+}
+
+.email-content .email-table-wrapper {
+  overflow-x: auto;
   margin: 1rem 0;
 }
 
 .email-content td,
 .email-content th {
-  padding: 8px 12px;
+  padding: 8px 12px !important;
   border: 1px solid #e5e7eb;
   text-align: left;
+  vertical-align: top !important;
+  word-wrap: break-word;
+  max-width: none !important;
 }
 
 .email-content th {
   background-color: #f9fafb;
   font-weight: 600;
+}
+
+/* Override email-specific table styling */
+.email-content table[width] {
+  width: 100% !important;
+}
+
+.email-content td[width],
+.email-content th[width] {
+  width: auto !important;
 }
 
 /* Style email lists */

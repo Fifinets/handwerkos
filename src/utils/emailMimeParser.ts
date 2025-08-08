@@ -531,14 +531,91 @@ export function getPreferredContentType(): 'html' | 'text' {
 export function sanitizeHtmlContent(html: string): string {
   if (!html) return '';
   
-  // Basic HTML sanitization - remove potentially dangerous elements
-  return html
+  // Enhanced HTML sanitization for email content
+  let sanitized = html
+    // Remove potentially dangerous elements
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
     .replace(/<object[^>]*>[\s\S]*?<\/object>/gi, '')
     .replace(/<embed[^>]*>/gi, '')
     .replace(/<applet[^>]*>[\s\S]*?<\/applet>/gi, '')
     .replace(/javascript:/gi, '')
-    .replace(/on\w+\s*=/gi, '');
+    .replace(/on\w+\s*=/gi, '')
+    
+    // Remove <style> tags and their content (they interfere with page styling)
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    
+    // Remove <head> section entirely if present
+    .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '')
+    
+    // Remove DOCTYPE and html/body wrapper tags but keep content
+    .replace(/<!DOCTYPE[^>]*>/gi, '')
+    .replace(/<html[^>]*>/gi, '')
+    .replace(/<\/html>/gi, '')
+    .replace(/<body[^>]*>/gi, '')
+    .replace(/<\/body>/gi, '')
+    
+    // Remove meta tags
+    .replace(/<meta[^>]*>/gi, '')
+    
+    // Remove link tags (external CSS)
+    .replace(/<link[^>]*>/gi, '')
+    
+    // Clean up outlook-specific elements
+    .replace(/<!--\[if[^>]*>[\s\S]*?<!\[endif\]-->/gi, '')
+    .replace(/<!\-\-[\s\S]*?\-\->/gi, '') // Remove HTML comments
+    
+    // Remove excessive whitespace and newlines
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\n\s*\n/g, '\n')
+    .trim();
+  
+  // Extract content from table-based layouts (common in emails)
+  sanitized = extractEmailContent(sanitized);
+  
+  return sanitized;
+}
+
+/**
+ * Extract meaningful content from table-based email layouts
+ */
+function extractEmailContent(html: string): string {
+  if (!html) return '';
+  
+  // Try to find the main content area
+  let content = html;
+  
+  // Look for common email content patterns
+  const contentPatterns = [
+    // Look for main content in tables
+    /<table[^>]*>[\s\S]*?<\/table>/gi,
+    // Look for div-based layouts
+    /<div[^>]*>[\s\S]*?<\/div>/gi
+  ];
+  
+  // Clean up table structures while preserving content
+  content = content
+    // Remove table structure but keep content
+    .replace(/<\/?table[^>]*>/gi, '')
+    .replace(/<\/?tbody[^>]*>/gi, '')
+    .replace(/<\/?tr[^>]*>/gi, '<div>')
+    .replace(/<\/?td[^>]*>/gi, '')
+    .replace(/<\/?th[^>]*>/gi, '')
+    
+    // Convert common email elements to better structure
+    .replace(/<font[^>]*>([\s\S]*?)<\/font>/gi, '<span>$1</span>')
+    
+    // Clean up excessive nested divs
+    .replace(/<div[^>]*>\s*<div[^>]*>/gi, '<div>')
+    .replace(/<\/div>\s*<\/div>/gi, '</div>')
+    
+    // Remove empty elements
+    .replace(/<([a-z]+)[^>]*>\s*<\/\1>/gi, '')
+    
+    // Remove Microsoft Office specific attributes
+    .replace(/\s*style="[^"]*mso-[^"]*"/gi, '')
+    .replace(/\s*class="[^"]*MsoNormal[^"]*"/gi, '');
+  
+  return content;
 }
 
 /**
