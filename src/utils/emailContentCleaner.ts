@@ -177,94 +177,56 @@ function removeVisualNoise(content: string): string {
 }
 
 /**
- * Fix HTML-specific content issues
+ * Fix HTML-specific content issues while preserving email styling
  */
 function fixHTMLContent(content: string, options: { fixImages: boolean; preserveFormatting: boolean }): string {
   let htmlContent = content;
 
-  // Remove style tags and their content completely
-  htmlContent = htmlContent.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+  // Keep style tags - they are essential for email display!
+  // Only fix broken character sequences and encoding
   
-  // Remove problematic CSS classes and inline styles that interfere
-  htmlContent = htmlContent
-    .replace(/class="[^"]*outlook[^"]*"/gi, '')
-    .replace(/class="[^"]*mso[^"]*"/gi, '')
-    .replace(/style="[^"]*mso-[^"]*[^"]*"/gi, '');
-
   if (options.fixImages) {
-    // Fix image tags
+    // Minimal image fixes - don't override existing styles
     htmlContent = htmlContent.replace(/<img([^>]*?)>/gi, (match, attrs) => {
       let fixedAttrs = attrs;
       
       // Add alt text if missing
       if (!fixedAttrs.includes('alt=')) {
-        fixedAttrs += ' alt="Bild"';
+        fixedAttrs += ' alt=""';
       }
       
-      // Add responsive styles
-      const responsiveStyle = 'max-width: 100%; height: auto; border-radius: 4px; margin: 8px 0; display: block;';
-      
-      if (fixedAttrs.includes('style=')) {
-        fixedAttrs = fixedAttrs.replace(/style=["']([^"']*?)["']/i, `style="$1 ${responsiveStyle}"`);
-      } else {
-        fixedAttrs += ` style="${responsiveStyle}"`;
+      // Only add responsive styles if no width/style is present
+      if (!fixedAttrs.includes('style=') && !fixedAttrs.includes('width=')) {
+        fixedAttrs += ' style="max-width: 100%; height: auto;"';
       }
       
       return `<img${fixedAttrs}>`;
     });
   }
 
-  // Fix broken links and improve their styling
+  // Minimal link fixes
   htmlContent = htmlContent.replace(/<a([^>]*?)>/gi, (match, attrs) => {
-    // Remove problematic Outlook-specific attributes
-    attrs = attrs.replace(/target="_blank"/gi, 'target="_blank" rel="noopener noreferrer"');
-    
-    if (!attrs.includes('style=')) {
-      attrs += ' style="color: #2563eb; text-decoration: underline; font-weight: 500;"';
+    // Add security attributes if missing
+    if (!attrs.includes('target=')) {
+      attrs += ' target="_blank" rel="noopener noreferrer"';
     }
     return `<a${attrs}>`;
   });
-
-  // Clean up table-based layouts (common in email HTML)
-  htmlContent = cleanupEmailTables(htmlContent);
 
   // Remove broken character sequences between HTML tags
   htmlContent = htmlContent.replace(/>[\s]*[âÍÂ­\s]*</g, '><');
 
   if (options.preserveFormatting) {
-    // Ensure proper paragraph breaks
-    htmlContent = htmlContent.replace(/(<\/p>)\s*(<p>)/gi, '$1\n$2');
-    
-    // Fix common email formatting issues
+    // Minimal formatting fixes
     htmlContent = htmlContent
-      .replace(/<br\s*\/?>\s*<br\s*\/?>/gi, '</p><p>') // Double BR to paragraphs
-      .replace(/&nbsp;/gi, ' '); // Non-breaking spaces to regular spaces
+      .replace(/&nbsp;/gi, ' ') // Non-breaking spaces to regular spaces
+      .replace(/\s+/g, ' ') // Multiple spaces
+      .trim();
   }
 
   return htmlContent;
 }
 
-/**
- * Clean up email table layouts for better display
- */
-function cleanupEmailTables(content: string): string {
-  return content
-    // Remove width attributes that cause layout issues
-    .replace(/\s*width="[^"]*"/gi, '')
-    .replace(/\s*height="[^"]*"/gi, '')
-    
-    // Add responsive table styling
-    .replace(/<table([^>]*)>/gi, '<div class="email-table-wrapper"><table$1 style="width: 100%; max-width: 100%; table-layout: auto;">')
-    .replace(/<\/table>/gi, '</table></div>')
-    
-    // Improve cell styling
-    .replace(/<td([^>]*)>/gi, '<td$1 style="padding: 8px; vertical-align: top;">')
-    
-    // Remove spacer images
-    .replace(/<img[^>]*spacer[^>]*>/gi, '')
-    .replace(/<img[^>]*width="1"[^>]*>/gi, '')
-    .replace(/<img[^>]*height="1"[^>]*>/gi, '');
-}
 
 /**
  * Format plain text content with intelligent paragraph detection

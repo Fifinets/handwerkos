@@ -526,12 +526,12 @@ export function getPreferredContentType(): 'html' | 'text' {
 }
 
 /**
- * Sanitize HTML content for safe display
+ * Sanitize HTML content for safe display while preserving email styling
  */
 export function sanitizeHtmlContent(html: string): string {
   if (!html) return '';
   
-  // Enhanced HTML sanitization for email content
+  // Minimal sanitization - only remove dangerous elements, keep styling
   let sanitized = html
     // Remove potentially dangerous elements
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
@@ -541,81 +541,103 @@ export function sanitizeHtmlContent(html: string): string {
     .replace(/javascript:/gi, '')
     .replace(/on\w+\s*=/gi, '')
     
-    // Remove <style> tags and their content (they interfere with page styling)
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    // Keep <style> tags for email styling - they are needed!
+    // Only remove problematic CSS, not all styles
     
-    // Remove <head> section entirely if present
-    .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '')
+    // Remove only specific problematic meta tags, keep others
+    .replace(/<meta[^>]*http-equiv[^>]*>/gi, '')
     
-    // Remove DOCTYPE and html/body wrapper tags but keep content
+    // Clean up excessive outlook-specific comments but keep some structure
+    .replace(/<!--\[if !mso\]>[\s\S]*?<!\[endif\]-->/gi, '')
+    
+    // Keep most HTML structure but ensure it's contained
     .replace(/<!DOCTYPE[^>]*>/gi, '')
-    .replace(/<html[^>]*>/gi, '')
-    .replace(/<\/html>/gi, '')
-    .replace(/<body[^>]*>/gi, '')
-    .replace(/<\/body>/gi, '')
+    .replace(/<html[^>]*>/gi, '<div class="email-html-wrapper">')
+    .replace(/<\/html>/gi, '</div>')
+    .replace(/<head[^>]*>/gi, '<div class="email-head-wrapper" style="display: none;">')
+    .replace(/<\/head>/gi, '</div>')
+    .replace(/<body([^>]*)>/gi, '<div class="email-body-wrapper"$1>')
+    .replace(/<\/body>/gi, '</div>')
     
-    // Remove meta tags
-    .replace(/<meta[^>]*>/gi, '')
+    // Fix relative URLs to absolute ones if possible
+    .replace(/src="\/\//g, 'src="https://')
+    .replace(/href="\/\//g, 'href="https://')
     
-    // Remove link tags (external CSS)
-    .replace(/<link[^>]*>/gi, '')
+    // Fix common encoding issues in HTML attributes
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
     
-    // Clean up outlook-specific elements
-    .replace(/<!--\[if[^>]*>[\s\S]*?<!\[endif\]-->/gi, '')
-    .replace(/<!\-\-[\s\S]*?\-\->/gi, '') // Remove HTML comments
-    
-    // Remove excessive whitespace and newlines
-    .replace(/\s{2,}/g, ' ')
-    .replace(/\n\s*\n/g, '\n')
+    // Clean up excessive whitespace but preserve structure
+    .replace(/>\s+</g, '><')
     .trim();
   
-  // Extract content from table-based layouts (common in emails)
-  sanitized = extractEmailContent(sanitized);
+  // Apply email-specific fixes without destroying structure
+  sanitized = fixEmailLayout(sanitized);
   
   return sanitized;
 }
 
 /**
- * Extract meaningful content from table-based email layouts
+ * Fix email layout without destroying structure
  */
-function extractEmailContent(html: string): string {
+function fixEmailLayout(html: string): string {
   if (!html) return '';
   
-  // Try to find the main content area
-  let content = html;
+  // Apply minimal fixes to improve display without breaking email structure
+  let fixed = html
+    // Fix common image issues
+    .replace(/<img([^>]*?)>/gi, (match, attrs) => {
+      // Don't modify if already has good sizing
+      if (attrs.includes('max-width') || attrs.includes('width: 100%')) {
+        return match;
+      }
+      
+      // Add responsive styling to images
+      const styleToAdd = ' style="max-width: 100%; height: auto;"';
+      if (attrs.includes('style=')) {
+        return match.replace(/style="([^"]*)"/, 'style="$1; max-width: 100%; height: auto;"');
+      } else {
+        return `<img${attrs}${styleToAdd}>`;
+      }
+    })
+    
+    // Fix table layouts for better responsive behavior
+    .replace(/<table([^>]*?)>/gi, (match, attrs) => {
+      // Add responsive table styling if not present
+      if (!attrs.includes('style=') || !attrs.includes('width')) {
+        const styleToAdd = ' style="width: 100%; max-width: 100%;"';
+        if (attrs.includes('style=')) {
+          return match.replace(/style="([^"]*)"/, 'style="$1; width: 100%; max-width: 100%;"');
+        } else {
+          return `<table${attrs}${styleToAdd}>`;
+        }
+      }
+      return match;
+    })
+    
+    // Improve link accessibility
+    .replace(/<a([^>]*?)>/gi, (match, attrs) => {
+      if (!attrs.includes('target=')) {
+        return `<a${attrs} target="_blank" rel="noopener noreferrer">`;
+      }
+      return match;
+    })
+    
+    // Clean up only problematic MSO styles, not all styles
+    .replace(/mso-[^:]*:[^;]*;?/gi, '')
+    
+    // Fix font declarations
+    .replace(/font-family:\s*[^,;]*mso[^;]*;?/gi, 'font-family: Arial, sans-serif;')
+    
+    // Remove empty style attributes
+    .replace(/\s*style="[\s;]*"/gi, '')
+    
+    // Clean up excessive spaces in attributes
+    .replace(/\s+([a-z-]+)="/gi, ' $1="');
   
-  // Look for common email content patterns
-  const contentPatterns = [
-    // Look for main content in tables
-    /<table[^>]*>[\s\S]*?<\/table>/gi,
-    // Look for div-based layouts
-    /<div[^>]*>[\s\S]*?<\/div>/gi
-  ];
-  
-  // Clean up table structures while preserving content
-  content = content
-    // Remove table structure but keep content
-    .replace(/<\/?table[^>]*>/gi, '')
-    .replace(/<\/?tbody[^>]*>/gi, '')
-    .replace(/<\/?tr[^>]*>/gi, '<div>')
-    .replace(/<\/?td[^>]*>/gi, '')
-    .replace(/<\/?th[^>]*>/gi, '')
-    
-    // Convert common email elements to better structure
-    .replace(/<font[^>]*>([\s\S]*?)<\/font>/gi, '<span>$1</span>')
-    
-    // Clean up excessive nested divs
-    .replace(/<div[^>]*>\s*<div[^>]*>/gi, '<div>')
-    .replace(/<\/div>\s*<\/div>/gi, '</div>')
-    
-    // Remove empty elements
-    .replace(/<([a-z]+)[^>]*>\s*<\/\1>/gi, '')
-    
-    // Remove Microsoft Office specific attributes
-    .replace(/\s*style="[^"]*mso-[^"]*"/gi, '')
-    .replace(/\s*class="[^"]*MsoNormal[^"]*"/gi, '');
-  
-  return content;
+  return fixed;
 }
 
 /**
