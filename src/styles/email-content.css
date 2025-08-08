@@ -1,30 +1,18 @@
 /* Email content styling for better display */
 .email-content {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.6;
+  color: #374151;
   max-width: 100%;
   overflow-wrap: break-word;
   word-wrap: break-word;
-  /* Let email define its own fonts and colors */
-  font-size: inherit;
-  line-height: inherit;
-  color: inherit;
+  font-size: 15px;
 }
 
-/* Wrapper styles for converted HTML structure */
-.email-content .email-html-wrapper {
-  max-width: 100%;
-}
-
-.email-content .email-body-wrapper {
-  max-width: 100%;
-}
-
-.email-content .email-head-wrapper {
-  display: none !important;
-}
-
-/* Minimal overrides - let email styles take precedence */
+/* Improve readability of email text */
 .email-content p {
-  margin: 0.5rem 0;
+  margin: 0.75rem 0;
+  line-height: 1.6;
 }
 
 .email-content p:first-child {
@@ -35,7 +23,7 @@
   margin-bottom: 0;
 }
 
-/* Minimal header styling - don't override email colors */
+/* Style email headers and formatting */
 .email-content h1,
 .email-content h2,
 .email-content h3,
@@ -43,18 +31,37 @@
 .email-content h5,
 .email-content h6 {
   margin: 1rem 0 0.5rem 0;
+  font-weight: 600;
   line-height: 1.3;
+  color: #1f2937;
 }
 
-/* Minimal link styling - let email styles take precedence */
+/* Style email links */
 .email-content a {
+  color: #2563eb !important;
   text-decoration: underline;
-  transition: opacity 0.2s;
+  transition: color 0.2s;
+  font-weight: 500;
 }
 
 .email-content a:hover {
-  opacity: 0.8;
+  color: #1d4ed8 !important;
+  background-color: #f0f9ff;
+  padding: 2px 4px;
+  border-radius: 3px;
   text-decoration: none;
+}
+
+/* Special styling for CTA links */
+.email-content a[style*="background-color"] {
+  display: inline-block;
+  margin: 4px 2px;
+  transition: all 0.2s;
+}
+
+.email-content a[style*="background-color"]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 /* Style email images */
