@@ -27,7 +27,7 @@ interface UserRole {
 }
 
 export function RoleManagement() {
-  const { organization, canInviteMembers, inviteToOrganization, updateMemberRole, user } = useSupabaseAuth();
+  const { canInviteMembers, inviteEmployee, updateMemberRole, user } = useSupabaseAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -94,11 +94,14 @@ export function RoleManagement() {
     }
 
     try {
-      // Invite via Clerk Organizations
-      const result = await inviteToOrganization(inviteEmail, 'basic_member');
+      // Invite via Supabase invitations
+      const result = await inviteEmployee(inviteEmail, {
+        firstName: inviteFirstName,
+        lastName: inviteLastName,
+      });
       
       if (!result.success) {
-        throw new Error(result.error);
+        throw new Error(result.error || 'Einladung fehlgeschlagen');
       }
 
       // Also create employee record in Supabase
@@ -309,21 +312,6 @@ export function RoleManagement() {
         </CardContent>
       </Card>
 
-      {organization && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Organisation: {organization.name}</CardTitle>
-            <CardDescription>
-              Clerk Organization ID: {organization.id}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Diese Organisation wird für die Team-Verwaltung verwendet.
-            </p>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
