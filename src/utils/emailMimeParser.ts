@@ -364,12 +364,14 @@ function parseSinglePartEmail(content: string, headers: EmailHeaders): ParsedEma
                  /<p>/i.test(decodedContent) ||
                  /<br/i.test(decodedContent);
   
-  console.log('📧 Single part parsing:', {
-    contentType: headers.contentType,
-    hasHtmlTags: /<[a-z][\s\S]*>/i.test(decodedContent),
-    isHtml,
-    contentPreview: decodedContent.substring(0, 200)
-  });
+  if (process.env.NODE_ENV === 'development') {
+    console.log('📧 Single part parsing:', {
+      contentType: headers.contentType,
+      hasHtmlTags: /<[a-z][\s\S]*>/i.test(decodedContent),
+      isHtml,
+      contentPreview: decodedContent.substring(0, 200)
+    });
+  }
   
   return {
     htmlContent: isHtml ? decodedContent : null,
@@ -545,12 +547,14 @@ export function sanitizeHtmlContent(html: string): string {
 export function shouldDisplayAsHtml(parsedContent: ParsedEmailContent): boolean {
   const preference = getPreferredContentType();
   
-  console.log('📧 shouldDisplayAsHtml check:', {
-    preference,
-    hasHtmlContent: !!parsedContent.htmlContent,
-    contentType: parsedContent.contentType,
-    htmlPreview: parsedContent.htmlContent?.substring(0, 100)
-  });
+  if (process.env.NODE_ENV === 'development') {
+    console.log('📧 shouldDisplayAsHtml check:', {
+      preference,
+      hasHtmlContent: !!parsedContent.htmlContent,
+      contentType: parsedContent.contentType,
+      htmlPreview: parsedContent.htmlContent?.substring(0, 100)
+    });
+  }
   
   // If user prefers text, always show text
   if (preference === 'text') {

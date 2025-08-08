@@ -24,14 +24,17 @@ export function EmailContentRenderer({ content, className = '' }: EmailContentRe
     const parsed = parseEmailContent(content);
     const validation = validateEmailContent(content);
     
-    console.log('📧 Email parsing debug:', {
-      hasHtmlContent: !!parsed.htmlContent,
-      hasPlainTextContent: !!parsed.plainTextContent,
-      contentType: parsed.contentType,
-      preferredContent: parsed.preferredContent.substring(0, 200),
-      displayMode,
-      shouldShowHtml: shouldDisplayAsHtml(parsed) && displayMode === 'html'
-    });
+    // Debug logging for development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📧 Email parsing debug:', {
+        hasHtmlContent: !!parsed.htmlContent,
+        hasPlainTextContent: !!parsed.plainTextContent,
+        contentType: parsed.contentType,
+        preferredContent: parsed.preferredContent.substring(0, 200),
+        displayMode,
+        shouldShowHtml: shouldDisplayAsHtml(parsed) && displayMode === 'html'
+      });
+    }
     
     let processedContent = '';
     const shouldShowHtml = shouldDisplayAsHtml(parsed) && displayMode === 'html';
@@ -57,7 +60,9 @@ export function EmailContentRenderer({ content, className = '' }: EmailContentRe
           }
         )
       );
-      console.log('📧 Using HTML rendering path');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📧 Using HTML rendering path');
+      }
     } else if (parsed.plainTextContent) {
       // Process plain text content
       processedContent = cleanEmailContent(
@@ -69,7 +74,9 @@ export function EmailContentRenderer({ content, className = '' }: EmailContentRe
           addPhoneLinks: true
         }
       );
-      console.log('📧 Using plain text rendering path');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📧 Using plain text rendering path');
+      }
     } else {
       // Fallback - try to detect and preserve HTML
       const fallbackContent = contentToUse;
@@ -85,7 +92,9 @@ export function EmailContentRenderer({ content, className = '' }: EmailContentRe
             }
           )
         );
-        console.log('📧 Using fallback HTML rendering path');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('📧 Using fallback HTML rendering path');
+        }
       } else {
         processedContent = cleanEmailContent(
           cleanContentForUtf8(fallbackContent),
@@ -96,7 +105,9 @@ export function EmailContentRenderer({ content, className = '' }: EmailContentRe
             addPhoneLinks: true
           }
         );
-        console.log('📧 Using fallback text rendering path');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('📧 Using fallback text rendering path');
+        }
       }
     }
 

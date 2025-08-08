@@ -51,6 +51,7 @@ interface Email {
   sender_email: string;
   sender_name?: string;
   content: string;
+  html_content?: string;
   received_at: string;
   is_read: boolean;
   is_starred: boolean;
@@ -797,7 +798,9 @@ export function EmailModule() {
                 </div>
                 
                 <ScrollArea className="flex-1 p-4">
-                  <EmailContentRenderer content={selectedEmail.content} />
+                  <EmailContentRenderer 
+                    content={selectedEmail.html_content || selectedEmail.content} 
+                  />
                 </ScrollArea>
               </div>
               
