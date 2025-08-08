@@ -206,7 +206,7 @@ export function testUtf8Encoding(): void {
 }
 
 /**
- * Validate email content for common encoding issues
+ * Validate email content for common issues (less aggressive for modern emails)
  */
 export function validateEmailContent(content: string): {
   isValid: boolean;
@@ -220,64 +220,47 @@ export function validateEmailContent(content: string): {
   const issues: string[] = [];
   const suggestions: string[] = [];
   
-  // Check for broken UTF-8 sequences (more comprehensive)
-  const brokenUtf8Patterns = [
-    /âÍ/g,           // Broken decorative characters
-    /Â­/g,           // Broken soft hyphens  
-    /Â /g,           // Broken non-breaking spaces
-    /Ã[¤¶¼„–œŸ]/g,  // Double-encoded German characters
-    /â€[™œ"]/g,      // Broken smart quotes
-    /â€[""]/g,       // Broken dashes
-    /Â(?![A-Za-z])/g // Stray UTF-8 artifacts
+  // Check for broken UTF-8 sequences (only severe cases)
+  const severeUtf8Patterns = [
+    /âÍâÍâÍ/g,      // Multiple broken decorative characters
+    /Â­Â­Â­/g,      // Multiple broken soft hyphens  
+    /ÃÃÃ/g,         // Multiple broken characters
   ];
   
-  let hasBrokenUtf8 = false;
-  for (const pattern of brokenUtf8Patterns) {
+  let hasSevereUtf8 = false;
+  for (const pattern of severeUtf8Patterns) {
     if (pattern.test(content)) {
-      hasBrokenUtf8 = true;
+      hasSevereUtf8 = true;
       break;
     }
   }
   
-  if (hasBrokenUtf8) {
-    issues.push('Broken UTF-8 sequences detected');
-    suggestions.push('Content will be automatically cleaned during display');
+  if (hasSevereUtf8) {
+    suggestions.push('Minor encoding issues detected - will be automatically cleaned');
   }
   
-  // Check for smart quotes that might cause issues (but don't flag as critical)
-  if (/[""'']/g.test(content)) {
-    // Only add as suggestion, not as issue
-    suggestions.push('Smart quotes found - will be normalized for better compatibility');
-  }
+  // Smart quotes are normal in modern emails - don't warn
+  // Emojis are normal in modern emails - don't warn
   
-  // Check for emojis (informational only)
-  if (/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu.test(content)) {
-    suggestions.push('Emojis detected - may not display in all email clients');
-  }
-  
-  // Check for very long lines (informational, will be auto-fixed)
+  // Only warn about extremely long lines (>200 chars) in HTML emails
   const lines = content.split('\n');
-  const longLines = lines.filter(line => line.length > 78);
-  if (longLines.length > 0) {
-    issues.push(`${longLines.length} lines longer than 78 characters`);
-    suggestions.push('Long lines will be automatically wrapped for better email formatting');
+  const veryLongLines = lines.filter(line => line.length > 200);
+  if (veryLongLines.length > 0 && !/<[a-z][\s\S]*>/i.test(content)) {
+    suggestions.push(`${veryLongLines.length} very long lines detected - will be wrapped for readability`);
   }
   
-  // Check for suspicious HTML patterns that might not render well
-  if (/<style\s*>/i.test(content)) {
-    issues.push('External CSS styles detected');
-    suggestions.push('Email clients may ignore <style> tags - inline styles recommended');
-  }
+  // Style tags are normal in email HTML - don't warn
   
+  // Only warn about actual JavaScript (security issue)
   if (/<script\s*>/i.test(content)) {
     issues.push('JavaScript detected');
-    suggestions.push('JavaScript will be removed for security - use static content only');
+    suggestions.push('JavaScript will be removed for security');
   }
   
-  // Check for relative URLs
-  if (/(?:src|href)\s*=\s*["'][^"']*(?:^(?!https?:\/\/|mailto:|tel:))[^"']*["']/i.test(content)) {
-    issues.push('Relative URLs detected');
-    suggestions.push('Use absolute URLs for better email client compatibility');
+  // Only warn about obviously broken URLs
+  const brokenUrlPattern = /(?:src|href)\s*=\s*["'][^"']*\.\.\//i;
+  if (brokenUrlPattern.test(content)) {
+    suggestions.push('Relative URLs detected - may not work in all email clients');
   }
   
   return {
