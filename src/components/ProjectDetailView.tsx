@@ -31,7 +31,8 @@ import {
   ProjectComment,
   getProjectPermissions,
   PROJECT_STATUS_CONFIG,
-  UserRole
+  UserRole,
+  ProjectStatus
 } from "@/types/project";
 import { useToast } from "@/hooks/use-toast";
 import TimeEntryForm from "./TimeEntryForm";
@@ -135,7 +136,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         customer_id: projectData.customer_id || '',
         start_date: projectData.start_date || new Date().toISOString().split('T')[0],
         planned_end_date: projectData.end_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        status: projectData.status || 'geplant',
+        status: ((projectData.status as ProjectStatus) ?? 'geplant') as ProjectStatus,
         project_address: projectData.location || 'Nicht angegeben',
         project_description: projectData.description || 'Keine Beschreibung',
         linked_invoices: [],
