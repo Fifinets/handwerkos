@@ -239,22 +239,18 @@ export function EmailContentRenderer({ content, className = '' }: EmailContentRe
           )}
         </div>
         
-        {/* Validation Issues - only show in development or if serious issues */}
-        {(process.env.NODE_ENV === 'development' || validation.issues.length > 0) && (!validation.isValid || validation.suggestions.length > 0) && (
-          <div className={validation.issues.length > 0 ? "text-amber-600" : "text-gray-500"}>
-            {validation.issues.length > 0 && (
-              <>
-                <strong>Probleme gefunden:</strong>
-                <ul className="list-disc list-inside ml-2 mt-1">
-                  {validation.issues.map((issue, index) => (
-                    <li key={index}>{issue}</li>
-                  ))}
-                </ul>
-              </>
-            )}
-            {validation.suggestions.length > 0 && validation.issues.length === 0 && process.env.NODE_ENV === 'development' && (
+        {/* Validation Issues */}
+        {!validation.isValid && (
+          <div className="text-amber-600">
+            <strong>Probleme gefunden:</strong>
+            <ul className="list-disc list-inside ml-2 mt-1">
+              {validation.issues.map((issue, index) => (
+                <li key={index}>{issue}</li>
+              ))}
+            </ul>
+            {validation.suggestions.length > 0 && (
               <div className="mt-1">
-                <strong>Info:</strong>
+                <strong>Empfehlungen:</strong>
                 <ul className="list-disc list-inside ml-2">
                   {validation.suggestions.map((suggestion, index) => (
                     <li key={index}>{suggestion}</li>
