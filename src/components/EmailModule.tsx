@@ -505,13 +505,19 @@ export function EmailModule() {
               {isConnecting ? "Verbinde..." : "Gmail verbinden"}
             </Button>
           ) : (
-            <Button
-              onClick={() => setShowSync(!showSync)} 
-              variant="ghost"
-              size="icon"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium text-green-700">Gmail verbunden</span>
+              </div>
+              <Button
+                onClick={() => setShowSync(!showSync)} 
+                variant="ghost"
+                size="icon"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
           )}
         </div>
       </div>
