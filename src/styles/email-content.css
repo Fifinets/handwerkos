@@ -74,13 +74,43 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* Style email tables */
+/* Style email tables and converted table structures */
 .email-content table {
   width: 100% !important;
   max-width: 100% !important;
   border-collapse: collapse;
   margin: 1rem 0;
   table-layout: auto !important;
+}
+
+/* Style converted email table structures */
+.email-content .email-table {
+  width: 100%;
+  max-width: 100%;
+  margin: 1rem 0;
+  display: block !important;
+}
+
+.email-content .email-row {
+  display: flex !important;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  align-items: flex-start;
+}
+
+.email-content .email-cell {
+  flex: 1;
+  padding: 4px 8px;
+  vertical-align: top;
+  min-width: 0; /* Prevent flex overflow */
+  word-wrap: break-word;
+}
+
+.email-content .email-header {
+  flex: 1;
+  padding: 4px 8px;
+  font-weight: bold;
+  background-color: #f9fafb;
 }
 
 .email-content .email-table-wrapper {
