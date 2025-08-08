@@ -157,21 +157,51 @@ const ProjectModule = () => {
 
   const fetchProjects = async () => {
     console.log('🔄 Fetching projects...');
-    const { data, error } = await supabase.from('projects').select('*');
     
-    if (error) {
-      console.error('❌ Error fetching projects:', error);
+    try {
+      // Get current user's company_id for RLS policy
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser?.user) {
+        console.error('❌ No authenticated user for project fetch');
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', currentUser.user.id)
+        .single();
+
+      if (!profile?.company_id) {
+        console.error('❌ No company_id found for project fetch');
+        return;
+      }
+
+      console.log('🏢 Fetching projects for company_id:', profile.company_id);
+      
+      // Fetch projects for the user's company
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('company_id', profile.company_id);
+      
+      if (error) {
+        console.error('❌ Error fetching projects:', error);
+        return;
+      }
+      
+      if (!data) {
+        console.log('⚠️ No project data returned');
+        return;
+      }
+      
+      console.log('✅ Projects fetched:', data.length, 'projects');
+      console.log('📋 Project data:', data);
+      setProjects(data);
+    } catch (err) {
+      console.error('💥 Error in fetchProjects:', err);
       return;
     }
-    
-    if (!data) {
-      console.log('⚠️ No project data returned');
-      return;
-    }
-    
-    console.log('✅ Projects fetched:', data.length, 'projects');
-    console.log('📋 Project data:', data);
-    setProjects(data);
 
     setTotalBudget(0);
 
@@ -260,6 +290,26 @@ const ProjectModule = () => {
     // Add project to Supabase
     const addProject = async () => {
       try {
+        // Get current user's company_id for RLS policy
+        const { data: currentUser } = await supabase.auth.getUser();
+        if (!currentUser?.user) {
+          console.error('❌ No authenticated user found');
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('id', currentUser.user.id)
+          .single();
+
+        if (!profile?.company_id) {
+          console.error('❌ No company_id found for user');
+          return;
+        }
+
+        console.log('🏢 User company_id:', profile.company_id);
+        
         // Find customer by name
         const customer = customers.find(c => c.name === newProject.customer);
         console.log('👤 Found customer:', customer);
@@ -298,6 +348,7 @@ const ProjectModule = () => {
         const projectData = {
           name: newProject.name,
           customer_id: customer?.id || null,
+          company_id: profile.company_id, // Required for RLS policy
           status: statusMapping[newProject.status] || 'geplant',
           start_date: startDate,
           end_date: endDate,
