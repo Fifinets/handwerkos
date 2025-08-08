@@ -541,10 +541,18 @@ export function sanitizeHtmlContent(html: string): string {
     .replace(/javascript:/gi, '')
     .replace(/on\w+\s*=/gi, '')
     
-    // Remove <style> tags and their content completely (they interfere with page styling)
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
-    .replace(/<style\b[^>]*>[\s\S]*$/gi, '') // Handle unclosed style tags
-    .replace(/^\s*[a-z#.][^{]*\{[^}]*\}\s*/gim, '') // Remove standalone CSS rules
+    // Extract and preserve CSS styles while removing problematic ones
+    .replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (match, css) => {
+      // Remove problematic CSS that interferes with the app
+      const cleanCss = css
+        .replace(/body\s*\{[^}]*\}/gi, '') // Remove body styles
+        .replace(/html\s*\{[^}]*\}/gi, '') // Remove html styles
+        .replace(/\*\s*\{[^}]*\}/gi, '') // Remove universal selector
+        .replace(/!important/gi, '') // Remove !important declarations
+        .trim();
+      
+      return cleanCss ? `<style>${cleanCss}</style>` : '';
+    })
     
     // Remove <head> section entirely if present
     .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '')
