@@ -5,6 +5,7 @@ import { Eye, FileText, Paperclip, AlertTriangle } from 'lucide-react';
 import { parseEmailContent, shouldDisplayAsHtml, sanitizeHtmlContent, getPreferredContentType } from '@/utils/emailMimeParser';
 import { cleanEmailContent } from '@/utils/emailContentCleaner';
 import { cleanContentForUtf8, validateEmailContent } from '@/utils/emailEncoding';
+import '@/styles/email-content.css';
 
 interface EmailContentRendererProps {
   content: string;
@@ -23,14 +24,31 @@ export function EmailContentRenderer({ content, className = '' }: EmailContentRe
     const parsed = parseEmailContent(content);
     const validation = validateEmailContent(content);
     
+    console.log('📧 Email parsing debug:', {
+      hasHtmlContent: !!parsed.htmlContent,
+      hasPlainTextContent: !!parsed.plainTextContent,
+      contentType: parsed.contentType,
+      preferredContent: parsed.preferredContent.substring(0, 200),
+      displayMode,
+      shouldShowHtml: shouldDisplayAsHtml(parsed) && displayMode === 'html'
+    });
+    
     let processedContent = '';
     const shouldShowHtml = shouldDisplayAsHtml(parsed) && displayMode === 'html';
     
-    if (shouldShowHtml && parsed.htmlContent) {
+    // Try to detect HTML even in raw content
+    const hasHtmlTags = /<[a-z][\s\S]*>/i.test(content);
+    const contentToUse = parsed.htmlContent || 
+                        (hasHtmlTags ? content : parsed.plainTextContent) || 
+                        parsed.preferredContent || 
+                        content;
+    
+    if ((shouldShowHtml && parsed.htmlContent) || (hasHtmlTags && displayMode === 'html')) {
       // Process HTML content
+      const htmlContent = parsed.htmlContent || content;
       processedContent = sanitizeHtmlContent(
         cleanEmailContent(
-          cleanContentForUtf8(parsed.htmlContent),
+          cleanContentForUtf8(htmlContent),
           {
             removeDecorations: true,
             fixImages: true,
@@ -39,6 +57,7 @@ export function EmailContentRenderer({ content, className = '' }: EmailContentRe
           }
         )
       );
+      console.log('📧 Using HTML rendering path');
     } else if (parsed.plainTextContent) {
       // Process plain text content
       processedContent = cleanEmailContent(
@@ -50,28 +69,35 @@ export function EmailContentRenderer({ content, className = '' }: EmailContentRe
           addPhoneLinks: true
         }
       );
-    } else if (parsed.preferredContent) {
-      // Fallback to preferred content
-      processedContent = cleanEmailContent(
-        cleanContentForUtf8(parsed.preferredContent),
-        {
-          removeDecorations: true,
-          fixImages: true,
-          preserveFormatting: true,
-          addPhoneLinks: true
-        }
-      );
+      console.log('📧 Using plain text rendering path');
     } else {
-      // Last resort - raw content cleaning
-      processedContent = cleanEmailContent(
-        cleanContentForUtf8(content),
-        {
-          removeDecorations: true,
-          fixImages: true,
-          preserveFormatting: true,
-          addPhoneLinks: true
-        }
-      );
+      // Fallback - try to detect and preserve HTML
+      const fallbackContent = contentToUse;
+      if (hasHtmlTags) {
+        processedContent = sanitizeHtmlContent(
+          cleanEmailContent(
+            cleanContentForUtf8(fallbackContent),
+            {
+              removeDecorations: true,
+              fixImages: true,
+              preserveFormatting: true,
+              addPhoneLinks: true
+            }
+          )
+        );
+        console.log('📧 Using fallback HTML rendering path');
+      } else {
+        processedContent = cleanEmailContent(
+          cleanContentForUtf8(fallbackContent),
+          {
+            removeDecorations: true,
+            fixImages: false,
+            preserveFormatting: true,
+            addPhoneLinks: true
+          }
+        );
+        console.log('📧 Using fallback text rendering path');
+      }
     }
 
     return { 
@@ -161,7 +187,8 @@ export function EmailContentRenderer({ content, className = '' }: EmailContentRe
             wordWrap: 'break-word',
             overflowWrap: 'break-word',
             lineHeight: '1.6',
-            color: '#374151'
+            color: '#374151',
+            minHeight: '20px'
           }}
         />
       )}

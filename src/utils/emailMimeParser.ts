@@ -355,8 +355,21 @@ function parseSinglePartEmail(content: string, headers: EmailHeaders): ParsedEma
   const contentPart = extractContentFromSinglePart(content);
   const decodedContent = decodePartContent(contentPart, headers.contentTransferEncoding);
   
+  // Enhanced HTML detection
   const isHtml = headers.contentType.includes('text/html') || 
-                 /<[a-z][\s\S]*>/i.test(decodedContent);
+                 /<[a-z][\s\S]*>/i.test(decodedContent) ||
+                 /<html/i.test(decodedContent) ||
+                 /<body/i.test(decodedContent) ||
+                 /<div/i.test(decodedContent) ||
+                 /<p>/i.test(decodedContent) ||
+                 /<br/i.test(decodedContent);
+  
+  console.log('📧 Single part parsing:', {
+    contentType: headers.contentType,
+    hasHtmlTags: /<[a-z][\s\S]*>/i.test(decodedContent),
+    isHtml,
+    contentPreview: decodedContent.substring(0, 200)
+  });
   
   return {
     htmlContent: isHtml ? decodedContent : null,
@@ -532,22 +545,37 @@ export function sanitizeHtmlContent(html: string): string {
 export function shouldDisplayAsHtml(parsedContent: ParsedEmailContent): boolean {
   const preference = getPreferredContentType();
   
+  console.log('📧 shouldDisplayAsHtml check:', {
+    preference,
+    hasHtmlContent: !!parsedContent.htmlContent,
+    contentType: parsedContent.contentType,
+    htmlPreview: parsedContent.htmlContent?.substring(0, 100)
+  });
+  
   // If user prefers text, always show text
   if (preference === 'text') {
     return false;
   }
   
-  // If HTML content is available and preference is HTML, show HTML
-  if (parsedContent.htmlContent && preference === 'html') {
+  // If HTML content is available, prefer it
+  if (parsedContent.htmlContent) {
+    return true;
+  }
+  
+  // Check if content type is HTML
+  if (parsedContent.contentType === 'html') {
     return true;
   }
   
   // Fallback to detecting HTML in content
-  if (parsedContent.preferredContent && /<[a-z][\s\S]*>/i.test(parsedContent.preferredContent)) {
-    return true;
-  }
+  const hasHtml = parsedContent.preferredContent && (
+    /<[a-z][\s\S]*>/i.test(parsedContent.preferredContent) ||
+    /<html/i.test(parsedContent.preferredContent) ||
+    /<body/i.test(parsedContent.preferredContent) ||
+    /<div/i.test(parsedContent.preferredContent)
+  );
   
-  return false;
+  return hasHtml || false;
 }
 
 /**
