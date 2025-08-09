@@ -10,7 +10,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import CustomerModule from "@/components/CustomerModule";
 import ProjectModule from "@/components/ProjectModule";
 import PersonalModule from "@/components/PersonalModule";
-import MaterialModule from "@/components/MaterialModule";
+import MaterialModuleEnhanced from "@/components/MaterialModuleEnhanced";
 import MachineModule from "@/components/MachineModule";
 import FinanceModule from "@/components/FinanceModule";
 import PlannerModule from "@/components/PlannerModule";
@@ -63,7 +63,7 @@ const Index = () => {
       case 'personal':
         return <PersonalModule />;
       case 'materials':
-        return <MaterialModule />;
+        return <MaterialModuleEnhanced />;
       case 'machines':
         return <MachineModule />;
       case 'emails':

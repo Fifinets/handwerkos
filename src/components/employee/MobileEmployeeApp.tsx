@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
   Clock, 
   Package, 
@@ -20,7 +23,13 @@ import {
   List,
   User,
   Bell,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Upload,
+  MessageSquare,
+  ImageIcon,
+  Receipt,
+  Plus,
+  X
 } from "lucide-react";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -47,6 +56,32 @@ interface TimeEntry {
   description?: string;
 }
 
+interface ProjectPhoto {
+  id: string;
+  projectId: string;
+  fileName: string;
+  fileUrl: string;
+  description?: string;
+  createdAt: Date;
+}
+
+interface ProjectReceipt {
+  id: string;
+  projectId: string;
+  fileName: string;
+  fileUrl: string;
+  amount?: number;
+  description?: string;
+  createdAt: Date;
+}
+
+interface ProjectComment {
+  id: string;
+  projectId: string;
+  comment: string;
+  createdAt: Date;
+}
+
 const MobileEmployeeApp: React.FC = () => {
   const { user, userRole } = useSupabaseAuth();
   const { toast } = useToast();
@@ -57,6 +92,23 @@ const MobileEmployeeApp: React.FC = () => {
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, address: string} | null>(null);
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
   const [assignedProjects, setAssignedProjects] = useState<Project[]>([]);
+  
+  // New states for photo, receipt and comment functionality
+  const [showCamera, setShowCamera] = useState(false);
+  const [capturedPhotos, setCapturedPhotos] = useState<ProjectPhoto[]>([]);
+  const [projectReceipts, setProjectReceipts] = useState<ProjectReceipt[]>([]);
+  const [projectComments, setProjectComments] = useState<ProjectComment[]>([]);
+  const [showPhotoDialog, setShowPhotoDialog] = useState(false);
+  const [showReceiptDialog, setShowReceiptDialog] = useState(false);
+  const [showCommentDialog, setShowCommentDialog] = useState(false);
+  const [photoDescription, setPhotoDescription] = useState('');
+  const [receiptDescription, setReceiptDescription] = useState('');
+  const [receiptAmount, setReceiptAmount] = useState('');
+  const [commentText, setCommentText] = useState('');
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [batteryLevel, setBatteryLevel] = useState<number>(100);
   const [notifications, setNotifications] = useState<number>(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -141,37 +193,246 @@ const MobileEmployeeApp: React.FC = () => {
 
   // Project management
   const fetchAssignedProjects = async () => {
-    // Mock data - replace with real Supabase query
-    const mockProjects: Project[] = [
-      {
-        id: '1',
-        name: 'Bürogebäude Elektroinstallation',
-        status: 'in_bearbeitung',
-        location: 'Berlin Mitte',
-        priority: 'high',
-        assignedTo: [user?.id || ''],
-        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-      },
-      {
-        id: '2', 
-        name: 'Wohnhaus Sanierung Phase 2',
-        status: 'geplant',
-        location: 'Berlin Charlottenburg',
-        priority: 'normal',
-        assignedTo: [user?.id || '']
-      },
-      {
-        id: '3',
-        name: 'Notfall-Reparatur Hauptstraße',
-        status: 'geplant',
-        location: 'Berlin Kreuzberg',
-        priority: 'urgent',
-        assignedTo: [user?.id || '']
-      }
-    ];
+    if (!user?.id) return;
     
-    setAssignedProjects(mockProjects);
-    setNotifications(mockProjects.filter(p => p.priority === 'urgent').length);
+    try {
+      // Fetch projects where the current user is assigned
+      const { data: teamAssignments, error } = await supabase
+        .from('project_team_assignments')
+        .select(`
+          project_id,
+          projects:project_id (
+            id,
+            name,
+            status,
+            location,
+            start_date,
+            end_date,
+            priority
+          )
+        `)
+        .eq('employee_id', user.id)
+        .eq('is_active', true);
+
+      if (error) {
+        console.error('Error fetching assigned projects:', error);
+        toast({
+          title: "Fehler",
+          description: "Projekte konnten nicht geladen werden",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Transform the data to match our Project interface
+      const projects: Project[] = teamAssignments?.map((assignment: any) => ({
+        id: assignment.projects.id,
+        name: assignment.projects.name,
+        status: assignment.projects.status || 'in_bearbeitung',
+        location: assignment.projects.location || 'Nicht angegeben',
+        priority: assignment.projects.priority || 'normal',
+        assignedTo: [user.id],
+        deadline: assignment.projects.end_date
+      })) || [];
+
+      setAssignedProjects(projects);
+      setNotifications(projects.filter(p => p.priority === 'urgent').length);
+    } catch (error) {
+      console.error('Error in fetchAssignedProjects:', error);
+      setAssignedProjects([]);
+    }
+  };
+
+  // Camera and photo functions
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+      setShowCamera(true);
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      toast({
+        title: "Kamera Fehler",
+        description: "Kamera konnte nicht gestartet werden",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+    }
+    setShowCamera(false);
+  };
+
+  const takePhoto = async () => {
+    if (!videoRef.current || !canvasRef.current || !activeProjectId) return;
+
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    const context = canvas.getContext('2d');
+    
+    if (context) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0);
+      
+      // Convert to blob and upload
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          await uploadPhoto(blob, activeProjectId);
+        }
+      }, 'image/jpeg');
+    }
+    stopCamera();
+  };
+
+  const uploadPhoto = async (photoBlob: Blob, projectId: string) => {
+    try {
+      const fileName = `project-photo-${Date.now()}.jpg`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('project-media')
+        .upload(`${projectId}/${fileName}`, photoBlob);
+
+      if (uploadError) throw uploadError;
+
+      // Save photo record to database
+      const { data, error } = await supabase
+        .from('project_documents')
+        .insert({
+          project_id: projectId,
+          name: fileName,
+          document_type: 'photo',
+          file_url: uploadData.path,
+          created_by: user?.id
+        });
+
+      if (error) throw error;
+
+      const newPhoto: ProjectPhoto = {
+        id: data[0]?.id || Date.now().toString(),
+        projectId: projectId,
+        fileName: fileName,
+        fileUrl: uploadData.path,
+        description: photoDescription,
+        createdAt: new Date()
+      };
+
+      setCapturedPhotos(prev => [...prev, newPhoto]);
+      setPhotoDescription('');
+      setShowPhotoDialog(false);
+
+      toast({
+        title: "Foto hochgeladen",
+        description: "Foto wurde erfolgreich gespeichert"
+      });
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      toast({
+        title: "Upload Fehler", 
+        description: "Foto konnte nicht hochgeladen werden",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const uploadReceipt = async (file: File, projectId: string) => {
+    try {
+      const fileName = `receipt-${Date.now()}-${file.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('project-media')
+        .upload(`${projectId}/${fileName}`, file);
+
+      if (uploadError) throw uploadError;
+
+      // Save receipt record to database
+      const { data, error } = await supabase
+        .from('project_documents')
+        .insert({
+          project_id: projectId,
+          name: fileName,
+          document_type: 'receipt',
+          file_url: uploadData.path,
+          created_by: user?.id,
+          metadata: {
+            amount: parseFloat(receiptAmount) || 0,
+            description: receiptDescription
+          }
+        });
+
+      if (error) throw error;
+
+      const newReceipt: ProjectReceipt = {
+        id: data[0]?.id || Date.now().toString(),
+        projectId: projectId,
+        fileName: fileName,
+        fileUrl: uploadData.path,
+        amount: parseFloat(receiptAmount) || 0,
+        description: receiptDescription,
+        createdAt: new Date()
+      };
+
+      setProjectReceipts(prev => [...prev, newReceipt]);
+      setReceiptDescription('');
+      setReceiptAmount('');
+      setShowReceiptDialog(false);
+
+      toast({
+        title: "Rechnung hochgeladen",
+        description: "Rechnung wurde erfolgreich gespeichert"
+      });
+    } catch (error) {
+      console.error('Error uploading receipt:', error);
+      toast({
+        title: "Upload Fehler",
+        description: "Rechnung konnte nicht hochgeladen werden", 
+        variant: "destructive"
+      });
+    }
+  };
+
+  const addComment = async (projectId: string, comment: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('project_comments')
+        .insert({
+          project_id: projectId,
+          comment: comment,
+          created_by: user?.id
+        });
+
+      if (error) throw error;
+
+      const newComment: ProjectComment = {
+        id: data[0]?.id || Date.now().toString(),
+        projectId: projectId,
+        comment: comment,
+        createdAt: new Date()
+      };
+
+      setProjectComments(prev => [...prev, newComment]);
+      setCommentText('');
+      setShowCommentDialog(false);
+
+      toast({
+        title: "Kommentar hinzugefügt",
+        description: "Kommentar wurde erfolgreich gespeichert"
+      });
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      toast({
+        title: "Fehler",
+        description: "Kommentar konnte nicht gespeichert werden",
+        variant: "destructive"
+      });
+    }
   };
 
   // Time tracking functions
@@ -678,7 +939,7 @@ const MobileEmployeeApp: React.FC = () => {
               </p>
             )}
             
-            <div className="flex gap-2">
+            <div className="flex gap-1 mb-2">
               <Button
                 size="sm"
                 onClick={() => startTimeTracking(project.id)}
@@ -688,14 +949,43 @@ const MobileEmployeeApp: React.FC = () => {
                 <Play className="h-3 w-3 mr-1" />
                 Zeit starten
               </Button>
+            </div>
+            <div className="flex gap-1">
               <Button
                 size="sm"
                 variant="outline"
-                onClick={startCamera}
+                onClick={() => {
+                  setActiveProjectId(project.id);
+                  startCamera();
+                }}
                 className="flex-1"
               >
                 <Camera className="h-3 w-3 mr-1" />
                 Foto
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setActiveProjectId(project.id);
+                  setShowReceiptDialog(true);
+                }}
+                className="flex-1"
+              >
+                <Receipt className="h-3 w-3 mr-1" />
+                Rechnung
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setActiveProjectId(project.id);
+                  setShowCommentDialog(true);
+                }}
+                className="flex-1"
+              >
+                <MessageSquare className="h-3 w-3 mr-1" />
+                Notiz
               </Button>
             </div>
           </CardContent>
@@ -895,6 +1185,145 @@ const MobileEmployeeApp: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Camera Modal */}
+      {showCamera && (
+        <div className="fixed inset-0 z-50 bg-black">
+          <video
+            ref={videoRef}
+            className="w-full h-full object-cover"
+            autoPlay
+            playsInline
+          />
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4">
+            <Button
+              onClick={takePhoto}
+              className="bg-white text-black hover:bg-gray-200 rounded-full w-16 h-16"
+            >
+              <Camera className="h-8 w-8" />
+            </Button>
+            <Button
+              onClick={stopCamera}
+              variant="outline"
+              className="bg-white text-black hover:bg-gray-200 rounded-full w-16 h-16"
+            >
+              <X className="h-8 w-8" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <canvas ref={canvasRef} className="hidden" />
+
+      {/* Receipt Upload Dialog */}
+      <Dialog open={showReceiptDialog} onOpenChange={setShowReceiptDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rechnung hochladen</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Datei auswählen
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf"
+                className="w-full p-2 border rounded-md"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Betrag (optional)
+              </label>
+              <Input
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={receiptAmount}
+                onChange={(e) => setReceiptAmount(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Beschreibung (optional)
+              </label>
+              <Textarea
+                placeholder="Beschreibung der Rechnung..."
+                value={receiptDescription}
+                onChange={(e) => setReceiptDescription(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => {
+                  const file = fileInputRef.current?.files?.[0];
+                  if (file && activeProjectId) {
+                    uploadReceipt(file, activeProjectId);
+                  }
+                }}
+                disabled={!fileInputRef.current?.files?.[0]}
+                className="flex-1"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Hochladen
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowReceiptDialog(false)}
+              >
+                Abbrechen
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Comment Dialog */}
+      <Dialog open={showCommentDialog} onOpenChange={setShowCommentDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Notiz hinzufügen</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Kommentar
+              </label>
+              <Textarea
+                placeholder="Ihre Notiz zum Projekt..."
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                rows={4}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => {
+                  if (commentText.trim() && activeProjectId) {
+                    addComment(activeProjectId, commentText.trim());
+                  }
+                }}
+                disabled={!commentText.trim()}
+                className="flex-1"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Hinzufügen
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCommentDialog(false);
+                  setCommentText('');
+                }}
+              >
+                Abbrechen
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
