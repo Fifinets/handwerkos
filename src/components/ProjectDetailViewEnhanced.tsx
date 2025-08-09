@@ -234,16 +234,16 @@ export default function ProjectDetailViewEnhanced({ project, onUpdate }: Project
   return (
     <div className="space-y-6">
       {/* Header with basic info and status */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
         {/* Financial Overview */}
-        <Card className="border-l-4 border-l-blue-500">
+        <Card className="border-l-4 border-l-blue-500 h-full">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
               <Euro className="h-5 w-5" />
               Finanzübersicht
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 flex-1">
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Budget:</span>
@@ -286,14 +286,14 @@ export default function ProjectDetailViewEnhanced({ project, onUpdate }: Project
         </Card>
 
         {/* Progress Overview */}
-        <Card className="border-l-4 border-l-green-500">
+        <Card className="border-l-4 border-l-green-500 h-full">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
               Fortschritt
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 flex-1">
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Fertigstellung</span>
@@ -318,14 +318,14 @@ export default function ProjectDetailViewEnhanced({ project, onUpdate }: Project
         </Card>
 
         {/* Timeline Overview */}
-        <Card className="border-l-4 border-l-purple-500">
+        <Card className="border-l-4 border-l-purple-500 h-full">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
               <Calendar className="h-5 w-5" />
               Termine
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 flex-1">
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Projektstart:</span>
