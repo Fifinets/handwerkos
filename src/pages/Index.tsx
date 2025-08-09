@@ -33,6 +33,12 @@ const Index = () => {
   const navigate = useNavigate();
   const [activeModule, setActiveModule] = useState('dashboard');
 
+  // Check if device is mobile
+  const isMobile = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+           window.innerWidth <= 768;
+  };
+
   // Handle navigation in useEffect to avoid setState during render
   useEffect(() => {
     if (!loading) {
@@ -40,6 +46,12 @@ const Index = () => {
         navigate('/login');
       } else if (userRole === 'employee') {
         navigate('/employee');
+      } else if (userRole === 'manager' && isMobile()) {
+        // Manager auf Mobile → zeige mobile-freundliche Version oder Employee-Link
+        toast({
+          title: "Mobile Gerät erkannt",
+          description: "Für die beste Erfahrung verwenden Sie die Employee-App"
+        });
       }
     }
   }, [user, userRole, loading]); // Removed navigate from dependency array

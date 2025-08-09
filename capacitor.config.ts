@@ -2,22 +2,36 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.a0eb28b7447b47a280fca8181ec925b9',
-  appName: 'HandwerkOS',
+  appId: 'com.handwerkos.employee',
+  appName: 'HandwerkOS Employee',
   webDir: 'dist',
   server: {
-    url: 'https://a0eb28b7-447b-47a2-80fc-a8181ec925b9.lovableproject.com?forceHideBadge=true',
+    url: 'https://ihre-domain.de/employee',
     cleartext: true
   },
   plugins: {
     SplashScreen: {
       launchShowDuration: 200,
       backgroundColor: '#3b82f6',
-      showSpinner: false
+      showSpinner: false,
+      androidScaleType: 'CENTER_CROP',
+      splashFullScreen: true,
+      splashImmersive: true
     },
     Geolocation: {
       permissions: ['location']
+    },
+    Camera: {
+      permissions: ['camera', 'photos']
+    },
+    StatusBar: {
+      style: 'DARK',
+      backgroundColor: '#3b82f6'
     }
+  },
+  ios: {
+    contentInset: 'automatic',
+    allowsLinkPreview: false
   }
 };
 
