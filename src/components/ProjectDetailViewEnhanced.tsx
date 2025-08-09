@@ -371,7 +371,7 @@ export default function ProjectDetailViewEnhanced({ project, onUpdate }: Project
           <TabsTrigger value="documents">Dokumente</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="team" className="space-y-4">
+        <TabsContent value="team" className="space-y-4 min-h-[600px]">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -439,7 +439,7 @@ export default function ProjectDetailViewEnhanced({ project, onUpdate }: Project
           </Card>
         </TabsContent>
 
-        <TabsContent value="materials" className="space-y-4">
+        <TabsContent value="materials" className="space-y-4 min-h-[600px]">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -484,7 +484,7 @@ export default function ProjectDetailViewEnhanced({ project, onUpdate }: Project
           </Card>
         </TabsContent>
 
-        <TabsContent value="milestones" className="space-y-4">
+        <TabsContent value="milestones" className="space-y-4 min-h-[600px]">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -524,7 +524,7 @@ export default function ProjectDetailViewEnhanced({ project, onUpdate }: Project
           </Card>
         </TabsContent>
 
-        <TabsContent value="documents" className="space-y-4">
+        <TabsContent value="documents" className="space-y-4 min-h-[600px]">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

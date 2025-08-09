@@ -350,7 +350,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             <TabsTrigger value="comments">Kommentare</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
+          <TabsContent value="overview" className="space-y-6 min-h-[600px]">
             {/* Project Statistics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card>
@@ -553,7 +553,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             </div>
           </TabsContent>
 
-          <TabsContent value="time" className="space-y-4">
+          <TabsContent value="time" className="space-y-4 min-h-[600px]">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Zeiterfassung</h3>
               {permissions.can_add_time && (
@@ -570,7 +570,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             </Card>
           </TabsContent>
 
-          <TabsContent value="materials" className="space-y-4">
+          <TabsContent value="materials" className="space-y-4 min-h-[600px]">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Materialverwaltung</h3>
               {permissions.can_add_materials && (
@@ -587,7 +587,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             </Card>
           </TabsContent>
 
-          <TabsContent value="documents" className="space-y-4">
+          <TabsContent value="documents" className="space-y-4 min-h-[600px]">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Dokumente</h3>
               {permissions.can_upload_files && (
@@ -604,7 +604,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             </Card>
           </TabsContent>
 
-          <TabsContent value="comments" className="space-y-4">
+          <TabsContent value="comments" className="space-y-4 min-h-[600px]">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Kommentare & Notizen</h3>
               <Button>
