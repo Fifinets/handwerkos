@@ -154,7 +154,7 @@ class OfflineStorageManager {
       const store = transaction.objectStore('timeEntries');
       const index = store.index('synced');
       
-      const request = index.getAll(false);
+      const request = index.getAll(false as any);
       request.onsuccess = () => resolve(request.result || []);
       request.onerror = () => reject(request.error);
     });
@@ -221,7 +221,7 @@ class OfflineStorageManager {
       const store = transaction.objectStore('materialEntries');
       const index = store.index('synced');
       
-      const request = index.getAll(false);
+      const request = index.getAll(false as any);
       request.onsuccess = () => resolve(request.result || []);
       request.onerror = () => reject(request.error);
     });
@@ -249,7 +249,7 @@ class OfflineStorageManager {
       const store = transaction.objectStore('photos');
       const index = store.index('synced');
       
-      const request = index.getAll(false);
+      const request = index.getAll(false as any);
       request.onsuccess = () => resolve(request.result || []);
       request.onerror = () => reject(request.error);
     });

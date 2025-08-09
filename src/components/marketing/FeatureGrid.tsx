@@ -1,3 +1,4 @@
+import React from "react";
 import { Card } from "@/components/ui/card";
 import { FileText, ClipboardList, Clock, Mail, Boxes, Euro } from "lucide-react";
 

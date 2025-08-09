@@ -161,7 +161,7 @@ class PushNotificationService {
     }
 
     try {
-      await this.registration.sync.register('background-sync');
+      await (this.registration as any).sync.register('background-sync');
       console.log('Background Sync registriert');
     } catch (error) {
       console.error('Background Sync Registrierung fehlgeschlagen:', error);
@@ -198,12 +198,8 @@ class PushNotificationService {
       icon: payload.icon || '/icons/icon-192x192.png',
       badge: payload.badge || '/icons/badge-72x72.png',
       data: payload.data,
-      actions: payload.actions,
       requireInteraction: payload.requireInteraction,
       silent: payload.silent,
-      vibrate: [100, 50, 100, 50, 100],
-      timestamp: Date.now(),
-      renotify: true,
       tag: payload.data?.type || 'default'
     };
 
