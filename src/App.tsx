@@ -6,12 +6,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import Landing from "./pages/Landing";
 import Employee from "./pages/Employee";
 import GmailCallback from "./pages/GmailCallback";
 import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
 import MitarbeiterSetupPage from "./pages/MitarbeiterSetupPage";
+import HandwerkerSoftware from "./pages/HandwerkerSoftware";
 
 const queryClient = new QueryClient();
 
@@ -22,7 +22,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Landing />} />
+          <Route path="/" element={<HandwerkerSoftware />} />
           <Route path="/login" element={<Auth />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/manager" element={<Index />} />
@@ -30,6 +30,7 @@ const App = () => (
           <Route path="/auth/callback" element={<GmailCallback />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/mitarbeiter-setup" element={<MitarbeiterSetupPage />} />
+          <Route path="/handwerkersoftware" element={<HandwerkerSoftware />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
