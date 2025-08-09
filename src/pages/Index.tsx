@@ -21,6 +21,8 @@ import { EmailModule } from "@/components/EmailModule";
 import DashboardCalendar from "@/components/DashboardCalendar";
 import DashboardStatsWithKpis from "@/components/DashboardStatsWithKpis";
 import { toast } from "@/hooks/use-toast";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+
 const Index = () => {
   const {
     user,
@@ -95,6 +97,7 @@ const Index = () => {
             </div>
             
             <div className="flex items-center space-x-4">
+              <ThemeToggle />
               <Button variant="outline" size="sm" onClick={() => navigate('/employee')} className="hidden sm:flex">
                 <UserCheck className="w-4 h-4 mr-2" />
                 Mitarbeiter-Ansicht

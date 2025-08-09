@@ -8,6 +8,7 @@ import Integrations from "@/components/marketing/Integrations";
 import Testimonials from "@/components/marketing/Testimonials";
 import FAQ from "@/components/marketing/FAQ";
 import FinalCTA from "@/components/marketing/FinalCTA";
+import { CompactThemeToggle } from "@/components/ui/theme-toggle";
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -88,8 +89,8 @@ export default function HandwerkerSoftware() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 text-foreground">
-      <header className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-foreground">
+      <header className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
         <div className="absolute inset-0 -z-10">
           {/* Modern mesh gradient background */}
           <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-indigo-600/5 to-purple-600/10" />
@@ -112,8 +113,9 @@ export default function HandwerkerSoftware() {
             <span className="font-bold text-xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">HandwerkOS</span>
           </Link>
           <div className="flex items-center gap-3">
+            <CompactThemeToggle />
             <Link to="/login">
-              <Button variant="ghost" size="sm" className="hover:bg-white/80">Anmelden</Button>
+              <Button variant="ghost" size="sm" className="hover:bg-white/80 dark:hover:bg-white/10">Anmelden</Button>
             </Link>
             <Link to="/login">
               <Button size="sm" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg">
@@ -209,7 +211,7 @@ export default function HandwerkerSoftware() {
         </section>
 
         {/* Module Section with background */}
-        <section id="module" className="bg-slate-50 py-16 md:py-24">
+        <section id="module" className="bg-slate-50 dark:bg-slate-800/50 py-16 md:py-24">
           <div className="container">
             <ModuleShowcase />
           </div>
@@ -221,7 +223,7 @@ export default function HandwerkerSoftware() {
         </section>
 
         {/* Testimonials Section with gradient background */}
-        <section id="kundenstimmen" className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 py-16 md:py-24">
+        <section id="kundenstimmen" className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-slate-800/30 dark:to-slate-700/30 py-16 md:py-24">
           <div className="container">
             <Testimonials />
           </div>
@@ -237,7 +239,7 @@ export default function HandwerkerSoftware() {
           <FinalCTA />
         </section>
       </main>
-      <footer className="bg-slate-900 text-white mt-24">
+      <footer className="bg-slate-900 dark:bg-slate-950 text-white mt-24">
         <div className="container py-12">
           <div className="grid md:grid-cols-4 gap-8">
             {/* Brand section */}

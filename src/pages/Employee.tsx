@@ -23,6 +23,7 @@ import LocationBasedTimeTracking from "@/components/LocationBasedTimeTracking";
 import ManagerTimeView from "@/components/ManagerTimeView";
 import MobileEmployeeApp from "@/components/employee/MobileEmployeeApp";
 import { supabase } from "@/integrations/supabase/client";
+import { CompactThemeToggle } from "@/components/ui/theme-toggle";
 
 const Employee = () => {
   const { user, signOut, userRole, loading } = useSupabaseAuth();
@@ -191,9 +192,9 @@ const Employee = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-white dark:bg-slate-800 shadow-sm border-b dark:border-slate-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center gap-3">
@@ -217,6 +218,7 @@ const Employee = () => {
               Mobile Ansicht
             </Button>
             <div className="flex items-center gap-4">
+              <CompactThemeToggle />
               {userRole === 'manager' && (
                 <Button
                   variant="outline" 
