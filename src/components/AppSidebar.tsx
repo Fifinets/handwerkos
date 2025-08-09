@@ -42,6 +42,7 @@ const navigationItems = [
   { id: 'machines', name: 'Maschinen & Geräte', icon: Settings, color: 'text-indigo-500' },
   { id: 'finance', name: 'Finanzen', icon: Calculator, color: 'text-cyan-500' },
   { id: 'planner', name: 'Planer', icon: Calendar, color: 'text-teal-500' },
+  { id: 'archive', name: 'Archiv', icon: FileText, color: 'text-gray-500' },
   { id: 'company-settings', name: 'Firmeneinstellungen', icon: Settings, color: 'text-gray-600' }
 ];
 

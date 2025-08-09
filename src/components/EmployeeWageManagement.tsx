@@ -78,7 +78,18 @@ export default function EmployeeWageManagement() {
       if (error) throw error;
 
       if (data) {
-        setEmployees(data);
+        const mapped = data.map((e: any) => ({
+          id: e.id,
+          first_name: e.first_name,
+          last_name: e.last_name,
+          email: e.email,
+          phone: e.phone,
+          hourly_wage: typeof e.hourly_rate === 'number' ? e.hourly_rate : 0,
+          role_description: '',
+          contact_info: '',
+          status: e.status || 'active'
+        })) as Employee[];
+        setEmployees(mapped);
       }
     } catch (error) {
       console.error('Error fetching employees:', error);
@@ -90,9 +101,13 @@ export default function EmployeeWageManagement() {
 
   const updateEmployeeWage = async (employeeId: string, updates: Partial<Employee>) => {
     try {
+      const payload: any = {};
+      if (typeof updates.hourly_wage === 'number') {
+        payload.hourly_rate = updates.hourly_wage;
+      }
       const { error } = await supabase
         .from('employees')
-        .update(updates)
+        .update(payload)
         .eq('id', employeeId);
 
       if (error) throw error;

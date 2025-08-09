@@ -33,8 +33,10 @@ import {
 } from "lucide-react";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as supabaseClient } from "@/integrations/supabase/client";
 import MobileOnboarding from "./MobileOnboarding";
+
+const supabase = supabaseClient as any;
 
 interface Project {
   id: string;
@@ -311,7 +313,7 @@ const MobileEmployeeApp: React.FC = () => {
       if (error) throw error;
 
       const newPhoto: ProjectPhoto = {
-        id: data[0]?.id || Date.now().toString(),
+id: data?.[0]?.id || Date.now().toString(),
         projectId: projectId,
         fileName: fileName,
         fileUrl: uploadData.path,
@@ -364,7 +366,7 @@ const MobileEmployeeApp: React.FC = () => {
       if (error) throw error;
 
       const newReceipt: ProjectReceipt = {
-        id: data[0]?.id || Date.now().toString(),
+id: data?.[0]?.id || Date.now().toString(),
         projectId: projectId,
         fileName: fileName,
         fileUrl: uploadData.path,
@@ -405,7 +407,7 @@ const MobileEmployeeApp: React.FC = () => {
       if (error) throw error;
 
       const newComment: ProjectComment = {
-        id: data[0]?.id || Date.now().toString(),
+        id: data?.[0]?.id || Date.now().toString(),
         projectId: projectId,
         comment: comment,
         createdAt: new Date()

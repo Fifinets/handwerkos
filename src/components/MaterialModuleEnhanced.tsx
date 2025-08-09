@@ -27,10 +27,12 @@ import {
   Eye,
   BookOpen
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as supabaseClient } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { toast } from "sonner";
 import MaterialAssignmentDialog from "./MaterialAssignmentDialog";
+
+const supabase = supabaseClient as any;
 
 interface Material {
   id: string;

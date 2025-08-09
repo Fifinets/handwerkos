@@ -22,6 +22,7 @@ import DashboardCalendar from "@/components/DashboardCalendar";
 import DashboardStatsWithKpis from "@/components/DashboardStatsWithKpis";
 import { toast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import ArchiveModule from "@/components/ArchiveModule";
 
 const Index = () => {
   const {
@@ -90,6 +91,8 @@ const Index = () => {
         return <TimeTrackingModule />;
       case 'company-settings':
         return <CompanySettingsModule />;
+      case 'archive':
+        return <ArchiveModule />;
       default:
         return <DashboardStatsWithKpis onNavigate={setActiveModule} />;
     }

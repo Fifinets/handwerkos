@@ -41,8 +41,10 @@ import {
   Phone,
   Mail
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase as supabaseClient } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+const supabase = supabaseClient as any;
 
 interface Project {
   id: string;
