@@ -237,7 +237,7 @@ const ProjectDetailDialog = ({ isOpen, onClose, project }: ProjectDetailDialogPr
               <TabsTrigger value="material-usage">Materialverbrauch</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="work-hours" className="space-y-4 min-h-[400px]">
+            <TabsContent value="work-hours" className="space-y-4 min-h-[600px]">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -276,7 +276,7 @@ const ProjectDetailDialog = ({ isOpen, onClose, project }: ProjectDetailDialogPr
               </Card>
             </TabsContent>
 
-            <TabsContent value="material-purchases" className="space-y-4 min-h-[400px]">
+            <TabsContent value="material-purchases" className="space-y-4 min-h-[600px]">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -319,7 +319,7 @@ const ProjectDetailDialog = ({ isOpen, onClose, project }: ProjectDetailDialogPr
               </Card>
             </TabsContent>
 
-            <TabsContent value="material-usage" className="space-y-4 min-h-[400px]">
+            <TabsContent value="material-usage" className="space-y-4 min-h-[600px]">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
