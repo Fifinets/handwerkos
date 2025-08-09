@@ -122,12 +122,6 @@ const MobileEmployeeApp: React.FC = () => {
     unit: 'Stück'
   });
 
-  // Refs for media capture
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
-  const [showCamera, setShowCamera] = useState(false);
-
   // Effects
   useEffect(() => {
     // Network status monitoring
@@ -520,91 +514,6 @@ const MobileEmployeeApp: React.FC = () => {
     }
   };
 
-  // Camera functions
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' }, // Use back camera on mobile
-        audio: false 
-      });
-      setCameraStream(stream);
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      
-      setShowCamera(true);
-    } catch (error) {
-      toast({
-        title: "Kamera",
-        description: "Kamera konnte nicht geöffnet werden",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const stopCamera = () => {
-    if (cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop());
-      setCameraStream(null);
-    }
-    setShowCamera(false);
-  };
-
-  const capturePhoto = () => {
-    if (videoRef.current && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const video = videoRef.current;
-      
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      
-      const ctx = canvas.getContext('2d');
-      ctx?.drawImage(video, 0, 0);
-      
-      // Convert to blob and store/upload
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const formData = new FormData();
-          formData.append('photo', blob, `baufortschritt_${Date.now()}.jpg`);
-          
-          // Store locally if offline, sync when online
-          if (isOnline) {
-            uploadPhoto(formData);
-          } else {
-            // Store in IndexedDB for offline capability
-            storePhotoOffline(blob);
-          }
-        }
-      }, 'image/jpeg', 0.8);
-      
-      stopCamera();
-    }
-  };
-
-  const uploadPhoto = async (formData: FormData) => {
-    try {
-      // Implement Supabase storage upload
-      toast({
-        title: "Foto hochgeladen",
-        description: "Baufortschritt dokumentiert"
-      });
-    } catch (error) {
-      toast({
-        title: "Upload-Fehler",
-        description: "Foto wird bei nächster Verbindung hochgeladen",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const storePhotoOffline = (blob: Blob) => {
-    // Store in IndexedDB for later sync
-    toast({
-      title: "Offline gespeichert",
-      description: "Foto wird bei nächster Verbindung hochgeladen"
-    });
-  };
 
   // Quick material entry
   const submitQuickMaterial = () => {
@@ -1154,37 +1063,6 @@ const MobileEmployeeApp: React.FC = () => {
         </div>
       </div>
 
-      {/* Camera Modal */}
-      {showCamera && (
-        <div className="fixed inset-0 bg-black z-50 flex flex-col">
-          <div className="flex justify-between items-center p-4 text-white">
-            <h3 className="font-semibold">Baufortschritt dokumentieren</h3>
-            <Button variant="ghost" size="sm" onClick={stopCamera}>
-              ✕
-            </Button>
-          </div>
-          
-          <div className="flex-1 relative">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              className="w-full h-full object-cover"
-            />
-            <canvas ref={canvasRef} className="hidden" />
-            
-            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
-              <Button
-                size="lg"
-                onClick={capturePhoto}
-                className="rounded-full w-16 h-16 p-0 bg-white text-black hover:bg-gray-200"
-              >
-                <Camera className="h-8 w-8" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Camera Modal */}
       {showCamera && (
@@ -1195,6 +1073,7 @@ const MobileEmployeeApp: React.FC = () => {
             autoPlay
             playsInline
           />
+          <canvas ref={canvasRef} className="hidden" />
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4">
             <Button
               onClick={takePhoto}
@@ -1212,8 +1091,6 @@ const MobileEmployeeApp: React.FC = () => {
           </div>
         </div>
       )}
-
-      <canvas ref={canvasRef} className="hidden" />
 
       {/* Receipt Upload Dialog */}
       <Dialog open={showReceiptDialog} onOpenChange={setShowReceiptDialog}>
