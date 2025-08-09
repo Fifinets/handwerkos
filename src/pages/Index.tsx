@@ -35,7 +35,7 @@ const Index = () => {
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        navigate('/auth');
+        navigate('/login');
       } else if (userRole === 'employee') {
         navigate('/employee');
       }

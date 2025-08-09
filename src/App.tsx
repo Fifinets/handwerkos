@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Landing from "./pages/Landing";
 import Employee from "./pages/Employee";
 import GmailCallback from "./pages/GmailCallback";
 import Privacy from "./pages/Privacy";
@@ -21,9 +22,10 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/manager" element={<Index />} />
-          <Route path="/" element={<Auth />} />
+          <Route path="/" element={<Landing />} />
+          <Route path="/login" element={<Auth />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/manager" element={<Index />} />
           <Route path="/employee" element={<Employee />} />
           <Route path="/auth/callback" element={<GmailCallback />} />
           <Route path="/privacy" element={<Privacy />} />
