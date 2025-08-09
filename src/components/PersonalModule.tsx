@@ -12,6 +12,8 @@ import AddEmployeeDialog from "./personal/AddEmployeeDialog";
 import EmployeeDetailsDialog from "./personal/EmployeeDetailsDialog";
 import EditEmployeeDialog from "./personal/EditEmployeeDialog";
 import PersonalSidebar from "./personal/PersonalSidebar";
+import EmployeeWageManagement from "./EmployeeWageManagement";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Employee {
   id: string;
@@ -286,51 +288,59 @@ const PersonalModule = () => {
         </div>
       </div>
 
-      <div className="space-y-6">
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="overview">Mitarbeiterübersicht</TabsTrigger>
+          <TabsTrigger value="wages">Stundenlohn-Verwaltung</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
           <div className="flex justify-end">
-            <Button
-              
-              onClick={() => setIsAddEmployeeOpen(true)}
-            >
+            <Button onClick={() => setIsAddEmployeeOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Mitarbeiter hinzufügen
             </Button>
           </div>
 
-      <PersonalStats
-        totalEmployees={employees.length}
-        activeEmployees={activeEmployees}
-        onVacationEmployees={onVacationEmployees}
-        totalHours={totalHours}
-      />
+          <PersonalStats
+            totalEmployees={employees.length}
+            activeEmployees={activeEmployees}
+            onVacationEmployees={onVacationEmployees}
+            totalHours={totalHours}
+          />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
-          <h3 className="text-lg font-semibold">Mitarbeiterliste</h3>
-          {loading ? (
-            <div className="text-center p-6">
-              <p className="text-gray-500">Mitarbeiter werden geladen...</p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-4">
+              <h3 className="text-lg font-semibold">Mitarbeiterliste</h3>
+              {loading ? (
+                <div className="text-center p-6">
+                  <p className="text-gray-500">Mitarbeiter werden geladen...</p>
+                </div>
+              ) : employees.length === 0 ? (
+                <div className="text-center p-6">
+                  <p className="text-gray-500">Noch keine Mitarbeiter vorhanden.</p>
+                  <p className="text-sm text-gray-400 mt-2">Klicken Sie auf "Mitarbeiter hinzufügen" um den ersten Mitarbeiter einzuladen.</p>
+                </div>
+              ) : (
+                employees.map((employee) => (
+                  <EmployeeCard
+                    key={employee.id}
+                    employee={employee}
+                    onShowDetails={handleShowDetails}
+                    onEdit={handleEditEmployee}
+                  />
+                ))
+              )}
             </div>
-          ) : employees.length === 0 ? (
-            <div className="text-center p-6">
-              <p className="text-gray-500">Noch keine Mitarbeiter vorhanden.</p>
-              <p className="text-sm text-gray-400 mt-2">Klicken Sie auf "Mitarbeiter hinzufügen" um den ersten Mitarbeiter einzuladen.</p>
-            </div>
-          ) : (
-            employees.map((employee) => (
-              <EmployeeCard
-                key={employee.id}
-                employee={employee}
-                onShowDetails={handleShowDetails}
-                onEdit={handleEditEmployee}
-              />
-            ))
-          )}
-        </div>
 
-        <PersonalSidebar onQuickAction={handleQuickAction} />
-        </div>
-      </div>
+            <PersonalSidebar onQuickAction={handleQuickAction} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="wages">
+          <EmployeeWageManagement />
+        </TabsContent>
+      </Tabs>
 
       <AddEmployeeDialog
         isOpen={isAddEmployeeOpen}
