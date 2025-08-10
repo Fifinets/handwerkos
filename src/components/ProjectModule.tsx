@@ -262,6 +262,9 @@ const ProjectModule = () => {
   };
 
   const handleEditProject = async (project) => {
+    console.log('✏️ handleEditProject called with project:', project);
+    console.log('📊 Project budget from database:', project.budget, 'type:', typeof project.budget);
+    
     try {
       // Get customer name if customer_id exists
       let customerName = '';
@@ -283,10 +286,12 @@ const ProjectModule = () => {
         progress: project.progress_percentage || 0,
         startDate: project.start_date,
         endDate: project.end_date,
-        budget: project.budget ? project.budget.toString() : '0',
+        budget: project.budget ? project.budget.toString() : '',
         team: [],
         location: project.location || ''
       };
+      
+      console.log('🔄 Transformed project for dialog:', transformedProject);
       
       setSelectedProject(transformedProject);
       setIsEditDialogOpen(true);
@@ -300,7 +305,7 @@ const ProjectModule = () => {
         progress: project.progress_percentage || 0,
         startDate: project.start_date,
         endDate: project.end_date,
-        budget: project.budget ? project.budget.toString() : '0',
+        budget: project.budget ? project.budget.toString() : '',
         team: [],
         location: project.location || ''
       });
@@ -319,6 +324,9 @@ const ProjectModule = () => {
   };
 
   const handleProjectUpdated = (updatedProject) => {
+    console.log('🔄 handleProjectUpdated called with:', updatedProject);
+    console.log('📊 Budget value received:', updatedProject.budget, 'type:', typeof updatedProject.budget);
+    
     // Optimistic update - immediately update local state
     const statusMapping = {
       'Planung': 'geplant',
@@ -333,6 +341,9 @@ const ProjectModule = () => {
         ? updatedProject.budget 
         : updatedProject.budget.toString();
       budget = parseFloat(budgetStr.replace(/[€,\s]/g, '')) || 0;
+      console.log('💰 Parsed budget:', budget);
+    } else {
+      console.log('⚠️ No budget provided, defaulting to 0');
     }
 
     // Update local projects state immediately for instant UI feedback
