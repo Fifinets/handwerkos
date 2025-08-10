@@ -87,7 +87,7 @@ const MobileEmployeeApp: React.FC = () => {
   const { toast } = useToast();
   
   // State Management
-  const [currentView, setCurrentView] = useState<'home' | 'projects' | 'time' | 'profile'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'projects' | 'time' | 'activity' | 'profile'>('home');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, address: string} | null>(null);
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
@@ -125,7 +125,12 @@ const MobileEmployeeApp: React.FC = () => {
   // Effects
   useEffect(() => {
     // Network status monitoring
-    const handleOnline = () => setIsOnline(true);
+    const handleOnline = () => {
+      setIsOnline(true);
+      // Sync when coming back online
+      syncTimeEntries();
+      syncMaterialEntries();
+    };
     const handleOffline = () => setIsOnline(false);
     
     window.addEventListener('online', handleOnline);
@@ -143,12 +148,21 @@ const MobileEmployeeApp: React.FC = () => {
     // Load assigned projects
     fetchAssignedProjects();
 
+    // Load existing data
+    loadExistingData();
+
     // Check if first visit
     const hasSeenOnboarding = localStorage.getItem('handwerkos-onboarding-completed');
     if (!hasSeenOnboarding) {
       setShowOnboarding(true);
     } else {
       setIsFirstVisit(false);
+    }
+
+    // Check for active time entry in localStorage
+    const storedActiveEntry = localStorage.getItem('activeTimeEntry');
+    if (storedActiveEntry) {
+      setActiveTimeEntry(JSON.parse(storedActiveEntry));
     }
 
     return () => {
@@ -182,6 +196,76 @@ const MobileEmployeeApp: React.FC = () => {
         },
         { enableHighAccuracy: true }
       );
+    }
+  };
+
+  // Load existing data from database
+  const loadExistingData = async () => {
+    if (!user?.id || !isOnline) return;
+    
+    try {
+      // Load existing photos for current user's projects
+      const { data: photos } = await supabase
+        .from('project_documents')
+        .select('*')
+        .eq('document_type', 'photo')
+        .eq('created_by', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (photos) {
+        const photoData: ProjectPhoto[] = photos.map(photo => ({
+          id: photo.id,
+          projectId: photo.project_id,
+          fileName: photo.name,
+          fileUrl: photo.file_url || '',
+          description: photo.metadata?.description || '',
+          createdAt: new Date(photo.created_at)
+        }));
+        setCapturedPhotos(photoData);
+      }
+
+      // Load existing receipts
+      const { data: receipts } = await supabase
+        .from('project_documents')
+        .select('*')
+        .eq('document_type', 'receipt')
+        .eq('created_by', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (receipts) {
+        const receiptData: ProjectReceipt[] = receipts.map(receipt => ({
+          id: receipt.id,
+          projectId: receipt.project_id,
+          fileName: receipt.name,
+          fileUrl: receipt.file_url || '',
+          amount: receipt.metadata?.amount || 0,
+          description: receipt.metadata?.description || '',
+          createdAt: new Date(receipt.created_at)
+        }));
+        setProjectReceipts(receiptData);
+      }
+
+      // Load existing comments
+      const { data: comments } = await supabase
+        .from('project_comments')
+        .select('*')
+        .eq('created_by', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (comments) {
+        const commentData: ProjectComment[] = comments.map(comment => ({
+          id: comment.id,
+          projectId: comment.project_id,
+          comment: comment.comment,
+          createdAt: new Date(comment.created_at)
+        }));
+        setProjectComments(commentData);
+      }
+    } catch (error) {
+      console.error('Error loading existing data:', error);
     }
   };
 
@@ -305,7 +389,10 @@ const MobileEmployeeApp: React.FC = () => {
           name: fileName,
           document_type: 'photo',
           file_url: uploadData.path,
-          created_by: user?.id
+          created_by: user?.id,
+          metadata: {
+            description: photoDescription
+          }
         });
 
       if (error) throw error;
@@ -498,10 +585,36 @@ const MobileEmployeeApp: React.FC = () => {
 
   const syncTimeEntries = async () => {
     const storedEntries = JSON.parse(localStorage.getItem('completedTimeEntries') || '[]');
-    if (storedEntries.length > 0 && isOnline) {
+    if (storedEntries.length > 0 && isOnline && user) {
       try {
-        // Sync to Supabase - implement actual sync logic
-        console.log('Syncing time entries:', storedEntries);
+        // Get employee ID first
+        const { data: employee } = await supabase
+          .from('employees')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (!employee) {
+          console.error('Employee not found for user');
+          return;
+        }
+
+        // Insert time entries to database
+        const timeEntriesToInsert = storedEntries.map((entry: any) => ({
+          employee_id: employee.id,
+          project_id: entry.projectId,
+          start_time: entry.startTime,
+          end_time: entry.endTime,
+          status: 'beendet',
+          description: entry.description || null
+        }));
+
+        const { error } = await supabase
+          .from('time_entries')
+          .insert(timeEntriesToInsert);
+
+        if (error) throw error;
+
         localStorage.removeItem('completedTimeEntries');
         
         toast({
@@ -510,6 +623,11 @@ const MobileEmployeeApp: React.FC = () => {
         });
       } catch (error) {
         console.error('Sync failed:', error);
+        toast({
+          title: "Sync Fehler",
+          description: "Zeiterfassung konnte nicht synchronisiert werden",
+          variant: "destructive"
+        });
       }
     }
   };
@@ -557,13 +675,50 @@ const MobileEmployeeApp: React.FC = () => {
 
   const syncMaterialEntries = async () => {
     const storedMaterials = JSON.parse(localStorage.getItem('materialEntries') || '[]');
-    if (storedMaterials.length > 0 && isOnline) {
+    if (storedMaterials.length > 0 && isOnline && user) {
       try {
-        // Sync to Supabase
-        console.log('Syncing material entries:', storedMaterials);
+        // Get employee ID first
+        const { data: employee } = await supabase
+          .from('employees')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (!employee) {
+          console.error('Employee not found for user');
+          return;
+        }
+
+        // Insert material usage entries to database
+        const materialEntriesToInsert = storedMaterials.map((entry: any) => ({
+          employee_id: employee.id,
+          project_id: entry.projectId,
+          material_id: null, // Will need to match material by name later
+          quantity_used: parseFloat(entry.quantity),
+          usage_date: new Date(entry.timestamp).toISOString().split('T')[0],
+          notes: `${entry.material} (${entry.unit}) - Mobile Entry`,
+          created_by: user.id
+        }));
+
+        const { error } = await supabase
+          .from('employee_material_usage')
+          .insert(materialEntriesToInsert);
+
+        if (error) throw error;
+
         localStorage.removeItem('materialEntries');
+        
+        toast({
+          title: "Synchronisation",
+          description: `${storedMaterials.length} Materialeinträge synchronisiert`
+        });
       } catch (error) {
         console.error('Material sync failed:', error);
+        toast({
+          title: "Sync Fehler",
+          description: "Materialeinträge konnten nicht synchronisiert werden",
+          variant: "destructive"
+        });
       }
     }
   };
@@ -959,6 +1114,133 @@ const MobileEmployeeApp: React.FC = () => {
     </div>
   );
 
+  const renderActivityView = () => (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold">Meine Aktivitäten</h3>
+      
+      {/* Recent Photos */}
+      {capturedPhotos.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5" />
+              Fotos ({capturedPhotos.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {capturedPhotos.slice(0, 3).map(photo => (
+              <div key={photo.id} className="flex justify-between items-center text-sm">
+                <span className="truncate">
+                  {assignedProjects.find(p => p.id === photo.projectId)?.name || 'Unbekanntes Projekt'}
+                </span>
+                <span className="text-gray-500">
+                  {photo.createdAt.toLocaleDateString('de-DE')}
+                </span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* Recent Receipts */}
+      {projectReceipts.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Receipt className="h-5 w-5" />
+              Rechnungen ({projectReceipts.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {projectReceipts.slice(0, 3).map(receipt => (
+              <div key={receipt.id} className="flex justify-between items-center text-sm">
+                <div>
+                  <span className="block truncate">
+                    {assignedProjects.find(p => p.id === receipt.projectId)?.name || 'Unbekanntes Projekt'}
+                  </span>
+                  {receipt.amount > 0 && (
+                    <span className="text-green-600 font-medium">€{receipt.amount.toFixed(2)}</span>
+                  )}
+                </div>
+                <span className="text-gray-500">
+                  {receipt.createdAt.toLocaleDateString('de-DE')}
+                </span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* Recent Comments */}
+      {projectComments.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Notizen ({projectComments.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {projectComments.slice(0, 3).map(comment => (
+              <div key={comment.id} className="text-sm">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="font-medium">
+                    {assignedProjects.find(p => p.id === comment.projectId)?.name || 'Unbekanntes Projekt'}
+                  </span>
+                  <span className="text-gray-500">
+                    {comment.createdAt.toLocaleDateString('de-DE')}
+                  </span>
+                </div>
+                <p className="text-gray-700 truncate">{comment.comment}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* Offline Data */}
+      {!isOnline && (
+        <Card className="border-orange-400 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="text-orange-700">Offline Daten</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span>Zeiteinträge:</span>
+              <span className="font-medium">
+                {JSON.parse(localStorage.getItem('completedTimeEntries') || '[]').length}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Materialeinträge:</span>
+              <span className="font-medium">
+                {JSON.parse(localStorage.getItem('materialEntries') || '[]').length}
+              </span>
+            </div>
+            <p className="text-orange-600 text-xs mt-2">
+              Wird bei nächster Verbindung synchronisiert
+            </p>
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* Empty State */}
+      {capturedPhotos.length === 0 && projectReceipts.length === 0 && projectComments.length === 0 && (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <div className="text-gray-400 mb-4">
+              <List className="h-12 w-12 mx-auto" />
+            </div>
+            <h4 className="font-medium text-gray-700 mb-2">Keine Aktivitäten</h4>
+            <p className="text-gray-500 text-sm">
+              Ihre Projektaktivitäten werden hier angezeigt
+            </p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+
   const renderProfileView = () => (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Profil</h3>
@@ -1029,16 +1311,18 @@ const MobileEmployeeApp: React.FC = () => {
         {currentView === 'home' && renderHomeView()}
         {currentView === 'projects' && renderProjectsView()}
         {currentView === 'time' && renderTimeView()}
+        {currentView === 'activity' && renderActivityView()}
         {currentView === 'profile' && renderProfileView()}
       </div>
 
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white border-t shadow-lg">
-        <div className="grid grid-cols-4 gap-1 p-2">
+        <div className="grid grid-cols-5 gap-1 p-2">
           {[
             { id: 'home', icon: Home, label: 'Start' },
             { id: 'projects', icon: List, label: 'Projekte' },
             { id: 'time', icon: Clock, label: 'Zeit' },
+            { id: 'activity', icon: Bell, label: 'Aktivität' },
             { id: 'profile', icon: User, label: 'Profil' }
           ].map((item) => (
             <Button
