@@ -589,6 +589,18 @@ const ProjectModule = () => {
     updateProject();
   };
 
+  const handleProjectDeleted = async (projectId: string) => {
+    console.log('🗑️ Deleting project:', projectId);
+    
+    // Optimistic update - remove project from local state immediately
+    setProjects(prevProjects => 
+      prevProjects.filter(project => project.id !== projectId)
+    );
+    
+    // Refresh projects from database to ensure consistency
+    await fetchProjects();
+  };
+
   const handleProjectAdded = (newProject) => {
     console.log('🆕 Adding new project:', newProject);
     
@@ -921,6 +933,7 @@ const ProjectModule = () => {
         onClose={() => setIsEditDialogOpen(false)}
         project={selectedProject}
         onProjectUpdated={handleProjectUpdated}
+        onProjectDeleted={handleProjectDeleted}
       />
 
       <ProjectDetailDialogWithTasks

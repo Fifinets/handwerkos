@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { CalendarIcon, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
@@ -33,12 +34,16 @@ interface EditProjectDialogProps {
   onClose: () => void;
   project: Project | null;
   onProjectUpdated: (project: Project) => void;
+  onProjectDeleted?: (projectId: string) => void;
 }
 
-const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated }: EditProjectDialogProps) => {
+const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProjectDeleted }: EditProjectDialogProps) => {
   const { toast } = useToast();
   const [customers, setCustomers] = useState<Tables<'customers'>[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteProgress, setDeleteProgress] = useState(0);
+  const [deleteTimer, setDeleteTimer] = useState<NodeJS.Timeout | null>(null);
   const [formData, setFormData] = useState({
     name: project?.name || '',
     customer: project?.customer || '',
@@ -116,6 +121,19 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated }: EditP
     }
   }, [dateRange]);
 
+  // Cleanup delete timer when component unmounts or dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      stopDelete();
+    }
+    
+    return () => {
+      if (deleteTimer) {
+        clearInterval(deleteTimer);
+      }
+    };
+  }, [isOpen, deleteTimer]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -135,6 +153,65 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated }: EditP
       ...prev,
       [field]: value
     }));
+  };
+
+  const startDelete = () => {
+    setIsDeleting(true);
+    setDeleteProgress(0);
+    
+    const interval = setInterval(() => {
+      setDeleteProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          handleDelete();
+          return 100;
+        }
+        return prev + (100 / 30); // 3 Sekunden = 30 Updates à 100ms
+      });
+    }, 100);
+    
+    setDeleteTimer(interval);
+  };
+
+  const stopDelete = () => {
+    if (deleteTimer) {
+      clearInterval(deleteTimer);
+      setDeleteTimer(null);
+    }
+    setIsDeleting(false);
+    setDeleteProgress(0);
+  };
+
+  const handleDelete = async () => {
+    if (!project || !onProjectDeleted) return;
+    
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', project.id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Projekt gelöscht",
+        description: "Das Projekt wurde erfolgreich gelöscht."
+      });
+
+      onProjectDeleted(project.id);
+      onClose();
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      toast({
+        title: "Fehler",
+        description: "Projekt konnte nicht gelöscht werden.",
+        variant: "destructive"
+      });
+    } finally {
+      stopDelete();
+    }
   };
 
   if (!project) return null;
@@ -264,10 +341,36 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated }: EditP
           </div>
 
           <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+            <div className="flex-1">
+              {onProjectDeleted && (
+                <div className="relative">
+                  <Button 
+                    type="button" 
+                    variant="destructive" 
+                    className="w-full relative"
+                    onMouseDown={startDelete}
+                    onMouseUp={stopDelete}
+                    onMouseLeave={stopDelete}
+                    onTouchStart={startDelete}
+                    onTouchEnd={stopDelete}
+                    disabled={isDeleting && deleteProgress >= 100}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {isDeleting ? `Löschen... (${Math.round(deleteProgress)}%)` : 'Projekt löschen'}
+                  </Button>
+                  {isDeleting && (
+                    <Progress 
+                      value={deleteProgress} 
+                      className="absolute bottom-0 left-0 right-0 h-1 rounded-none" 
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+            <Button type="button" variant="outline" onClick={onClose}>
               Abbrechen
             </Button>
-            <Button type="submit" className="flex-1">
+            <Button type="submit">
               Speichern
             </Button>
           </div>
