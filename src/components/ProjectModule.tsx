@@ -539,54 +539,26 @@ const ProjectModule = () => {
           }
         }
         
-        // Try to add budget column (will fail if doesn't exist, but won't crash)
-        try {
-          updateData.budget = budget;
-          updateData.progress_percentage = updatedProject.progress || 0;
-        } catch (err) {
-          console.warn('Some fields might not exist in database yet:', err);
-        }
-        
         console.log('📝 Update data:', updateData);
+        
+        // First try with basic update (without budget column)
+        const basicUpdateData = {
+          name: updatedProject.name,
+          status: statusMapping[updatedProject.status] || updatedProject.status,
+          start_date: updatedProject.startDate,
+          end_date: updatedProject.endDate,
+          location: updatedProject.location,
+          description: updateData.description,
+          customer_id: customer_id
+        };
         
         const { error } = await supabase
           .from('projects')
-          .update(updateData)
+          .update(basicUpdateData)
           .eq('id', updatedProject.id);
 
         if (error) {
           console.error('❌ Error updating project:', error);
-          console.error('Error details:', error.details, error.hint, error.code);
-          
-          // Check if error is about unknown columns
-          if (error.message && error.message.includes('budget')) {
-            console.warn('Budget column might not exist yet. Trying without budget...');
-            
-            // Try again without budget and progress_percentage
-            const basicUpdateData = {
-              name: updatedProject.name,
-              status: statusMapping[updatedProject.status] || updatedProject.status,
-              start_date: updatedProject.startDate,
-              end_date: updatedProject.endDate,
-              location: updatedProject.location,
-              description: updatedProject.description,
-              customer_id: customer_id
-            };
-            
-            const { error: retryError } = await supabase
-              .from('projects')
-              .update(basicUpdateData)
-              .eq('id', updatedProject.id);
-              
-            if (!retryError) {
-              console.log('✅ Project updated successfully (without budget)');
-              toast({
-                title: "Erfolg",
-                description: "Projekt wurde erfolgreich aktualisiert."
-              });
-              return;
-            }
-          }
           
           // Revert optimistic update on error
           await fetchProjects();
@@ -596,7 +568,7 @@ const ProjectModule = () => {
             variant: "destructive"
           });
         } else {
-          console.log('✅ Project updated successfully in database');
+          console.log('✅ Project updated successfully (budget stored in description)');
           toast({
             title: "Erfolg",
             description: "Projekt wurde erfolgreich aktualisiert."
