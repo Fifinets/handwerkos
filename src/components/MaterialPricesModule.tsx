@@ -42,7 +42,7 @@ const MaterialPricesModule: React.FC = () => {
   const [materials, setMaterials] = useState<MaterialPrice[]>([]);
   const [filteredMaterials, setFilteredMaterials] = useState<MaterialPrice[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<MaterialPrice | null>(null);
@@ -73,7 +73,7 @@ const MaterialPricesModule: React.FC = () => {
       );
     }
 
-    if (selectedCategory) {
+    if (selectedCategory && selectedCategory !== 'all') {
       filtered = filtered.filter(material => material.category === selectedCategory);
     }
 
@@ -322,7 +322,7 @@ const MaterialPricesModule: React.FC = () => {
                   <SelectValue placeholder="Kategorie wählen" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Alle Kategorien</SelectItem>
+                  <SelectItem value="all">Alle Kategorien</SelectItem>
                   {MATERIAL_CATEGORIES.map(category => (
                     <SelectItem key={category} value={category}>
                       {category}
@@ -331,12 +331,12 @@ const MaterialPricesModule: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
-            {(searchTerm || selectedCategory) && (
+            {(searchTerm || (selectedCategory && selectedCategory !== 'all')) && (
               <Button
                 variant="outline"
                 onClick={() => {
                   setSearchTerm('');
-                  setSelectedCategory('');
+                  setSelectedCategory('all');
                 }}
               >
                 Filter zurücksetzen
