@@ -184,28 +184,41 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
   const handleDelete = async () => {
     if (!project || !onProjectDeleted) return;
     
+    console.log('🗑️ Starting deletion of project:', project.id, project.name);
+    
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('projects')
         .delete()
-        .eq('id', project.id);
+        .eq('id', project.id)
+        .select(); // Return deleted rows for confirmation
+
+      console.log('🗑️ Delete result:', { data, error });
 
       if (error) {
+        console.error('❌ Database delete error:', error);
         throw error;
       }
+
+      console.log('✅ Project successfully deleted from database');
 
       toast({
         title: "Projekt gelöscht",
         description: "Das Projekt wurde erfolgreich gelöscht."
       });
 
+      // Call the callback to update parent component
       onProjectDeleted(project.id);
+      
+      // Close dialog
       onClose();
+      
+      console.log('✅ Delete operation completed');
     } catch (error) {
-      console.error('Error deleting project:', error);
+      console.error('💥 Error deleting project:', error);
       toast({
         title: "Fehler",
-        description: "Projekt konnte nicht gelöscht werden.",
+        description: "Projekt konnte nicht gelöscht werden: " + error.message,
         variant: "destructive"
       });
     } finally {

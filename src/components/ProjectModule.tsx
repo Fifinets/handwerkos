@@ -590,15 +590,19 @@ const ProjectModule = () => {
   };
 
   const handleProjectDeleted = async (projectId: string) => {
-    console.log('🗑️ Deleting project:', projectId);
+    console.log('🗑️ Project deletion callback received for:', projectId);
     
     // Optimistic update - remove project from local state immediately
-    setProjects(prevProjects => 
-      prevProjects.filter(project => project.id !== projectId)
-    );
+    setProjects(prevProjects => {
+      const filteredProjects = prevProjects.filter(project => project.id !== projectId);
+      console.log('📊 Projects before delete:', prevProjects.length, 'after delete:', filteredProjects.length);
+      return filteredProjects;
+    });
     
     // Refresh projects from database to ensure consistency
+    console.log('🔄 Refreshing projects from database...');
     await fetchProjects();
+    console.log('✅ Project deletion completed and UI refreshed');
   };
 
   const handleProjectAdded = (newProject) => {
