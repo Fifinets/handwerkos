@@ -155,17 +155,22 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
   };
 
   const startDelete = () => {
+    console.log('🚀 startDelete called - beginning delete sequence');
     setIsDeleting(true);
     setDeleteProgress(0);
     
     const interval = setInterval(() => {
       setDeleteProgress(prev => {
-        if (prev >= 100) {
+        const newProgress = prev + (100 / 25); // 2,5 Sekunden = 25 Updates à 100ms
+        console.log('⏰ Delete progress:', Math.round(newProgress) + '%');
+        
+        if (newProgress >= 100) {
           clearInterval(interval);
+          console.log('✅ Delete timer completed, calling handleDelete');
           handleDelete();
           return 100;
         }
-        return prev + (100 / 25); // 2,5 Sekunden = 25 Updates à 100ms
+        return newProgress;
       });
     }, 100);
     
@@ -173,6 +178,7 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
   };
 
   const stopDelete = () => {
+    console.log('⏹️ stopDelete called - canceling delete sequence');
     if (deleteTimer) {
       clearInterval(deleteTimer);
       setDeleteTimer(null);
@@ -387,6 +393,7 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
                   type="button" 
                   variant="destructive" 
                   className="w-full relative overflow-hidden"
+                  onClick={() => console.log('🖱️ Delete button clicked!')}
                   onMouseDown={onProjectDeleted ? startDelete : undefined}
                   onMouseUp={onProjectDeleted ? stopDelete : undefined}
                   onMouseLeave={onProjectDeleted ? stopDelete : undefined}
