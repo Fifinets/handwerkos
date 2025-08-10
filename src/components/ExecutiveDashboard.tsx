@@ -288,7 +288,7 @@ const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ onNavigate }) =
       {/* Header mit kritischen Alerts */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Betriebssteuerung</h1>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-gray-600">Zentrale Übersicht Ihres Handwerksbetriebs</p>
         </div>
         
@@ -357,13 +357,122 @@ const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ onNavigate }) =
         </Card>
       )}
 
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="kpis" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="kpis">Kennzahlen</TabsTrigger>
           <TabsTrigger value="overview">Übersicht</TabsTrigger>
           <TabsTrigger value="financial">Finanzen</TabsTrigger>
           <TabsTrigger value="projects">Projekte</TabsTrigger>
           <TabsTrigger value="actions">Schnellaktionen</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="kpis" className="space-y-6">
+          {/* 1. Aktuelle Kennzahlen (KPIs) - Original Dashboard Style */}
+          <div>
+            <h2 className="text-xl font-semibold mb-4">📊 Aktuelle Kennzahlen</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <Card className="cursor-pointer hover:bg-muted/50" onClick={() => onNavigate?.('projects')}>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Building2 className="w-5 h-5 text-blue-600" />
+                    <span className="font-medium">Offene Aufträge</span>
+                  </div>
+                  <p className="text-2xl font-bold text-blue-600">{dashboardData.projectStatus.active + dashboardData.projectStatus.planning}</p>
+                  <p className="text-sm text-muted-foreground">in Bearbeitung</p>
+                </CardContent>
+              </Card>
+
+              <Card className="cursor-pointer hover:bg-muted/50" onClick={() => onNavigate?.('emails')}>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Mail className="w-5 h-5 text-green-600" />
+                    <span className="font-medium">Ungelesene E-Mails</span>
+                  </div>
+                  <p className="text-2xl font-bold text-green-600">0</p>
+                  <p className="text-sm text-muted-foreground">neue Anfragen</p>
+                </CardContent>
+              </Card>
+
+              <Card className="cursor-pointer hover:bg-muted/50" onClick={() => onNavigate?.('finance')}>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="w-5 h-5 text-orange-600" />
+                    <span className="font-medium">Offene Angebote</span>
+                  </div>
+                  <p className="text-2xl font-bold text-orange-600">{dashboardData.criticalAlerts.pendingQuotes}</p>
+                  <p className="text-sm text-muted-foreground">versendet</p>
+                </CardContent>
+              </Card>
+
+              <Card className="cursor-pointer hover:bg-muted/50" onClick={() => onNavigate?.('finance')}>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Euro className="w-5 h-5 text-red-600" />
+                    <span className="font-medium">Offene Rechnungen</span>
+                  </div>
+                  <p className="text-2xl font-bold text-red-600">{dashboardData.criticalAlerts.overdueInvoices}</p>
+                  <p className="text-sm text-muted-foreground">{formatCurrency(dashboardData.financialKPIs.outstandingAmount)}</p>
+                </CardContent>
+              </Card>
+
+              <Card className="cursor-pointer hover:bg-muted/50" onClick={() => onNavigate?.('timetracking')}>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock className="w-5 h-5 text-purple-600" />
+                    <span className="font-medium">Stunden heute</span>
+                  </div>
+                  <p className="text-2xl font-bold text-purple-600">{dashboardData.teamOverview.todayHours}</p>
+                  <p className="text-sm text-muted-foreground">gearbeitet</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* 2. Heute / Nächste Termine */}
+          <div>
+            <h2 className="text-xl font-semibold mb-4">📅 Heute / Nächste Termine</h2>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-muted-foreground">Keine Termine für heute</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 3. Mitarbeiterübersicht & 4. Letzte E-Mails nebeneinander */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div>
+              <h2 className="text-lg font-semibold mb-3">👥 Mitarbeiterübersicht</h2>
+              <Card>
+                <CardContent className="p-3">
+                  <div className="space-y-2">
+                    {dashboardData.teamOverview.activeEmployees > 0 ? (
+                      <div className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                          <span className="font-medium text-sm">{dashboardData.teamOverview.activeEmployees} Mitarbeiter</span>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => onNavigate?.('timetracking')}>
+                          Zeitbericht
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Keine aktiven Mitarbeiter</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold mb-3">📨 Letzte E-Mails / Kundenanfragen</h2>
+              <Card>
+                <CardContent className="p-3">
+                  <p className="text-sm text-muted-foreground">Keine neuen E-Mails</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
 
         <TabsContent value="overview" className="space-y-6">
           {/* Haupt-KPIs */}
