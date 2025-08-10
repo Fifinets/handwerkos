@@ -57,6 +57,23 @@ const generateShortId = (fullId: string) => {
   return `P${hash.substring(0, 6).toUpperCase()}`;
 };
 
+const formatBudget = (budget: any) => {
+  if (!budget) return '0,00';
+  
+  let budgetValue = 0;
+  if (typeof budget === 'number') {
+    budgetValue = budget;
+  } else if (typeof budget === 'string') {
+    // Remove € symbol and convert to number
+    budgetValue = parseFloat(budget.replace('€', '').replace(',', '.')) || 0;
+  }
+  
+  return budgetValue.toLocaleString('de-DE', { 
+    minimumFractionDigits: 2, 
+    maximumFractionDigits: 2 
+  });
+};
+
 const ProjectModule = () => {
   const { toast } = useToast();
   const [projects, setProjects] = useState([]);
@@ -212,9 +229,16 @@ const ProjectModule = () => {
         else if (p.status === 'in_bearbeitung') counts["in_bearbeitung"]++;
         else if (p.status === 'abgeschlossen') counts.abgeschlossen++;
         
-        // Sum up the budgets
-        if (p.budget && typeof p.budget === 'number') {
-          totalBudgetSum += p.budget;
+        // Sum up the budgets - handle both string and number formats
+        if (p.budget) {
+          let budgetValue = 0;
+          if (typeof p.budget === 'number') {
+            budgetValue = p.budget;
+          } else if (typeof p.budget === 'string') {
+            // Remove € symbol and convert to number
+            budgetValue = parseFloat(p.budget.replace('€', '').replace(',', '.')) || 0;
+          }
+          totalBudgetSum += budgetValue;
         }
         
         if (p.end_date) {
@@ -622,7 +646,7 @@ const ProjectModule = () => {
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-600">Budget</p>
-                    <p className="text-2xl font-bold text-green-600">€{project.budget ? Number(project.budget).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00'}</p>
+                    <p className="text-2xl font-bold text-green-600">€{formatBudget(project.budget)}</p>
                   </div>
                 </div>
 
