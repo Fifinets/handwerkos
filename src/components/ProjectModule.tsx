@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Plus, CheckCircle, Clock, AlertTriangle, Building2, FileText, Edit } from "lucide-react";
+import { Calendar, Plus, CheckCircle, Clock, AlertTriangle, Building2, FileText, Edit, Calculator, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,8 @@ import EditProjectDialog from "./EditProjectDialog";
 import ProjectDetailDialogWithTasks from "./ProjectDetailDialogWithTasks";
 import ProjectDetailView from "./ProjectDetailView";
 import OrderModule from "./OrderModule";
+import PreCalculationDialog from "./PreCalculationDialog";
+import ProjectProfitabilityDialog from "./ProjectProfitabilityDialog";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -100,6 +102,8 @@ const ProjectModule = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isProjectDetailViewOpen, setIsProjectDetailViewOpen] = useState(false);
+  const [isPreCalculationOpen, setIsPreCalculationOpen] = useState(false);
+  const [isProfitabilityOpen, setIsProfitabilityOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [customers, setCustomers] = useState([]);
@@ -355,6 +359,16 @@ const ProjectModule = () => {
   const handleDoubleClickProject = (project) => {
     setSelectedProjectId(project.id);
     setIsProjectDetailViewOpen(true);
+  };
+
+  const handlePreCalculation = (project) => {
+    setSelectedProject(project);
+    setIsPreCalculationOpen(true);
+  };
+
+  const handleProfitabilityAnalysis = (project) => {
+    setSelectedProject(project);
+    setIsProfitabilityOpen(true);
   };
 
   const handleProjectUpdated = (updatedProject) => {
@@ -739,7 +753,26 @@ const ProjectModule = () => {
                   <Button
                     size="sm" 
                     variant="outline"
+                    onClick={() => handlePreCalculation(project)}
+                    title="Vor-Kalkulation erstellen"
+                  >
+                    <Calculator className="h-4 w-4" />
+                  </Button>
+                  {(project.status === 'in_bearbeitung' || project.status === 'abgeschlossen') && (
+                    <Button
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleProfitabilityAnalysis(project)}
+                      title="Nachkalkulation & Rentabilität"
+                    >
+                      <TrendingUp className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button
+                    size="sm" 
+                    variant="outline"
                     onClick={() => handleEditProject(project)}
+                    title="Projekt bearbeiten"
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -845,6 +878,29 @@ const ProjectModule = () => {
             setSelectedProjectId(null);
           }}
           projectId={selectedProjectId}
+        />
+      )}
+
+      {selectedProject && (
+        <PreCalculationDialog
+          isOpen={isPreCalculationOpen}
+          onClose={() => setIsPreCalculationOpen(false)}
+          projectId={selectedProject.id}
+          projectName={selectedProject.name}
+          customerId={selectedProject.customer_id || ''}
+          onCalculationSaved={async () => {
+            // Refresh projects after calculation is saved
+            await fetchProjects();
+          }}
+        />
+      )}
+
+      {selectedProject && (
+        <ProjectProfitabilityDialog
+          isOpen={isProfitabilityOpen}
+          onClose={() => setIsProfitabilityOpen(false)}
+          projectId={selectedProject.id}
+          projectName={selectedProject.name}
         />
       )}
     </div>

@@ -31,6 +31,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { toast } from "sonner";
 import MaterialAssignmentDialog from "./MaterialAssignmentDialog";
+import MaterialPricesModule from "./MaterialPricesModule";
 
 interface Material {
   id: string;
@@ -497,10 +498,11 @@ const MaterialModuleEnhanced = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="inventory">Lagerbestand</TabsTrigger>
           <TabsTrigger value="usage">Verbrauch</TabsTrigger>
           <TabsTrigger value="assignments">Zuweisungen</TabsTrigger>
+          <TabsTrigger value="prices">Preise</TabsTrigger>
           <TabsTrigger value="analytics">Analysen</TabsTrigger>
         </TabsList>
 
@@ -699,6 +701,10 @@ const MaterialModuleEnhanced = () => {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="prices" className="space-y-6 min-h-[600px]">
+          <MaterialPricesModule />
         </TabsContent>
       </Tabs>
 
