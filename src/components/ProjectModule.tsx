@@ -385,7 +385,7 @@ const ProjectModule = () => {
         progress: project.progress_percentage || 0,
         startDate: project.start_date,
         endDate: project.end_date,
-        budget: budgetValue ? budgetValue.toString() : '',
+        budget: budgetValue.toString(),
         team: [],
         location: project.location || ''
       };
@@ -411,7 +411,7 @@ const ProjectModule = () => {
         progress: project.progress_percentage || 0,
         startDate: project.start_date,
         endDate: project.end_date,
-        budget: budgetValue ? budgetValue.toString() : '',
+        budget: budgetValue.toString(),
         team: [],
         location: project.location || ''
       });
