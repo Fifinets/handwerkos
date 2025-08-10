@@ -127,12 +127,6 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated }: EditP
     };
 
     onProjectUpdated(updatedProject);
-    
-    toast({
-      title: "Erfolg",
-      description: "Projekt wurde erfolgreich aktualisiert."
-    });
-
     onClose();
   };
 

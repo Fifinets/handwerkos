@@ -5,6 +5,7 @@ import { Calendar, Plus, CheckCircle, Clock, AlertTriangle, Building2, FileText 
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import AddProjectDialog from "./AddProjectDialog";
 import EditProjectDialog from "./EditProjectDialog";
 import ProjectDetailDialogWithTasks from "./ProjectDetailDialogWithTasks";
@@ -51,6 +52,7 @@ const getStatusDisplayName = (status: string) => {
 };
 
 const ProjectModule = () => {
+  const { toast } = useToast();
   const [projects, setProjects] = useState([]);
   const [statusCounts, setStatusCounts] = useState({ geplant: 0, in_bearbeitung: 0, abgeschlossen: 0 });
   const [topCustomers, setTopCustomers] = useState([]);
@@ -229,23 +231,51 @@ const ProjectModule = () => {
     setTopCustomers(data.slice(0, 5));
   };
 
-  const handleEditProject = (project) => {
-    // Transform database project to match dialog interface
-    const transformedProject = {
-      id: project.id,
-      name: project.name,
-      customer: '', // Will be filled from customer_id lookup
-      status: getStatusDisplayName(project.status), // Convert to German display name
-      progress: project.progress_percentage || 0,
-      startDate: project.start_date,
-      endDate: project.end_date,
-      budget: project.budget ? project.budget.toString() : '0',
-      team: [],
-      location: project.location || ''
-    };
-    
-    setSelectedProject(transformedProject);
-    setIsEditDialogOpen(true);
+  const handleEditProject = async (project) => {
+    try {
+      // Get customer name if customer_id exists
+      let customerName = '';
+      if (project.customer_id) {
+        const { data: customer } = await supabase
+          .from('customers')
+          .select('company_name')
+          .eq('id', project.customer_id)
+          .single();
+        customerName = customer?.company_name || '';
+      }
+
+      // Transform database project to match dialog interface
+      const transformedProject = {
+        id: project.id,
+        name: project.name,
+        customer: customerName,
+        status: getStatusDisplayName(project.status), // Convert to German display name
+        progress: project.progress_percentage || 0,
+        startDate: project.start_date,
+        endDate: project.end_date,
+        budget: project.budget ? project.budget.toString() : '0',
+        team: [],
+        location: project.location || ''
+      };
+      
+      setSelectedProject(transformedProject);
+      setIsEditDialogOpen(true);
+    } catch (error) {
+      console.error('Error in handleEditProject:', error);
+      setSelectedProject({
+        id: project.id,
+        name: project.name,
+        customer: '',
+        status: getStatusDisplayName(project.status),
+        progress: project.progress_percentage || 0,
+        startDate: project.start_date,
+        endDate: project.end_date,
+        budget: project.budget ? project.budget.toString() : '0',
+        team: [],
+        location: project.location || ''
+      });
+      setIsEditDialogOpen(true);
+    }
   };
 
   const handleShowDetails = (project) => {
@@ -259,30 +289,114 @@ const ProjectModule = () => {
   };
 
   const handleProjectUpdated = (updatedProject) => {
-    // Update project in Supabase
+    // Optimistic update - immediately update local state
+    const statusMapping = {
+      'Planung': 'geplant',
+      'In Bearbeitung': 'in_bearbeitung', 
+      'Abgeschlossen': 'abgeschlossen'
+    };
+
+    // Parse budget safely
+    let budget = 0;
+    if (updatedProject.budget) {
+      const budgetStr = typeof updatedProject.budget === 'string' 
+        ? updatedProject.budget 
+        : updatedProject.budget.toString();
+      budget = parseFloat(budgetStr.replace(/[€,\s]/g, '')) || 0;
+    }
+
+    // Update local projects state immediately for instant UI feedback
+    setProjects(prevProjects => 
+      prevProjects.map(project => 
+        project.id === updatedProject.id 
+          ? {
+              ...project,
+              name: updatedProject.name,
+              status: statusMapping[updatedProject.status] || updatedProject.status,
+              start_date: updatedProject.startDate,
+              end_date: updatedProject.endDate,
+              location: updatedProject.location,
+              description: updatedProject.description,
+              budget: budget,
+              progress_percentage: updatedProject.progress || 0
+            }
+          : project
+      )
+    );
+
+    // Update total budget immediately
+    setTotalBudget(prevTotal => {
+      let totalBudgetSum = 0;
+      projects.forEach(project => {
+        if (project.id === updatedProject.id) {
+          totalBudgetSum += budget;
+        } else {
+          totalBudgetSum += project.budget || 0;
+        }
+      });
+      return totalBudgetSum;
+    });
+
+    // Then update in database
     const updateProject = async () => {
-      // Map German status to database values
-      const statusMapping = {
-        'Planung': 'geplant',
-        'In Bearbeitung': 'in_bearbeitung', 
-        'Abgeschlossen': 'abgeschlossen'
-      };
-      
-      const { error } = await supabase
-        .from('projects')
-        .update({
+      try {
+        console.log('🔄 Updating project in database:', updatedProject);
+        
+        // Find customer by name to get customer_id
+        let customer_id = null;
+        if (updatedProject.customer) {
+          const { data: customer } = await supabase
+            .from('customers')
+            .select('id')
+            .eq('company_name', updatedProject.customer)
+            .single();
+          customer_id = customer?.id || null;
+        }
+        
+        const updateData = {
           name: updatedProject.name,
           status: statusMapping[updatedProject.status] || updatedProject.status,
           start_date: updatedProject.startDate,
           end_date: updatedProject.endDate,
           location: updatedProject.location,
           description: updatedProject.description,
-          budget: parseFloat(updatedProject.budget.replace(/[€,\s]/g, '')) || 0
-        })
-        .eq('id', updatedProject.id);
+          budget: budget,
+          progress_percentage: updatedProject.progress || 0,
+          customer_id: customer_id
+        };
+        
+        console.log('📝 Update data:', updateData);
+        
+        const { error } = await supabase
+          .from('projects')
+          .update(updateData)
+          .eq('id', updatedProject.id);
 
-      if (!error) {
+        if (error) {
+          console.error('❌ Error updating project:', error);
+          // Revert optimistic update on error
+          await fetchProjects();
+          toast({
+            title: "Fehler",
+            description: "Projekt konnte nicht aktualisiert werden: " + error.message,
+            variant: "destructive"
+          });
+        } else {
+          console.log('✅ Project updated successfully in database');
+          toast({
+            title: "Erfolg",
+            description: "Projekt wurde erfolgreich aktualisiert."
+          });
+        }
+      } catch (err) {
+        console.error('💥 Error in handleProjectUpdated:', err);
+        // Revert optimistic update on error
         await fetchProjects();
+        toast({
+          title: "Fehler",
+          description: "Unerwarteter Fehler beim Aktualisieren des Projekts",
+          variant: "destructive"
+        });
       }
     };
 
