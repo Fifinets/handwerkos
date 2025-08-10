@@ -195,7 +195,7 @@ const ProjectModule = () => {
       setProjects(data);
 
       // compute derived metrics
-      setTotalBudget(0);
+      let totalBudgetSum = 0;
       const counts = { geplant: 0, in_bearbeitung: 0, abgeschlossen: 0 } as any;
       const delayed: any[] = [];
       const today = new Date();
@@ -203,11 +203,18 @@ const ProjectModule = () => {
         if (p.status === 'geplant') counts.geplant++;
         else if (p.status === 'in_bearbeitung') counts["in_bearbeitung"]++;
         else if (p.status === 'abgeschlossen') counts.abgeschlossen++;
+        
+        // Sum up the budgets
+        if (p.budget && typeof p.budget === 'number') {
+          totalBudgetSum += p.budget;
+        }
+        
         if (p.end_date) {
           const endDate = new Date(p.end_date);
           if (endDate < today && p.status !== 'abgeschlossen') delayed.push(p);
         }
       });
+      setTotalBudget(totalBudgetSum);
       setStatusCounts(counts);
       setDelayedProjects(delayed);
     } catch (err) {
@@ -229,10 +236,10 @@ const ProjectModule = () => {
       name: project.name,
       customer: '', // Will be filled from customer_id lookup
       status: getStatusDisplayName(project.status), // Convert to German display name
-      progress: 0,
+      progress: project.progress_percentage || 0,
       startDate: project.start_date,
       endDate: project.end_date,
-      budget: '€0',
+      budget: project.budget ? project.budget.toString() : '0',
       team: [],
       location: project.location || ''
     };
@@ -269,7 +276,8 @@ const ProjectModule = () => {
           start_date: updatedProject.startDate,
           end_date: updatedProject.endDate,
           location: updatedProject.location,
-          description: updatedProject.description
+          description: updatedProject.description,
+          budget: parseFloat(updatedProject.budget.replace(/[€,\s]/g, '')) || 0
         })
         .eq('id', updatedProject.id);
 
@@ -350,7 +358,8 @@ const ProjectModule = () => {
           start_date: startDate,
           end_date: endDate,
           location: newProject.location,
-          description: `Budget: ${newProject.budget}`
+          budget: parseFloat(newProject.budget.replace(/[€,\s]/g, '')) || 0,
+          description: newProject.description || null
         };
         
         console.log('📝 Inserting project data:', projectData);
@@ -460,10 +469,14 @@ const ProjectModule = () => {
                 </div>
 
                 <div className="space-y-3 flex-grow">
-                  <div className="grid grid-cols-1 gap-4 text-sm">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-gray-500">Status:</p>
                       <p className="font-medium">{getStatusDisplayName(project.status)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Budget:</p>
+                      <p className="font-medium">€{project.budget ? Number(project.budget).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00'}</p>
                     </div>
                   </div>
                   
