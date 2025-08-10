@@ -57,16 +57,31 @@ const generateShortId = (fullId: string) => {
   return `P${hash.substring(0, 6).toUpperCase()}`;
 };
 
-const formatBudget = (budget: any) => {
-  if (!budget) return '0,00';
-  
+const extractBudgetFromDescription = (description: string) => {
+  if (!description) return 0;
+  const budgetMatch = description.match(/\[BUDGET:(\d+\.?\d*)\]/);
+  return budgetMatch ? parseFloat(budgetMatch[1]) : 0;
+};
+
+const formatBudget = (budget: any, description?: string) => {
   let budgetValue = 0;
-  if (typeof budget === 'number') {
-    budgetValue = budget;
-  } else if (typeof budget === 'string') {
-    // Remove € symbol and convert to number
-    budgetValue = parseFloat(budget.replace('€', '').replace(',', '.')) || 0;
+  
+  // First try to get budget from budget field
+  if (budget) {
+    if (typeof budget === 'number') {
+      budgetValue = budget;
+    } else if (typeof budget === 'string') {
+      // Remove € symbol and convert to number
+      budgetValue = parseFloat(budget.replace('€', '').replace(',', '.')) || 0;
+    }
   }
+  
+  // If no budget from field, try to extract from description
+  if (budgetValue === 0 && description) {
+    budgetValue = extractBudgetFromDescription(description);
+  }
+  
+  if (budgetValue === 0) return '0,00';
   
   return budgetValue.toLocaleString('de-DE', { 
     minimumFractionDigits: 2, 
@@ -230,16 +245,22 @@ const ProjectModule = () => {
         else if (p.status === 'abgeschlossen') counts.abgeschlossen++;
         
         // Sum up the budgets - handle both string and number formats
+        let budgetValue = 0;
         if (p.budget) {
-          let budgetValue = 0;
           if (typeof p.budget === 'number') {
             budgetValue = p.budget;
           } else if (typeof p.budget === 'string') {
             // Remove € symbol and convert to number
             budgetValue = parseFloat(p.budget.replace('€', '').replace(',', '.')) || 0;
           }
-          totalBudgetSum += budgetValue;
         }
+        
+        // If no budget from field, try to extract from description
+        if (budgetValue === 0 && p.description) {
+          budgetValue = extractBudgetFromDescription(p.description);
+        }
+        
+        totalBudgetSum += budgetValue;
         
         if (p.end_date) {
           const endDate = new Date(p.end_date);
@@ -277,6 +298,12 @@ const ProjectModule = () => {
         customerName = customer?.company_name || '';
       }
 
+      // Extract budget from description if not in budget field
+      let budgetValue = project.budget || 0;
+      if (!budgetValue && project.description) {
+        budgetValue = extractBudgetFromDescription(project.description);
+      }
+
       // Transform database project to match dialog interface
       const transformedProject = {
         id: project.id,
@@ -286,7 +313,7 @@ const ProjectModule = () => {
         progress: project.progress_percentage || 0,
         startDate: project.start_date,
         endDate: project.end_date,
-        budget: project.budget ? project.budget.toString() : '',
+        budget: budgetValue ? budgetValue.toString() : '',
         team: [],
         location: project.location || ''
       };
@@ -297,6 +324,13 @@ const ProjectModule = () => {
       setIsEditDialogOpen(true);
     } catch (error) {
       console.error('Error in handleEditProject:', error);
+      
+      // Extract budget from description if not in budget field  
+      let budgetValue = project.budget || 0;
+      if (!budgetValue && project.description) {
+        budgetValue = extractBudgetFromDescription(project.description);
+      }
+      
       setSelectedProject({
         id: project.id,
         name: project.name,
@@ -305,7 +339,7 @@ const ProjectModule = () => {
         progress: project.progress_percentage || 0,
         startDate: project.start_date,
         endDate: project.end_date,
-        budget: project.budget ? project.budget.toString() : '',
+        budget: budgetValue ? budgetValue.toString() : '',
         team: [],
         location: project.location || ''
       });
@@ -405,7 +439,23 @@ const ProjectModule = () => {
         };
 
         // Try to add budget and progress_percentage
-        // Will be ignored by database if columns don't exist
+        // Store budget in description field as a workaround until budget column is added
+        if (budget > 0) {
+          const budgetInfo = `[BUDGET:${budget}]`;
+          if (updateData.description) {
+            // If description exists, append budget info if not already there
+            if (!updateData.description.includes('[BUDGET:')) {
+              updateData.description += ` ${budgetInfo}`;
+            } else {
+              // Replace existing budget info
+              updateData.description = updateData.description.replace(/\[BUDGET:\d+\.?\d*\]/, budgetInfo);
+            }
+          } else {
+            updateData.description = budgetInfo;
+          }
+        }
+        
+        // Try to add budget column (will fail if doesn't exist, but won't crash)
         try {
           updateData.budget = budget;
           updateData.progress_percentage = updatedProject.progress || 0;
@@ -657,7 +707,7 @@ const ProjectModule = () => {
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-600">Budget</p>
-                    <p className="text-2xl font-bold text-green-600">€{formatBudget(project.budget)}</p>
+                    <p className="text-2xl font-bold text-green-600">€{formatBudget(project.budget, project.description)}</p>
                   </div>
                 </div>
 
