@@ -187,20 +187,46 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
     console.log('🗑️ Starting deletion of project:', project.id, project.name);
     
     try {
-      const { data, error } = await supabase
+      // First, check if we can access the project
+      const { data: checkData, error: checkError } = await supabase
+        .from('projects')
+        .select('id, name')
+        .eq('id', project.id)
+        .single();
+      
+      console.log('🔍 Project check before delete:', { checkData, checkError });
+      
+      if (checkError) {
+        console.error('❌ Cannot access project for deletion:', checkError);
+        throw new Error('Projekt nicht gefunden oder keine Berechtigung');
+      }
+
+      // Now attempt to delete
+      const { data, error, count } = await supabase
         .from('projects')
         .delete()
         .eq('id', project.id)
-        .select(); // Return deleted rows for confirmation
+        .select('*'); // Return deleted rows for confirmation
 
-      console.log('🗑️ Delete result:', { data, error });
+      console.log('🗑️ Delete result:', { data, error, count, deletedRows: data?.length || 0 });
 
       if (error) {
         console.error('❌ Database delete error:', error);
+        console.error('❌ Error details:', { 
+          message: error.message, 
+          code: error.code, 
+          details: error.details,
+          hint: error.hint 
+        });
         throw error;
       }
 
-      console.log('✅ Project successfully deleted from database');
+      if (!data || data.length === 0) {
+        console.warn('⚠️ No rows were deleted - project may not exist or access denied');
+        throw new Error('Projekt konnte nicht gelöscht werden - möglicherweise keine Berechtigung');
+      }
+
+      console.log('✅ Project successfully deleted from database:', data[0]);
 
       toast({
         title: "Projekt gelöscht",
@@ -218,7 +244,7 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
       console.error('💥 Error deleting project:', error);
       toast({
         title: "Fehler",
-        description: "Projekt konnte nicht gelöscht werden: " + error.message,
+        description: "Projekt konnte nicht gelöscht werden: " + (error.message || 'Unbekannter Fehler'),
         variant: "destructive"
       });
     } finally {
