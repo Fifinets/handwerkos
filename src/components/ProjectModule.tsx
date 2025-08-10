@@ -360,10 +360,17 @@ const ProjectModule = () => {
           end_date: updatedProject.endDate,
           location: updatedProject.location,
           description: updatedProject.description,
-          budget: budget,
-          progress_percentage: updatedProject.progress || 0,
           customer_id: customer_id
         };
+
+        // Try to add budget and progress_percentage
+        // Will be ignored by database if columns don't exist
+        try {
+          updateData.budget = budget;
+          updateData.progress_percentage = updatedProject.progress || 0;
+        } catch (err) {
+          console.warn('Some fields might not exist in database yet:', err);
+        }
         
         console.log('📝 Update data:', updateData);
         
@@ -374,6 +381,38 @@ const ProjectModule = () => {
 
         if (error) {
           console.error('❌ Error updating project:', error);
+          console.error('Error details:', error.details, error.hint, error.code);
+          
+          // Check if error is about unknown columns
+          if (error.message && error.message.includes('budget')) {
+            console.warn('Budget column might not exist yet. Trying without budget...');
+            
+            // Try again without budget and progress_percentage
+            const basicUpdateData = {
+              name: updatedProject.name,
+              status: statusMapping[updatedProject.status] || updatedProject.status,
+              start_date: updatedProject.startDate,
+              end_date: updatedProject.endDate,
+              location: updatedProject.location,
+              description: updatedProject.description,
+              customer_id: customer_id
+            };
+            
+            const { error: retryError } = await supabase
+              .from('projects')
+              .update(basicUpdateData)
+              .eq('id', updatedProject.id);
+              
+            if (!retryError) {
+              console.log('✅ Project updated successfully (without budget)');
+              toast({
+                title: "Teilweise erfolgreich",
+                description: "Projekt wurde aktualisiert (Budget-Feature noch nicht verfügbar)"
+              });
+              return;
+            }
+          }
+          
           // Revert optimistic update on error
           await fetchProjects();
           toast({
