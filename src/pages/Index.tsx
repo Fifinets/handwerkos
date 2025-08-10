@@ -91,8 +91,6 @@ const Index = () => {
         return <TimeTrackingModule />;
       case 'company-settings':
         return <CompanySettingsModule />;
-      case 'executive':
-        return <ExecutiveDashboard onNavigate={setActiveModule} />;
       default:
         return <ExecutiveDashboard onNavigate={setActiveModule} />;
     }

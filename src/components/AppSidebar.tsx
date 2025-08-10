@@ -25,7 +25,6 @@ import { toast } from "@/hooks/use-toast";
 
 const navigationItems = [
   { id: 'dashboard', name: 'Dashboard', icon: TrendingUp, color: 'text-blue-500' },
-  { id: 'executive', name: 'Dashboard', icon: Target, color: 'text-red-600' },
   { 
     id: 'stammdaten', 
     name: 'Stammdaten', 
