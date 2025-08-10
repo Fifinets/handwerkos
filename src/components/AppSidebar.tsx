@@ -16,7 +16,8 @@ import {
   Database,
   Receipt,
   Mail,
-  FileText
+  FileText,
+  Target
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,6 +25,7 @@ import { toast } from "@/hooks/use-toast";
 
 const navigationItems = [
   { id: 'dashboard', name: 'Dashboard', icon: TrendingUp, color: 'text-blue-500' },
+  { id: 'executive', name: 'Betriebssteuerung', icon: Target, color: 'text-red-600' },
   { 
     id: 'stammdaten', 
     name: 'Stammdaten', 

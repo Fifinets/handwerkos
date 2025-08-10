@@ -1,0 +1,602 @@
+/**
+ * ExecutiveDashboard - Zentrale Steuerzentrale für den Handwerksbetrieb-Chef
+ * 
+ * Zeigt alle kritischen Informationen auf einen Blick:
+ * - Überfällige Tasks und Warnungen
+ * - Finanzielle KPIs mit Trends
+ * - Aktuelle Projekte mit Status
+ * - Schnellaktionen für häufige Workflows
+ */
+
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  AlertTriangle, 
+  TrendingUp, 
+  TrendingDown, 
+  Euro, 
+  Clock, 
+  CheckCircle, 
+  FileText,
+  Users,
+  Calendar,
+  Building2,
+  ArrowRight,
+  Plus,
+  Eye,
+  Zap,
+  Target,
+  DollarSign,
+  AlertCircle
+} from 'lucide-react';
+import { workflowService } from '@/services/WorkflowService';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+interface DashboardData {
+  // Kritische Aufmerksamkeits-Items
+  criticalAlerts: {
+    budgetWarnings: number;
+    overdueProjects: number;
+    overdueInvoices: number;
+    pendingQuotes: number;
+  };
+  
+  // Finanzielle KPIs
+  financialKPIs: {
+    monthlyRevenue: number;
+    monthlyExpenses: number;
+    profit: number;
+    profitMargin: number;
+    outstandingAmount: number;
+    revenuetrend: number; // Prozent Änderung zum Vormonat
+  };
+  
+  // Projekt-Status
+  projectStatus: {
+    active: number;
+    planning: number;
+    completed: number;
+    delayed: number;
+  };
+  
+  // Team-Übersicht
+  teamOverview: {
+    activeEmployees: number;
+    todayHours: number;
+    utilizationRate: number;
+  };
+}
+
+interface QuickAction {
+  id: string;
+  title: string;
+  description: string;
+  icon: any;
+  color: string;
+  onClick: () => void;
+}
+
+interface ExecutiveDashboardProps {
+  onNavigate?: (moduleId: string) => void;
+}
+
+const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ onNavigate }) => {
+  const [dashboardData, setDashboardData] = useState<DashboardData>({
+    criticalAlerts: {
+      budgetWarnings: 0,
+      overdueProjects: 0,
+      overdueInvoices: 0,
+      pendingQuotes: 0,
+    },
+    financialKPIs: {
+      monthlyRevenue: 0,
+      monthlyExpenses: 0,
+      profit: 0,
+      profitMargin: 0,
+      outstandingAmount: 0,
+      revenuetrend: 0,
+    },
+    projectStatus: {
+      active: 0,
+      planning: 0,
+      completed: 0,
+      delayed: 0,
+    },
+    teamOverview: {
+      activeEmployees: 0,
+      todayHours: 0,
+      utilizationRate: 0,
+    },
+  });
+  
+  const [loading, setLoading] = useState(true);
+  const [criticalItems, setCriticalItems] = useState<any[]>([]);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    loadDashboardData();
+    const interval = setInterval(loadDashboardData, 5 * 60 * 1000); // Refresh alle 5 Minuten
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+
+      // Parallele Datenabfrage für Performance
+      const [
+        criticalData,
+        projectData,
+        financialData,
+        teamData
+      ] = await Promise.all([
+        workflowService.getDashboardCriticalData(),
+        loadProjectData(),
+        loadFinancialData(),
+        loadTeamData(),
+      ]);
+
+      setCriticalItems(criticalData.overdueTasks);
+
+      setDashboardData({
+        criticalAlerts: {
+          budgetWarnings: criticalData.budgetWarnings.length,
+          overdueProjects: criticalData.delayedProjects.length,
+          overdueInvoices: criticalData.overdueInvoices.length,
+          pendingQuotes: criticalData.pendingQuotes.length,
+        },
+        financialKPIs: financialData,
+        projectStatus: projectData,
+        teamOverview: teamData,
+      });
+
+    } catch (error) {
+      console.error('❌ Error loading dashboard data:', error);
+      toast({
+        title: 'Fehler beim Laden',
+        description: 'Dashboard-Daten konnten nicht geladen werden.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadProjectData = async () => {
+    const { data: projects } = await supabase
+      .from('projects')
+      .select('status, end_date');
+
+    const today = new Date().toISOString().split('T')[0];
+    const counts = {
+      active: 0,
+      planning: 0,
+      completed: 0,
+      delayed: 0,
+    };
+
+    projects?.forEach(project => {
+      switch (project.status) {
+        case 'in_bearbeitung':
+          counts.active++;
+          break;
+        case 'geplant':
+        case 'anfrage':
+        case 'besichtigung':
+          counts.planning++;
+          break;
+        case 'abgeschlossen':
+          counts.completed++;
+          break;
+      }
+
+      // Verspätete Projekte
+      if (project.end_date && project.end_date < today && project.status !== 'abgeschlossen') {
+        counts.delayed++;
+      }
+    });
+
+    return counts;
+  };
+
+  const loadFinancialData = async () => {
+    // Mock-Daten für Demo - in Produktion aus FinanceModule laden
+    return {
+      monthlyRevenue: 45000,
+      monthlyExpenses: 32000,
+      profit: 13000,
+      profitMargin: 28.9,
+      outstandingAmount: 8500,
+      revenuetrend: 12.5, // +12.5% zum Vormonat
+    };
+  };
+
+  const loadTeamData = async () => {
+    const { data: employees } = await supabase
+      .from('employees')
+      .select('status')
+      .neq('status', 'eingeladen');
+
+    return {
+      activeEmployees: employees?.length || 0,
+      todayHours: 67.5, // Mock - aus TimeTracking laden
+      utilizationRate: 85, // Mock - berechnet aus geplanten vs. tatsächlichen Stunden
+    };
+  };
+
+  const quickActions: QuickAction[] = [
+    {
+      id: 'new-quote',
+      title: 'Neues Angebot',
+      description: 'Angebot für Kunden erstellen',
+      icon: FileText,
+      color: 'bg-blue-500',
+      onClick: () => onNavigate?.('finance'),
+    },
+    {
+      id: 'new-project',
+      title: 'Projekt anlegen',
+      description: 'Direktes Projekt erstellen',
+      icon: Building2,
+      color: 'bg-green-500',
+      onClick: () => onNavigate?.('projects'),
+    },
+    {
+      id: 'check-finances',
+      title: 'Finanzen prüfen',
+      description: 'Rechnungen und Ausgaben',
+      icon: Euro,
+      color: 'bg-purple-500',
+      onClick: () => onNavigate?.('finance'),
+    },
+    {
+      id: 'team-overview',
+      title: 'Team Status',
+      description: 'Mitarbeiter und Zeiten',
+      icon: Users,
+      color: 'bg-orange-500',
+      onClick: () => onNavigate?.('personal'),
+    },
+  ];
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('de-DE', {
+      style: 'currency',
+      currency: 'EUR',
+    }).format(amount);
+  };
+
+  const getCriticalAlertCount = () => {
+    return Object.values(dashboardData.criticalAlerts).reduce((sum, count) => sum + count, 0);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header mit kritischen Alerts */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Betriebssteuerung</h1>
+          <p className="text-gray-600">Zentrale Übersicht Ihres Handwerksbetriebs</p>
+        </div>
+        
+        {getCriticalAlertCount() > 0 && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 rounded-lg">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            <span className="text-red-700 font-medium">
+              {getCriticalAlertCount()} Punkte benötigen Aufmerksamkeit
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Kritische Alerts - Höchste Priorität */}
+      {getCriticalAlertCount() > 0 && (
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-700">
+              <AlertCircle className="h-5 w-5" />
+              Sofortige Aufmerksamkeit erforderlich
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {dashboardData.criticalAlerts.budgetWarnings > 0 && (
+                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+                  <Target className="h-8 w-8 text-red-600" />
+                  <div>
+                    <div className="font-semibold text-red-700">{dashboardData.criticalAlerts.budgetWarnings}</div>
+                    <div className="text-sm text-red-600">Budget-Warnungen</div>
+                  </div>
+                </div>
+              )}
+              
+              {dashboardData.criticalAlerts.overdueProjects > 0 && (
+                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+                  <Clock className="h-8 w-8 text-orange-600" />
+                  <div>
+                    <div className="font-semibold text-orange-700">{dashboardData.criticalAlerts.overdueProjects}</div>
+                    <div className="text-sm text-orange-600">Verzögerte Projekte</div>
+                  </div>
+                </div>
+              )}
+              
+              {dashboardData.criticalAlerts.overdueInvoices > 0 && (
+                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+                  <Euro className="h-8 w-8 text-red-600" />
+                  <div>
+                    <div className="font-semibold text-red-700">{dashboardData.criticalAlerts.overdueInvoices}</div>
+                    <div className="text-sm text-red-600">Überfällige Rechnungen</div>
+                  </div>
+                </div>
+              )}
+              
+              {dashboardData.criticalAlerts.pendingQuotes > 0 && (
+                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+                  <FileText className="h-8 w-8 text-blue-600" />
+                  <div>
+                    <div className="font-semibold text-blue-700">{dashboardData.criticalAlerts.pendingQuotes}</div>
+                    <div className="text-sm text-blue-600">Offene Angebote</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Übersicht</TabsTrigger>
+          <TabsTrigger value="financial">Finanzen</TabsTrigger>
+          <TabsTrigger value="projects">Projekte</TabsTrigger>
+          <TabsTrigger value="actions">Schnellaktionen</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          {/* Haupt-KPIs */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Monatsumsatz</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {formatCurrency(dashboardData.financialKPIs.monthlyRevenue)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 text-green-600">
+                    <TrendingUp className="h-4 w-4" />
+                    <span className="text-sm font-medium">+{dashboardData.financialKPIs.revenuetrend}%</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Gewinn</p>
+                    <p className="text-2xl font-bold">
+                      {formatCurrency(dashboardData.financialKPIs.profit)}
+                    </p>
+                  </div>
+                  <Badge className="bg-blue-100 text-blue-800">
+                    {dashboardData.financialKPIs.profitMargin}%
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Aktive Projekte</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {dashboardData.projectStatus.active}
+                    </p>
+                  </div>
+                  <Building2 className="h-8 w-8 text-blue-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Team Auslastung</p>
+                    <p className="text-2xl font-bold">
+                      {dashboardData.teamOverview.utilizationRate}%
+                    </p>
+                  </div>
+                  <Users className="h-8 w-8 text-purple-600" />
+                </div>
+                <Progress value={dashboardData.teamOverview.utilizationRate} className="mt-2" />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Projekt-Status Übersicht */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Projekt-Pipeline</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                  <div className="text-2xl font-bold text-yellow-600">{dashboardData.projectStatus.planning}</div>
+                  <div className="text-sm text-yellow-700">In Planung</div>
+                </div>
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">{dashboardData.projectStatus.active}</div>
+                  <div className="text-sm text-blue-700">In Bearbeitung</div>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">{dashboardData.projectStatus.completed}</div>
+                  <div className="text-sm text-green-700">Abgeschlossen</div>
+                </div>
+                <div className="text-center p-4 bg-red-50 rounded-lg">
+                  <div className="text-2xl font-bold text-red-600">{dashboardData.projectStatus.delayed}</div>
+                  <div className="text-sm text-red-700">Verspätet</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="financial" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Finanzielle Kennzahlen</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span>Umsatz</span>
+                  <span className="font-bold text-green-600">
+                    {formatCurrency(dashboardData.financialKPIs.monthlyRevenue)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>Ausgaben</span>
+                  <span className="font-bold text-red-600">
+                    {formatCurrency(dashboardData.financialKPIs.monthlyExpenses)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pt-2 border-t">
+                  <span className="font-semibold">Gewinn</span>
+                  <span className="font-bold text-lg">
+                    {formatCurrency(dashboardData.financialKPIs.profit)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>Gewinnmarge</span>
+                  <span className="font-bold">{dashboardData.financialKPIs.profitMargin}%</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Ausstehende Beträge</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-orange-600 mb-2">
+                  {formatCurrency(dashboardData.financialKPIs.outstandingAmount)}
+                </div>
+                <p className="text-sm text-gray-600">
+                  Noch nicht bezahlte Rechnungen
+                </p>
+                <Button variant="outline" className="mt-4 w-full" onClick={() => onNavigate?.('finance')}>
+                  <Euro className="h-4 w-4 mr-2" />
+                  Rechnungen verwalten
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="projects" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Projekt-Status Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    <span>Projekte in Planung</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold">{dashboardData.projectStatus.planning}</span>
+                    <Button variant="ghost" size="sm" onClick={() => onNavigate?.('projects')}>
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <span>Aktive Projekte</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold">{dashboardData.projectStatus.active}</span>
+                    <Button variant="ghost" size="sm" onClick={() => onNavigate?.('projects')}>
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {dashboardData.projectStatus.delayed > 0 && (
+                  <div className="flex items-center justify-between p-4 border rounded-lg bg-red-50">
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle className="h-5 w-5 text-red-600" />
+                      <span className="text-red-700">Verspätete Projekte</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-red-600">{dashboardData.projectStatus.delayed}</span>
+                      <Button variant="ghost" size="sm" onClick={() => onNavigate?.('projects')}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="actions" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-yellow-500" />
+                Schnellaktionen
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {quickActions.map((action) => (
+                  <Button
+                    key={action.id}
+                    variant="outline"
+                    className="h-auto p-4 justify-start"
+                    onClick={action.onClick}
+                  >
+                    <div className={`p-2 rounded-lg ${action.color} mr-4`}>
+                      <action.icon className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <div className="font-semibold">{action.title}</div>
+                      <div className="text-sm text-gray-500">{action.description}</div>
+                    </div>
+                    <ArrowRight className="h-4 w-4 ml-auto" />
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default ExecutiveDashboard;

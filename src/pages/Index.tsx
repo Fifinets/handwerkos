@@ -20,6 +20,7 @@ import { CompanySettingsModule } from "@/components/CompanySettingsModule";
 import { EmailModule } from "@/components/EmailModule";
 import DashboardCalendar from "@/components/DashboardCalendar";
 import DashboardStatsWithKpis from "@/components/DashboardStatsWithKpis";
+import ExecutiveDashboard from "@/components/ExecutiveDashboard";
 import { toast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
@@ -90,6 +91,8 @@ const Index = () => {
         return <TimeTrackingModule />;
       case 'company-settings':
         return <CompanySettingsModule />;
+      case 'executive':
+        return <ExecutiveDashboard onNavigate={setActiveModule} />;
       default:
         return <DashboardStatsWithKpis onNavigate={setActiveModule} />;
     }

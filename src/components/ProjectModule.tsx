@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Plus, CheckCircle, Clock, AlertTriangle, Building2, FileText, Edit, Calculator, TrendingUp } from "lucide-react";
+import { Calendar, Plus, CheckCircle, Clock, AlertTriangle, Building2, FileText, Edit, Calculator, TrendingUp, Receipt } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { workflowService } from "@/services/WorkflowService";
 import { useToast } from "@/hooks/use-toast";
 import AddProjectDialog from "./AddProjectDialog";
 import EditProjectDialog from "./EditProjectDialog";
@@ -589,6 +590,30 @@ const ProjectModule = () => {
     updateProject();
   };
 
+  const handleCreateInvoice = async (projectId: string, projectName: string) => {
+    try {
+      console.log('Creating invoice from project:', projectId);
+      
+      const invoiceId = await workflowService.createInvoiceFromProject(projectId);
+      if (invoiceId) {
+        toast({
+          title: "Rechnung erstellt",
+          description: `Rechnungsentwurf für Projekt "${projectName}" wurde erfolgreich erstellt.`,
+        });
+        
+        // Refresh projects to show updated status
+        fetchProjects();
+      }
+    } catch (error) {
+      console.error('Error creating invoice from project:', error);
+      toast({
+        title: "Fehler",
+        description: "Rechnung konnte nicht erstellt werden. Projekt muss abgeschlossen sein.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleProjectDeleted = async (projectId: string) => {
     console.log('🗑️ Project deletion callback received for:', projectId);
     
@@ -841,6 +866,17 @@ const ProjectModule = () => {
                       title="Nachkalkulation & Rentabilität"
                     >
                       <TrendingUp className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {project.status === 'abgeschlossen' && (
+                    <Button
+                      size="sm" 
+                      variant="default"
+                      onClick={() => handleCreateInvoice(project.id, project.name)}
+                      title="Rechnung erstellen"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      <Receipt className="h-4 w-4" />
                     </Button>
                   )}
                   <Button

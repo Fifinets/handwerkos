@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { FileText, Plus, Search, Calendar, User, Euro, AlertTriangle, CheckCircle, Clock, X } from "lucide-react";
+import { FileText, Plus, Search, Calendar, User, Euro, AlertTriangle, CheckCircle, Clock, X, ArrowRight, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { workflowService } from "@/services/WorkflowService";
 import { useToast } from "@/hooks/use-toast";
 import AddOrderDialog from "./AddOrderDialog";
 import EditOrderDialog from "./EditOrderDialog";
@@ -117,6 +118,30 @@ const OrderModule = () => {
       toast({
         title: "Fehler",
         description: "Ein unerwarteter Fehler ist aufgetreten.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleCreateProject = async (orderId: string, orderTitle: string) => {
+    try {
+      console.log('Creating project from order:', orderId);
+      
+      const projectId = await workflowService.createProjectFromOrder(orderId);
+      if (projectId) {
+        toast({
+          title: "Projekt erstellt",
+          description: `Projekt aus Auftrag "${orderTitle}" wurde erfolgreich erstellt.`
+        });
+        
+        // Refresh orders to show updated status
+        fetchOrders();
+      }
+    } catch (error) {
+      console.error('Error creating project from order:', error);
+      toast({
+        title: "Fehler",
+        description: "Projekt konnte nicht erstellt werden.",
         variant: "destructive"
       });
     }
@@ -305,6 +330,19 @@ const OrderModule = () => {
                 </div>
 
                 <div className="flex gap-2 mt-4">
+                  {/* Workflow button - only show for confirmed orders that don't have projects yet */}
+                  {(order.status === 'confirmed' || order.status === 'Bestätigt') && (
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={() => handleCreateProject(order.id, order.title)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <ArrowRight className="h-3 w-3 mr-1" />
+                      Projekt erstellen
+                    </Button>
+                  )}
+                  
                   <Button
                     size="sm"
                     variant="outline"

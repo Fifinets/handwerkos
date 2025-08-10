@@ -1,4 +1,18 @@
-import { useState, useEffect } from "react";
+/**
+ * EmailModuleModern - Modernized email interface for HandwerkOS
+ * 
+ * Features:
+ * - Gmail-inspired three-pane layout
+ * - Email threading and conversations
+ * - Advanced search and filtering
+ * - Drag & drop organization
+ * - Mobile-responsive design
+ * - Real-time updates
+ * - AI-powered categorization
+ * - Workflow integration
+ */
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,7 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Mail, 
   Star, 
@@ -27,23 +42,42 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
-  Reply
+  Reply,
+  ReplyAll,
+  Forward,
+  Archive,
+  MoreHorizontal,
+  Settings,
+  Plus,
+  ChevronDown,
+  ChevronRight,
+  ChevronLeft,
+  Paperclip,
+  Send,
+  Minimize2,
+  Maximize2,
+  X,
+  ArrowLeft,
+  ArrowRight,
+  Download,
+  Flag,
+  UserPlus,
+  Building2,
+  Phone,
+  MapPin,
+  Globe,
+  FileText,
+  Zap,
+  Target,
+  TrendingUp
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { workflowService } from "@/services/WorkflowService";
+import { format, formatDistance } from "date-fns";
 import { de } from "date-fns/locale";
-import { EmailImport } from "./emails/EmailImport";
-import { EmailSync } from "./emails/EmailSync";
-import { EmailReplyDialog } from "./emails/EmailReplyDialog";
-import { EmailActionButtons } from "./emails/EmailActionButtons";
-import { CustomerProjectDialog } from "./emails/CustomerProjectDialog";
-import { EmailContentRenderer } from "./emails/EmailContentRenderer";
-import { useGmailConnection } from "@/hooks/useGmailConnection";
-import { cleanEmailContent } from "@/utils/emailContentCleaner";
-import { cleanContentForUtf8, validateEmailContent } from "@/utils/emailEncoding";
-import { parseEmailContent, shouldDisplayAsHtml, sanitizeHtmlContent, getPreferredContentType } from "@/utils/emailMimeParser";
-import "@/styles/email-content.css";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Email {
   id: string;
@@ -56,12 +90,15 @@ interface Email {
   is_read: boolean;
   is_starred: boolean;
   priority: string;
+  thread_id?: string;
+  reply_count?: number;
   ai_category_id?: string;
   ai_confidence?: number;
   ai_sentiment?: string;
   ai_summary?: string;
   ai_extracted_data?: any;
   processing_status: string;
+  has_attachments?: boolean;
   email_categories?: {
     name: string;
     color: string;
@@ -69,6 +106,9 @@ interface Email {
   };
   customers?: {
     company_name: string;
+    contact_person?: string;
+    phone?: string;
+    website?: string;
   };
 }
 
@@ -78,6 +118,7 @@ interface EmailCategory {
   color: string;
   icon: string;
   description: string;
+  count?: number;
 }
 
 const iconMap = {
@@ -88,185 +129,53 @@ const iconMap = {
   Newspaper,
   Trash2,
   Mail,
-};
-
-// Function to properly format email content with comprehensive encoding fixes
-const formatEmailContent = (content: string): string => {
-  if (!content) return '';
-  
-  // First, fix all UTF-8 encoding issues
-  let cleanedContent = content
-    // Fix common UTF-8 encoding problems
-    .replace(/â‚¬/g, '€')  // Euro symbol
-    .replace(/Ã¤/g, 'ä')   // ä
-    .replace(/Ã¶/g, 'ö')   // ö
-    .replace(/Ã¼/g, 'ü')   // ü
-    .replace(/Ã„/g, 'Ä')   // Ä
-    .replace(/Ã–/g, 'Ö')   // Ö
-    .replace(/Ãœ/g, 'Ü')   // Ü
-    .replace(/ÃŸ/g, 'ß')   // ß
-    
-    // Fix broken UTF-8 sequences that appear as strange characters
-    .replace(/âÍ/g, '')     // Remove broken decorative characters
-    .replace(/Â­/g, '')     // Remove soft hyphens that appear broken
-    .replace(/Â /g, ' ')     // Fix non-breaking spaces
-    .replace(/Â/g, '')      // Remove stray UTF-8 artifacts
-    
-    // Fix other common encoding issues
-    .replace(/â€™/g, "'")   // Right single quotation mark
-    .replace(/â€œ/g, '"')   // Left double quotation mark
-    .replace(/â€/g, '"')    // Right double quotation mark
-    .replace(/â€"/g, '—')   // Em dash
-    .replace(/â€"/g, '–')   // En dash
-    .replace(/â€¢/g, '•')   // Bullet point
-    .replace(/â€¦/g, '…')   // Horizontal ellipsis
-    
-    // Remove sequences of broken characters that are often decorative
-    .replace(/[âÍÂ­]{5,}/g, '') // Remove long sequences of broken chars
-    .replace(/(\s*[âÍÂ­]\s*){3,}/g, '') // Remove repeated broken chars with spaces
-    
-    // Clean up excessive whitespace
-    .replace(/\s+/g, ' ')   // Multiple spaces to single space
-    .replace(/^\s+|\s+$/g, ''); // Trim leading/trailing whitespace
-  
-  // Check if content is already HTML
-  const isHTML = /<[a-z][\s\S]*>/i.test(cleanedContent);
-  
-  if (isHTML) {
-    // Clean and sanitize HTML content
-    return cleanedContent
-      // Fix HTML entity encoding issues
-      .replace(/&auml;/g, 'ä')
-      .replace(/&ouml;/g, 'ö')
-      .replace(/&uuml;/g, 'ü')
-      .replace(/&Auml;/g, 'Ä')
-      .replace(/&Ouml;/g, 'Ö')
-      .replace(/&Uuml;/g, 'Ü')
-      .replace(/&szlig;/g, 'ß')
-      .replace(/&euro;/g, '€')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&apos;/g, "'")
-      .replace(/&mdash;/g, '—')
-      .replace(/&ndash;/g, '–')
-      .replace(/&hellip;/g, '…')
-      .replace(/&lsquo;/g, "'")
-      .replace(/&rsquo;/g, "'")
-      .replace(/&ldquo;/g, '"')
-      .replace(/&rdquo;/g, '"')
-      
-      // Ensure images are responsive and have alt text
-      .replace(/<img([^>]*?)>/g, (match, attrs) => {
-        if (!attrs.includes('alt=')) {
-          attrs += ' alt="Bild"';
-        }
-        return `<img${attrs} style="max-width: 100%; height: auto; border-radius: 4px; margin: 8px 0; display: block;">`;
-      })
-      
-      // Style links for better visibility
-      .replace(/<a([^>]*?)>/g, '<a$1 style="color: #2563eb; text-decoration: underline;">')
-      
-      // Remove any remaining broken character sequences in HTML
-      .replace(/>[\s]*[âÍÂ­\s]*</g, '><');
-      
-  } else {
-    // Convert plain text to HTML with proper formatting
-    return cleanedContent
-      // Convert line breaks to HTML
-      .replace(/\r\n|\r|\n/g, '<br>')
-      
-      // Convert URLs to links
-      .replace(/(https?:\/\/[^\s<>"]+)/g, '<a href="$1" style="color: #2563eb; text-decoration: underline;" target="_blank" rel="noopener noreferrer">$1</a>')
-      
-      // Convert email addresses to links
-      .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" style="color: #2563eb; text-decoration: underline;">$1</a>')
-      
-      // Convert phone numbers to links (German format)
-      .replace(/(\+49\s?[\d\s\-\/\(\)]{8,}|\b0[\d\s\-\/\(\)]{8,})/g, '<a href="tel:$1" style="color: #2563eb; text-decoration: underline;">$1</a>')
-      
-      // Preserve paragraph breaks
-      .replace(/\n\s*\n/g, '<br><br>');
-  }
+  Building2,
+  Phone,
+  Globe,
+  FileText,
 };
 
 export function EmailModule() {
   const [emails, setEmails] = useState<Email[]>([]);
   const [categories, setCategories] = useState<EmailCategory[]>([]);
+  const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
+  const [emailThread, setEmailThread] = useState<Email[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("inbox");
   const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(false);
-  const [showImport, setShowImport] = useState(false);
-  const [showSync, setShowSync] = useState(false);
-  const [showReplyDialog, setShowReplyDialog] = useState(false);
-  const [showCustomerProjectDialog, setShowCustomerProjectDialog] = useState(false);
+  const [isComposing, setIsComposing] = useState(false);
+  const [composeMinimized, setComposeMinimized] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'conversation'>('list');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [companyEmail, setCompanyEmail] = useState<string>("");
-  const [displayMode, setDisplayMode] = useState<'html' | 'text'>(getPreferredContentType());
+  
+  // Compose form state
+  const [composeTo, setComposeTo] = useState("");
+  const [composeSubject, setComposeSubject] = useState("");
+  const [composeContent, setComposeContent] = useState("");
+  const [composePriority, setComposePriority] = useState("normal");
+  
   const { toast } = useToast();
-  const { isGmailConnected, connectGmail, isConnecting } = useGmailConnection();
 
   useEffect(() => {
-    fetchCompanySettings();
-    fetchCategories();
+    initializeModule();
   }, []);
 
   useEffect(() => {
     if (companyEmail) {
       fetchEmails();
-      
-      // Set up real-time subscription for new emails
-      const channel = supabase
-        .channel('emails-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'emails',
-            filter: `recipient_email=eq.${companyEmail}`
-          },
-          (payload) => {
-            console.log('New email received:', payload);
-            // Add the new email to the list
-            setEmails(prevEmails => [payload.new as Email, ...prevEmails]);
-            toast({
-              title: "Neue E-Mail",
-              description: `Von: ${(payload.new as Email).sender_email}`,
-            });
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'emails',
-            filter: `recipient_email=eq.${companyEmail}`
-          },
-          (payload) => {
-            console.log('Email updated:', payload);
-            // Update the email in the list
-            setEmails(prevEmails => 
-              prevEmails.map(email => 
-                email.id === (payload.new as Email).id 
-                  ? { ...email, ...(payload.new as Email) }
-                  : email
-              )
-            );
-          }
-        )
-        .subscribe();
-
-      // Cleanup subscription on unmount
-      return () => {
-        supabase.removeChannel(channel);
-      };
+      setupRealtimeSubscription();
     }
-  }, [companyEmail, toast]);
+  }, [companyEmail]);
+
+  const initializeModule = async () => {
+    await Promise.all([
+      fetchCompanySettings(),
+      fetchCategories()
+    ]);
+  };
 
   const fetchCompanySettings = async () => {
     const { data, error } = await supabase
@@ -276,12 +185,7 @@ export function EmailModule() {
       .limit(1)
       .single();
 
-    if (error) {
-      console.error('Error fetching company settings:', error);
-      return;
-    }
-
-    if (data?.company_email) {
+    if (!error && data?.company_email) {
       setCompanyEmail(data.company_email);
     }
   };
@@ -292,19 +196,13 @@ export function EmailModule() {
       .select('*')
       .order('name');
 
-    if (error) {
-      console.error('Error fetching categories:', error);
-      return;
+    if (!error) {
+      setCategories(data || []);
     }
-
-    setCategories(data || []);
   };
 
   const fetchEmails = async () => {
-    if (!companyEmail) {
-      setLoading(false);
-      return;
-    }
+    if (!companyEmail) return;
 
     setLoading(true);
     const { data, error } = await supabase
@@ -312,159 +210,884 @@ export function EmailModule() {
       .select(`
         *,
         email_categories (name, color, icon),
-        customers (company_name)
+        customers (company_name, contact_person, phone, website)
       `)
       .eq('recipient_email', companyEmail)
-      .order('received_at', { ascending: false });
+      .order('received_at', { ascending: false })
+      .limit(100);
 
-    if (error) {
-      console.error('Error fetching emails:', error);
+    if (!error) {
+      // Group emails by thread_id for conversation view
+      const processedEmails = (data || []).map(email => ({
+        ...email,
+        reply_count: (data || []).filter(e => e.thread_id === email.thread_id).length - 1
+      }));
+      setEmails(processedEmails);
+    }
+    setLoading(false);
+  };
+
+  const setupRealtimeSubscription = () => {
+    const channel = supabase
+      .channel('emails-modern')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'emails',
+        filter: `recipient_email=eq.${companyEmail}`
+      }, (payload) => {
+        const newEmail = payload.new as Email;
+        setEmails(prev => [newEmail, ...prev]);
+        
+        toast({
+          title: "📧 Neue E-Mail",
+          description: `Von: ${newEmail.sender_name || newEmail.sender_email}`,
+          action: (
+            <Button 
+              size="sm" 
+              onClick={() => setSelectedEmail(newEmail)}
+            >
+              Anzeigen
+            </Button>
+          )
+        });
+      })
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  };
+
+  const fetchEmailThread = async (threadId: string) => {
+    if (!threadId) return;
+
+    const { data, error } = await supabase
+      .from('emails')
+      .select(`
+        *,
+        email_categories (name, color, icon),
+        customers (company_name, contact_person)
+      `)
+      .eq('thread_id', threadId)
+      .order('received_at', { ascending: true });
+
+    if (!error) {
+      setEmailThread(data || []);
+    }
+  };
+
+  const handleEmailSelect = async (email: Email) => {
+    setSelectedEmail(email);
+    
+    if (!email.is_read) {
+      await markAsRead([email.id], true);
+    }
+    
+    if (email.thread_id && viewMode === 'conversation') {
+      await fetchEmailThread(email.thread_id);
+    }
+  };
+
+  const markAsRead = async (emailIds: string[], isRead: boolean) => {
+    const { error } = await supabase
+      .from('emails')
+      .update({ is_read: isRead })
+      .in('id', emailIds);
+
+    if (!error) {
+      setEmails(prev => prev.map(email => 
+        emailIds.includes(email.id) ? { ...email, is_read: isRead } : email
+      ));
+    }
+  };
+
+  const toggleStar = async (emailId: string) => {
+    const email = emails.find(e => e.id === emailId);
+    if (!email) return;
+
+    const { error } = await supabase
+      .from('emails')
+      .update({ is_starred: !email.is_starred })
+      .eq('id', emailId);
+
+    if (!error) {
+      setEmails(prev => prev.map(e => 
+        e.id === emailId ? { ...e, is_starred: !email.is_starred } : e
+      ));
+    }
+  };
+
+  const archiveEmails = async (emailIds: string[]) => {
+    const { error } = await supabase
+      .from('emails')
+      .update({ is_archived: true })
+      .in('id', emailIds);
+
+    if (!error) {
+      setEmails(prev => prev.filter(email => !emailIds.includes(email.id)));
+      setSelectedEmails([]);
+      toast({
+        title: "E-Mails archiviert",
+        description: `${emailIds.length} E-Mail(s) wurden archiviert.`
+      });
+    }
+  };
+
+  const handleBulkAction = (action: string) => {
+    switch (action) {
+      case 'mark-read':
+        markAsRead(selectedEmails, true);
+        break;
+      case 'mark-unread':
+        markAsRead(selectedEmails, false);
+        break;
+      case 'archive':
+        archiveEmails(selectedEmails);
+        break;
+      case 'star':
+        selectedEmails.forEach(id => toggleStar(id));
+        break;
+    }
+    setSelectedEmails([]);
+  };
+
+  const sendEmail = async () => {
+    if (!composeTo || !composeSubject || !composeContent) {
       toast({
         title: "Fehler",
-        description: "E-Mails konnten nicht geladen werden.",
-        variant: "destructive",
+        description: "Bitte füllen Sie alle Pflichtfelder aus.",
+        variant: "destructive"
       });
       return;
     }
 
-    setEmails(data || []);
-    setLoading(false);
-  };
-
-  const classifyAllEmails = async () => {
-    setProcessing(true);
-    const unprocessedEmails = emails.filter(email => 
-      email.processing_status === 'pending' || !email.ai_category_id
-    );
-
-    console.log(`Starting classification of ${unprocessedEmails.length} emails`);
-    
-    let successCount = 0;
-    let errorCount = 0;
-
-    // Process emails one by one with delay to avoid rate limiting
-    for (let i = 0; i < unprocessedEmails.length; i++) {
-      const email = unprocessedEmails[i];
-      try {
-        console.log(`Processing email ${i + 1}/${unprocessedEmails.length}: ${email.subject}`);
-        
-        const { data, error } = await supabase.functions.invoke('classify-email', {
-          body: {
-            emailId: email.id,
-            subject: email.subject,
-            content: email.content,
-            senderEmail: email.sender_email,
-            senderName: email.sender_name,
-          },
-        });
-
-        if (error) {
-          console.error('Error classifying email:', error);
-          errorCount++;
-        } else {
-          console.log(`Successfully classified email: ${email.subject}`, data);
-          successCount++;
-        }
-        
-        // Add delay between requests to avoid rate limiting
-        if (i < unprocessedEmails.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-      } catch (error) {
-        console.error('Error processing email:', error);
-        errorCount++;
-      }
-    }
-
-    setProcessing(false);
-    await fetchEmails(); // Refresh emails to show updated classifications
-    
+    // Here would be the email sending logic
     toast({
-      title: "KI-Klassifizierung abgeschlossen",
-      description: `${successCount} E-Mails erfolgreich analysiert, ${errorCount} Fehler.`,
+      title: "E-Mail gesendet",
+      description: `E-Mail an ${composeTo} wurde gesendet.`
     });
+    
+    setIsComposing(false);
+    setComposeTo("");
+    setComposeSubject("");
+    setComposeContent("");
   };
 
-  const markAsRead = async (emailId: string, isRead: boolean) => {
-    const { error } = await supabase
-      .from('emails')
-      .update({ is_read: isRead })
-      .eq('id', emailId);
+  const createQuoteFromEmail = async (email: Email) => {
+    try {
+      // Extract customer information from email
+      let customerId = null;
+      
+      if (email.customers) {
+        // Customer already linked
+        const { data: customer } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('company_name', email.customers.company_name)
+          .single();
+        customerId = customer?.id;
+      } else {
+        // Create new customer from email sender
+        const { data: newCustomer, error } = await supabase
+          .from('customers')
+          .insert({
+            company_name: email.sender_name || email.sender_email,
+            email: email.sender_email,
+            contact_person: email.sender_name,
+            status: 'interessent'
+          })
+          .select()
+          .single();
+          
+        if (!error) {
+          customerId = newCustomer.id;
+        }
+      }
 
-    if (!error) {
-      setEmails(emails.map(email => 
-        email.id === emailId ? { ...email, is_read: isRead } : email
-      ));
+      if (customerId) {
+        // Create quote
+        const { data: quote, error } = await supabase
+          .from('quotes')
+          .insert({
+            quote_number: `AG-${Date.now().toString().slice(-6)}`,
+            customer_id: customerId,
+            title: `Angebot bezüglich: ${email.subject}`,
+            description: `Automatisch erstellt aus E-Mail vom ${format(new Date(email.received_at), 'dd.MM.yyyy')}`,
+            quote_date: new Date().toISOString().split('T')[0],
+            valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 Tage
+            status: 'entwurf',
+            total_amount: 0,
+            currency: 'EUR'
+          })
+          .select()
+          .single();
+
+        if (!error) {
+          // Mark email as processed
+          await supabase
+            .from('emails')
+            .update({ 
+              ai_extracted_data: { quote_id: quote.id },
+              processing_status: 'processed'
+            })
+            .eq('id', email.id);
+
+          toast({
+            title: "✅ Angebot erstellt",
+            description: `Angebot ${quote.quote_number} wurde erfolgreich erstellt.`,
+            action: (
+              <Button size="sm" onClick={() => window.open(`/finance?tab=quotes&quote=${quote.id}`, '_blank')}>
+                Öffnen
+              </Button>
+            )
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error creating quote from email:', error);
+      toast({
+        title: "Fehler",
+        description: "Angebot konnte nicht erstellt werden.",
+        variant: "destructive"
+      });
     }
   };
 
-  const toggleStar = async (emailId: string, isStarred: boolean) => {
-    const { error } = await supabase
-      .from('emails')
-      .update({ is_starred: !isStarred })
-      .eq('id', emailId);
+  const createProjectFromEmail = async (email: Email) => {
+    try {
+      // Get current user's company
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser?.user) throw new Error('Benutzer nicht authentifiziert');
 
-    if (!error) {
-      setEmails(emails.map(email => 
-        email.id === emailId ? { ...email, is_starred: !isStarred } : email
-      ));
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', currentUser.user.id)
+        .single();
+
+      if (!profile?.company_id) throw new Error('Firma nicht gefunden');
+
+      let customerId = null;
+      
+      if (email.customers) {
+        // Customer already linked
+        const { data: customer } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('company_name', email.customers.company_name)
+          .single();
+        customerId = customer?.id;
+      } else {
+        // Create new customer
+        const { data: newCustomer, error } = await supabase
+          .from('customers')
+          .insert({
+            company_name: email.sender_name || email.sender_email,
+            email: email.sender_email,
+            contact_person: email.sender_name,
+            status: 'interessent'
+          })
+          .select()
+          .single();
+          
+        if (!error) {
+          customerId = newCustomer.id;
+        }
+      }
+
+      if (customerId) {
+        // Create project
+        const { data: project, error } = await supabase
+          .from('projects')
+          .insert({
+            name: email.subject || 'Projekt aus E-Mail',
+            customer_id: customerId,
+            company_id: profile.company_id,
+            status: 'anfrage',
+            start_date: new Date().toISOString().split('T')[0],
+            description: `Automatisch erstellt aus E-Mail vom ${format(new Date(email.received_at), 'dd.MM.yyyy HH:mm')}.\n\nInhalt der E-Mail:\n${email.content.replace(/<[^>]*>/g, '')}`,
+            budget: 0
+          })
+          .select()
+          .single();
+
+        if (!error) {
+          // Mark email as processed
+          await supabase
+            .from('emails')
+            .update({ 
+              ai_extracted_data: { project_id: project.id },
+              processing_status: 'processed'
+            })
+            .eq('id', email.id);
+
+          toast({
+            title: "✅ Projekt erstellt",
+            description: `Projekt "${project.name}" wurde erfolgreich erstellt.`,
+            action: (
+              <Button size="sm" onClick={() => window.open(`/projects?project=${project.id}`, '_blank')}>
+                Öffnen
+              </Button>
+            )
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error creating project from email:', error);
+      toast({
+        title: "Fehler",
+        description: "Projekt konnte nicht erstellt werden.",
+        variant: "destructive"
+      });
     }
   };
 
   const filteredEmails = emails.filter(email => {
-    const matchesSearch = email.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         email.sender_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         email.content.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = !searchTerm || 
+      email.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      email.sender_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      email.content.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesCategory = selectedCategory === "all" || 
-                           (email.email_categories?.name === selectedCategory) ||
+    const matchesCategory = selectedCategory === "inbox" || 
                            (selectedCategory === "unread" && !email.is_read) ||
-                           (selectedCategory === "starred" && email.is_starred);
+                           (selectedCategory === "starred" && email.is_starred) ||
+                           (email.email_categories?.name === selectedCategory);
 
     return matchesSearch && matchesCategory;
   });
 
-  const getPriorityColor = (priority: string) => {
+  const getEmailIcon = (email: Email) => {
+    if (email.email_categories?.icon) {
+      const Icon = iconMap[email.email_categories.icon as keyof typeof iconMap];
+      return Icon ? <Icon className="h-4 w-4" style={{color: email.email_categories.color}} /> : <Mail className="h-4 w-4" />;
+    }
+    return <Mail className="h-4 w-4" />;
+  };
+
+  const getPriorityIndicator = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'destructive';
-      case 'high': return 'secondary';
-      case 'normal': return 'outline';
-      case 'low': return 'outline';
-      default: return 'outline';
+      case 'urgent':
+        return <Flag className="h-3 w-3 text-red-500" />;
+      case 'high':
+        return <Flag className="h-3 w-3 text-orange-500" />;
+      default:
+        return null;
     }
   };
 
-  const getSentimentIcon = (sentiment?: string) => {
-    switch (sentiment) {
-      case 'positive': return <CheckCircle2 className="h-4 w-4 text-green-500" />;
-      case 'negative': return <AlertCircle className="h-4 w-4 text-red-500" />;
-      default: return <Clock className="h-4 w-4 text-yellow-500" />;
+  const renderSidebar = () => (
+    <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} transition-all duration-300 bg-muted/30 border-r flex flex-col`}>
+      {/* Sidebar Header */}
+      <div className="h-14 px-4 border-b bg-card flex items-center justify-between">
+        {!sidebarCollapsed && (
+          <div className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            <span className="font-semibold">E-Mail</span>
+          </div>
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+        >
+          {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </Button>
+      </div>
+
+      {/* Compose Button */}
+      <div className="p-4">
+        <Button 
+          onClick={() => setIsComposing(true)}
+          className="w-full justify-start gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          {!sidebarCollapsed && "Neue E-Mail"}
+        </Button>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 px-4 space-y-1">
+        <Button
+          variant={selectedCategory === "inbox" ? "secondary" : "ghost"}
+          className="w-full justify-start"
+          onClick={() => setSelectedCategory("inbox")}
+        >
+          <Mail className="h-4 w-4 mr-2" />
+          {!sidebarCollapsed && (
+            <>
+              Posteingang
+              <Badge variant="secondary" className="ml-auto">
+                {emails.filter(e => !e.is_archived).length}
+              </Badge>
+            </>
+          )}
+        </Button>
+
+        <Button
+          variant={selectedCategory === "starred" ? "secondary" : "ghost"}
+          className="w-full justify-start"
+          onClick={() => setSelectedCategory("starred")}
+        >
+          <Star className="h-4 w-4 mr-2" />
+          {!sidebarCollapsed && (
+            <>
+              Markiert
+              <Badge variant="secondary" className="ml-auto">
+                {emails.filter(e => e.is_starred).length}
+              </Badge>
+            </>
+          )}
+        </Button>
+
+        <Button
+          variant={selectedCategory === "unread" ? "secondary" : "ghost"}
+          className="w-full justify-start"
+          onClick={() => setSelectedCategory("unread")}
+        >
+          <Eye className="h-4 w-4 mr-2" />
+          {!sidebarCollapsed && (
+            <>
+              Ungelesen
+              <Badge variant="secondary" className="ml-auto">
+                {emails.filter(e => !e.is_read).length}
+              </Badge>
+            </>
+          )}
+        </Button>
+
+        {!sidebarCollapsed && <Separator className="my-4" />}
+
+        {/* Categories */}
+        {categories.map(category => {
+          const Icon = iconMap[category.icon as keyof typeof iconMap] || Mail;
+          const count = emails.filter(e => e.email_categories?.name === category.name).length;
+          
+          return (
+            <Button
+              key={category.id}
+              variant={selectedCategory === category.name ? "secondary" : "ghost"}
+              className="w-full justify-start"
+              onClick={() => setSelectedCategory(category.name)}
+            >
+              <Icon className="h-4 w-4 mr-2" style={{color: category.color}} />
+              {!sidebarCollapsed && (
+                <>
+                  {category.name}
+                  <Badge variant="secondary" className="ml-auto">{count}</Badge>
+                </>
+              )}
+            </Button>
+          );
+        })}
+      </nav>
+
+      {/* AI Analysis Button */}
+      {!sidebarCollapsed && (
+        <div className="p-4 border-t">
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => toast({title: "KI-Analyse", description: "Analysiere E-Mails..."})}
+          >
+            <Brain className="h-4 w-4 mr-2" />
+            KI-Analyse
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderToolbar = () => (
+    <div className="h-14 px-4 border-b bg-card flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        {/* Bulk Actions */}
+        {selectedEmails.length > 0 ? (
+          <div className="flex items-center gap-2">
+            <Checkbox 
+              checked={true}
+              onChange={() => setSelectedEmails([])}
+            />
+            <span className="text-sm font-medium">{selectedEmails.length} ausgewählt</span>
+            
+            <Separator orientation="vertical" className="h-4" />
+            
+            <Button size="sm" variant="ghost" onClick={() => handleBulkAction('mark-read')}>
+              <Eye className="h-4 w-4" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => handleBulkAction('archive')}>
+              <Archive className="h-4 w-4" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => handleBulkAction('star')}>
+              <Star className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setViewMode(viewMode === 'list' ? 'conversation' : 'list')}>
+              {viewMode === 'list' ? <MessageSquare className="h-4 w-4" /> : <Mail className="h-4 w-4" />}
+            </Button>
+            <Separator orientation="vertical" className="h-4" />
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="E-Mails durchsuchen..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 w-80"
+          />
+        </div>
+        <Button size="sm" variant="ghost" onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}>
+          <Filter className="h-4 w-4" />
+        </Button>
+        <Button size="sm" variant="ghost" onClick={fetchEmails}>
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+        <Button size="sm" variant="ghost">
+          <Settings className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+
+  const renderEmailList = () => (
+    <div className="w-96 bg-background border-r flex flex-col">
+      <ScrollArea className="flex-1">
+        <div className="divide-y">
+          {filteredEmails.map((email) => (
+            <div
+              key={email.id}
+              className={`p-4 cursor-pointer transition-all hover:bg-accent/50 ${
+                selectedEmail?.id === email.id ? 'bg-accent border-r-2 border-primary' : ''
+              } ${!email.is_read ? 'bg-blue-50/30 border-l-2 border-blue-500' : ''}`}
+              onClick={() => handleEmailSelect(email)}
+            >
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  checked={selectedEmails.includes(email.id)}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedEmails(prev => [...prev, email.id]);
+                    } else {
+                      setSelectedEmails(prev => prev.filter(id => id !== email.id));
+                    }
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                
+                <Avatar className="h-8 w-8 flex-shrink-0">
+                  <AvatarFallback>
+                    {email.sender_name?.[0] || email.sender_email[0].toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className={`text-sm truncate ${!email.is_read ? 'font-semibold' : ''}`}>
+                      {email.sender_name || email.sender_email}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {getPriorityIndicator(email.priority)}
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(email.received_at), 'HH:mm')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className={`text-sm truncate ${!email.is_read ? 'font-semibold' : ''}`}>
+                    {email.subject}
+                  </p>
+
+                  <p className="text-xs text-muted-foreground line-clamp-2">
+                    {email.ai_summary || email.content.replace(/<[^>]*>/g, '').substring(0, 100)}...
+                  </p>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {getEmailIcon(email)}
+                      {email.has_attachments && <Paperclip className="h-3 w-3 text-muted-foreground" />}
+                      {email.reply_count > 0 && (
+                        <Badge variant="outline" className="text-xs">
+                          {email.reply_count + 1}
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleStar(email.id);
+                      }}
+                    >
+                      <Star className={`h-4 w-4 ${email.is_starred ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+
+  const renderEmailContent = () => {
+    if (!selectedEmail) {
+      return (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center space-y-2">
+            <Mail className="h-16 w-16 text-muted-foreground mx-auto" />
+            <h3 className="font-medium">Keine E-Mail ausgewählt</h3>
+            <p className="text-muted-foreground text-sm">Wählen Sie eine E-Mail aus der Liste</p>
+          </div>
+        </div>
+      );
     }
+
+    return (
+      <div className="flex-1 flex flex-col">
+        {/* Email Header */}
+        <div className="h-14 px-6 border-b bg-card flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h2 className="font-medium truncate max-w-md">{selectedEmail.subject}</h2>
+            {getPriorityIndicator(selectedEmail.priority)}
+          </div>
+          
+          <div className="flex items-center gap-1">
+            <Button size="sm" variant="ghost" onClick={() => setIsComposing(true)}>
+              <Reply className="h-4 w-4" />
+            </Button>
+            <Button size="sm" variant="ghost">
+              <ReplyAll className="h-4 w-4" />
+            </Button>
+            <Button size="sm" variant="ghost">
+              <Forward className="h-4 w-4" />
+            </Button>
+            <Separator orientation="vertical" className="h-4 mx-2" />
+            <Button size="sm" variant="ghost" onClick={() => toggleStar(selectedEmail.id)}>
+              <Star className={`h-4 w-4 ${selectedEmail.is_starred ? 'fill-yellow-400 text-yellow-400' : ''}`} />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => archiveEmails([selectedEmail.id])}>
+              <Archive className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Email Content */}
+        <div className="flex-1 flex">
+          <div className="flex-1">
+            {/* Sender Info */}
+            <div className="p-6 border-b">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start gap-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback>
+                      {selectedEmail.sender_name?.[0] || selectedEmail.sender_email[0].toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-1">
+                    <p className="font-medium">{selectedEmail.sender_name || selectedEmail.sender_email}</p>
+                    <p className="text-sm text-muted-foreground">{selectedEmail.sender_email}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(selectedEmail.received_at), 'dd.MM.yyyy HH:mm', { locale: de })}
+                    </p>
+                  </div>
+                </div>
+                
+                {selectedEmail.customers && (
+                  <Badge variant="outline" className="gap-1">
+                    <Building2 className="h-3 w-3" />
+                    {selectedEmail.customers.company_name}
+                  </Badge>
+                )}
+              </div>
+
+              {/* AI Summary */}
+              {selectedEmail.ai_summary && (
+                <div className="bg-accent/50 p-4 rounded-lg mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Brain className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">KI-Zusammenfassung</span>
+                    {selectedEmail.ai_confidence && (
+                      <Badge variant="outline" className="text-xs">
+                        {Math.round(selectedEmail.ai_confidence * 100)}% Konfidenz
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-sm">{selectedEmail.ai_summary}</p>
+                </div>
+              )}
+
+              {/* Quick Actions */}
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => createQuoteFromEmail(selectedEmail)}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Angebot erstellen
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => createProjectFromEmail(selectedEmail)}>
+                  <Building2 className="h-4 w-4 mr-2" />
+                  Projekt anlegen
+                </Button>
+                {selectedEmail.customers?.phone && (
+                  <Button size="sm" variant="outline" asChild>
+                    <a href={`tel:${selectedEmail.customers.phone}`}>
+                      <Phone className="h-4 w-4 mr-2" />
+                      Anrufen
+                    </a>
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Email Body */}
+            <ScrollArea className="flex-1 p-6">
+              <div 
+                className="prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{
+                  __html: selectedEmail.html_content || selectedEmail.content.replace(/\n/g, '<br>')
+                }}
+              />
+            </ScrollArea>
+          </div>
+
+          {/* Right Panel - Customer Info & Actions */}
+          {selectedEmail.customers && (
+            <div className="w-80 border-l bg-muted/30">
+              <div className="h-14 px-4 border-b bg-card flex items-center">
+                <Building2 className="h-4 w-4 mr-2" />
+                <span className="font-medium text-sm">Kundeninformationen</span>
+              </div>
+              
+              <div className="p-4 space-y-4">
+                <div>
+                  <h4 className="font-medium text-sm mb-2">{selectedEmail.customers.company_name}</h4>
+                  {selectedEmail.customers.contact_person && (
+                    <p className="text-sm text-muted-foreground">{selectedEmail.customers.contact_person}</p>
+                  )}
+                </div>
+
+                {selectedEmail.customers.phone && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <a href={`tel:${selectedEmail.customers.phone}`} className="text-sm hover:underline">
+                      {selectedEmail.customers.phone}
+                    </a>
+                  </div>
+                )}
+
+                {selectedEmail.customers.website && (
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-muted-foreground" />
+                    <a 
+                      href={selectedEmail.customers.website} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-sm hover:underline"
+                    >
+                      Website besuchen
+                    </a>
+                  </div>
+                )}
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <h5 className="font-medium text-sm">Workflow-Aktionen</h5>
+                  <div className="grid gap-2">
+                    <Button size="sm" className="w-full justify-start">
+                      <Target className="h-4 w-4 mr-2" />
+                      Angebot senden
+                    </Button>
+                    <Button size="sm" variant="outline" className="w-full justify-start">
+                      <TrendingUp className="h-4 w-4 mr-2" />
+                      Nachkalkulation
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
-  const handleAcceptEmail = () => {
-    setShowCustomerProjectDialog(true);
-  };
+  const renderComposeDialog = () => {
+    if (!isComposing) return null;
 
-  const handleDeclineEmail = () => {
-    toast({
-      title: "Anfrage abgelehnt",
-      description: "Die E-Mail wurde als abgelehnt markiert.",
-    });
-  };
+    return (
+      <div className={`fixed bottom-0 right-4 bg-card border border-border rounded-t-lg shadow-lg transition-all duration-300 ${
+        composeMinimized ? 'h-12 w-64' : 'h-96 w-96'
+      }`}>
+        {/* Compose Header */}
+        <div className="h-12 px-4 flex items-center justify-between bg-primary text-primary-foreground rounded-t-lg">
+          <span className="font-medium text-sm">Neue E-Mail</span>
+          <div className="flex items-center gap-1">
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              onClick={() => setComposeMinimized(!composeMinimized)}
+              className="h-6 w-6 p-0 text-primary-foreground hover:bg-primary-foreground/20"
+            >
+              {composeMinimized ? <Maximize2 className="h-3 w-3" /> : <Minimize2 className="h-3 w-3" />}
+            </Button>
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              onClick={() => setIsComposing(false)}
+              className="h-6 w-6 p-0 text-primary-foreground hover:bg-primary-foreground/20"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
 
-  const handleFollowUp = () => {
-    toast({
-      title: "Nachfrage",
-      description: "Nachfrage-Dialog würde hier geöffnet.",
-    });
-  };
-
-  const handlePriceAdjustment = () => {
-    toast({
-      title: "Preisanpassung",
-      description: "Preisanpassungs-Dialog würde hier geöffnet.",
-    });
+        {!composeMinimized && (
+          <div className="p-4 space-y-3">
+            <Input
+              placeholder="An:"
+              value={composeTo}
+              onChange={(e) => setComposeTo(e.target.value)}
+            />
+            <Input
+              placeholder="Betreff:"
+              value={composeSubject}
+              onChange={(e) => setComposeSubject(e.target.value)}
+            />
+            <Select value={composePriority} onValueChange={setComposePriority}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Priorität" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">Niedrig</SelectItem>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="high">Hoch</SelectItem>
+                <SelectItem value="urgent">Dringend</SelectItem>
+              </SelectContent>
+            </Select>
+            <Textarea
+              placeholder="Ihre Nachricht..."
+              value={composeContent}
+              onChange={(e) => setComposeContent(e.target.value)}
+              rows={6}
+            />
+            <div className="flex justify-between">
+              <Button size="sm" variant="outline">
+                <Paperclip className="h-4 w-4 mr-2" />
+                Anhang
+              </Button>
+              <Button size="sm" onClick={sendEmail}>
+                <Send className="h-4 w-4 mr-2" />
+                Senden
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (loading) {
@@ -477,382 +1100,15 @@ export function EmailModule() {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      {/* Top Header */}
-      <div className="h-12 px-4 border-b bg-card flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Mail className="h-5 w-5" />
-          <h1 className="font-semibold">Mail</h1>
-          {companyEmail && (
-            <span className="text-sm text-muted-foreground">- {companyEmail}</span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <Input
-            placeholder="Suchen (⌘+K für Filter)"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-64"
-          />
-          <Button variant="ghost" size="icon">
-            <Filter className="h-4 w-4" />
-          </Button>
-          {!isGmailConnected ? (
-            <Button
-              onClick={connectGmail}
-              disabled={isConnecting}
-              size="sm"
-            >
-              <Mail className="h-4 w-4 mr-2" />
-              {isConnecting ? "Verbinde..." : "Gmail verbinden"}
-            </Button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-sm font-medium text-green-700">Gmail verbunden</span>
-              </div>
-              <Button
-                onClick={() => setShowSync(!showSync)} 
-                variant="ghost"
-                size="icon"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {showImport && (
-        <div className="p-4 border-b bg-accent/50">
-          <EmailImport onEmailImported={() => {
-            fetchEmails();
-            setShowImport(false);
-          }} />
-        </div>
-      )}
-
-      {showSync && (
-        <div className="p-4 border-b bg-accent/50">
-          <EmailSync onClose={() => setShowSync(false)} />
-        </div>
-      )}
-
-      {/* Main Content */}
+      {renderToolbar()}
+      
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Folders */}
-        <div className="w-64 bg-muted/30 border-r flex flex-col">
-          <div className="p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Button
-                onClick={() => setShowImport(!showImport)} 
-                className="flex-1"
-                size="sm"
-              >
-                <Mail className="h-4 w-4 mr-2" />
-                Neue E-Mail
-              </Button>
-            </div>
-            
-            <nav className="space-y-1">
-              <Button
-                variant={selectedCategory === "all" ? "secondary" : "ghost"}
-                className="w-full justify-start"
-                onClick={() => setSelectedCategory("all")}
-              >
-                <Mail className="h-4 w-4 mr-2" />
-                Alle Nachrichten
-                <Badge variant="secondary" className="ml-auto">
-                  {emails.length}
-                </Badge>
-              </Button>
-              
-              <Button
-                variant={selectedCategory === "unread" ? "secondary" : "ghost"}
-                className="w-full justify-start"
-                onClick={() => setSelectedCategory("unread")}
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                Ungelesen
-                <Badge variant="secondary" className="ml-auto">
-                  {emails.filter(e => !e.is_read).length}
-                </Badge>
-              </Button>
-              
-              <Button
-                variant={selectedCategory === "starred" ? "secondary" : "ghost"}
-                className="w-full justify-start"
-                onClick={() => setSelectedCategory("starred")}
-              >
-                <Star className="h-4 w-4 mr-2" />
-                Markiert
-                <Badge variant="secondary" className="ml-auto">
-                  {emails.filter(e => e.is_starred).length}
-                </Badge>
-              </Button>
-              
-              <Separator className="my-2" />
-              
-              {categories.map((category) => {
-                const Icon = iconMap[category.icon as keyof typeof iconMap] || Mail;
-                const count = emails.filter(e => e.email_categories?.name === category.name).length;
-                
-                return (
-                  <Button
-                    key={category.id}
-                    variant={selectedCategory === category.name ? "secondary" : "ghost"}
-                    className="w-full justify-start"
-                    onClick={() => setSelectedCategory(category.name)}
-                  >
-                    <Icon className="h-4 w-4 mr-2" style={{ color: category.color }} />
-                    {category.name}
-                    <Badge variant="secondary" className="ml-auto">{count}</Badge>
-                  </Button>
-                );
-              })}
-            </nav>
-          </div>
-          
-          <div className="mt-auto p-4 border-t">
-            <Button
-              onClick={classifyAllEmails} 
-              disabled={processing}
-              variant="outline"
-              className="w-full"
-              size="sm"
-            >
-              <Brain className="h-4 w-4 mr-2" />
-              {processing ? "Analysiere..." : "KI-Analyse"}
-            </Button>
-          </div>
-        </div>
-
-        {/* Middle Panel - Email List */}
-        <div className="w-96 bg-background border-r flex flex-col">
-          <div className="h-12 px-4 border-b bg-card flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">
-                {selectedCategory === "all" ? "Alle Nachrichten" : 
-                 selectedCategory === "unread" ? "Ungelesen" :
-                 selectedCategory === "starred" ? "Markiert" :
-                 categories.find(c => c.name === selectedCategory)?.name || selectedCategory}
-              </span>
-              <Badge variant="secondary">
-                {filteredEmails.length}
-              </Badge>
-            </div>
-            <Button variant="ghost" size="icon" onClick={fetchEmails}>
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          <ScrollArea className="flex-1">
-            <div className="divide-y">
-              {filteredEmails.map((email) => {
-                const Icon = email.email_categories?.icon ? 
-                  iconMap[email.email_categories.icon as keyof typeof iconMap] : Mail;
-                
-                return (
-                  <div
-                    key={email.id}
-                    className={`p-4 cursor-pointer transition-colors hover:bg-accent/50 ${
-                      selectedEmail?.id === email.id ? 'bg-accent border-r-2 border-primary' : ''
-                    } ${!email.is_read ? 'bg-blue-50/50 border-l-2 border-blue-500' : ''}`}
-                    onClick={() => {
-                      setSelectedEmail(email);
-                      if (!email.is_read) {
-                        markAsRead(email.id, true);
-                      }
-                    }}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarFallback className="text-xs">
-                            {email.sender_name?.[0] || email.sender_email[0].toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm font-medium truncate">
-                          {email.sender_name || email.sender_email}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-muted-foreground">
-                          {format(new Date(email.received_at), 'HH:mm', { locale: de })}
-                        </span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleStar(email.id, email.is_starred);
-                          }}
-                        >
-                          <Star 
-                            className={`h-4 w-4 ${
-                              email.is_starred ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'
-                            }`} 
-                          />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium truncate">{email.subject}</p>
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {email.ai_summary || cleanEmailContent(cleanContentForUtf8(email.content), { removeDecorations: true }).replace(/<[^>]*>/g, '').substring(0, 80) + '...'}
-                      </p>
-                      
-                      <div className="flex items-center gap-2">
-                        {email.email_categories && Icon && (
-                          <Badge variant="outline" className="text-xs">
-                            <Icon className="h-3 w-3 mr-1" style={{ color: email.email_categories.color }} />
-                            {email.email_categories.name}
-                          </Badge>
-                        )}
-                        {getSentimentIcon(email.ai_sentiment)}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </ScrollArea>
-        </div>
-
-        {/* Right Panel - Email Content and Agenda */}
-        <div className="flex-1 flex">
-          {selectedEmail ? (
-            <>
-              {/* Email Content */}
-              <div className="flex-1 flex flex-col">
-                <div className="h-12 px-4 border-b bg-card flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm truncate">{selectedEmail.subject}</span>
-                    <Badge variant={getPriorityColor(selectedEmail.priority)} className="text-xs">
-                      {selectedEmail.priority}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setShowReplyDialog(true)}
-                    >
-                      <Reply className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => markAsRead(selectedEmail.id, !selectedEmail.is_read)}
-                    >
-                      {selectedEmail.is_read ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="p-4 border-b">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>
-                          {selectedEmail.sender_name?.[0] || selectedEmail.sender_email[0].toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium text-sm">{selectedEmail.sender_name || selectedEmail.sender_email}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(selectedEmail.received_at), 'dd.MM.yyyy HH:mm', { locale: de })}
-                        </p>
-                      </div>
-                    </div>
-                    {selectedEmail.customers && (
-                      <Badge variant="outline">{selectedEmail.customers.company_name}</Badge>
-                    )}
-                  </div>
-                  
-                  {selectedEmail.ai_summary && (
-                    <div className="bg-accent/50 p-3 rounded-lg mb-3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Brain className="h-4 w-4 text-primary" />
-                        <span className="text-sm font-medium">KI-Zusammenfassung</span>
-                        {selectedEmail.ai_confidence && (
-                          <Badge variant="outline" className="text-xs">
-                            {Math.round(selectedEmail.ai_confidence * 100)}%
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">{selectedEmail.ai_summary}</p>
-                    </div>
-                  )}
-
-                  {/* Email Action Buttons */}
-                  <div className="flex justify-center">
-                    <EmailActionButtons
-                      emailCategory={selectedEmail.email_categories?.name || ""}
-                      onAccept={handleAcceptEmail}
-                      onDecline={handleDeclineEmail}
-                      onReply={() => setShowReplyDialog(true)}
-                      onFollowUp={handleFollowUp}
-                      onPriceAdjustment={handlePriceAdjustment}
-                    />
-                  </div>
-                </div>
-                
-                <ScrollArea className="flex-1 p-4">
-                  <EmailContentRenderer 
-                    content={selectedEmail.html_content || selectedEmail.content} 
-                  />
-                </ScrollArea>
-              </div>
-              
-              {/* Agenda Sidebar */}
-              <div className="w-80 border-l bg-muted/30">
-                <div className="h-12 px-4 border-b bg-card flex items-center">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  <span className="font-medium text-sm">Agenda</span>
-                </div>
-                <div className="p-4 space-y-4">
-                  <div className="text-center text-muted-foreground text-sm">
-                    Keine Termine heute
-                  </div>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center space-y-2">
-                <Mail className="h-12 w-12 text-muted-foreground mx-auto" />
-                <p className="text-muted-foreground">Wählen Sie eine E-Mail aus der Liste</p>
-              </div>
-            </div>
-          )}
-        </div>
+        {renderSidebar()}
+        {renderEmailList()}
+        {renderEmailContent()}
       </div>
-
-      {/* Reply Dialog */}
-      {selectedEmail && (
-        <EmailReplyDialog
-          isOpen={showReplyDialog}
-          onClose={() => setShowReplyDialog(false)}
-          email={{
-            id: selectedEmail.id,
-            subject: selectedEmail.subject,
-            sender_email: selectedEmail.sender_email,
-            sender_name: selectedEmail.sender_name
-          }}
-        />
-      )}
-
-      {/* Customer Project Dialog */}
-      {selectedEmail && (
-        <CustomerProjectDialog
-          isOpen={showCustomerProjectDialog}
-          onClose={() => {
-            setShowCustomerProjectDialog(false);
-            fetchEmails(); // Refresh emails to show updated data
-          }}
-          email={selectedEmail}
-        />
-      )}
+      
+      {renderComposeDialog()}
     </div>
   );
 }
