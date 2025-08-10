@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Plus, CheckCircle, Clock, AlertTriangle, Building2, FileText } from "lucide-react";
+import { Calendar, Plus, CheckCircle, Clock, AlertTriangle, Building2, FileText, Edit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
@@ -650,24 +650,13 @@ const ProjectModule = () => {
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-4 mt-auto">
-                  <Button
-                    size="sm" 
-                    variant="outline"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleShowDetails(project);
-                    }}
-                  >
-                    Details
-                  </Button>
+                <div className="flex gap-2 pt-4 mt-auto justify-end">
                   <Button
                     size="sm" 
                     variant="outline"
                     onClick={() => handleEditProject(project)}
                   >
-                    Bearbeiten
+                    <Edit className="h-4 w-4" />
                   </Button>
                 </div>
               </CardContent>
