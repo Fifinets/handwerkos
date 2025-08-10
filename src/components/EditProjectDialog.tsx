@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Progress } from "@/components/ui/progress";
 import { CalendarIcon, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { DateRange } from "react-day-picker";
@@ -166,7 +165,7 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
           handleDelete();
           return 100;
         }
-        return prev + (100 / 30); // 3 Sekunden = 30 Updates à 100ms
+        return prev + (100 / 25); // 2,5 Sekunden = 25 Updates à 100ms
       });
     }, 100);
     
@@ -347,7 +346,7 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
                   <Button 
                     type="button" 
                     variant="destructive" 
-                    className="w-full relative"
+                    className="w-full relative overflow-hidden"
                     onMouseDown={startDelete}
                     onMouseUp={stopDelete}
                     onMouseLeave={stopDelete}
@@ -355,15 +354,21 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
                     onTouchEnd={stopDelete}
                     disabled={isDeleting && deleteProgress >= 100}
                   >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    {isDeleting ? `Löschen... (${Math.round(deleteProgress)}%)` : 'Projekt löschen'}
+                    {/* Heller Film von links nach rechts */}
+                    {isDeleting && (
+                      <div 
+                        className="absolute inset-0 bg-white/30 transition-all duration-100 ease-linear"
+                        style={{
+                          width: `${deleteProgress}%`,
+                          left: 0,
+                        }}
+                      />
+                    )}
+                    <Trash2 className="h-4 w-4 mr-2 relative z-10" />
+                    <span className="relative z-10">
+                      {isDeleting ? 'Löschen...' : 'Projekt löschen'}
+                    </span>
                   </Button>
-                  {isDeleting && (
-                    <Progress 
-                      value={deleteProgress} 
-                      className="absolute bottom-0 left-0 right-0 h-1 rounded-none" 
-                    />
-                  )}
                 </div>
               )}
             </div>
