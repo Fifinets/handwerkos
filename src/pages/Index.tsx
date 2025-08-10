@@ -94,7 +94,7 @@ const Index = () => {
       case 'executive':
         return <ExecutiveDashboard onNavigate={setActiveModule} />;
       default:
-        return <DashboardStatsWithKpis onNavigate={setActiveModule} />;
+        return <ExecutiveDashboard onNavigate={setActiveModule} />;
     }
   };
   return <div className="min-h-screen w-full bg-background">

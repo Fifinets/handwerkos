@@ -31,7 +31,9 @@ import {
   Zap,
   Target,
   DollarSign,
-  AlertCircle
+  AlertCircle,
+  Mail,
+  Wrench
 } from 'lucide-react';
 import { workflowService } from '@/services/WorkflowService';
 import { supabase } from '@/integrations/supabase/client';
@@ -374,7 +376,7 @@ const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ onNavigate }) =
               <Card className="cursor-pointer hover:bg-muted/50" onClick={() => onNavigate?.('projects')}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <Building2 className="w-5 h-5 text-blue-600" />
+                    <Wrench className="w-5 h-5 text-blue-600" />
                     <span className="font-medium">Offene Aufträge</span>
                   </div>
                   <p className="text-2xl font-bold text-blue-600">{dashboardData.projectStatus.active + dashboardData.projectStatus.planning}</p>
