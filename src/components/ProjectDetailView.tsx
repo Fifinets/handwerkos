@@ -276,6 +276,12 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
     return PROJECT_STATUS_CONFIG[status as keyof typeof PROJECT_STATUS_CONFIG] || PROJECT_STATUS_CONFIG.geplant;
   };
 
+  const generateShortId = (fullId: string) => {
+    // Create a short, individual ID from the full UUID
+    const hash = fullId.split('-').join('');
+    return `P${hash.substring(0, 6).toUpperCase()}`;
+  };
+
   if (loading) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -324,19 +330,25 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                 <Badge className={`${statusConfig.bgColor} ${statusConfig.color} text-sm`}>
                   {statusConfig.icon} {statusConfig.label}
                 </Badge>
-                <span className="text-gray-500">ID: {project.id}</span>
+                <span className="text-gray-500">ID: {generateShortId(project.id)}</span>
               </DialogDescription>
             </div>
-            <div className="flex gap-2">
-              {permissions.can_edit_basic_data && (
-                <Button variant="outline" size="sm">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Bearbeiten
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-sm text-gray-600">Budget</p>
+                <p className="text-3xl font-bold text-green-600">{formatCurrency(project.stats.total_project_cost)}</p>
+              </div>
+              <div className="flex gap-2">
+                {permissions.can_edit_basic_data && (
+                  <Button variant="outline" size="sm">
+                    <Edit className="h-4 w-4 mr-2" />
+                    Bearbeiten
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={onClose}>
+                  Schließen
                 </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={onClose}>
-                Schließen
-              </Button>
+              </div>
             </div>
           </div>
         </DialogHeader>
@@ -410,21 +422,17 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                     <CardTitle>Projektdetails</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-6">
+                        <div className="text-sm">
+                          <span className="text-gray-600">Start:</span> {formatDate(project.start_date)}
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-gray-600">Ende:</span> {formatDate(project.planned_end_date)}
+                        </div>
+                      </div>
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-600">Startdatum</p>
-                        <p className="font-medium flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          {formatDate(project.start_date)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Geplantes Ende</p>
-                        <p className="font-medium flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          {formatDate(project.planned_end_date)}
-                        </p>
-                      </div>
                       <div>
                         <p className="text-sm text-gray-600">Standort</p>
                         <p className="font-medium flex items-center gap-2">
@@ -436,10 +444,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                         <p className="text-sm text-gray-600">Verbleibende Tage</p>
                         <p className="font-medium">{project.stats.days_remaining} Tage</p>
                       </div>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Beschreibung</p>
-                      <p className="font-medium">{project.project_description}</p>
                     </div>
                   </CardContent>
                 </Card>
