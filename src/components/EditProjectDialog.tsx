@@ -188,7 +188,10 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
   };
 
   const handleDelete = async () => {
-    if (!project || !onProjectDeleted) return;
+    if (!project || !onProjectDeleted) {
+      console.log('❌ handleDelete aborted - missing project or callback');
+      return;
+    }
     
     console.log('🗑️ Starting deletion of project:', project.id, project.name);
     
@@ -399,7 +402,7 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
                   onMouseLeave={onProjectDeleted ? stopDelete : undefined}
                   onTouchStart={onProjectDeleted ? startDelete : undefined}
                   onTouchEnd={onProjectDeleted ? stopDelete : undefined}
-                  disabled={!onProjectDeleted || (isDeleting && deleteProgress >= 100)}
+                  disabled={!onProjectDeleted}
                 >
                   {/* Heller Film von links nach rechts */}
                   {isDeleting && (
