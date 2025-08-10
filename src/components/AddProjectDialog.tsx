@@ -310,6 +310,8 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="Anfrage">Anfrage</SelectItem>
+                <SelectItem value="Besichtigung">Besichtigung</SelectItem>
                 <SelectItem value="Planung">Planung</SelectItem>
                 <SelectItem value="In Bearbeitung">In Bearbeitung</SelectItem>
                 <SelectItem value="Abgeschlossen">Abgeschlossen</SelectItem>

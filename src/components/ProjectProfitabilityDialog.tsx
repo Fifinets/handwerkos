@@ -70,6 +70,7 @@ const ProjectProfitabilityDialog: React.FC<ProjectProfitabilityDialogProps> = ({
 }) => {
   const { toast } = useToast();
   const [profitabilityData, setProfitabilityData] = useState<ProjectProfitabilityData | null>(null);
+  const [preCalculation, setPreCalculation] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -93,12 +94,13 @@ const ProjectProfitabilityDialog: React.FC<ProjectProfitabilityDialogProps> = ({
       }
 
       // Vor-Kalkulation aus Beschreibung extrahieren
-      let preCalculation = null;
+      let extractedPreCalculation = null;
       if (project.description) {
         const preCalcMatch = project.description.match(/\[PRECALC:(.*?)\]/);
         if (preCalcMatch) {
           try {
-            preCalculation = JSON.parse(preCalcMatch[1]);
+            extractedPreCalculation = JSON.parse(preCalcMatch[1]);
+            setPreCalculation(extractedPreCalculation);
           } catch (e) {
             console.warn('Fehler beim Parsen der Vor-Kalkulation:', e);
           }
@@ -119,7 +121,7 @@ const ProjectProfitabilityDialog: React.FC<ProjectProfitabilityDialogProps> = ({
       ];
 
       // Berechnungen durchführen
-      const plannedData = preCalculation || {
+      const plannedData = extractedPreCalculation || {
         materialCosts: 0,
         laborCosts: 0,
         subcontractorCosts: 0,
@@ -265,9 +267,10 @@ const ProjectProfitabilityDialog: React.FC<ProjectProfitabilityDialogProps> = ({
         </DialogHeader>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Übersicht</TabsTrigger>
             <TabsTrigger value="costs">Kostenanalyse</TabsTrigger>
+            <TabsTrigger value="estimates">Schätzungen vs. Ist</TabsTrigger>
             <TabsTrigger value="deviations">Abweichungen</TabsTrigger>
             <TabsTrigger value="kpis">Kennzahlen</TabsTrigger>
           </TabsList>
@@ -476,6 +479,193 @@ const ProjectProfitabilityDialog: React.FC<ProjectProfitabilityDialogProps> = ({
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="estimates" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calculator className="h-5 w-5 text-blue-600" />
+                  Schätzungen vs. Bestätigte Werte vs. Tatsächlicher Verbrauch
+                </CardTitle>
+                <CardDescription>
+                  Vergleich zwischen geschätzten Werten, bestätigten Planungswerten und dem tatsächlichen Materialverbrauch
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {preCalculation ? (
+                  <div className="space-y-6">
+                    {/* Material-Vergleich */}
+                    {preCalculation.materials && preCalculation.materials.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold mb-4 flex items-center gap-2">
+                          <Package className="h-4 w-4" />
+                          Material-Vergleich
+                        </h4>
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-6 gap-4 text-sm font-medium text-gray-600 border-b pb-2">
+                            <span>Material</span>
+                            <span>Geplant</span>
+                            <span>Status</span>
+                            <span>Tatsächlich</span>
+                            <span>Abweichung</span>
+                            <span>Typ</span>
+                          </div>
+                          {preCalculation.materials.map((material, index) => {
+                            const actualCost = index === 0 ? 850 : index === 1 ? 120 : 95; // Mock actual costs
+                            const plannedCost = material.quantity * material.pricePerUnit * (1 + material.markup / 100);
+                            const deviation = actualCost - plannedCost;
+                            return (
+                              <div key={material.id} className="grid grid-cols-6 gap-4 items-center py-2 border-b">
+                                <span className="text-sm">{material.name || 'Material ' + (index + 1)}</span>
+                                <span className="text-sm">{formatCurrency(plannedCost)}</span>
+                                <div>
+                                  {material.isEstimate ? (
+                                    <Badge variant="outline" className="text-orange-600 border-orange-600 text-xs">
+                                      Schätzung
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-green-600 border-green-600 text-xs">
+                                      Bestätigt
+                                    </Badge>
+                                  )}
+                                </div>
+                                <span className="text-sm">{formatCurrency(actualCost)}</span>
+                                <div className="flex items-center gap-1">
+                                  {getDeviationIcon(deviation)}
+                                  <span className={`text-sm ${getDeviationColor(deviation)}`}>
+                                    {formatCurrency(Math.abs(deviation))}
+                                  </span>
+                                </div>
+                                <span className="text-xs text-gray-500">
+                                  {material.unit} ({material.quantity}x)
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Labor-Vergleich */}
+                    {preCalculation.labor && preCalculation.labor.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold mb-4 flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          Arbeitszeit-Vergleich
+                        </h4>
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-6 gap-4 text-sm font-medium text-gray-600 border-b pb-2">
+                            <span>Arbeitsposition</span>
+                            <span>Geplant</span>
+                            <span>Status</span>
+                            <span>Tatsächlich</span>
+                            <span>Abweichung</span>
+                            <span>Details</span>
+                          </div>
+                          {preCalculation.labor.map((labor, index) => {
+                            const actualCost = index === 0 ? 2025 : 660; // Mock actual costs
+                            const plannedCost = labor.hours * labor.workers * labor.hourlyRate;
+                            const deviation = actualCost - plannedCost;
+                            return (
+                              <div key={labor.id} className="grid grid-cols-6 gap-4 items-center py-2 border-b">
+                                <span className="text-sm">{labor.description || 'Arbeitsposition ' + (index + 1)}</span>
+                                <span className="text-sm">{formatCurrency(plannedCost)}</span>
+                                <div>
+                                  {labor.isEstimate ? (
+                                    <Badge variant="outline" className="text-orange-600 border-orange-600 text-xs">
+                                      Schätzung
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-green-600 border-green-600 text-xs">
+                                      Bestätigt
+                                    </Badge>
+                                  )}
+                                </div>
+                                <span className="text-sm">{formatCurrency(actualCost)}</span>
+                                <div className="flex items-center gap-1">
+                                  {getDeviationIcon(deviation)}
+                                  <span className={`text-sm ${getDeviationColor(deviation)}`}>
+                                    {formatCurrency(Math.abs(deviation))}
+                                  </span>
+                                </div>
+                                <span className="text-xs text-gray-500">
+                                  {labor.hours}h × {labor.workers} Pers.
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Zusammenfassung der Schätzungsgenauigkeit */}
+                    <div className="mt-6">
+                      <h4 className="font-semibold mb-4">Schätzungsgenauigkeit</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Card className="bg-orange-50">
+                          <CardContent className="p-4">
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-orange-600">
+                                {preCalculation.materials ? preCalculation.materials.filter(m => m.isEstimate).length : 0}
+                              </div>
+                              <div className="text-sm text-orange-700">Material-Schätzungen</div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        <Card className="bg-green-50">
+                          <CardContent className="p-4">
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-green-600">
+                                {preCalculation.materials ? preCalculation.materials.filter(m => !m.isEstimate).length : 0}
+                              </div>
+                              <div className="text-sm text-green-700">Bestätigte Materialien</div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        <Card className="bg-blue-50">
+                          <CardContent className="p-4">
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-blue-600">
+                                {preCalculation.materials && preCalculation.labor ? 
+                                  Math.round(100 - (Math.abs(profitabilityData.totalCostDeviation) / profitabilityData.plannedTotalCosts) * 100) : 0}%
+                              </div>
+                              <div className="text-sm text-blue-700">Gesamt-Genauigkeit</div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+
+                    {/* Empfehlungen für Schätzungen */}
+                    <div className="mt-6">
+                      <Card className="bg-blue-50">
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2 text-blue-700">
+                            <AlertTriangle className="h-5 w-5" />
+                            Empfehlungen für zukünftige Schätzungen
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2 text-blue-700">
+                            <p>• Als Schätzung markierte Positionen sollten vor Projektbeginn noch einmal überprüft werden</p>
+                            <p>• Verwenden Sie bestätigte Werte aus ähnlichen abgeschlossenen Projekten</p>
+                            <p>• Planen Sie für geschätzte Positionen einen höheren Sicherheitspuffer ein</p>
+                            <p>• Dokumentieren Sie Abweichungen zwischen Schätzungen und tatsächlichen Werten für bessere zukünftige Kalkulationen</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Calculator className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Keine Vor-Kalkulation verfügbar</h3>
+                    <p>Für dieses Projekt wurde keine detaillierte Vor-Kalkulation mit Schätzungsmarkierungen erstellt.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="deviations" className="space-y-6">

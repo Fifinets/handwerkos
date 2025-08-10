@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Calculator, Plus, Trash2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +21,7 @@ interface MaterialItem {
   supplier?: string;
   markup: number; // Aufschlag in %
   totalCost: number;
+  isEstimate: boolean; // Kennzeichnung als Schätzung
 }
 
 interface LaborItem {
@@ -29,6 +31,7 @@ interface LaborItem {
   workers: number;
   hourlyRate: number;
   totalCost: number;
+  isEstimate: boolean; // Kennzeichnung als Schätzung
 }
 
 interface SubcontractorItem {
@@ -204,7 +207,8 @@ const PreCalculationDialog: React.FC<PreCalculationDialogProps> = ({
       unit: 'Stück',
       pricePerUnit: 0,
       markup: 15,
-      totalCost: 0
+      totalCost: 0,
+      isEstimate: false
     };
     setCalculation(prev => ({
       ...prev,
@@ -219,7 +223,8 @@ const PreCalculationDialog: React.FC<PreCalculationDialogProps> = ({
       hours: 8,
       workers: 1,
       hourlyRate: 45, // Standard Handwerker-Stundensatz
-      totalCost: 0
+      totalCost: 0,
+      isEstimate: false
     };
     setCalculation(prev => ({
       ...prev,
@@ -397,7 +402,7 @@ const PreCalculationDialog: React.FC<PreCalculationDialogProps> = ({
               {calculation.materials.map((item, index) => (
                 <Card key={item.id}>
                   <CardContent className="p-4">
-                    <div className="grid grid-cols-7 gap-4 items-center">
+                    <div className="grid grid-cols-8 gap-4 items-center">
                       <div>
                         <Label>Material</Label>
                         <Input
@@ -457,6 +462,18 @@ const PreCalculationDialog: React.FC<PreCalculationDialogProps> = ({
                         </div>
                       </div>
                       <div>
+                        <Label>Schätzung</Label>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            checked={item.isEstimate}
+                            onCheckedChange={(checked) => updateMaterialItem(item.id, 'isEstimate', checked)}
+                          />
+                          <span className="text-sm text-gray-600">
+                            {item.isEstimate ? 'Schätzung' : 'Bestätigt'}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
                         <Button 
                           variant="outline" 
                           size="sm" 
@@ -501,7 +518,7 @@ const PreCalculationDialog: React.FC<PreCalculationDialogProps> = ({
               {calculation.labor.map((item) => (
                 <Card key={item.id}>
                   <CardContent className="p-4">
-                    <div className="grid grid-cols-6 gap-4 items-center">
+                    <div className="grid grid-cols-7 gap-4 items-center">
                       <div className="col-span-2">
                         <Label>Arbeitsposition</Label>
                         <Input
@@ -540,6 +557,18 @@ const PreCalculationDialog: React.FC<PreCalculationDialogProps> = ({
                         <Label>Gesamt</Label>
                         <div className="font-bold">
                           {formatCurrency(item.hours * item.workers * item.hourlyRate)}
+                        </div>
+                      </div>
+                      <div>
+                        <Label>Schätzung</Label>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            checked={item.isEstimate}
+                            onCheckedChange={(checked) => updateLaborItem(item.id, 'isEstimate', checked)}
+                          />
+                          <span className="text-sm text-gray-600">
+                            {item.isEstimate ? 'Schätzung' : 'Bestätigt'}
+                          </span>
                         </div>
                         <Button 
                           variant="outline" 

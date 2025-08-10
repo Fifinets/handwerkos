@@ -16,12 +16,16 @@ import ProjectProfitabilityDialog from "./ProjectProfitabilityDialog";
 
 const getStatusColor = (status: string) => {
   switch (status) {
+    case 'anfrage':
+      return 'bg-purple-100 text-purple-800';
+    case 'besichtigung':
+      return 'bg-orange-100 text-orange-800';
+    case 'geplant':
+      return 'bg-blue-100 text-blue-800';
     case 'in_bearbeitung':
       return 'bg-yellow-100 text-yellow-800';
     case 'abgeschlossen':
       return 'bg-green-100 text-green-800';
-    case 'geplant':
-      return 'bg-blue-100 text-blue-800';
     default:
       return 'bg-gray-100 text-gray-800';
   }
@@ -29,12 +33,16 @@ const getStatusColor = (status: string) => {
 
 const getStatusIcon = (status: string) => {
   switch (status) {
+    case 'anfrage':
+      return <FileText className="h-4 w-4 text-purple-600" />;
+    case 'besichtigung':
+      return <Building2 className="h-4 w-4 text-orange-600" />;
+    case 'geplant':
+      return <AlertTriangle className="h-4 w-4 text-blue-600" />;
     case 'in_bearbeitung':
       return <Clock className="h-4 w-4 text-yellow-600" />;
     case 'abgeschlossen':
       return <CheckCircle className="h-4 w-4 text-green-600" />;
-    case 'geplant':
-      return <AlertTriangle className="h-4 w-4 text-blue-600" />;
     default:
       return <CheckCircle className="h-4 w-4 text-gray-600" />;
   }
@@ -42,12 +50,16 @@ const getStatusIcon = (status: string) => {
 
 const getStatusDisplayName = (status: string) => {
   switch (status) {
+    case 'anfrage':
+      return 'Anfrage';
+    case 'besichtigung':
+      return 'Besichtigung';
+    case 'geplant':
+      return 'Planung';
     case 'in_bearbeitung':
       return 'In Bearbeitung';
     case 'abgeschlossen':
       return 'Abgeschlossen';
-    case 'geplant':
-      return 'Planung';
     default:
       return status;
   }
@@ -83,6 +95,30 @@ const hasPreCalculation = (description: string) => {
   return extractPreCalculationFromDescription(description) !== null;
 };
 
+const getEstimateInfo = (description: string) => {
+  const preCalc = extractPreCalculationFromDescription(description);
+  if (!preCalc) return null;
+  
+  let totalEstimates = 0;
+  let totalConfirmed = 0;
+  
+  if (preCalc.materials) {
+    preCalc.materials.forEach(material => {
+      if (material.isEstimate) totalEstimates++;
+      else totalConfirmed++;
+    });
+  }
+  
+  if (preCalc.labor) {
+    preCalc.labor.forEach(labor => {
+      if (labor.isEstimate) totalEstimates++;
+      else totalConfirmed++;
+    });
+  }
+  
+  return { totalEstimates, totalConfirmed, total: totalEstimates + totalConfirmed };
+};
+
 const formatBudget = (budget: any, description?: string) => {
   let budgetValue = 0;
   
@@ -112,7 +148,13 @@ const formatBudget = (budget: any, description?: string) => {
 const ProjectModule = () => {
   const { toast } = useToast();
   const [projects, setProjects] = useState([]);
-  const [statusCounts, setStatusCounts] = useState({ geplant: 0, in_bearbeitung: 0, abgeschlossen: 0 });
+  const [statusCounts, setStatusCounts] = useState({ 
+    anfrage: 0, 
+    besichtigung: 0, 
+    geplant: 0, 
+    in_bearbeitung: 0, 
+    abgeschlossen: 0 
+  });
   const [topCustomers, setTopCustomers] = useState([]);
   const [totalBudget, setTotalBudget] = useState(0);
   const [delayedProjects, setDelayedProjects] = useState([]);
@@ -258,11 +300,19 @@ const ProjectModule = () => {
 
       // compute derived metrics
       let totalBudgetSum = 0;
-      const counts = { geplant: 0, in_bearbeitung: 0, abgeschlossen: 0 } as any;
+      const counts = { 
+        anfrage: 0, 
+        besichtigung: 0, 
+        geplant: 0, 
+        in_bearbeitung: 0, 
+        abgeschlossen: 0 
+      } as any;
       const delayed: any[] = [];
       const today = new Date();
       data.forEach((p: any) => {
-        if (p.status === 'geplant') counts.geplant++;
+        if (p.status === 'anfrage') counts.anfrage++;
+        else if (p.status === 'besichtigung') counts.besichtigung++;
+        else if (p.status === 'geplant') counts.geplant++;
         else if (p.status === 'in_bearbeitung') counts["in_bearbeitung"]++;
         else if (p.status === 'abgeschlossen') counts.abgeschlossen++;
         
@@ -395,6 +445,8 @@ const ProjectModule = () => {
     
     // Optimistic update - immediately update local state
     const statusMapping = {
+      'Anfrage': 'anfrage',
+      'Besichtigung': 'besichtigung',
       'Planung': 'geplant',
       'In Bearbeitung': 'in_bearbeitung', 
       'Abgeschlossen': 'abgeschlossen'
@@ -741,6 +793,17 @@ const ProjectModule = () => {
                           Kalkuliert
                         </Badge>
                       )}
+                      {(() => {
+                        const estimateInfo = getEstimateInfo(project.description);
+                        if (estimateInfo && estimateInfo.totalEstimates > 0) {
+                          return (
+                            <Badge variant="outline" className="text-orange-600 border-orange-600">
+                              {estimateInfo.totalEstimates} Schätzung{estimateInfo.totalEstimates > 1 ? 'en' : ''}
+                            </Badge>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </div>
                   <div className="text-right">
