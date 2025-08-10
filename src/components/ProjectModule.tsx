@@ -51,6 +51,12 @@ const getStatusDisplayName = (status: string) => {
   }
 };
 
+const generateShortId = (fullId: string) => {
+  // Create a short, individual ID from the full UUID
+  const hash = fullId.split('-').join('');
+  return `P${hash.substring(0, 6).toUpperCase()}`;
+};
+
 const ProjectModule = () => {
   const { toast } = useToast();
   const [projects, setProjects] = useState([]);
@@ -606,32 +612,21 @@ const ProjectModule = () => {
                         <Badge variant="destructive">Überfällig</Badge>
                       )}
                     </div>
-                    <p className="text-gray-600 mb-2">{project.description || 'Projektbeschreibung'}</p>
-                    <p className="text-sm text-gray-500">Projekt-ID: {project.id}</p>
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <span>ID: {generateShortId(project.id)}</span>
+                      <span>Start: {new Date(project.start_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</span>
+                      {project.end_date && (
+                        <span>Ende: {new Date(project.end_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</span>
+                      )}
+                    </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-gray-500 flex items-center gap-1">
-                      <Calendar className="h-4 w-4" /> Start: {new Date(project.start_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
-                    </p>
-                    {project.end_date && (
-                      <p className="text-sm text-gray-500 flex items-center gap-1">
-                        <Calendar className="h-4 w-4" /> Ende: {new Date(project.end_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
-                      </p>
-                    )}
+                    <p className="text-sm text-gray-600">Budget</p>
+                    <p className="text-2xl font-bold text-green-600">€{project.budget ? Number(project.budget).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00'}</p>
                   </div>
                 </div>
 
                 <div className="space-y-3 flex-grow">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-500">Status:</p>
-                      <p className="font-medium">{getStatusDisplayName(project.status)}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Budget:</p>
-                      <p className="font-medium">€{project.budget ? Number(project.budget).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00'}</p>
-                    </div>
-                  </div>
                   
                   <div className="flex space-x-1 mb-4">
                     {(() => {
