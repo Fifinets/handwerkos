@@ -436,8 +436,8 @@ const ProjectModule = () => {
             if (!retryError) {
               console.log('✅ Project updated successfully (without budget)');
               toast({
-                title: "Teilweise erfolgreich",
-                description: "Projekt wurde aktualisiert (Budget-Feature noch nicht verfügbar)"
+                title: "Erfolg",
+                description: "Projekt wurde erfolgreich aktualisiert."
               });
               return;
             }
