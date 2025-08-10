@@ -65,6 +65,24 @@ const extractBudgetFromDescription = (description: string) => {
   return budgetMatch ? parseFloat(budgetMatch[1]) : 0;
 };
 
+const extractPreCalculationFromDescription = (description: string) => {
+  if (!description) return null;
+  const preCalcMatch = description.match(/\[PRECALC:(.*?)\]/);
+  if (preCalcMatch) {
+    try {
+      return JSON.parse(preCalcMatch[1]);
+    } catch (e) {
+      console.warn('Error parsing pre-calculation:', e);
+      return null;
+    }
+  }
+  return null;
+};
+
+const hasPreCalculation = (description: string) => {
+  return extractPreCalculationFromDescription(description) !== null;
+};
+
 const formatBudget = (budget: any, description?: string) => {
   let budgetValue = 0;
   
@@ -717,6 +735,12 @@ const ProjectModule = () => {
                       {project.end_date && (
                         <span>Ende: {new Date(project.end_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</span>
                       )}
+                      {hasPreCalculation(project.description) && (
+                        <Badge variant="outline" className="text-green-600 border-green-600">
+                          <Calculator className="h-3 w-3 mr-1" />
+                          Kalkuliert
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   <div className="text-right">
@@ -752,9 +776,9 @@ const ProjectModule = () => {
                 <div className="flex gap-2 pt-4 mt-auto justify-end">
                   <Button
                     size="sm" 
-                    variant="outline"
+                    variant={hasPreCalculation(project.description) ? "default" : "outline"}
                     onClick={() => handlePreCalculation(project)}
-                    title="Vor-Kalkulation erstellen"
+                    title={hasPreCalculation(project.description) ? "Vor-Kalkulation bearbeiten" : "Vor-Kalkulation erstellen"}
                   >
                     <Calculator className="h-4 w-4" />
                   </Button>

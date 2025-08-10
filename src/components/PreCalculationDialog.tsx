@@ -109,6 +109,51 @@ const PreCalculationDialog: React.FC<PreCalculationDialogProps> = ({
     notes: ''
   });
 
+  // Load existing calculation when dialog opens
+  useEffect(() => {
+    if (isOpen && projectId) {
+      loadExistingCalculation();
+    }
+  }, [isOpen, projectId]);
+
+  const loadExistingCalculation = async () => {
+    try {
+      const { data: project } = await supabase
+        .from('projects')
+        .select('description')
+        .eq('id', projectId)
+        .single();
+
+      if (project?.description) {
+        const preCalcMatch = project.description.match(/\[PRECALC:(.*?)\]/);
+        if (preCalcMatch) {
+          try {
+            const existingCalculation = JSON.parse(preCalcMatch[1]);
+            console.log('📊 Loading existing calculation:', existingCalculation);
+            
+            // Merge existing calculation with current state
+            setCalculation(prev => ({
+              ...prev,
+              ...existingCalculation,
+              projectId, // Ensure correct IDs
+              projectName,
+              customerId
+            }));
+
+            toast({
+              title: "Bestehende Kalkulation geladen",
+              description: "Die vorhandene Vor-Kalkulation wurde geladen."
+            });
+          } catch (e) {
+            console.warn('Error parsing existing calculation:', e);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading existing calculation:', error);
+    }
+  };
+
   // Berechnung aktualisieren wenn sich Werte ändern
   useEffect(() => {
     calculateTotals();
@@ -257,12 +302,35 @@ const PreCalculationDialog: React.FC<PreCalculationDialogProps> = ({
       // In Projekt-Beschreibung als [PRECALC:...] speichern
       const calculationInfo = `[PRECALC:${JSON.stringify(calculationData)}]`;
       
+      // Update project with calculation data AND budget
+      const updateData: any = {};
+      
+      // Store calculation in description (append, don't overwrite existing description)
+      const { data: currentProject } = await supabase
+        .from('projects')
+        .select('description, budget')
+        .eq('id', projectId)
+        .single();
+      
+      let newDescription = calculationInfo;
+      if (currentProject?.description && !currentProject.description.includes('[PRECALC:')) {
+        // Preserve existing description, add calculation
+        newDescription = `${currentProject.description} ${calculationInfo}`;
+      } else if (currentProject?.description && currentProject.description.includes('[PRECALC:')) {
+        // Replace existing calculation
+        newDescription = currentProject.description.replace(/\[PRECALC:.*?\]/, calculationInfo);
+      }
+      
+      updateData.description = newDescription;
+      
+      // Always set the budget from calculation
+      updateData.budget = Math.round(calculation.finalPrice);
+      
+      console.log('💰 Setting project budget to:', updateData.budget);
+      
       const { error } = await supabase
         .from('projects')
-        .update({
-          description: calculationInfo,
-          budget: Math.round(calculation.finalPrice) // Budget setzen
-        })
+        .update(updateData)
         .eq('id', projectId);
 
       if (error) {
@@ -271,9 +339,10 @@ const PreCalculationDialog: React.FC<PreCalculationDialogProps> = ({
 
       toast({
         title: "Vor-Kalkulation gespeichert",
-        description: `Gesamtpreis: €${calculation.finalPrice.toFixed(2)}`
+        description: `Budget wurde auf €${calculation.finalPrice.toFixed(2)} gesetzt`
       });
 
+      // Call callback with calculation data
       onCalculationSaved?.(calculationData);
       onClose();
     } catch (error) {
