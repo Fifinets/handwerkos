@@ -228,6 +228,8 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
 
   if (!project) return null;
 
+  console.log('🎯 EditProjectDialog render - onProjectDeleted available:', !!onProjectDeleted);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
@@ -354,36 +356,34 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
 
           <div className="flex gap-2 pt-4">
             <div className="flex-1">
-              {onProjectDeleted && (
-                <div className="relative">
-                  <Button 
-                    type="button" 
-                    variant="destructive" 
-                    className="w-full relative overflow-hidden"
-                    onMouseDown={startDelete}
-                    onMouseUp={stopDelete}
-                    onMouseLeave={stopDelete}
-                    onTouchStart={startDelete}
-                    onTouchEnd={stopDelete}
-                    disabled={isDeleting && deleteProgress >= 100}
-                  >
-                    {/* Heller Film von links nach rechts */}
-                    {isDeleting && (
-                      <div 
-                        className="absolute inset-0 bg-white/30 transition-all duration-100 ease-linear"
-                        style={{
-                          width: `${deleteProgress}%`,
-                          left: 0,
-                        }}
-                      />
-                    )}
-                    <Trash2 className="h-4 w-4 mr-2 relative z-10" />
-                    <span className="relative z-10">
-                      {isDeleting ? 'Löschen...' : 'Projekt löschen'}
-                    </span>
-                  </Button>
-                </div>
-              )}
+              <div className="relative">
+                <Button 
+                  type="button" 
+                  variant="destructive" 
+                  className="w-full relative overflow-hidden"
+                  onMouseDown={onProjectDeleted ? startDelete : undefined}
+                  onMouseUp={onProjectDeleted ? stopDelete : undefined}
+                  onMouseLeave={onProjectDeleted ? stopDelete : undefined}
+                  onTouchStart={onProjectDeleted ? startDelete : undefined}
+                  onTouchEnd={onProjectDeleted ? stopDelete : undefined}
+                  disabled={!onProjectDeleted || (isDeleting && deleteProgress >= 100)}
+                >
+                  {/* Heller Film von links nach rechts */}
+                  {isDeleting && (
+                    <div 
+                      className="absolute inset-0 bg-white/30 transition-all duration-100 ease-linear"
+                      style={{
+                        width: `${deleteProgress}%`,
+                        left: 0,
+                      }}
+                    />
+                  )}
+                  <Trash2 className="h-4 w-4 mr-2 relative z-10" />
+                  <span className="relative z-10">
+                    {isDeleting ? 'Löschen...' : 'Projekt löschen'}
+                  </span>
+                </Button>
+              </div>
             </div>
             <Button type="button" variant="outline" onClick={onClose}>
               Abbrechen
