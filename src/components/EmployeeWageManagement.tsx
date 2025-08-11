@@ -52,7 +52,7 @@ interface Employee {
   email: string;
   phone?: string;
   hourly_wage: number;
-  role_description?: string;
+  position?: string;
   contact_info?: string;
   status: string;
 }
@@ -63,7 +63,7 @@ export default function EmployeeWageManagement() {
   const [editingEmployee, setEditingEmployee] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     hourly_wage: 0,
-    role_description: '',
+    position: '',
     contact_info: ''
   });
 
@@ -73,6 +73,7 @@ export default function EmployeeWageManagement() {
       const { data, error } = await supabase
         .from('employees')
         .select('*')
+        .eq('status', 'aktiv')
         .order('first_name', { ascending: true });
 
       if (error) throw error;
@@ -110,7 +111,7 @@ export default function EmployeeWageManagement() {
     setEditingEmployee(employee.id);
     setEditForm({
       hourly_wage: employee.hourly_wage || 0,
-      role_description: employee.role_description || '',
+      position: employee.position || '',
       contact_info: employee.contact_info || ''
     });
   };
@@ -119,7 +120,7 @@ export default function EmployeeWageManagement() {
     setEditingEmployee(null);
     setEditForm({
       hourly_wage: 0,
-      role_description: '',
+      position: '',
       contact_info: ''
     });
   };
@@ -129,7 +130,7 @@ export default function EmployeeWageManagement() {
 
     await updateEmployeeWage(editingEmployee, {
       hourly_wage: editForm.hourly_wage,
-      role_description: editForm.role_description,
+      position: editForm.position,
       contact_info: editForm.contact_info
     });
   };
@@ -157,7 +158,7 @@ export default function EmployeeWageManagement() {
             Mitarbeiter Stundenlohn-Verwaltung
           </CardTitle>
           <CardDescription>
-            Verwalten Sie Stundenlöhne, Rollen und Kontaktinformationen Ihrer Mitarbeiter
+            Verwalten Sie Stundenlöhne, Positionen und Kontaktinformationen Ihrer aktiven Mitarbeiter
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -166,7 +167,7 @@ export default function EmployeeWageManagement() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Mitarbeiter</TableHead>
-                  <TableHead>Rolle & Kontakt</TableHead>
+                  <TableHead>Position & Kontakt</TableHead>
                   <TableHead>Stundenlohn</TableHead>
                   <TableHead>Monatslohn (40h/Woche)</TableHead>
                   <TableHead>Jahreslohn</TableHead>
@@ -200,9 +201,9 @@ export default function EmployeeWageManagement() {
                       {editingEmployee === employee.id ? (
                         <div className="space-y-2 min-w-[200px]">
                           <Input
-                            placeholder="Rollenbeschreibung"
-                            value={editForm.role_description}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, role_description: e.target.value }))}
+                            placeholder="Position"
+                            value={editForm.position}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, position: e.target.value }))}
                           />
                           <Textarea
                             placeholder="Zusätzliche Kontaktinfos"
@@ -213,10 +214,10 @@ export default function EmployeeWageManagement() {
                         </div>
                       ) : (
                         <div className="space-y-1">
-                          {employee.role_description && (
+                          {employee.position && (
                             <div className="flex items-center gap-1">
                               <Briefcase className="h-3 w-3" />
-                              <span className="text-sm font-medium">{employee.role_description}</span>
+                              <span className="text-sm font-medium">{employee.position}</span>
                             </div>
                           )}
                           {employee.contact_info && (
