@@ -12,7 +12,7 @@ import AddEmployeeDialog from "./personal/AddEmployeeDialog";
 import EmployeeDetailsDialog from "./personal/EmployeeDetailsDialog";
 import EditEmployeeDialog from "./personal/EditEmployeeDialog";
 import PersonalSidebar from "./personal/PersonalSidebar";
-import EmployeeWageManagement from "./EmployeeWageManagement";
+import EmployeeWageManagementSimple from "./EmployeeWageManagementSimple";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Employee {
@@ -338,7 +338,7 @@ const PersonalModule = () => {
         </TabsContent>
 
         <TabsContent value="wages">
-          <EmployeeWageManagement />
+          <EmployeeWageManagementSimple />
         </TabsContent>
       </Tabs>
 
