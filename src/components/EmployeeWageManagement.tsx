@@ -53,7 +53,6 @@ interface Employee {
   phone?: string;
   hourly_wage: number;
   position?: string;
-  contact_info?: string;
   status: string;
 }
 
@@ -63,8 +62,7 @@ export default function EmployeeWageManagement() {
   const [editingEmployee, setEditingEmployee] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     hourly_wage: 0,
-    position: '',
-    contact_info: ''
+    position: ''
   });
 
   const fetchEmployees = async () => {
@@ -111,8 +109,7 @@ export default function EmployeeWageManagement() {
     setEditingEmployee(employee.id);
     setEditForm({
       hourly_wage: employee.hourly_wage || 0,
-      position: employee.position || '',
-      contact_info: employee.contact_info || ''
+      position: employee.position || ''
     });
   };
 
@@ -120,8 +117,7 @@ export default function EmployeeWageManagement() {
     setEditingEmployee(null);
     setEditForm({
       hourly_wage: 0,
-      position: '',
-      contact_info: ''
+      position: ''
     });
   };
 
@@ -130,8 +126,7 @@ export default function EmployeeWageManagement() {
 
     await updateEmployeeWage(editingEmployee, {
       hourly_wage: editForm.hourly_wage,
-      position: editForm.position,
-      contact_info: editForm.contact_info
+      position: editForm.position
     });
   };
 
@@ -158,7 +153,7 @@ export default function EmployeeWageManagement() {
             Mitarbeiter Stundenlohn-Verwaltung
           </CardTitle>
           <CardDescription>
-            Verwalten Sie Stundenlöhne, Positionen und Kontaktinformationen Ihrer aktiven Mitarbeiter
+            Verwalten Sie Stundenlöhne und Positionen Ihrer aktiven Mitarbeiter
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -167,7 +162,7 @@ export default function EmployeeWageManagement() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Mitarbeiter</TableHead>
-                  <TableHead>Position & Kontakt</TableHead>
+                  <TableHead>Position</TableHead>
                   <TableHead>Stundenlohn</TableHead>
                   <TableHead>Monatslohn (40h/Woche)</TableHead>
                   <TableHead>Jahreslohn</TableHead>
@@ -205,12 +200,6 @@ export default function EmployeeWageManagement() {
                             value={editForm.position}
                             onChange={(e) => setEditForm(prev => ({ ...prev, position: e.target.value }))}
                           />
-                          <Textarea
-                            placeholder="Zusätzliche Kontaktinfos"
-                            value={editForm.contact_info}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, contact_info: e.target.value }))}
-                            rows={2}
-                          />
                         </div>
                       ) : (
                         <div className="space-y-1">
@@ -218,11 +207,6 @@ export default function EmployeeWageManagement() {
                             <div className="flex items-center gap-1">
                               <Briefcase className="h-3 w-3" />
                               <span className="text-sm font-medium">{employee.position}</span>
-                            </div>
-                          )}
-                          {employee.contact_info && (
-                            <div className="text-sm text-muted-foreground">
-                              {employee.contact_info}
                             </div>
                           )}
                         </div>
