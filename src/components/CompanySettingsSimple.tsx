@@ -125,8 +125,6 @@ export function CompanySettingsSimple() {
         quote_prefix: "AN",
         project_prefix: "PR",
         is_active: true,
-        created_by: user.id,
-        updated_by: user.id,
       };
 
       console.log('Inserting default settings:', defaultSettings);
@@ -196,8 +194,6 @@ export function CompanySettingsSimple() {
         invoice_prefix: settings.invoice_prefix,
         quote_prefix: settings.quote_prefix,
         project_prefix: settings.project_prefix,
-        updated_by: user.id,
-        updated_at: new Date().toISOString(),
       };
       
       console.log('Update data:', updateData);
