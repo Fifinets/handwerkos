@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Settings, User, UserPlus, Key } from 'lucide-react';
+import { Settings, User, UserPlus, Key, Wrench } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -232,40 +232,78 @@ const Auth: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">
       {/* Header */}
-      <div className="bg-gray-800 text-white p-4 text-center">
-        <h1 className="text-xl font-bold">ADDIGO COCKPIT</h1>
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 shadow-lg">
+        <div className="flex items-center justify-center gap-3">
+          <div className="p-2 bg-white/10 rounded-lg">
+            <svg className="h-8 w-8" viewBox="0 0 100 100" fill="currentColor">
+              <g transform="translate(50,50)">
+                {/* Sunburst/Star pattern with multiple rays */}
+                <path d="M0,-45 L3,-15 L0,-12 L-3,-15 Z" />
+                <path d="M13.4,-42.7 L9.5,-14.7 L6.4,-12.5 L1.9,-14.8 Z" />
+                <path d="M25.9,-36.5 L15.3,-12.9 L11.8,-11.2 L6.5,-13.2 Z" />
+                <path d="M36.5,-25.9 L19.6,-9.8 L16.2,-8.6 L10.6,-10.6 Z" />
+                <path d="M42.7,-13.4 L22.5,-5.7 L19.3,-5.3 L14.1,-6.9 Z" />
+                <path d="M45,0 L24,0 L20.5,0 L16.5,0 Z" />
+                <path d="M42.7,13.4 L22.5,5.7 L19.3,5.3 L14.1,6.9 Z" />
+                <path d="M36.5,25.9 L19.6,9.8 L16.2,8.6 L10.6,10.6 Z" />
+                <path d="M25.9,36.5 L15.3,12.9 L11.8,11.2 L6.5,13.2 Z" />
+                <path d="M13.4,42.7 L9.5,14.7 L6.4,12.5 L1.9,14.8 Z" />
+                <path d="M0,45 L3,15 L0,12 L-3,15 Z" />
+                <path d="M-13.4,42.7 L-9.5,14.7 L-6.4,12.5 L-1.9,14.8 Z" />
+                <path d="M-25.9,36.5 L-15.3,12.9 L-11.8,11.2 L-6.5,13.2 Z" />
+                <path d="M-36.5,25.9 L-19.6,9.8 L-16.2,8.6 L-10.6,10.6 Z" />
+                <path d="M-42.7,13.4 L-22.5,5.7 L-19.3,5.3 L-14.1,6.9 Z" />
+                <path d="M-45,0 L-24,0 L-20.5,0 L-16.5,0 Z" />
+                <path d="M-42.7,-13.4 L-22.5,-5.7 L-19.3,-5.3 L-14.1,-6.9 Z" />
+                <path d="M-36.5,-25.9 L-19.6,-9.8 L-16.2,-8.6 L-10.6,-10.6 Z" />
+                <path d="M-25.9,-36.5 L-15.3,-12.9 L-11.8,-11.2 L-6.5,-13.2 Z" />
+                <path d="M-13.4,-42.7 L-9.5,-14.7 L-6.4,-12.5 L-1.9,-14.8 Z" />
+              </g>
+            </svg>
+          </div>
+          <h1 className="text-3xl font-bold tracking-wide">HandwerkOS</h1>
+        </div>
+        <p className="text-center text-blue-100 mt-2 text-sm">
+          Die moderne Software-Lösung für Handwerksbetriebe
+        </p>
       </div>
       
       {/* Main Content */}
-      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] p-4">
-        <Card className="w-full max-w-2xl">
-          <CardHeader className="text-center">
-            <CardTitle className="flex items-center justify-center gap-2">
+      <div className="flex items-center justify-center min-h-[calc(100vh-120px)] p-4">
+        <Card className="w-full max-w-2xl shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <CardHeader className="text-center space-y-4 pb-8">
+            <CardTitle className="flex items-center justify-center gap-3 text-2xl font-bold text-gray-800">
               {isPasswordSetup ? (
                 <>
-                  <Key className="h-5 w-5" />
+                  <div className="p-2 bg-blue-100 rounded-full">
+                    <Key className="h-6 w-6 text-blue-600" />
+                  </div>
                   Passwort erstellen
                 </>
               ) : isLogin ? (
                 <>
-                  <User className="h-5 w-5" />
+                  <div className="p-2 bg-green-100 rounded-full">
+                    <User className="h-6 w-6 text-green-600" />
+                  </div>
                   Anmeldung
                 </>
               ) : (
                 <>
-                  <UserPlus className="h-5 w-5" />
+                  <div className="p-2 bg-orange-100 rounded-full">
+                    <UserPlus className="h-6 w-6 text-orange-600" />
+                  </div>
                   Registrierung
                 </>
               )}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-base text-gray-600">
               {isPasswordSetup
-                ? 'Erstellen Sie Ihr Passwort für Ihren Account'
+                ? 'Erstellen Sie Ihr Passwort für Ihren HandwerkOS Account'
                 : isLogin
-                ? 'Melden Sie sich in Ihrem Account an'
-                : 'Erstellen Sie einen neuen Account'}
+                ? 'Willkommen zurück! Melden Sie sich in Ihrem HandwerkOS Account an'
+                : 'Starten Sie jetzt mit HandwerkOS und digitalisieren Sie Ihren Betrieb'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -558,36 +596,61 @@ const Auth: React.FC = () => {
                 </>
               )}
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button 
+                type="submit" 
+                className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200" 
+                disabled={loading}
+              >
                 {loading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     {isPasswordSetup ? 'Wird erstellt...' : isLogin ? 'Wird angemeldet...' : 'Wird registriert...'}
                   </div>
                 ) : isPasswordSetup ? (
-                  'Passwort erstellen'
+                  <>
+                    <Key className="h-5 w-5 mr-2" />
+                    Passwort erstellen
+                  </>
                 ) : isLogin ? (
-                  'Anmelden'
+                  <>
+                    <User className="h-5 w-5 mr-2" />
+                    Jetzt anmelden
+                  </>
                 ) : (
-                  'Registrieren'
+                  <>
+                    <UserPlus className="h-5 w-5 mr-2" />
+                    Kostenlos registrieren
+                  </>
                 )}
               </Button>
 
               {!isPasswordSetup && (
-                <div className="text-center">
+                <div className="text-center pt-4 border-t">
                   <Button
                     type="button"
-                    variant="link"
+                    variant="ghost"
                     onClick={() => setIsLogin(!isLogin)}
-                    className="text-sm"
+                    className="text-sm text-gray-600 hover:text-blue-600 font-medium"
                   >
-                    {isLogin ? 'Noch kein Account? Registrieren' : 'Bereits registriert? Anmelden'}
+                    {isLogin ? 'Noch kein Account? Jetzt kostenlos registrieren' : 'Bereits registriert? Zur Anmeldung'}
                   </Button>
                 </div>
               )}
             </form>
           </CardContent>
         </Card>
+      </div>
+      
+      {/* Footer */}
+      <div className="text-center pb-6">
+        <p className="text-sm text-gray-500">
+          © 2024 HandwerkOS - Die digitale Zukunft des Handwerks
+        </p>
+        <div className="flex justify-center gap-6 mt-2 text-xs text-gray-400">
+          <button className="hover:text-blue-600 transition-colors">Datenschutz</button>
+          <button className="hover:text-blue-600 transition-colors">Impressum</button>
+          <button className="hover:text-blue-600 transition-colors">Support</button>
+        </div>
       </div>
     </div>
   );
