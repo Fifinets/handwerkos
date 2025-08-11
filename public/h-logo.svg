@@ -1,46 +1,15 @@
 <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <!-- Gradients for Windows-style tiles -->
-    <linearGradient id="tile1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#0078D4;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#106EBE;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="tile2" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#40E0D0;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#00CED1;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="tile3" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#FF6B35;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#F7931E;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="tile4" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#7B68EE;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#9370DB;stop-opacity:1" />
-    </linearGradient>
-    <filter id="tilesShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="2" dy="2" stdDeviation="4" flood-opacity="0.25"/>
-    </filter>
-  </defs>
+  <!-- Monochrome Logo Variante -->
   
-  <!-- Windows-style tile grid forming an H shape -->
-  <!-- Left column (vertical bar of H) -->
-  <rect x="40" y="40" width="35" height="35" rx="3" fill="url(#tile1)" filter="url(#tilesShadow)"/>
-  <rect x="40" y="82.5" width="35" height="35" rx="3" fill="url(#tile2)" filter="url(#tilesShadow)"/>
-  <rect x="40" y="125" width="35" height="35" rx="3" fill="url(#tile3)" filter="url(#tilesShadow)"/>
+  <!-- Linke Pille -->
+  <ellipse cx="60" cy="100" rx="40" ry="80" fill="#2D3748" />
   
-  <!-- Middle section (horizontal bar of H) -->
-  <rect x="82.5" y="82.5" width="35" height="35" rx="3" fill="url(#tile4)" filter="url(#tilesShadow)"/>
+  <!-- Rechte Pille -->
+  <ellipse cx="140" cy="100" rx="40" ry="80" fill="#4A5568" />
   
-  <!-- Right column (vertical bar of H) -->
-  <rect x="125" y="40" width="35" height="35" rx="3" fill="url(#tile2)" filter="url(#tilesShadow)"/>
-  <rect x="125" y="82.5" width="35" height="35" rx="3" fill="url(#tile1)" filter="url(#tilesShadow)"/>
-  <rect x="125" y="125" width="35" height="35" rx="3" fill="url(#tile4)" filter="url(#tilesShadow)"/>
+  <!-- Zentrale Verbindung -->
+  <ellipse cx="100" cy="100" rx="60" ry="40" fill="#718096" />
   
-  <!-- Additional accent tiles for modern look -->
-  <rect x="82.5" y="40" width="35" height="15" rx="2" fill="url(#tile3)" opacity="0.6" filter="url(#tilesShadow)"/>
-  <rect x="82.5" y="145" width="35" height="15" rx="2" fill="url(#tile2)" opacity="0.6" filter="url(#tilesShadow)"/>
-  
-  <!-- Subtle connecting lines -->
-  <rect x="77" y="95" width="8" height="10" rx="1" fill="rgba(255,255,255,0.2)"/>
-  <rect x="117.5" y="95" width="8" height="10" rx="1" fill="rgba(255,255,255,0.2)"/>
+  <!-- Weißer Kreis -->
+  <circle cx="100" cy="140" r="20" fill="white" />
 </svg>
