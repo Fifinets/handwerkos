@@ -286,12 +286,14 @@ const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ onNavigate }) =
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header mit kritischen Alerts */}
+    <div className="space-y-8 animate-fadeIn">
+      {/* Modern Header mit kritischen Alerts */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-gray-600">Zentrale Übersicht Ihres Handwerksbetriebs</p>
+        <div className="space-y-2">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-blue-600 bg-clip-text text-transparent">
+            Dashboard
+          </h1>
+          <p className="text-slate-600 text-lg">Zentrale Übersicht Ihres Handwerksbetriebs</p>
         </div>
         
         {getCriticalAlertCount() > 0 && (

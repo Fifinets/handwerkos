@@ -94,10 +94,12 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
 
   return (
     <div 
-      className={`fixed left-0 top-0 h-full z-50 transition-all duration-300 ${isExpanded ? "w-64" : "w-16"} bg-sidebar border-r border-border`}
+      className={`fixed left-0 top-0 h-full z-50 transition-all duration-500 ease-in-out ${isExpanded ? "w-64" : "w-16"} 
+      bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 
+      border-r border-slate-700/50 backdrop-blur-xl shadow-2xl shadow-slate-900/20`}
       onMouseEnter={() => {
         if (hoverTimeout) clearTimeout(hoverTimeout);
-        const timeout = setTimeout(() => setIsHovered(true), 200);
+        const timeout = setTimeout(() => setIsHovered(true), 150);
         setHoverTimeout(timeout);
       }}
       onMouseLeave={() => {
@@ -107,8 +109,24 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
         setExpandedGroups([]);
       }}
     >
+      {/* Logo at top */}
+      <div className="p-4 border-b border-slate-700/50">
+        <div className="flex items-center gap-3">
+          <img 
+            src="/src/4.png" 
+            alt="HandwerkOS" 
+            className="h-8 w-8 object-contain"
+          />
+          <span className={`font-bold text-white transition-all duration-300 ${
+            isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
+          }`}>
+            HandwerkOS
+          </span>
+        </div>
+      </div>
+
       <div className="flex flex-col h-full">
-        <div className="flex-1 p-2">
+        <div className="flex-1 p-3">
           <div className="space-y-2">
             {navigationItems.map((item) => (
               <div key={item.id}>
@@ -117,13 +135,14 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
                   <div>
                     <button
                       onClick={() => toggleGroup(item.id)}
-                      className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 relative hover:bg-accent hover:text-accent-foreground`}
+                      className={`group w-full flex items-center p-3 rounded-xl transition-all duration-300 relative 
+                      text-slate-300 hover:text-white hover:bg-white/10 hover:scale-105 hover:shadow-lg backdrop-blur-sm`}
                       title={!isExpanded ? item.name : undefined}
                     >
                       <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
-                        <item.icon className={`h-5 w-5 ${item.color}`} />
+                        <item.icon className={`h-5 w-5 ${item.color} group-hover:scale-110 transition-transform duration-200`} />
                       </div>
-                      <span className={`ml-3 whitespace-nowrap transition-all duration-300 ${
+                      <span className={`ml-3 whitespace-nowrap transition-all duration-300 font-medium ${
                         isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
                       }`}>
                         {item.name}
@@ -131,9 +150,9 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
                       {isExpanded && (
                         <div className="ml-auto">
                           {expandedGroups.includes(item.id) ? (
-                            <ChevronDown className="h-4 w-4" />
+                            <ChevronDown className="h-4 w-4 group-hover:text-blue-300 transition-colors duration-200" />
                           ) : (
-                            <ChevronRight className="h-4 w-4" />
+                            <ChevronRight className="h-4 w-4 group-hover:text-blue-300 transition-colors duration-200" />
                           )}
                         </div>
                       )}
@@ -146,18 +165,21 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
                           <button
                             key={child.id}
                             onClick={() => onModuleChange(child.id)}
-                            className={`w-full flex items-center p-2 rounded-lg transition-all duration-200 text-sm ${
+                            className={`group w-full flex items-center p-2.5 rounded-lg transition-all duration-200 text-sm ${
                               activeModule === child.id
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-accent hover:text-accent-foreground"
+                                ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/25"
+                                : "text-slate-400 hover:text-white hover:bg-white/5"
                             }`}
                           >
                             <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
-                              <child.icon className={`h-4 w-4 ${child.color}`} />
+                              <child.icon className={`h-4 w-4 ${child.color} group-hover:scale-110 transition-transform duration-200`} />
                             </div>
-                            <span className="ml-2 whitespace-nowrap">
+                            <span className="ml-2 whitespace-nowrap font-medium">
                               {child.name}
                             </span>
+                            {activeModule === child.id && (
+                              <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                            )}
                           </button>
                         ))}
                       </div>
@@ -167,21 +189,24 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
                   // Einzelnes Menüelement
                   <button
                     onClick={() => onModuleChange(item.id)}
-                    className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 relative ${
+                    className={`group w-full flex items-center p-3 rounded-xl transition-all duration-300 relative ${
                       activeModule === item.id
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-accent hover:text-accent-foreground"
+                        ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/25 scale-105"
+                        : "text-slate-300 hover:text-white hover:bg-white/10 hover:scale-105 hover:shadow-lg"
                     }`}
                     title={!isExpanded ? item.name : undefined}
                   >
                     <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
-                      <item.icon className={`h-5 w-5 ${item.color}`} />
+                      <item.icon className={`h-5 w-5 ${item.color} group-hover:scale-110 transition-transform duration-200`} />
                     </div>
-                    <span className={`ml-3 whitespace-nowrap transition-all duration-300 ${
+                    <span className={`ml-3 whitespace-nowrap transition-all duration-300 font-medium ${
                       isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
                     }`}>
                       {item.name}
                     </span>
+                    {activeModule === item.id && (
+                      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-l-full" />
+                    )}
                   </button>
                 )}
               </div>
@@ -189,16 +214,16 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
           </div>
         </div>
 
-        <div className="p-2 border-t border-border">
+        <div className="p-3 border-t border-slate-700/50">
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center p-3 rounded-lg text-destructive hover:bg-destructive/10 transition-all duration-200 relative"
+            className="group w-full flex items-center p-3 rounded-xl text-red-400 hover:text-white hover:bg-red-500/10 hover:scale-105 transition-all duration-300 relative backdrop-blur-sm"
             title={!isExpanded ? "Abmelden" : undefined}
           >
             <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
-              <LogOut className="h-5 w-5" />
+              <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
             </div>
-            <span className={`ml-3 whitespace-nowrap transition-all duration-300 ${
+            <span className={`ml-3 whitespace-nowrap transition-all duration-300 font-medium ${
               isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
             }`}>
               Abmelden

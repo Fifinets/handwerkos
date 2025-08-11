@@ -13,6 +13,7 @@ import NotFound from "./pages/NotFound";
 import MitarbeiterSetupPage from "./pages/MitarbeiterSetupPage";
 import HandwerkerSoftware from "./pages/HandwerkerSoftware";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import "./styles/animations.css";
 
 const queryClient = new QueryClient();
 
