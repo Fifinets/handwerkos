@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Mail, DollarSign, Clock, FileText, Palette } from "lucide-react";
+import { Building2, Mail, DollarSign, Clock, FileText, Palette, Settings } from "lucide-react";
 
 interface CompanySettings {
   id: string;
