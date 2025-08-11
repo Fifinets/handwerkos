@@ -47,11 +47,57 @@ export default function EmployeeWageManagementSimple() {
   const [loading, setLoading] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<string | null>(null);
   const [editWage, setEditWage] = useState<number>(0);
+  const [workingHoursPerWeek, setWorkingHoursPerWeek] = useState<number>(40);
+
+  const fetchWorkingHours = async () => {
+    try {
+      console.log('Fetching company working hours...');
+      const { data, error } = await supabase
+        .from('company_settings')
+        .select('default_working_hours_start, default_working_hours_end, default_break_duration')
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching working hours:', error);
+        return;
+      }
+
+      if (data) {
+        console.log('Working hours data:', data);
+        // Calculate working hours per day
+        const startTime = data.default_working_hours_start || '08:00';
+        const endTime = data.default_working_hours_end || '17:00';
+        const breakDuration = data.default_break_duration || 60; // minutes
+
+        const [startHour, startMinute] = startTime.split(':').map(Number);
+        const [endHour, endMinute] = endTime.split(':').map(Number);
+
+        const startMinutes = startHour * 60 + startMinute;
+        const endMinutes = endHour * 60 + endMinute;
+        
+        const workMinutesPerDay = (endMinutes - startMinutes) - breakDuration;
+        const workHoursPerDay = workMinutesPerDay / 60;
+        const workHoursPerWeek = workHoursPerDay * 5; // 5 Arbeitstage
+
+        console.log(`Calculated: ${workHoursPerDay}h/Tag, ${workHoursPerWeek}h/Woche`);
+        setWorkingHoursPerWeek(workHoursPerWeek);
+      }
+    } catch (error: any) {
+      console.error('Error calculating working hours:', error);
+      // Fallback to 40 hours
+      setWorkingHoursPerWeek(40);
+    }
+  };
 
   const fetchEmployees = async () => {
     setLoading(true);
     try {
       console.log('Fetching employees...');
+      
+      // Fetch working hours first
+      await fetchWorkingHours();
+      
       const { data, error } = await supabase
         .from('employees')
         .select('id, first_name, last_name, email, phone, position, status')
@@ -131,13 +177,13 @@ export default function EmployeeWageManagementSimple() {
     toast.success('Stundenlohn wurde gespeichert');
   };
 
-  const calculateMonthlyWage = (hourlyWage: number, hoursPerWeek: number = 40) => {
-    const monthlyHours = hoursPerWeek * 4.33;
+  const calculateMonthlyWage = (hourlyWage: number) => {
+    const monthlyHours = workingHoursPerWeek * 4.33; // 4.33 Wochen pro Monat
     return hourlyWage * monthlyHours;
   };
 
-  const calculateYearlyWage = (hourlyWage: number, hoursPerWeek: number = 40) => {
-    const yearlyHours = hoursPerWeek * 52;
+  const calculateYearlyWage = (hourlyWage: number) => {
+    const yearlyHours = workingHoursPerWeek * 52; // 52 Wochen pro Jahr
     return hourlyWage * yearlyHours;
   };
 
@@ -159,6 +205,10 @@ export default function EmployeeWageManagementSimple() {
         <CardDescription>
           Verwalten Sie Stundenlöhne Ihrer aktiven Mitarbeiter
           <br />
+          <small className="text-blue-600">
+            📊 Arbeitszeiten werden aus den Firmeneinstellungen berechnet ({workingHoursPerWeek}h/Woche)
+          </small>
+          <br />
           <small className="text-yellow-600">
             ⚠️ Hinweis: Löhne werden temporär im Browser gespeichert
           </small>
@@ -177,7 +227,7 @@ export default function EmployeeWageManagementSimple() {
                   <TableHead>Mitarbeiter</TableHead>
                   <TableHead>Position</TableHead>
                   <TableHead>Stundenlohn</TableHead>
-                  <TableHead>Monatslohn (40h/Woche)</TableHead>
+                  <TableHead>Monatslohn ({workingHoursPerWeek}h/Woche)</TableHead>
                   <TableHead>Jahreslohn</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Aktionen</TableHead>
