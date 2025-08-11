@@ -35,22 +35,34 @@ export function CompanySettingsSimple() {
   const loadSettings = async () => {
     try {
       console.log('Loading company settings...');
+      
+      // Check auth first
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      console.log('Current user:', user);
+      console.log('Auth error:', authError);
+      
+      if (authError || !user) {
+        throw new Error('Nicht angemeldet');
+      }
+
+      // Try to load settings
       const { data, error } = await supabase
         .from("company_settings")
         .select("*")
-        .eq("is_active", true)
         .limit(1)
         .maybeSingle();
 
       console.log('Load result:', { data, error });
 
       if (error) {
+        console.error('Supabase error details:', error);
         throw error;
       }
 
       if (data) {
         setSettings(data);
       } else {
+        console.log('No settings found, creating default...');
         // Create default settings if none exist
         await createDefaultSettings();
       }
@@ -69,6 +81,11 @@ export function CompanySettingsSimple() {
   const createDefaultSettings = async () => {
     try {
       console.log('Creating default settings...');
+      
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Nicht angemeldet');
+      
       const defaultSettings = {
         company_name: "Meine Firma",
         company_address: "",
@@ -80,14 +97,18 @@ export function CompanySettingsSimple() {
         vat_id: "",
         website: "",
         is_active: true,
+        created_by: user.id,
+        updated_by: user.id,
       };
 
+      console.log('Inserting default settings:', defaultSettings);
       const { data, error } = await supabase
         .from("company_settings")
         .insert(defaultSettings)
         .select()
         .single();
 
+      console.log('Insert result:', { data, error });
       if (error) throw error;
 
       setSettings(data);
@@ -119,22 +140,34 @@ export function CompanySettingsSimple() {
     try {
       console.log('Saving settings:', settings);
       
-      const { error } = await supabase
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Nicht angemeldet');
+      
+      const updateData = {
+        company_name: settings.company_name,
+        company_address: settings.company_address,
+        company_city: settings.company_city,
+        company_postal_code: settings.company_postal_code,
+        company_phone: settings.company_phone,
+        company_email: settings.company_email,
+        tax_number: settings.tax_number,
+        vat_id: settings.vat_id,
+        website: settings.website,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      };
+      
+      console.log('Update data:', updateData);
+      console.log('Settings ID:', settings.id);
+      
+      const { data, error } = await supabase
         .from("company_settings")
-        .update({
-          company_name: settings.company_name,
-          company_address: settings.company_address,
-          company_city: settings.company_city,
-          company_postal_code: settings.company_postal_code,
-          company_phone: settings.company_phone,
-          company_email: settings.company_email,
-          tax_number: settings.tax_number,
-          vat_id: settings.vat_id,
-          website: settings.website,
-        })
-        .eq("id", settings.id);
+        .update(updateData)
+        .eq("id", settings.id)
+        .select();
 
-      console.log('Save result error:', error);
+      console.log('Save result:', { data, error });
 
       if (error) {
         throw error;
