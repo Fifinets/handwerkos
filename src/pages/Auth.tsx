@@ -236,13 +236,11 @@ const Auth: React.FC = () => {
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 shadow-lg">
         <div className="flex items-center justify-center gap-3">
-          <div className="p-2 bg-white/10 rounded-lg">
-            <img 
-              src="/src/4.png" 
-              alt="HandwerkOS Logo" 
-              className="h-8 w-8 object-contain"
-            />
-          </div>
+          <img 
+            src="/src/4.png" 
+            alt="HandwerkOS Logo" 
+            className="h-12 w-12 object-contain"
+          />
           <h1 className="text-3xl font-bold tracking-wide">HandwerkOS</h1>
         </div>
         <p className="text-center text-blue-100 mt-2 text-sm">
