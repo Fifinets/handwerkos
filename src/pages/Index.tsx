@@ -16,7 +16,7 @@ import FinanceModule from "@/components/FinanceModule";
 import PlannerModule from "@/components/PlannerModule";
 import TimeTrackingModule from "@/components/TimeTrackingModule";
 import { DocumentModule } from "@/components/DocumentModule";
-import { CompanySettingsModule } from "@/components/CompanySettingsModule";
+import { CompanySettingsSimple as CompanySettingsModule } from "@/components/CompanySettingsSimple";
 import { EmailModule } from "@/components/EmailModule";
 import DashboardCalendar from "@/components/DashboardCalendar";
 import DashboardStatsWithKpis from "@/components/DashboardStatsWithKpis";
