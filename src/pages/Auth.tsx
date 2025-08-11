@@ -237,52 +237,11 @@ const Auth: React.FC = () => {
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 shadow-lg">
         <div className="flex items-center justify-center gap-3">
           <div className="p-2 bg-white/10 rounded-lg">
-            <svg className="h-8 w-8" viewBox="0 0 200 200" fill="currentColor">
-              <g transform="translate(100,100)">
-                {/* Center circle */}
-                <circle cx="0" cy="0" r="12" fill="currentColor" />
-                
-                {/* Long rays - 4 main directions */}
-                <rect x="-2" y="-85" width="4" height="65" rx="2" />
-                <rect x="-2" y="20" width="4" height="65" rx="2" />
-                <rect x="20" y="-2" width="65" height="4" ry="2" />
-                <rect x="-85" y="-2" width="65" height="4" ry="2" />
-                
-                {/* Medium rays - diagonals */}
-                <rect x="-2" y="-65" width="4" height="45" rx="2" transform="rotate(45)" />
-                <rect x="-2" y="-65" width="4" height="45" rx="2" transform="rotate(135)" />
-                <rect x="-2" y="-65" width="4" height="45" rx="2" transform="rotate(225)" />
-                <rect x="-2" y="-65" width="4" height="45" rx="2" transform="rotate(315)" />
-                
-                {/* Shorter rays - 8 additional directions */}
-                <rect x="-1.5" y="-45" width="3" height="30" rx="1.5" transform="rotate(22.5)" />
-                <rect x="-1.5" y="-45" width="3" height="30" rx="1.5" transform="rotate(67.5)" />
-                <rect x="-1.5" y="-45" width="3" height="30" rx="1.5" transform="rotate(112.5)" />
-                <rect x="-1.5" y="-45" width="3" height="30" rx="1.5" transform="rotate(157.5)" />
-                <rect x="-1.5" y="-45" width="3" height="30" rx="1.5" transform="rotate(202.5)" />
-                <rect x="-1.5" y="-45" width="3" height="30" rx="1.5" transform="rotate(247.5)" />
-                <rect x="-1.5" y="-45" width="3" height="30" rx="1.5" transform="rotate(292.5)" />
-                <rect x="-1.5" y="-45" width="3" height="30" rx="1.5" transform="rotate(337.5)" />
-                
-                {/* Small rays - 8 more directions */}
-                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(11.25)" />
-                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(33.75)" />
-                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(56.25)" />
-                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(78.75)" />
-                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(101.25)" />
-                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(123.75)" />
-                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(146.25)" />
-                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(168.75)" />
-                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(191.25)" />
-                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(213.75)" />
-                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(236.25)" />
-                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(258.75)" />
-                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(281.25)" />
-                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(303.75)" />
-                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(326.25)" />
-                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(348.75)" />
-              </g>
-            </svg>
+            <img 
+              src="/src/4.png" 
+              alt="HandwerkOS Logo" 
+              className="h-8 w-8 object-contain"
+            />
           </div>
           <h1 className="text-3xl font-bold tracking-wide">HandwerkOS</h1>
         </div>
