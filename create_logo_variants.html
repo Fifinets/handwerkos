@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HandwerkOS Logo Generator</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #f0f0f0;
+        }
+        .logo-container { 
+            display: flex; 
+            gap: 20px; 
+            flex-wrap: wrap; 
+            margin: 20px 0;
+        }
+        .logo-variant {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .logo-variant h3 {
+            margin: 10px 0 5px 0;
+            color: #333;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            margin: 5px;
+            padding: 8px 16px;
+            background: #3B82F6;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #1D4ED8;
+        }
+    </style>
+</head>
+<body>
+    <h1>HandwerkOS Logo Varianten</h1>
+    <p>Klicken Sie auf die Download-Buttons um die Logo-Varianten zu speichern.</p>
+    
+    <div class="logo-container">
+        <div class="logo-variant">
+            <h3>Standard Logo (200x200)</h3>
+            <canvas id="logo200" width="200" height="200"></canvas>
+            <br>
+            <button onclick="downloadLogo('logo200', 'handwerkos-logo-200.png')">Download PNG</button>
+        </div>
+        
+        <div class="logo-variant">
+            <h3>Small Logo (64x64)</h3>
+            <canvas id="logo64" width="64" height="64"></canvas>
+            <br>
+            <button onclick="downloadLogo('logo64', 'handwerkos-logo-64.png')">Download PNG</button>
+        </div>
+        
+        <div class="logo-variant">
+            <h3>Icon Logo (32x32)</h3>
+            <canvas id="logo32" width="32" height="32"></canvas>
+            <br>
+            <button onclick="downloadLogo('logo32', 'handwerkos-logo-32.png')">Download PNG</button>
+        </div>
+        
+        <div class="logo-variant">
+            <h3>Large Logo (512x512)</h3>
+            <canvas id="logo512" width="200" height="200" style="width: 200px; height: 200px;"></canvas>
+            <br>
+            <button onclick="downloadLogo('logo512', 'handwerkos-logo-512.png')">Download PNG</button>
+        </div>
+    </div>
+
+    <script>
+        function createLogo(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const radius = size * 0.475;
+            
+            // Create gradient for background
+            const bgGradient = ctx.createLinearGradient(0, 0, size, size);
+            bgGradient.addColorStop(0, '#3B82F6');
+            bgGradient.addColorStop(0.5, '#1D4ED8');
+            bgGradient.addColorStop(1, '#1E40AF');
+            
+            // Main circle with shadow effect
+            ctx.shadowColor = 'rgba(0,0,0,0.3)';
+            ctx.shadowBlur = size * 0.02;
+            ctx.shadowOffsetX = size * 0.01;
+            ctx.shadowOffsetY = size * 0.01;
+            
+            ctx.fillStyle = bgGradient;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Reset shadow
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            
+            // Inner circle border
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.lineWidth = size * 0.005;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius * 0.9, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Letter H
+            const hGradient = ctx.createLinearGradient(0, 0, size, size);
+            hGradient.addColorStop(0, '#FFFFFF');
+            hGradient.addColorStop(1, '#E5E7EB');
+            ctx.fillStyle = hGradient;
+            
+            const strokeWidth = size * 0.08;
+            const hHeight = size * 0.55;
+            const hWidth = size * 0.45;
+            const startY = centerY - hHeight/2;
+            const barRadius = strokeWidth/2;
+            
+            // Left vertical bar
+            ctx.beginPath();
+            ctx.roundRect(centerX - hWidth/2, startY, strokeWidth, hHeight, barRadius);
+            ctx.fill();
+            
+            // Right vertical bar
+            ctx.beginPath();
+            ctx.roundRect(centerX + hWidth/2 - strokeWidth, startY, strokeWidth, hHeight, barRadius);
+            ctx.fill();
+            
+            // Horizontal crossbar
+            ctx.beginPath();
+            ctx.roundRect(centerX - hWidth/2, centerY - strokeWidth/2, hWidth, strokeWidth, barRadius);
+            ctx.fill();
+            
+            // Decorative elements
+            const decorDots = [
+                {x: centerX - size*0.15, y: centerY - size*0.325, r: size*0.015, alpha: 0.6},
+                {x: centerX + size*0.15, y: centerY - size*0.325, r: size*0.01, alpha: 0.4},
+                {x: centerX + size*0.3, y: centerY - size*0.2, r: size*0.0125, alpha: 0.5},
+                {x: centerX - size*0.3, y: centerY + size*0.2, r: size*0.01, alpha: 0.3}
+            ];
+            
+            decorDots.forEach(dot => {
+                ctx.fillStyle = `rgba(255,255,255,${dot.alpha})`;
+                ctx.beginPath();
+                ctx.arc(dot.x, dot.y, dot.r, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+        
+        function downloadLogo(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Initialize logos
+        window.onload = function() {
+            createLogo(document.getElementById('logo200'), 200);
+            createLogo(document.getElementById('logo64'), 64);
+            createLogo(document.getElementById('logo32'), 32);
+            
+            // Special handling for 512px version
+            const canvas512 = document.getElementById('logo512');
+            canvas512.width = 512;
+            canvas512.height = 512;
+            createLogo(canvas512, 512);
+        };
+    </script>
+</body>
+</html>
