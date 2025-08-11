@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Mail, Settings } from "lucide-react";
+import { Building2, Mail, Settings, Clock, DollarSign, FileText } from "lucide-react";
 
 interface CompanySettings {
   id: string;
@@ -14,11 +14,25 @@ interface CompanySettings {
   company_address?: string;
   company_city?: string;
   company_postal_code?: string;
+  company_country?: string;
   company_phone?: string;
   company_email?: string;
   tax_number?: string;
   vat_id?: string;
   website?: string;
+  // Working hours
+  default_working_hours_start: string;
+  default_working_hours_end: string;
+  default_break_duration: number;
+  // Financial
+  default_hourly_rate?: number;
+  default_overtime_rate?: number;
+  // Other settings
+  invoice_prefix?: string;
+  quote_prefix?: string;
+  project_prefix?: string;
+  default_currency?: string;
+  default_tax_rate?: number;
 }
 
 export function CompanySettingsSimple() {
@@ -91,11 +105,25 @@ export function CompanySettingsSimple() {
         company_address: "",
         company_city: "",
         company_postal_code: "",
+        company_country: "Deutschland",
         company_phone: "",
         company_email: "",
         tax_number: "",
         vat_id: "",
         website: "",
+        // Working hours (8:00 - 17:00 with 1h break)
+        default_working_hours_start: "08:00",
+        default_working_hours_end: "17:00",
+        default_break_duration: 60,
+        // Financial defaults
+        default_hourly_rate: 50.00,
+        default_overtime_rate: 62.50,
+        default_currency: "EUR",
+        default_tax_rate: 19.0,
+        // Document prefixes
+        invoice_prefix: "RE",
+        quote_prefix: "AN",
+        project_prefix: "PR",
         is_active: true,
         created_by: user.id,
         updated_by: user.id,
@@ -149,11 +177,25 @@ export function CompanySettingsSimple() {
         company_address: settings.company_address,
         company_city: settings.company_city,
         company_postal_code: settings.company_postal_code,
+        company_country: settings.company_country,
         company_phone: settings.company_phone,
         company_email: settings.company_email,
         tax_number: settings.tax_number,
         vat_id: settings.vat_id,
         website: settings.website,
+        // Working hours
+        default_working_hours_start: settings.default_working_hours_start,
+        default_working_hours_end: settings.default_working_hours_end,
+        default_break_duration: settings.default_break_duration,
+        // Financial
+        default_hourly_rate: settings.default_hourly_rate,
+        default_overtime_rate: settings.default_overtime_rate,
+        default_currency: settings.default_currency,
+        default_tax_rate: settings.default_tax_rate,
+        // Document prefixes
+        invoice_prefix: settings.invoice_prefix,
+        quote_prefix: settings.quote_prefix,
+        project_prefix: settings.project_prefix,
         updated_by: user.id,
         updated_at: new Date().toISOString(),
       };
@@ -189,7 +231,7 @@ export function CompanySettingsSimple() {
     }
   };
 
-  const updateSetting = (key: keyof CompanySettings, value: string) => {
+  const updateSetting = (key: keyof CompanySettings, value: string | number) => {
     if (settings) {
       setSettings({ ...settings, [key]: value });
     }
@@ -276,7 +318,7 @@ export function CompanySettingsSimple() {
               />
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="company_postal_code">Postleitzahl</Label>
                 <Input
@@ -293,6 +335,15 @@ export function CompanySettingsSimple() {
                   value={settings.company_city || ""}
                   onChange={(e) => updateSetting("company_city", e.target.value)}
                   placeholder="Ihre Stadt"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="company_country">Land</Label>
+                <Input
+                  id="company_country"
+                  value={settings.company_country || ""}
+                  onChange={(e) => updateSetting("company_country", e.target.value)}
+                  placeholder="Deutschland"
                 />
               </div>
             </div>
@@ -350,6 +401,157 @@ export function CompanySettingsSimple() {
                   value={settings.vat_id || ""}
                   onChange={(e) => updateSetting("vat_id", e.target.value)}
                   placeholder="DE123456789"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Working Hours */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Arbeitszeiten
+            </CardTitle>
+            <CardDescription>
+              Standard-Arbeitszeiten für Berechnungen und Zeiterfassung
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="default_working_hours_start">Arbeitsbeginn</Label>
+                <Input
+                  id="default_working_hours_start"
+                  type="time"
+                  value={settings.default_working_hours_start || "08:00"}
+                  onChange={(e) => updateSetting("default_working_hours_start", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="default_working_hours_end">Arbeitsende</Label>
+                <Input
+                  id="default_working_hours_end"
+                  type="time"
+                  value={settings.default_working_hours_end || "17:00"}
+                  onChange={(e) => updateSetting("default_working_hours_end", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="default_break_duration">Pausendauer (Min.)</Label>
+                <Input
+                  id="default_break_duration"
+                  type="number"
+                  value={settings.default_break_duration || 60}
+                  onChange={(e) => updateSetting("default_break_duration", Number(e.target.value))}
+                  placeholder="60"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Financial Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Finanzeinstellungen
+            </CardTitle>
+            <CardDescription>
+              Standard-Werte für Preise und Steuern
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="default_hourly_rate">Standard-Stundensatz (€)</Label>
+                <Input
+                  id="default_hourly_rate"
+                  type="number"
+                  step="0.50"
+                  value={settings.default_hourly_rate || ""}
+                  onChange={(e) => updateSetting("default_hourly_rate", Number(e.target.value))}
+                  placeholder="50.00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="default_overtime_rate">Überstunden-Satz (€)</Label>
+                <Input
+                  id="default_overtime_rate"
+                  type="number"
+                  step="0.50"
+                  value={settings.default_overtime_rate || ""}
+                  onChange={(e) => updateSetting("default_overtime_rate", Number(e.target.value))}
+                  placeholder="62.50"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="default_currency">Währung</Label>
+                <Input
+                  id="default_currency"
+                  value={settings.default_currency || "EUR"}
+                  onChange={(e) => updateSetting("default_currency", e.target.value)}
+                  placeholder="EUR"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="default_tax_rate">Steuersatz (%)</Label>
+                <Input
+                  id="default_tax_rate"
+                  type="number"
+                  step="0.1"
+                  value={settings.default_tax_rate || ""}
+                  onChange={(e) => updateSetting("default_tax_rate", Number(e.target.value))}
+                  placeholder="19.0"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Document Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Dokumenteinstellungen
+            </CardTitle>
+            <CardDescription>
+              Präfixe für automatische Nummerierung
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="invoice_prefix">Rechnungs-Präfix</Label>
+                <Input
+                  id="invoice_prefix"
+                  value={settings.invoice_prefix || ""}
+                  onChange={(e) => updateSetting("invoice_prefix", e.target.value)}
+                  placeholder="RE"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="quote_prefix">Angebots-Präfix</Label>
+                <Input
+                  id="quote_prefix"
+                  value={settings.quote_prefix || ""}
+                  onChange={(e) => updateSetting("quote_prefix", e.target.value)}
+                  placeholder="AN"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="project_prefix">Projekt-Präfix</Label>
+                <Input
+                  id="project_prefix"
+                  value={settings.project_prefix || ""}
+                  onChange={(e) => updateSetting("project_prefix", e.target.value)}
+                  placeholder="PR"
                 />
               </div>
             </div>
