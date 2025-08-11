@@ -113,7 +113,7 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
       <div className="p-4 border-b border-slate-700/50">
         <div className="flex items-center gap-3">
           <img 
-            src="/h-logo.svg" 
+            src="/handwerkos-logo.svg" 
             alt="HandwerkOS" 
             className="h-8 w-8 object-contain"
           />

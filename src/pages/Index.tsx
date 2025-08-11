@@ -105,7 +105,7 @@ const Index = () => {
             <div className="flex items-center space-x-4">
               <div className="flex items-center gap-3">
                 <img 
-                  src="/h-logo.svg" 
+                  src="/handwerkos-logo.svg" 
                   alt="HandwerkOS Logo" 
                   className="h-10 w-10 object-contain"
                 />

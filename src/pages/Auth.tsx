@@ -237,7 +237,7 @@ const Auth: React.FC = () => {
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 shadow-lg">
         <div className="flex items-center justify-center gap-3">
           <img 
-            src="/h-logo.svg" 
+            src="/handwerkos-logo.svg" 
             alt="HandwerkOS Logo" 
             className="h-12 w-12 object-contain"
           />
