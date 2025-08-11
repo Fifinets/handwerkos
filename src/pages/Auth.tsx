@@ -237,29 +237,50 @@ const Auth: React.FC = () => {
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 shadow-lg">
         <div className="flex items-center justify-center gap-3">
           <div className="p-2 bg-white/10 rounded-lg">
-            <svg className="h-8 w-8" viewBox="0 0 100 100" fill="currentColor">
-              <g transform="translate(50,50)">
-                {/* Sunburst/Star pattern with multiple rays */}
-                <path d="M0,-45 L3,-15 L0,-12 L-3,-15 Z" />
-                <path d="M13.4,-42.7 L9.5,-14.7 L6.4,-12.5 L1.9,-14.8 Z" />
-                <path d="M25.9,-36.5 L15.3,-12.9 L11.8,-11.2 L6.5,-13.2 Z" />
-                <path d="M36.5,-25.9 L19.6,-9.8 L16.2,-8.6 L10.6,-10.6 Z" />
-                <path d="M42.7,-13.4 L22.5,-5.7 L19.3,-5.3 L14.1,-6.9 Z" />
-                <path d="M45,0 L24,0 L20.5,0 L16.5,0 Z" />
-                <path d="M42.7,13.4 L22.5,5.7 L19.3,5.3 L14.1,6.9 Z" />
-                <path d="M36.5,25.9 L19.6,9.8 L16.2,8.6 L10.6,10.6 Z" />
-                <path d="M25.9,36.5 L15.3,12.9 L11.8,11.2 L6.5,13.2 Z" />
-                <path d="M13.4,42.7 L9.5,14.7 L6.4,12.5 L1.9,14.8 Z" />
-                <path d="M0,45 L3,15 L0,12 L-3,15 Z" />
-                <path d="M-13.4,42.7 L-9.5,14.7 L-6.4,12.5 L-1.9,14.8 Z" />
-                <path d="M-25.9,36.5 L-15.3,12.9 L-11.8,11.2 L-6.5,13.2 Z" />
-                <path d="M-36.5,25.9 L-19.6,9.8 L-16.2,8.6 L-10.6,10.6 Z" />
-                <path d="M-42.7,13.4 L-22.5,5.7 L-19.3,5.3 L-14.1,6.9 Z" />
-                <path d="M-45,0 L-24,0 L-20.5,0 L-16.5,0 Z" />
-                <path d="M-42.7,-13.4 L-22.5,-5.7 L-19.3,-5.3 L-14.1,-6.9 Z" />
-                <path d="M-36.5,-25.9 L-19.6,-9.8 L-16.2,-8.6 L-10.6,-10.6 Z" />
-                <path d="M-25.9,-36.5 L-15.3,-12.9 L-11.8,-11.2 L-6.5,-13.2 Z" />
-                <path d="M-13.4,-42.7 L-9.5,-14.7 L-6.4,-12.5 L-1.9,-14.8 Z" />
+            <svg className="h-8 w-8" viewBox="0 0 200 200" fill="currentColor">
+              <g transform="translate(100,100)">
+                {/* Center circle */}
+                <circle cx="0" cy="0" r="12" fill="currentColor" />
+                
+                {/* Long rays - 4 main directions */}
+                <rect x="-2" y="-85" width="4" height="65" rx="2" />
+                <rect x="-2" y="20" width="4" height="65" rx="2" />
+                <rect x="20" y="-2" width="65" height="4" ry="2" />
+                <rect x="-85" y="-2" width="65" height="4" ry="2" />
+                
+                {/* Medium rays - diagonals */}
+                <rect x="-2" y="-65" width="4" height="45" rx="2" transform="rotate(45)" />
+                <rect x="-2" y="-65" width="4" height="45" rx="2" transform="rotate(135)" />
+                <rect x="-2" y="-65" width="4" height="45" rx="2" transform="rotate(225)" />
+                <rect x="-2" y="-65" width="4" height="45" rx="2" transform="rotate(315)" />
+                
+                {/* Shorter rays - 8 additional directions */}
+                <rect x="-1.5" y="-45" width="3" height="30" rx="1.5" transform="rotate(22.5)" />
+                <rect x="-1.5" y="-45" width="3" height="30" rx="1.5" transform="rotate(67.5)" />
+                <rect x="-1.5" y="-45" width="3" height="30" rx="1.5" transform="rotate(112.5)" />
+                <rect x="-1.5" y="-45" width="3" height="30" rx="1.5" transform="rotate(157.5)" />
+                <rect x="-1.5" y="-45" width="3" height="30" rx="1.5" transform="rotate(202.5)" />
+                <rect x="-1.5" y="-45" width="3" height="30" rx="1.5" transform="rotate(247.5)" />
+                <rect x="-1.5" y="-45" width="3" height="30" rx="1.5" transform="rotate(292.5)" />
+                <rect x="-1.5" y="-45" width="3" height="30" rx="1.5" transform="rotate(337.5)" />
+                
+                {/* Small rays - 8 more directions */}
+                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(11.25)" />
+                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(33.75)" />
+                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(56.25)" />
+                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(78.75)" />
+                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(101.25)" />
+                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(123.75)" />
+                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(146.25)" />
+                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(168.75)" />
+                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(191.25)" />
+                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(213.75)" />
+                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(236.25)" />
+                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(258.75)" />
+                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(281.25)" />
+                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(303.75)" />
+                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(326.25)" />
+                <rect x="-1" y="-30" width="2" height="15" rx="1" transform="rotate(348.75)" />
               </g>
             </svg>
           </div>
