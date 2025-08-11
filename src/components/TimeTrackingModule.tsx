@@ -813,7 +813,9 @@ const loadEmployees = async () => {
   return <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Zeiterfassung</h1>
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-yellow-600 bg-clip-text text-transparent flex items-center gap-3">
+          <Clock className="h-8 w-8 text-yellow-600" />
+          Zeiterfassung</h1>
         <div className="flex gap-2">
           {userRole === 'manager' && <Button variant="outline" onClick={() => setWorkingHoursDialog(true)}>
               <Settings className="w-4 h-4 mr-2" />

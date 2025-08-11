@@ -846,7 +846,9 @@ const PlannerModule: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-4">
-          <h1 className="text-3xl font-bold">Planer</h1>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-teal-600 bg-clip-text text-transparent flex items-center gap-3">
+            <Calendar className="h-8 w-8 text-teal-600" />
+            Planer</h1>
           <Badge variant="outline" className="flex items-center space-x-1">
             <Calendar className="w-4 h-4" />
             <span>Ressourcenplanung</span>

@@ -368,8 +368,9 @@ const FinanceModule = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            💰 Finanzen & Buchhaltung
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-cyan-600 bg-clip-text text-transparent flex items-center gap-3">
+            <Calculator className="h-8 w-8 text-cyan-600" />
+            Finanzen & Buchhaltung
           </h2>
           <p className="text-gray-600">Umfassende Finanz- und Rechnungsverwaltung</p>
         </div>

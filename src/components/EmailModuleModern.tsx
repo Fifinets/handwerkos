@@ -135,7 +135,7 @@ const iconMap = {
   FileText,
 };
 
-export function EmailModule() {
+export function EmailModuleModern() {
   const [emails, setEmails] = useState<Email[]>([]);
   const [categories, setCategories] = useState<EmailCategory[]>([]);
   const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
@@ -1100,13 +1100,6 @@ export function EmailModule() {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      <div className="p-6 border-b bg-card">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-pink-600 bg-clip-text text-transparent flex items-center gap-3">
-          <Mail className="h-8 w-8 text-pink-600" />
-          E-Mail Verwaltung
-        </h1>
-        <p className="text-gray-600 mt-2">Zentrale E-Mail-Verwaltung und Kundenkorrespondenz</p>
-      </div>
       {renderToolbar()}
       
       <div className="flex-1 flex overflow-hidden">

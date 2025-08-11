@@ -280,8 +280,8 @@ const PersonalModule = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <UserCheck className="h-6 w-6 text-blue-600" />
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-purple-600 bg-clip-text text-transparent flex items-center gap-3">
+            <UserCheck className="h-8 w-8 text-purple-600" />
             Personalverwaltung
           </h2>
           <p className="text-gray-600">Mitarbeiterdaten und Qualifikationen verwalten</p>

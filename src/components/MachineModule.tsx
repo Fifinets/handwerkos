@@ -68,8 +68,8 @@ const MachineModule = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Settings className="h-6 w-6 text-blue-600" />
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-indigo-600 bg-clip-text text-transparent flex items-center gap-3">
+            <Settings className="h-8 w-8 text-indigo-600" />
             Maschinen & Geräte
           </h2>
           <p className="text-gray-600">Verwalten Sie Ihren Maschinenpark und Wartungsintervalle</p>

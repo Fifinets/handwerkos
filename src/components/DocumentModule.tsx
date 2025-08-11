@@ -187,7 +187,9 @@ export function DocumentModule() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Dokumente</h1>
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-emerald-600 bg-clip-text text-transparent flex items-center gap-3">
+          <Receipt className="h-8 w-8 text-emerald-600" />
+          Dokumente</h1>
         <div className="flex gap-2">
           <Button onClick={() => setShowAddQuote(true)}>
             <Plus className="h-4 w-4 mr-2" />

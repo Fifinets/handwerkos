@@ -729,7 +729,9 @@ const ProjectModule = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Projekte & Baustellen</h2>
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-orange-600 bg-clip-text text-transparent flex items-center gap-3">
+            <Building2 className="h-8 w-8 text-orange-600" />
+            Projekte & Baustellen</h2>
           <p className="text-gray-600">Verwalten Sie Projekte und Aufträge</p>
         </div>
       </div>
