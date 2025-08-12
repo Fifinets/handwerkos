@@ -368,7 +368,7 @@ const ProjectModule = () => {
                   <div className="text-sm text-gray-500">Heute • {new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</div>
                 </div>
               </div>
-            <div className="p-6">
+            <div className="p-4">
               {projects.filter(p => p.status !== 'abgeschlossen').length > 0 ? 
                 projects.filter(p => p.status !== 'abgeschlossen').map(project => {
                   const statusColor = project.status === 'geplant' ? 'bg-orange-100 text-orange-800' : 
@@ -378,28 +378,28 @@ const ProjectModule = () => {
                   return (
                     <div 
                       key={project.id} 
-                      className="border border-gray-200 rounded-xl p-4 mb-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                      className="border border-gray-200 rounded-lg p-3 mb-3 hover:bg-gray-50 transition-colors cursor-pointer"
                       onDoubleClick={() => handleDoubleClickProject(project)}
                     >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
                           <span className={`px-2 py-1 text-xs font-medium rounded ${statusColor}`}>
                             {getStatusDisplayName(project.status)}
                           </span>
-                          <span className="font-semibold text-gray-900">{project.name}</span>
+                          <span className="font-medium text-gray-900 text-sm">{project.name}</span>
                           <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
                             ID: {generateShortId(project.id)}
                           </span>
                         </div>
                       </div>
-                      <div className="text-sm text-gray-600 mb-3">
+                      <div className="text-xs text-gray-600 mb-2">
                         Start: {new Date(project.start_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })} • 
                         Ende: {project.end_date ? new Date(project.end_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) : 'Offen'} • 
                         Budget: €{formatBudget(project.budget, project.description)}
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+                      <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
                         <div 
-                          className="bg-blue-500 h-2 rounded-full" 
+                          className="bg-blue-500 h-1.5 rounded-full" 
                           style={{
                             width: project.status === 'abgeschlossen' ? '100%' : 
                                    project.status === 'in_bearbeitung' ? '60%' : 
@@ -407,20 +407,20 @@ const ProjectModule = () => {
                           }}
                         ></div>
                       </div>
-                      <div className="flex gap-3">
+                      <div className="flex gap-2">
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleDoubleClickProject(project); }}
-                          className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800"
+                          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
                         >
-                          <Building2 className="w-4 h-4" />
+                          <Building2 className="w-3 h-3" />
                           Öffnen
                         </button>
-                        <button className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600">
-                          <Clock className="w-4 h-4" />
+                        <button className="flex items-center gap-1 text-xs text-gray-600 hover:text-blue-600">
+                          <Clock className="w-3 h-3" />
                           Zeit
                         </button>
-                        <button className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600">
-                          <FileText className="w-4 h-4" />
+                        <button className="flex items-center gap-1 text-xs text-gray-600 hover:text-blue-600">
+                          <FileText className="w-3 h-3" />
                           Dateien
                         </button>
                       </div>
@@ -436,75 +436,75 @@ const ProjectModule = () => {
           </div>
           
           {/* Right Column - Sidebar Content */}
-          <div className="col-span-4 space-y-6">
+          <div className="col-span-4 space-y-4">
             {/* Projektstatus */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Projektstatus</h3>
-              <div className="space-y-3">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <h3 className="font-medium text-gray-900 mb-3 text-sm">Projektstatus</h3>
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                    <span className="text-sm text-gray-700">Anfrage</span>
+                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                    <span className="text-xs text-gray-700">Anfrage</span>
                   </div>
-                  <span className="text-sm font-medium">{statusCounts.anfrage}</span>
+                  <span className="text-xs font-medium">{statusCounts.anfrage}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                    <span className="text-sm text-gray-700">Besichtigung</span>
+                    <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                    <span className="text-xs text-gray-700">Besichtigung</span>
                   </div>
-                  <span className="text-sm font-medium">{statusCounts.besichtigung}</span>
+                  <span className="text-xs font-medium">{statusCounts.besichtigung}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                    <span className="text-sm text-gray-700">Planung</span>
+                    <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                    <span className="text-xs text-gray-700">Planung</span>
                   </div>
-                  <span className="text-sm font-medium">{statusCounts.geplant}</span>
+                  <span className="text-xs font-medium">{statusCounts.geplant}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                    <span className="text-sm text-gray-700">In Bearbeitung</span>
+                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                    <span className="text-xs text-gray-700">In Bearbeitung</span>
                   </div>
-                  <span className="text-sm font-medium">{statusCounts.in_bearbeitung}</span>
+                  <span className="text-xs font-medium">{statusCounts.in_bearbeitung}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    <span className="text-sm text-gray-700">Abgeschlossen</span>
+                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                    <span className="text-xs text-gray-700">Abgeschlossen</span>
                   </div>
-                  <span className="text-sm font-medium">{statusCounts.abgeschlossen}</span>
+                  <span className="text-xs font-medium">{statusCounts.abgeschlossen}</span>
                 </div>
               </div>
             </div>
 
             {/* Top Kunden */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Top Kunden</h3>
-              <div className="space-y-3">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <h3 className="font-medium text-gray-900 mb-3 text-sm">Top Kunden</h3>
+              <div className="space-y-2">
                 {topCustomers.length > 0 ? topCustomers.slice(0, 5).map((customer) => (
                   <div key={customer.id} className="flex justify-between items-center">
-                    <span className="text-sm text-gray-700 truncate">{customer.company_name || customer.contact_person}</span>
+                    <span className="text-xs text-gray-700 truncate">{customer.company_name || customer.contact_person}</span>
                     <span className="text-xs text-gray-500">{customer.email}</span>
                   </div>
                 )) : (
-                  <div className="text-sm text-gray-500 text-center">Keine Kunden</div>
+                  <div className="text-xs text-gray-500 text-center">Keine Kunden</div>
                 )}
               </div>
             </div>
 
             {/* Projekt Übersicht */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Projekt Übersicht</h3>
-              <div className="space-y-3 text-sm">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <h3 className="font-medium text-gray-900 mb-3 text-sm">Projekt Übersicht</h3>
+              <div className="space-y-2 text-xs">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-700">Gesamt: {projects.length}</span>
-                  <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">Planung: {statusCounts.geplant}</span>
+                  <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded text-xs">Planung: {statusCounts.geplant}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-700">In Bearbeitung: {statusCounts.in_bearbeitung}</span>
-                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Abgeschlossen: {statusCounts.abgeschlossen}</span>
+                  <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-xs">Abgeschlossen: {statusCounts.abgeschlossen}</span>
                 </div>
               </div>
             </div>
@@ -512,21 +512,21 @@ const ProjectModule = () => {
         </div>
         
         {/* Verzögerte Projekte - Full Width */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-          <div className="p-6 border-b border-gray-100">
-            <h2 className="text-xl font-semibold text-gray-900">Verzögerte Projekte</h2>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="p-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">Verzögerte Projekte</h2>
           </div>
-          <div className="p-6">
+          <div className="p-4">
             {delayedProjects.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {delayedProjects.map(project => (
-                  <div key={project.id} className="text-sm text-red-600">
+                  <div key={project.id} className="text-xs text-red-600">
                     {project.name} - {new Date(project.end_date).toLocaleDateString('de-DE')}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 text-center py-8">Keine Projekte im Verzug 🎉</p>
+              <p className="text-gray-500 text-center py-6 text-sm">Keine Projekte im Verzug 🎉</p>
             )}
           </div>
         </div>
