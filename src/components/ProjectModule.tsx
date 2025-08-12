@@ -356,18 +356,18 @@ const ProjectModule = () => {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-3 gap-6">
-        {/* Left Column - Takes 2 of 3 columns */}
-        <div className="col-span-2 space-y-6">
-          {/* Aktuelle Projekte */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-            <div className="p-6 border-b border-gray-100">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900">Aktuelle Projekte</h2>
-                <div className="text-sm text-gray-500">Heute • {new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</div>
+      {/* Main Content - Full Width */}
+      <div className="space-y-6">
+        {/* Aktuelle Projekte - Full Width */}
+        <div className="grid grid-cols-12 gap-6">
+          <div className="col-span-8">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+              <div className="p-6 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold text-gray-900">Aktuelle Projekte</h2>
+                  <div className="text-sm text-gray-500">Heute • {new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</div>
+                </div>
               </div>
-            </div>
             <div className="p-6">
               {projects.filter(p => p.status !== 'abgeschlossen').length > 0 ? 
                 projects.filter(p => p.status !== 'abgeschlossen').map(project => {
@@ -426,109 +426,112 @@ const ProjectModule = () => {
                       </div>
                     </div>
                   );
-                }) : (
-                  <div className="text-center py-8 text-gray-500">
-                    Keine aktiven Projekte vorhanden
-                  </div>
-                )}
-            </div>
-          </div>
-
-          {/* Verzögerte Projekte */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-            <div className="p-6 border-b border-gray-100">
-              <h2 className="text-xl font-semibold text-gray-900">Verzögerte Projekte</h2>
-            </div>
-            <div className="p-6">
-              {delayedProjects.length > 0 ? (
-                <div className="space-y-3">
-                  {delayedProjects.map(project => (
-                    <div key={project.id} className="text-sm text-red-600">
-                      {project.name} - {new Date(project.end_date).toLocaleDateString('de-DE')}
+                  }) : (
+                    <div className="text-center py-8 text-gray-500">
+                      Keine aktiven Projekte vorhanden
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">Keine Projekte im Verzug 🎉</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Sidebar - Takes 1 of 3 columns */}
-        <div className="col-span-1 space-y-6">
-          {/* Projektstatus */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Projektstatus</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                  <span className="text-sm text-gray-700">Anfrage</span>
-                </div>
-                <span className="text-sm font-medium">{statusCounts.anfrage}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <span className="text-sm text-gray-700">Besichtigung</span>
-                </div>
-                <span className="text-sm font-medium">{statusCounts.besichtigung}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                  <span className="text-sm text-gray-700">Planung</span>
-                </div>
-                <span className="text-sm font-medium">{statusCounts.geplant}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                  <span className="text-sm text-gray-700">In Bearbeitung</span>
-                </div>
-                <span className="text-sm font-medium">{statusCounts.in_bearbeitung}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  <span className="text-sm text-gray-700">Abgeschlossen</span>
-                </div>
-                <span className="text-sm font-medium">{statusCounts.abgeschlossen}</span>
+                  )}
               </div>
             </div>
           </div>
-
-          {/* Top Kunden */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Top Kunden</h3>
-            <div className="space-y-3">
-              {topCustomers.length > 0 ? topCustomers.slice(0, 5).map((customer) => (
-                <div key={customer.id} className="flex justify-between items-center">
-                  <span className="text-sm text-gray-700 truncate">{customer.company_name || customer.contact_person}</span>
-                  <span className="text-xs text-gray-500">{customer.email}</span>
+          
+          {/* Right Column - Sidebar Content */}
+          <div className="col-span-4 space-y-6">
+            {/* Projektstatus */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Projektstatus</h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                    <span className="text-sm text-gray-700">Anfrage</span>
+                  </div>
+                  <span className="text-sm font-medium">{statusCounts.anfrage}</span>
                 </div>
-              )) : (
-                <div className="text-sm text-gray-500 text-center">Keine Kunden</div>
-              )}
-            </div>
-          </div>
-
-          {/* Projekt Übersicht */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Projekt Übersicht</h3>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">Gesamt: {projects.length}</span>
-                <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">Planung: {statusCounts.geplant}</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <span className="text-sm text-gray-700">Besichtigung</span>
+                  </div>
+                  <span className="text-sm font-medium">{statusCounts.besichtigung}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                    <span className="text-sm text-gray-700">Planung</span>
+                  </div>
+                  <span className="text-sm font-medium">{statusCounts.geplant}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                    <span className="text-sm text-gray-700">In Bearbeitung</span>
+                  </div>
+                  <span className="text-sm font-medium">{statusCounts.in_bearbeitung}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span className="text-sm text-gray-700">Abgeschlossen</span>
+                  </div>
+                  <span className="text-sm font-medium">{statusCounts.abgeschlossen}</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">In Bearbeitung: {statusCounts.in_bearbeitung}</span>
-                <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Abgeschlossen: {statusCounts.abgeschlossen}</span>
+            </div>
+
+            {/* Top Kunden */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Top Kunden</h3>
+              <div className="space-y-3">
+                {topCustomers.length > 0 ? topCustomers.slice(0, 5).map((customer) => (
+                  <div key={customer.id} className="flex justify-between items-center">
+                    <span className="text-sm text-gray-700 truncate">{customer.company_name || customer.contact_person}</span>
+                    <span className="text-xs text-gray-500">{customer.email}</span>
+                  </div>
+                )) : (
+                  <div className="text-sm text-gray-500 text-center">Keine Kunden</div>
+                )}
+              </div>
+            </div>
+
+            {/* Projekt Übersicht */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Projekt Übersicht</h3>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">Gesamt: {projects.length}</span>
+                  <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">Planung: {statusCounts.geplant}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">In Bearbeitung: {statusCounts.in_bearbeitung}</span>
+                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Abgeschlossen: {statusCounts.abgeschlossen}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
+        
+        {/* Verzögerte Projekte - Full Width */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <div className="p-6 border-b border-gray-100">
+            <h2 className="text-xl font-semibold text-gray-900">Verzögerte Projekte</h2>
+          </div>
+          <div className="p-6">
+            {delayedProjects.length > 0 ? (
+              <div className="space-y-3">
+                {delayedProjects.map(project => (
+                  <div key={project.id} className="text-sm text-red-600">
+                    {project.name} - {new Date(project.end_date).toLocaleDateString('de-DE')}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center py-8">Keine Projekte im Verzug 🎉</p>
+            )}
+          </div>
+        </div>
+
+        
       </div>
 
       <AddProjectDialog
