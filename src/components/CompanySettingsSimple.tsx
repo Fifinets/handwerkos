@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Mail, Settings, Clock, DollarSign, FileText } from "lucide-react";
+import { Building2, Mail, Settings, Clock, DollarSign, FileText, Calendar } from "lucide-react";
 
 interface CompanySettings {
   id: string;
@@ -27,6 +27,8 @@ interface CompanySettings {
   // Financial
   default_hourly_rate?: number;
   default_overtime_rate?: number;
+  // Vacation settings
+  default_vacation_days?: number;
   // Other settings
   invoice_prefix?: string;
   quote_prefix?: string;
@@ -120,6 +122,8 @@ export function CompanySettingsSimple() {
         default_overtime_rate: 62.50,
         default_currency: "EUR",
         default_tax_rate: 19.0,
+        // Vacation defaults
+        default_vacation_days: 25,
         // Document prefixes
         invoice_prefix: "RE",
         quote_prefix: "AN",
@@ -190,6 +194,8 @@ export function CompanySettingsSimple() {
         default_overtime_rate: settings.default_overtime_rate,
         default_currency: settings.default_currency,
         default_tax_rate: settings.default_tax_rate,
+        // Vacation settings
+        default_vacation_days: settings.default_vacation_days,
         // Document prefixes
         invoice_prefix: settings.invoice_prefix,
         quote_prefix: settings.quote_prefix,
@@ -506,6 +512,36 @@ export function CompanySettingsSimple() {
                   placeholder="19.0"
                 />
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Vacation Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Urlaubseinstellungen
+            </CardTitle>
+            <CardDescription>
+              Standard-Urlaubstage für neue Mitarbeiter
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="default_vacation_days">Standard Urlaubstage pro Jahr</Label>
+              <Input
+                id="default_vacation_days"
+                type="number"
+                min="0"
+                max="50"
+                value={settings.default_vacation_days || 25}
+                onChange={(e) => updateSetting("default_vacation_days", Number(e.target.value))}
+                placeholder="25"
+              />
+              <p className="text-xs text-muted-foreground">
+                Diese Anzahl wird automatisch jedem neuen Mitarbeiter bei der Erstellung zugewiesen
+              </p>
             </div>
           </CardContent>
         </Card>

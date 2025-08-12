@@ -29,12 +29,14 @@ import {
   ImageIcon,
   Receipt,
   Plus,
-  X
+  X,
+  Calendar
 } from "lucide-react";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import MobileOnboarding from "./MobileOnboarding";
+import { VacationRequestDialog } from "../VacationRequestDialog";
 
 interface Project {
   id: string;
@@ -87,7 +89,7 @@ const MobileEmployeeApp: React.FC = () => {
   const { toast } = useToast();
   
   // State Management
-  const [currentView, setCurrentView] = useState<'home' | 'projects' | 'time' | 'activity' | 'profile'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'projects' | 'time' | 'activity' | 'profile' | 'vacation'>('home');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, address: string} | null>(null);
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
@@ -113,6 +115,8 @@ const MobileEmployeeApp: React.FC = () => {
   const [notifications, setNotifications] = useState<number>(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isFirstVisit, setIsFirstVisit] = useState(true);
+  const [showVacationDialog, setShowVacationDialog] = useState(false);
+  const [vacationBalance, setVacationBalance] = useState({ available: 0, total: 0 });
 
   // Quick Actions State
   const [quickMaterialEntry, setQuickMaterialEntry] = useState({
@@ -150,6 +154,9 @@ const MobileEmployeeApp: React.FC = () => {
 
     // Load existing data
     loadExistingData();
+
+    // Load vacation balance
+    loadVacationBalance();
 
     // Check if first visit
     const hasSeenOnboarding = localStorage.getItem('handwerkos-onboarding-completed');
@@ -266,6 +273,54 @@ const MobileEmployeeApp: React.FC = () => {
       }
     } catch (error) {
       console.error('Error loading existing data:', error);
+    }
+  };
+
+  // Load vacation balance
+  const loadVacationBalance = async () => {
+    if (!user?.id || !isOnline) return;
+    
+    try {
+      // Get employee data
+      const { data: employee } = await supabase
+        .from('employees')
+        .select('id, vacation_days_total, vacation_days_used')
+        .eq('user_id', user.id)
+        .single();
+
+      if (employee) {
+        // Calculate pending days from pending requests
+        const { data: pendingRequests } = await supabase
+          .from('vacation_requests')
+          .select('days_requested')
+          .eq('employee_id', employee.id)
+          .eq('status', 'pending')
+          .eq('request_type', 'vacation');
+
+        const pendingDays = pendingRequests?.reduce((sum, req) => sum + req.days_requested, 0) || 0;
+        const totalDays = employee.vacation_days_total || 0;
+        const usedDays = employee.vacation_days_used || 0;
+        const availableDays = Math.max(0, totalDays - usedDays - pendingDays);
+
+        setVacationBalance({
+          available: availableDays,
+          total: totalDays
+        });
+      } else {
+        // Get default from company settings if no employee record
+        const { data: settings } = await supabase
+          .from('company_settings')
+          .select('default_vacation_days')
+          .single();
+
+        const defaultDays = settings?.default_vacation_days || 25;
+        setVacationBalance({
+          available: defaultDays,
+          total: defaultDays
+        });
+      }
+    } catch (error) {
+      console.error('Error loading vacation balance:', error);
     }
   };
 
@@ -886,10 +941,13 @@ const MobileEmployeeApp: React.FC = () => {
           <Button
             variant="outline"
             className="h-20 flex flex-col gap-2"
-            onClick={getCurrentLocation}
+            onClick={() => setShowVacationDialog(true)}
           >
-            <Navigation className="h-6 w-6" />
-            <span className="text-sm">Standort</span>
+            <Calendar className="h-6 w-6" />
+            <span className="text-sm">Urlaub</span>
+            {vacationBalance.available > 0 && (
+              <span className="text-xs text-green-600">{vacationBalance.available} Tage</span>
+            )}
           </Button>
         </CardContent>
       </Card>
@@ -1241,6 +1299,61 @@ const MobileEmployeeApp: React.FC = () => {
     </div>
   );
 
+  const renderVacationView = () => (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">Urlaub</h3>
+        <Button onClick={() => setShowVacationDialog(true)} size="sm">
+          <Plus className="h-4 w-4 mr-2" />
+          Antrag
+        </Button>
+      </div>
+      
+      {/* Vacation Balance */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Mein Urlaubskonto
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600">{vacationBalance.total}</div>
+              <div className="text-sm text-blue-700">Gesamte Tage</div>
+            </div>
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <div className="text-2xl font-bold text-green-600">{vacationBalance.available}</div>
+              <div className="text-sm text-green-700">Verfügbar</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick Request Button */}
+      <Button 
+        onClick={() => setShowVacationDialog(true)}
+        className="w-full h-16 text-lg"
+      >
+        <Calendar className="h-6 w-6 mr-3" />
+        Urlaubsantrag stellen
+      </Button>
+
+      {/* Info Card */}
+      <Card>
+        <CardContent className="p-4">
+          <h4 className="font-medium mb-2">Hinweise</h4>
+          <ul className="text-sm text-gray-600 space-y-1">
+            <li>• Anträge werden vom Manager geprüft</li>
+            <li>• Mindestens 2 Wochen im Voraus beantragen</li>
+            <li>• Bei Krankmeldung sofort Bescheid geben</li>
+          </ul>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
   const renderProfileView = () => (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Profil</h3>
@@ -1311,6 +1424,7 @@ const MobileEmployeeApp: React.FC = () => {
         {currentView === 'home' && renderHomeView()}
         {currentView === 'projects' && renderProjectsView()}
         {currentView === 'time' && renderTimeView()}
+        {currentView === 'vacation' && renderVacationView()}
         {currentView === 'activity' && renderActivityView()}
         {currentView === 'profile' && renderProfileView()}
       </div>
@@ -1322,7 +1436,7 @@ const MobileEmployeeApp: React.FC = () => {
             { id: 'home', icon: Home, label: 'Start' },
             { id: 'projects', icon: List, label: 'Projekte' },
             { id: 'time', icon: Clock, label: 'Zeit' },
-            { id: 'activity', icon: Bell, label: 'Aktivität' },
+            { id: 'vacation', icon: Calendar, label: 'Urlaub' },
             { id: 'profile', icon: User, label: 'Profil' }
           ].map((item) => (
             <Button
@@ -1485,6 +1599,12 @@ const MobileEmployeeApp: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <VacationRequestDialog
+        open={showVacationDialog}
+        onOpenChange={setShowVacationDialog}
+        onSuccess={loadVacationBalance}
+      />
     </div>
   );
 };
