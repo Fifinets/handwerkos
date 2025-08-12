@@ -357,9 +357,9 @@ const ProjectModule = () => {
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-12 gap-6">
-        {/* Left Column */}
-        <div className="col-span-8 space-y-6">
+      <div className="grid grid-cols-3 gap-6">
+        {/* Left Column - Takes 2 of 3 columns */}
+        <div className="col-span-2 space-y-6">
           {/* Aktuelle Projekte */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100">
             <div className="p-6 border-b border-gray-100">
@@ -455,8 +455,8 @@ const ProjectModule = () => {
           </div>
         </div>
 
-        {/* Right Sidebar */}
-        <div className="col-span-4 space-y-6">
+        {/* Right Sidebar - Takes 1 of 3 columns */}
+        <div className="col-span-1 space-y-6">
           {/* Projektstatus */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <h3 className="font-semibold text-gray-900 mb-4">Projektstatus</h3>
