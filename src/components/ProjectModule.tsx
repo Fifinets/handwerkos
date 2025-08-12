@@ -397,7 +397,7 @@ const ProjectModule = () => {
                         Ende: {project.end_date ? new Date(project.end_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) : 'Offen'} • 
                         Budget: <strong className="text-green-600">€{formatBudget(project.budget, project.description)}</strong>
                       </div>
-                      <div className="progress h-3 rounded-full bg-slate-200 overflow-hidden relative" role="progressbar" aria-valuenow="55" aria-valuemin="0" aria-valuemax="100">
+                      <div className="progress h-3 rounded-full bg-slate-200 overflow-hidden relative" role="progressbar" aria-valuenow={55} aria-valuemin={0} aria-valuemax={100}>
                         <span 
                           className="block h-full bg-gradient-to-r from-blue-600 to-blue-400"
                           style={{
@@ -437,7 +437,7 @@ const ProjectModule = () => {
                     </div>
                   )}
               </div>
-            </div>
+            </article>
           </div>
           
           {/* Right Column - Sidebar Content */}
