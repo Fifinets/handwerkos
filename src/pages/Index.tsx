@@ -130,11 +130,9 @@ const Index = () => {
           </div>
         </header>
 
-        {/* Main Content ohne extra Padding da es jetzt im ExecutiveDashboard gehandhabt wird */}
+        {/* Main Content - Module haben jetzt ihr eigenes Styling */}
         <main className="flex-1 overflow-auto">
-          <div className="animate-fadeIn">
-            {renderModule()}
-          </div>
+          {renderModule()}
         </main>
       </div>
     </div>;

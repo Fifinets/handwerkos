@@ -726,106 +726,229 @@ const ProjectModule = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-orange-600 bg-clip-text text-transparent flex items-center gap-3">
-            <Building2 className="h-8 w-8 text-orange-600" />
-            Projekte & Baustellen</h2>
-          <p className="text-gray-600">Verwalten Sie Projekte und Aufträge</p>
+    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
+      {/* Header im Stil der Vorlage */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold text-gray-900">Projekte & Baustellen</h1>
+            <p className="text-gray-600">Übersicht Ihrer aktuellen Projekte und deren Status</p>
+          </div>
+          <Button
+            onClick={() => setIsAddDialogOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Neues Projekt
+          </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="projects" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="projects" className="flex items-center gap-2">
-            <Building2 className="h-4 w-4" />
-            Projekte
-          </TabsTrigger>
-          <TabsTrigger value="orders" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Aufträge
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="projects" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">Projekt-Dashboard</h3>
-            <Button
-              onClick={() => setIsAddDialogOpen(true)}
-              
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Neues Projekt
-            </Button>
+      {/* Statistik-Header wie in der Vorlage */}
+      <div className="grid grid-cols-4 gap-6">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="text-center">
+            <div className="text-3xl font-bold text-blue-600">{statusCounts.in_bearbeitung + statusCounts.geplant + statusCounts.anfrage + statusCounts.besichtigung}</div>
+            <div className="text-gray-600 mt-1">Aktive Projekte</div>
           </div>
-
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card><CardContent className="p-4"><p>Aktive Projekte</p><p className="text-2xl">{statusCounts.in_bearbeitung}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p>Abgeschlossene</p><p className="text-2xl">{statusCounts.abgeschlossen}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p>Gesamtbudget</p><p className="text-2xl">€{totalBudget.toLocaleString()}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p>Projekte gesamt</p><p className="text-2xl">{projects.length}</p></CardContent></Card>
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="text-center">
+            <div className="text-3xl font-bold text-gray-900">{statusCounts.abgeschlossen}</div>
+            <div className="text-gray-600 mt-1">Abgeschlossene</div>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="text-center">
+            <div className="text-3xl font-bold text-green-600">€{totalBudget.toLocaleString()}</div>
+            <div className="text-gray-600 mt-1">Gesamtbudget</div>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="text-center">
+            <div className="text-3xl font-bold text-gray-900">{delayedProjects.length}</div>
+            <div className="text-gray-600 mt-1">Verspätet</div>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">Aktuelle Projekte</h3>
+      {/* Hauptbereich mit zwei Spalten wie in der Vorlage */}
+      <div className="grid grid-cols-12 gap-6">
+        {/* Linke Spalte - Aktuelle Projekte */}
+        <div className="col-span-8 space-y-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-gray-900">Aktuelle Projekte</h2>
+                <div className="text-sm text-gray-500">Heute • {new Date().toLocaleDateString('de-DE')}</div>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+
+              {projects.filter(p => p.status !== 'abgeschlossen').map(project => {
+                const endDate = project.end_date ? new Date(project.end_date) : null;
+                const isOverdue = endDate && endDate < new Date();
+                const statusColor = project.status === 'geplant' ? 'orange' : project.status === 'in_bearbeitung' ? 'blue' : 'purple';
+                return (
+                  <div 
+                    key={project.id} 
+                    className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                    onDoubleClick={() => handleDoubleClickProject(project)}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-8 bg-${statusColor}-500 rounded-full`}></div>
+                        <div>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-${statusColor}-100 text-${statusColor}-800 mr-2`}>
+                            {getStatusDisplayName(project.status)}
+                          </span>
+                          <span className="font-medium text-gray-900">{project.name}</span>
+                        </div>
+                      </div>
+                      <span className="text-sm text-gray-500">ID: {generateShortId(project.id)}</span>
+                    </div>
+                    <div className="ml-5 text-sm text-gray-600">
+                      Start: {new Date(project.start_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })} • 
+                      Ende: {project.end_date ? new Date(project.end_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) : 'Offen'} • 
+                      Budget: €{formatBudget(project.budget, project.description)}
+                    </div>
+                    <div className="ml-5 mt-3 flex items-center gap-4">
+                      <button 
+                        onClick={() => handleDoubleClickProject(project)}
+                        className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600"
+                      >
+                        <Building2 className="w-4 h-4" />
+                        Öffnen
+                      </button>
+                      <button 
+                        onClick={() => setSelectedProject(project) || setIsEditDialogOpen(true)}
+                        className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600"
+                      >
+                        <Edit className="w-4 h-4" />
+                        Bearbeiten
+                      </button>
+                      <button 
+                        onClick={() => setSelectedProject(project) || setIsPreCalculationOpen(true)}
+                        className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600"
+                      >
+                        <Calculator className="w-4 h-4" />
+                        Kalkulieren
+                      </button>
+                    </div>
+                    {/* Fortschrittsbalken */}
+                    <div className="ml-5 mt-3">
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-500 h-2 rounded-full" 
+                          style={{
+                            width: project.status === 'abgeschlossen' ? '100%' : 
+                                   project.status === 'in_bearbeitung' ? '60%' : 
+                                   project.status === 'geplant' ? '30%' : '10%'
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {projects.filter(p => p.status !== 'abgeschlossen').map(project => {
-            const endDate = project.end_date ? new Date(project.end_date) : null;
-            const isOverdue = endDate && endDate < new Date();
-            return (
-            <Card 
-              key={project.id} 
-              className="hover:shadow-lg transition-shadow cursor-pointer"
-              onDoubleClick={() => handleDoubleClickProject(project)}
-            >
-              <CardContent className="p-6 flex flex-col h-full">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      {getStatusIcon(project.status)}
-                      <h4 className="text-lg font-semibold">{project.name}</h4>
-                      <Badge className={getStatusColor(project.status)}>
-                        {getStatusDisplayName(project.status)}
-                      </Badge>
-                      {isOverdue && (
-                        <Badge variant="destructive">Überfällig</Badge>
-                      )}
+          {/* Verzögerte Projekte Sektion */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div className="p-6 border-b border-gray-100">
+              <h2 className="text-xl font-semibold text-gray-900">Verzögerte Projekte</h2>
+            </div>
+            <div className="p-6">
+              {delayedProjects.length > 0 ? (
+                <div className="space-y-3">
+                  {delayedProjects.map(project => (
+                    <div key={project.id} className="text-sm text-red-600">
+                      {project.name} - {new Date(project.end_date).toLocaleDateString('de-DE')}
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <span>ID: {generateShortId(project.id)}</span>
-                      <span>Start: {new Date(project.start_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</span>
-                      {project.end_date && (
-                        <span>Ende: {new Date(project.end_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</span>
-                      )}
-                      {hasPreCalculation(project.description) && (
-                        <Badge variant="outline" className="text-green-600 border-green-600">
-                          <Calculator className="h-3 w-3 mr-1" />
-                          Kalkuliert
-                        </Badge>
-                      )}
-                      {(() => {
-                        const estimateInfo = getEstimateInfo(project.description);
-                        if (estimateInfo && estimateInfo.totalEstimates > 0) {
-                          return (
-                            <Badge variant="outline" className="text-orange-600 border-orange-600">
-                              {estimateInfo.totalEstimates} Schätzung{estimateInfo.totalEstimates > 1 ? 'en' : ''}
-                            </Badge>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600">Budget</p>
-                    <p className="text-2xl font-bold text-green-600">€{formatBudget(project.budget, project.description)}</p>
-                  </div>
+                  ))}
                 </div>
+              ) : (
+                <p className="text-gray-500 text-center py-8">Keine Projekte im Verzug 🏆</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Rechte Spalte - Sidebar wie in der Vorlage */}
+        <div className="col-span-4 space-y-6">
+          {/* Projektstatus */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 className="font-semibold text-gray-900 mb-4">Projektstatus</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                  <span className="text-sm text-gray-700">Anfrage</span>
+                </div>
+                <span className="text-sm font-medium">{statusCounts.anfrage}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                  <span className="text-sm text-gray-700">Besichtigung</span>
+                </div>
+                <span className="text-sm font-medium">{statusCounts.besichtigung}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                  <span className="text-sm text-gray-700">Planung</span>
+                </div>
+                <span className="text-sm font-medium">{statusCounts.geplant}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                  <span className="text-sm text-gray-700">In Bearbeitung</span>
+                </div>
+                <span className="text-sm font-medium">{statusCounts.in_bearbeitung}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                  <span className="text-sm text-gray-700">Abgeschlossen</span>
+                </div>
+                <span className="text-sm font-medium">{statusCounts.abgeschlossen}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Top Kunden */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 className="font-semibold text-gray-900 mb-4">Top Kunden</h3>
+            <div className="space-y-3">
+              {topCustomers.length > 0 ? topCustomers.map((customer) => (
+                <div key={customer.id} className="text-sm text-gray-700">
+                  {customer.company_name} <span className="text-gray-500 float-right">{customer.email}</span>
+                </div>
+              )) : (
+                <div className="text-sm text-gray-500">Keine Kunden gefunden</div>
+              )}
+            </div>
+          </div>
+
+          {/* Projekt Übersicht */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 className="font-semibold text-gray-900 mb-4">Projekt Übersicht</h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-700">Gesamt: {projects.length}</span>
+                <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">Planung: {statusCounts.geplant}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-700">In Bearbeitung: {statusCounts.in_bearbeitung}</span>
+                <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Abgeschlossen: {statusCounts.abgeschlossen}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
                 <div className="space-y-3 flex-grow">
                   
@@ -955,12 +1078,6 @@ const ProjectModule = () => {
         </div>
       </div>
 
-        </TabsContent>
-
-        <TabsContent value="orders">
-          <OrderModule />
-        </TabsContent>
-      </Tabs>
 
       <AddProjectDialog
         isOpen={isAddDialogOpen}

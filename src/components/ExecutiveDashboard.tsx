@@ -287,12 +287,12 @@ const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ onNavigate }) =
 
   return (
     <div className="space-y-6 animate-fadeIn p-6 bg-gray-50 min-h-screen">
-      {/* Modern Header entsprechend der Vorlage */}
+      {/* Dashboard Header */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
         <div className="flex items-center justify-between">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-gray-900">Projekte & Baustellen</h1>
-            <p className="text-gray-600">Übersicht Ihrer aktuellen Projekte und deren Status</p>
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-600">Zentrale Übersicht Ihres Handwerksbetriebs</p>
           </div>
           
           {getCriticalAlertCount() > 0 && (
@@ -306,101 +306,91 @@ const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ onNavigate }) =
         </div>
       </div>
 
-      {/* Statistik-Header wie in der Vorlage */}
+      {/* KPI-Header für Dashboard */}
       <div className="grid grid-cols-4 gap-6">
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="text-center">
             <div className="text-3xl font-bold text-blue-600">{dashboardData.projectStatus.active + dashboardData.projectStatus.planning}</div>
-            <div className="text-gray-600 mt-1">Aktive Projekte</div>
+            <div className="text-gray-600 mt-1">Offene Aufträge</div>
           </div>
         </div>
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="text-center">
-            <div className="text-3xl font-bold text-gray-900">{dashboardData.criticalAlerts.overdueProjects}</div>
-            <div className="text-gray-600 mt-1">Abgeschlossene</div>
+            <div className="text-3xl font-bold text-green-600">{formatCurrency(dashboardData.financialKPIs.monthlyRevenue)}</div>
+            <div className="text-gray-600 mt-1">Monatsumsatz</div>
           </div>
         </div>
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="text-center">
-            <div className="text-3xl font-bold text-green-600">€0</div>
-            <div className="text-gray-600 mt-1">Gesamtbudget</div>
+            <div className="text-3xl font-bold text-orange-600">{dashboardData.criticalAlerts.pendingQuotes}</div>
+            <div className="text-gray-600 mt-1">Offene Angebote</div>
           </div>
         </div>
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="text-center">
-            <div className="text-3xl font-bold text-gray-900">0</div>
-            <div className="text-gray-600 mt-1">Verspätet</div>
+            <div className="text-3xl font-bold text-purple-600">{dashboardData.teamOverview.activeEmployees}</div>
+            <div className="text-gray-600 mt-1">Mitarbeiter</div>
           </div>
         </div>
       </div>
 
-      {/* Hauptbereich mit zwei Spalten wie in der Vorlage */}
+      {/* Dashboard Hauptbereich */}
       <div className="grid grid-cols-12 gap-6">
-        {/* Linke Spalte - Aktuelle Projekte */}
+        {/* Linke Spalte - Dashboard Content */}
         <div className="col-span-8 space-y-6">
+          {/* Finanzübersicht */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
             <div className="p-6 border-b border-gray-100">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900">Aktuelle Projekte</h2>
-                <div className="text-sm text-gray-500">Heute • 01.08 — 29.08</div>
-              </div>
+              <h2 className="text-xl font-semibold text-gray-900">Finanzübersicht</h2>
             </div>
             <div className="p-6">
-              {/* Beispiel-Projekt im Stil der Vorlage */}
-              <div className="space-y-4">
-                <div className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50 transition-colors cursor-pointer">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-8 bg-orange-500 rounded-full"></div>
-                      <div>
-                        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-orange-100 text-orange-800 mr-2">
-                          Planung
-                        </span>
-                        <span className="font-medium text-gray-900">Elektroinstallation für Altbauwohnung in Berlin</span>
-                      </div>
-                    </div>
-                    <span className="text-sm text-gray-500">ID: FF7350C</span>
-                  </div>
-                  <div className="ml-5 text-sm text-gray-600">
-                    Start: 01.08 • Ende: 29.08 • Budget: €0
-                  </div>
-                  <div className="ml-5 mt-3 flex items-center gap-4">
-                    <button className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600">
-                      <Building2 className="w-4 h-4" />
-                      Öffnen
-                    </button>
-                    <button className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600">
-                      <Clock className="w-4 h-4" />
-                      Zeit
-                    </button>
-                    <button className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600">
-                      <FileText className="w-4 h-4" />
-                      Details
-                    </button>
-                  </div>
-                  {/* Fortschrittsbalken */}
-                  <div className="ml-5 mt-3">
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-blue-500 h-2 rounded-full" style={{width: '60%'}}></div>
-                    </div>
-                  </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <div className="text-sm text-gray-600 mb-1">Umsatz</div>
+                  <div className="text-2xl font-bold text-green-600">{formatCurrency(dashboardData.financialKPIs.monthlyRevenue)}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-600 mb-1">Gewinn</div>
+                  <div className="text-2xl font-bold text-blue-600">{formatCurrency(dashboardData.financialKPIs.profit)}</div>
+                </div>
+              </div>
+              <div className="mt-6 p-4 bg-gray-50 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-700">Gewinnmarge</span>
+                  <span className="font-semibold text-gray-900">{dashboardData.financialKPIs.profitMargin}%</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Verzögerte Projekte Sektion */}
+          {/* Schnellaktionen */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
             <div className="p-6 border-b border-gray-100">
-              <h2 className="text-xl font-semibold text-gray-900">Verzögerte Projekte</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Schnellaktionen</h2>
             </div>
             <div className="p-6">
-              <p className="text-gray-500 text-center py-8">Keine Projekte im Verzug 🏆</p>
+              <div className="grid grid-cols-2 gap-4">
+                {quickActions.map((action) => (
+                  <button
+                    key={action.id}
+                    onClick={action.onClick}
+                    className="flex items-center gap-4 p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors text-left"
+                  >
+                    <div className={`p-3 rounded-lg ${action.color}`}>
+                      <action.icon className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-gray-900">{action.title}</div>
+                      <div className="text-sm text-gray-500">{action.description}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Rechte Spalte - Sidebar wie in der Vorlage */}
+        {/* Rechte Spalte - Dashboard Sidebar */}
         <div className="col-span-4 space-y-6">
           {/* Projektstatus */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -412,20 +402,6 @@ const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ onNavigate }) =
                   <span className="text-sm text-gray-700">Anfrage</span>
                 </div>
                 <span className="text-sm font-medium">{dashboardData.projectStatus.planning}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                  <span className="text-sm text-gray-700">Besichtigung</span>
-                </div>
-                <span className="text-sm font-medium">0</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                  <span className="text-sm text-gray-700">Planung</span>
-                </div>
-                <span className="text-sm font-medium">1</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -444,28 +420,30 @@ const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ onNavigate }) =
             </div>
           </div>
 
-          {/* Top Kunden */}
+          {/* Team Übersicht */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Top Kunden</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">Team Übersicht</h3>
             <div className="space-y-3">
-              <div className="text-sm text-gray-700">
-                Bauer <span className="text-gray-500 float-right">filipboss007@gmail.com</span>
+              <div className="flex justify-between">
+                <span className="text-gray-700">Aktive Mitarbeiter</span>
+                <span className="font-medium">{dashboardData.teamOverview.activeEmployees}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-700">Stunden heute</span>
+                <span className="font-medium">{dashboardData.teamOverview.todayHours}h</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-700">Auslastung</span>
+                <span className="font-medium">{dashboardData.teamOverview.utilizationRate}%</span>
               </div>
             </div>
           </div>
 
-          {/* Projekt Übersicht */}
+          {/* Heute / Termine */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Projekt Übersicht</h3>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-700">Gesamt: 1</span>
-                <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">Planung: 1</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-700">In Bearbeitung: 0</span>
-                <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Abgeschlossen: 0</span>
-              </div>
+            <h3 className="font-semibold text-gray-900 mb-4">Heute</h3>
+            <div className="text-center py-4">
+              <p className="text-gray-500">Keine Termine für heute</p>
             </div>
           </div>
         </div>
