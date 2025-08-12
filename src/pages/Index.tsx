@@ -102,30 +102,45 @@ const Index = () => {
       <AppSidebar activeModule={activeModule} onModuleChange={setActiveModule} />
       
       <div className="ml-16 lg:ml-16 flex flex-col min-h-screen">
-        {/* Modern Header im Stil der Vorlage */}
-        <header className="h-16 bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
-          <div className="flex items-center justify-between h-full px-6">
-            <div className="flex items-center space-x-3">
-              <Button
-                variant="ghost" 
-                size="sm"
-                className="text-blue-600 hover:bg-blue-50"
-              >
-                Dark Mode
-              </Button>
-              <div className="flex items-center gap-2">
-                <User className="w-4 h-4 text-gray-600" />
-                <span className="text-sm text-gray-700">Mitarbeiter-Account</span>
+        {/* Header wie ursprünglich mit Logo */}
+        <header className="h-20 border-b border-white/20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl sticky top-0 z-30 shadow-lg shadow-blue-500/10">
+          <div className="flex items-center justify-between h-full px-8">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center gap-3">
+                <img 
+                  src="/handwerkos-logo.svg" 
+                  alt="HandwerkOS Logo" 
+                  className="h-10 w-10 object-contain"
+                />
+                <h1 className="font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent text-3xl">
+                  HandwerkOS
+                </h1>
               </div>
+              <Badge 
+                variant="secondary" 
+                className="hidden sm:inline-flex bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 border-0 shadow-sm"
+              >
+                Manager Dashboard
+              </Badge>
             </div>
             
             <div className="flex items-center space-x-4">
+              <ThemeToggle />
               <Button 
-                size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2"
+                variant="outline" 
+                size="sm" 
+                onClick={() => navigate('/employee')} 
+                className="hidden sm:flex bg-white/50 hover:bg-white/80 border-white/30 backdrop-blur-sm shadow-lg transition-all duration-200 hover:scale-105"
               >
-                Neues Projekt
+                <UserCheck className="w-4 h-4 mr-2" />
+                Mitarbeiter-Ansicht
               </Button>
+              <div className="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 bg-white/30 dark:bg-slate-800/30 px-3 py-2 rounded-full backdrop-blur-sm">
+                <User className="w-4 h-4" />
+                <span className="hidden sm:inline font-medium">
+                  {user?.email?.split('@')[0] || 'Admin'}
+                </span>
+              </div>
             </div>
           </div>
         </header>
