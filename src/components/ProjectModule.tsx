@@ -326,49 +326,51 @@ const ProjectModule = () => {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-blue-600">
+      {/* Sticky KPIs exactly like HTML reference */}
+      <section 
+        className="sticky top-0 z-10 backdrop-blur-sm bg-white/85 border border-slate-900/6 p-3 rounded-2xl shadow-lg grid grid-cols-4 gap-3 mb-4"
+        style={{ backdropFilter: 'saturate(1.2) blur(6px)' }}
+        aria-label="Kennzahlen"
+      >
+        <div className="bg-white border border-slate-200/60 rounded-xl p-3 flex items-center justify-between">
+          <div>
+            <h4 className="m-0 text-sm text-gray-600 font-semibold">Aktive Projekte</h4>
+            <div className="text-2xl font-bold text-gray-900">
               {statusCounts.in_bearbeitung + statusCounts.geplant + statusCounts.anfrage + statusCounts.besichtigung}
             </div>
-            <div className="text-gray-600 mt-1">Aktive Projekte</div>
           </div>
         </div>
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-gray-900">{statusCounts.abgeschlossen}</div>
-            <div className="text-gray-600 mt-1">Abgeschlossene</div>
+        <div className="bg-white border border-slate-200/60 rounded-xl p-3 flex items-center justify-between">
+          <div>
+            <h4 className="m-0 text-sm text-gray-600 font-semibold">Abgeschlossene</h4>
+            <div className="text-2xl font-bold text-gray-900">{statusCounts.abgeschlossen}</div>
           </div>
         </div>
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-green-600">€{totalBudget.toLocaleString()}</div>
-            <div className="text-gray-600 mt-1">Gesamtbudget</div>
+        <div className="bg-white border border-slate-200/60 rounded-xl p-3 flex items-center justify-between">
+          <div>
+            <h4 className="m-0 text-sm text-gray-600 font-semibold">Gesamtbudget</h4>
+            <div className="text-2xl font-bold text-gray-900">€{totalBudget.toLocaleString('de-DE')}</div>
           </div>
         </div>
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-gray-900">{delayedProjects.length}</div>
-            <div className="text-gray-600 mt-1">Verspätet</div>
+        <div className="bg-white border border-slate-200/60 rounded-xl p-3 flex items-center justify-between">
+          <div>
+            <h4 className="m-0 text-sm text-gray-600 font-semibold">Verspätet</h4>
+            <div className="text-2xl font-bold text-gray-900">{delayedProjects.length}</div>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Main Content - Full Width */}
       <div className="space-y-6">
-        {/* Aktuelle Projekte - Full Width */}
-        <div className="grid grid-cols-12 gap-6">
+        {/* Content Grid exactly like HTML */}
+        <div className="grid grid-cols-12 gap-4">
           <div className="col-span-8">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-              <div className="p-6 border-b border-gray-100">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold text-gray-900">Aktuelle Projekte</h2>
-                  <div className="text-sm text-gray-500">Heute • {new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</div>
-                </div>
-              </div>
-            <div className="p-4">
+            <article className="bg-white border border-slate-200/60 rounded-2xl shadow-lg">
+              <header className="flex items-center justify-between p-4 border-b border-slate-200/60">
+                <h3 className="m-0 text-lg font-semibold text-gray-900">Aktuelle Projekte</h3>
+                <div className="text-gray-600 text-sm">Heute • {new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</div>
+              </header>
+            <div className="p-3">
               {projects.filter(p => p.status !== 'abgeschlossen').length > 0 ? 
                 projects.filter(p => p.status !== 'abgeschlossen').map(project => {
                   const statusColor = project.status === 'geplant' ? 'bg-orange-100 text-orange-800' : 
@@ -378,50 +380,53 @@ const ProjectModule = () => {
                   return (
                     <div 
                       key={project.id} 
-                      className="border border-gray-200 rounded-lg p-3 mb-3 hover:bg-gray-50 transition-colors cursor-pointer"
+                      className="project flex flex-col gap-3 mb-6 cursor-pointer hover:bg-gray-50 p-2 rounded-lg"
                       onDoubleClick={() => handleDoubleClickProject(project)}
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2 py-1 text-xs font-medium rounded ${statusColor}`}>
-                            {getStatusDisplayName(project.status)}
-                          </span>
-                          <span className="font-medium text-gray-900 text-sm">{project.name}</span>
-                          <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                            ID: {generateShortId(project.id)}
-                          </span>
-                        </div>
+                      <div className="row flex items-center gap-3 flex-wrap">
+                        <span className={`text-xs px-2 py-1 rounded-full border ${statusColor === 'bg-orange-100 text-orange-800' ? 'bg-orange-50 text-orange-700 border-orange-200' : statusColor === 'bg-blue-100 text-blue-800' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-purple-50 text-purple-700 border-purple-200'}`}>
+                          {getStatusDisplayName(project.status)}
+                        </span>
+                        <strong className="text-gray-900">{project.name}</strong>
+                        <span className="text-xs px-2 py-1 rounded-full border bg-blue-50 text-blue-700 border-blue-200">
+                          ID: {generateShortId(project.id)}
+                        </span>
                       </div>
-                      <div className="text-xs text-gray-600 mb-2">
+                      <div className="meta text-gray-600 text-sm">
                         Start: {new Date(project.start_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })} • 
                         Ende: {project.end_date ? new Date(project.end_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) : 'Offen'} • 
-                        Budget: €{formatBudget(project.budget, project.description)}
+                        Budget: <strong className="text-green-600">€{formatBudget(project.budget, project.description)}</strong>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
-                        <div 
-                          className="bg-blue-500 h-1.5 rounded-full" 
+                      <div className="progress h-3 rounded-full bg-slate-200 overflow-hidden relative" role="progressbar" aria-valuenow="55" aria-valuemin="0" aria-valuemax="100">
+                        <span 
+                          className="block h-full bg-gradient-to-r from-blue-600 to-blue-400"
                           style={{
                             width: project.status === 'abgeschlossen' ? '100%' : 
                                    project.status === 'in_bearbeitung' ? '60%' : 
                                    project.status === 'geplant' ? '30%' : '10%'
                           }}
-                        ></div>
+                        ></span>
+                        <div className="ticks absolute inset-0 grid grid-cols-12" aria-hidden="true">
+                          {Array.from({length: 12}).map((_, i) => (
+                            <i key={i} className="border-r border-dashed border-slate-300/40"></i>
+                          ))}
+                        </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 mt-2">
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleDoubleClickProject(project); }}
-                          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                          className="btn inline-flex items-center gap-1 h-8 px-3 rounded-lg border border-gray-200 bg-white shadow-sm cursor-pointer text-gray-900 hover:bg-gray-50"
+                          title="Projekt öffnen"
                         >
-                          <Building2 className="w-3 h-3" />
-                          Öffnen
+                          🔎 Öffnen
                         </button>
-                        <button className="flex items-center gap-1 text-xs text-gray-600 hover:text-blue-600">
-                          <Clock className="w-3 h-3" />
-                          Zeit
+                        <button className="btn inline-flex items-center gap-1 h-8 px-3 rounded-lg border border-gray-200 bg-white shadow-sm cursor-pointer text-gray-900 hover:bg-gray-50"
+                               title="Zeiterfassung">
+                          ⏱️ Zeit
                         </button>
-                        <button className="flex items-center gap-1 text-xs text-gray-600 hover:text-blue-600">
-                          <FileText className="w-3 h-3" />
-                          Dateien
+                        <button className="btn inline-flex items-center gap-1 h-8 px-3 rounded-lg border border-gray-200 bg-white shadow-sm cursor-pointer text-gray-900 hover:bg-gray-50"
+                               title="Dateien">
+                          📎 Dateien
                         </button>
                       </div>
                     </div>
