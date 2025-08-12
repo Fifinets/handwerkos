@@ -309,204 +309,245 @@ const ProjectModule = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      {/* Header exakt wie im Referenzbild */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Projekte & Baustellen</h1>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-500">🌙 Dark Mode</span>
-          <span className="text-sm text-gray-500">👥 Mitarbeiter-Ansicht</span>
+    <div className="p-[22px] min-h-screen" style={{ background: 'radial-gradient(1200px 800px at 70% -100px, rgba(99,102,241,.08) 0%, transparent 70%), #f6f8fc' }}>
+      {/* Topbar exakt wie im HTML */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-[22px] font-bold text-gray-900">Projekte & Baustellen</div>
+        <div className="flex gap-2 items-center">
+          <button className="inline-flex items-center gap-2 h-10 px-[14px] rounded-xl border border-gray-200 bg-white shadow-sm cursor-pointer text-gray-900 hover:bg-gray-50">
+            🌙 Dark Mode
+          </button>
+          <button className="inline-flex items-center gap-2 h-10 px-[14px] rounded-xl border border-gray-200 bg-white shadow-sm cursor-pointer text-gray-900 hover:bg-gray-50">
+            👥 Mitarbeiter-Ansicht
+          </button>
           <Button
             onClick={() => setIsAddDialogOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2"
+            className="inline-flex items-center gap-2 h-10 px-[14px] rounded-xl bg-blue-600 hover:bg-blue-700 text-white border-transparent"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            Neues Projekt
+            ＋ Neues Projekt
           </Button>
         </div>
       </div>
 
-      {/* Statistik-Header exakt wie im Referenzbild */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900">
+      {/* Sticky KPIs exakt wie im HTML */}
+      <section 
+        className="sticky top-0 z-10 backdrop-blur-sm bg-white/85 border border-slate-900/6 p-3 rounded-[14px] shadow-lg grid grid-cols-4 gap-3 mb-4"
+        style={{ backdropFilter: 'saturate(1.2) blur(6px)' }}
+        aria-label="Kennzahlen"
+      >
+        <div className="bg-white border border-slate-100/60 rounded-xl p-3 flex items-center justify-between">
+          <div>
+            <h4 className="margin-0 text-[13px] text-gray-600 font-semibold">Aktive Projekte</h4>
+            <div className="text-[20px] font-bold text-gray-900">
               {statusCounts.in_bearbeitung + statusCounts.geplant + statusCounts.anfrage + statusCounts.besichtigung}
             </div>
-            <div className="text-sm text-gray-600 mt-1">Aktive Projekte</div>
           </div>
         </div>
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900">{statusCounts.abgeschlossen}</div>
-            <div className="text-sm text-gray-600 mt-1">Abgeschlossene</div>
+        <div className="bg-white border border-slate-100/60 rounded-xl p-3 flex items-center justify-between">
+          <div>
+            <h4 className="margin-0 text-[13px] text-gray-600 font-semibold">Abgeschlossene</h4>
+            <div className="text-[20px] font-bold text-gray-900">{statusCounts.abgeschlossen}</div>
           </div>
         </div>
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900">€{totalBudget.toLocaleString()}</div>
-            <div className="text-sm text-gray-600 mt-1">Gesamtbudget</div>
+        <div className="bg-white border border-slate-100/60 rounded-xl p-3 flex items-center justify-between">
+          <div>
+            <h4 className="margin-0 text-[13px] text-gray-600 font-semibold">Gesamtbudget</h4>
+            <div className="text-[20px] font-bold text-gray-900">€{totalBudget.toLocaleString('de-DE')}</div>
           </div>
         </div>
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900">{delayedProjects.length}</div>
-            <div className="text-sm text-gray-600 mt-1">Verspätet</div>
+        <div className="bg-white border border-slate-100/60 rounded-xl p-3 flex items-center justify-between">
+          <div>
+            <h4 className="margin-0 text-[13px] text-gray-600 font-semibold">Verspätet</h4>
+            <div className="text-[20px] font-bold text-gray-900">{delayedProjects.length}</div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Hauptbereich exakt wie im Referenzbild */}
-      <div className="grid grid-cols-12 gap-6">
-        {/* Linke Spalte - Aktuelle Projekte */}
-        <div className="col-span-8">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-100">
-            <div className="p-4 border-b border-gray-100">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Aktuelle Projekte</h2>
-                <div className="text-sm text-gray-500">Heute • {new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })}</div>
-              </div>
-            </div>
-            <div className="p-4">
-              <div className="space-y-3">
-                {projects.filter(p => p.status !== 'abgeschlossen').length > 0 ? 
-                  projects.filter(p => p.status !== 'abgeschlossen').map(project => {
-                    const statusColor = project.status === 'geplant' ? 'bg-orange-100 text-orange-800' : 
-                                       project.status === 'in_bearbeitung' ? 'bg-blue-100 text-blue-800' : 
-                                       'bg-purple-100 text-purple-800';
-                    const progressWidth = project.status === 'abgeschlossen' ? '100%' : 
-                                         project.status === 'in_bearbeitung' ? '60%' : 
-                                         project.status === 'geplant' ? '30%' : '10%';
-                    return (
-                      <div 
-                        key={project.id} 
-                        className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg cursor-pointer border-l-4 border-blue-500"
-                        onDoubleClick={() => handleDoubleClickProject(project)}
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-1">
-                            <span className={`px-2 py-1 text-xs font-medium rounded ${statusColor}`}>
-                              {getStatusDisplayName(project.status)}
-                            </span>
-                            <span className="font-medium text-gray-900">{project.name}</span>
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            Start: {new Date(project.start_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })} • 
-                            Ende: {project.end_date ? new Date(project.end_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) : 'Offen'} • 
-                            Budget: €{formatBudget(project.budget, project.description)}
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-1 mt-2">
-                            <div className="bg-blue-500 h-1 rounded-full" style={{ width: progressWidth }}></div>
-                          </div>
-                        </div>
-                        <div className="text-xs text-gray-500 ml-4">
-                          {generateShortId(project.id)}
+      {/* Content Grid exakt wie im HTML */}
+      <section className="grid grid-cols-[1.5fr_0.8fr] gap-4" aria-label="Hauptinhalte">
+        <div className="col-left">
+          {/* Aktuelle Projekte */}
+          <article className="bg-white border border-slate-100/60 rounded-[14px] shadow-lg">
+            <header className="flex items-center justify-between p-[14px_16px] border-b border-slate-100/60">
+              <h3 className="m-0 text-[16px] font-semibold text-gray-900">Aktuelle Projekte</h3>
+              <div className="text-gray-600 text-sm">Heute • {new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</div>
+            </header>
+            <div className="p-[12px_16px]">
+              {projects.filter(p => p.status !== 'abgeschlossen').length > 0 ? 
+                projects.filter(p => p.status !== 'abgeschlossen').map(project => {
+                  const getBadgeClass = (status: string) => {
+                    switch(status) {
+                      case 'abgeschlossen': return 'bg-green-50 text-green-700 border-green-200';
+                      case 'geplant': return 'bg-orange-50 text-orange-700 border-orange-200';  
+                      case 'in_bearbeitung': return 'bg-blue-50 text-blue-700 border-blue-200';
+                      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+                    }
+                  };
+                  
+                  const progressPercent = project.status === 'abgeschlossen' ? 100 : 
+                                         project.status === 'in_bearbeitung' ? 60 : 
+                                         project.status === 'geplant' ? 30 : 10;
+                  
+                  return (
+                    <div 
+                      key={project.id} 
+                      className="project flex flex-col gap-[10px] mb-6 cursor-pointer hover:bg-gray-50 p-2 rounded-lg"
+                      onDoubleClick={() => handleDoubleClickProject(project)}
+                    >
+                      <div className="row flex items-center gap-[10px] flex-wrap">
+                        <span className={`text-xs px-2 py-1 rounded-full border ${getBadgeClass(project.status)}`}>
+                          {getStatusDisplayName(project.status)}
+                        </span>
+                        <strong className="text-gray-900">{project.name}</strong>
+                        <span className="text-xs px-2 py-1 rounded-full border bg-blue-50 text-blue-700 border-blue-200">
+                          ID: {generateShortId(project.id)}
+                        </span>
+                      </div>
+                      <div className="meta text-gray-600 text-[13px]">
+                        Start: {new Date(project.start_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })} • 
+                        Ende: {project.end_date ? new Date(project.end_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) : 'Offen'} • 
+                        Budget: <strong className="text-green-600">€{formatBudget(project.budget, project.description)}</strong>
+                      </div>
+                      <div className="progress h-[10px] rounded-full bg-slate-200 overflow-hidden relative">
+                        <span 
+                          className="block h-full bg-gradient-to-r from-blue-600 to-blue-400"
+                          style={{ width: `${progressPercent}%` }}
+                        ></span>
+                        <div className="ticks absolute inset-0 grid grid-cols-12">
+                          {Array.from({length: 12}).map((_, i) => (
+                            <i key={i} className="border-r border-dashed border-slate-300/50"></i>
+                          ))}
                         </div>
                       </div>
-                    );
-                  }) : (
-                    <div className="text-center py-8 text-gray-500">
-                      Keine aktiven Projekte vorhanden
+                      <div className="flex gap-2 mt-2">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleDoubleClickProject(project); }}
+                          className="inline-flex items-center gap-1 h-8 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          🔎 Öffnen
+                        </button>
+                        <button className="inline-flex items-center gap-1 h-8 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:bg-gray-50">
+                          ⏱️ Zeit
+                        </button>
+                        <button className="inline-flex items-center gap-1 h-8 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:bg-gray-50">
+                          📎 Dateien
+                        </button>
+                      </div>
                     </div>
-                  )}
-              </div>
+                  );
+                }) : (
+                  <p className="text-gray-500 text-sm text-center py-4">Keine Projekte vorhanden</p>
+                )}
             </div>
-          </div>
+          </article>
 
-          {/* Verzögerte Projekte Sektion */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-100 mt-6">
-            <div className="p-4 border-b border-gray-100">
-              <h2 className="text-lg font-semibold text-gray-900">Verzögerte Projekte</h2>
-            </div>
-            <div className="p-4">
+          {/* Verzögerte Projekte */}
+          <article className="bg-white border border-slate-100/60 rounded-[14px] shadow-lg mt-4">
+            <header className="flex items-center justify-between p-[14px_16px] border-b border-slate-100/60">
+              <h3 className="m-0 text-[16px] font-semibold text-gray-900">Verzögerte Projekte</h3>
+            </header>
+            <div className="p-[12px_16px]">
               {delayedProjects.length > 0 ? (
-                <div className="space-y-2">
-                  {delayedProjects.map(project => (
-                    <div key={project.id} className="text-sm text-red-600 p-2 border-l-4 border-red-500 bg-red-50 rounded">
-                      {project.name} - {new Date(project.end_date).toLocaleDateString('de-DE')}
+                delayedProjects.map(project => (
+                  <div key={project.id} className="project flex flex-col gap-[10px] mb-4">
+                    <div className="row flex items-center gap-[10px] flex-wrap">
+                      <span className="text-xs px-2 py-1 rounded-full border bg-orange-50 text-orange-700 border-orange-200">Verspätet</span>
+                      <strong className="text-gray-900">{project.name}</strong>
+                      <span className="text-xs px-2 py-1 rounded-full border bg-blue-50 text-blue-700 border-blue-200">ID: {generateShortId(project.id)}</span>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))
               ) : (
-                <p className="text-gray-500 text-center py-4">Keine Projekte im Verzug 🏆</p>
+                <p className="text-gray-500 text-sm text-center py-4">Keine Projekte im Verzug 🎉</p>
               )}
             </div>
-          </div>
+          </article>
         </div>
 
-        {/* Rechte Spalte - Sidebar exakt wie im Referenzbild */}
-        <div className="col-span-4 space-y-4">
+        <div className="col-right">
           {/* Projektstatus */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
-            <h3 className="font-semibold text-gray-900 mb-3">Projektstatus</h3>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between py-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                  <span className="text-sm text-gray-700">Anfrage</span>
+          <article className="bg-white border border-slate-100/60 rounded-[14px] shadow-lg">
+            <header className="flex items-center justify-between p-[14px_16px] border-b border-slate-100/60">
+              <h3 className="m-0 text-[16px] font-semibold text-gray-900">Projektstatus</h3>
+            </header>
+            <div className="p-[12px_16px]">
+              <div className="status-list grid grid-cols-[1fr_auto] gap-2 text-sm">
+                <div className="status-item contents">
+                  <div className="status-label flex items-center gap-2">
+                    <span className="status-dot w-[10px] h-[10px] rounded-full bg-blue-400"></span>
+                    Anfrage
+                  </div>
+                  <div className="font-medium">{statusCounts.anfrage}</div>
                 </div>
-                <span className="text-sm font-medium text-gray-900">{statusCounts.anfrage}</span>
-              </div>
-              <div className="flex items-center justify-between py-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <span className="text-sm text-gray-700">Besichtigung</span>
+                <div className="status-item contents">
+                  <div className="status-label flex items-center gap-2">
+                    <span className="status-dot w-[10px] h-[10px] rounded-full bg-yellow-400"></span>
+                    Besichtigung
+                  </div>
+                  <div className="font-medium">{statusCounts.besichtigung}</div>
                 </div>
-                <span className="text-sm font-medium text-gray-900">{statusCounts.besichtigung}</span>
-              </div>
-              <div className="flex items-center justify-between py-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                  <span className="text-sm text-gray-700">Planung</span>
+                <div className="status-item contents">
+                  <div className="status-label flex items-center gap-2">
+                    <span className="status-dot w-[10px] h-[10px] rounded-full bg-orange-400"></span>
+                    Planung
+                  </div>
+                  <div className="font-medium">{statusCounts.geplant}</div>
                 </div>
-                <span className="text-sm font-medium text-gray-900">{statusCounts.geplant}</span>
-              </div>
-              <div className="flex items-center justify-between py-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                  <span className="text-sm text-gray-700">In Bearbeitung</span>
+                <div className="status-item contents">
+                  <div className="status-label flex items-center gap-2">
+                    <span className="status-dot w-[10px] h-[10px] rounded-full bg-blue-400"></span>
+                    In Bearbeitung
+                  </div>
+                  <div className="font-medium">{statusCounts.in_bearbeitung}</div>
                 </div>
-                <span className="text-sm font-medium text-gray-900">{statusCounts.in_bearbeitung}</span>
-              </div>
-              <div className="flex items-center justify-between py-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  <span className="text-sm text-gray-700">Abgeschlossen</span>
+                <div className="status-item contents">
+                  <div className="status-label flex items-center gap-2">
+                    <span className="status-dot w-[10px] h-[10px] rounded-full bg-green-400"></span>
+                    Abgeschlossen
+                  </div>
+                  <div className="font-medium">{statusCounts.abgeschlossen}</div>
                 </div>
-                <span className="text-sm font-medium text-gray-900">{statusCounts.abgeschlossen}</span>
               </div>
             </div>
-          </div>
+          </article>
 
           {/* Top Kunden */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
-            <h3 className="font-semibold text-gray-900 mb-3">Top Kunden</h3>
-            <div className="space-y-2">
+          <article className="bg-white border border-slate-100/60 rounded-[14px] shadow-lg mt-4">
+            <header className="flex items-center justify-between p-[14px_16px] border-b border-slate-100/60">
+              <h3 className="m-0 text-[16px] font-semibold text-gray-900">Top Kunden</h3>
+            </header>
+            <div className="p-[12px_16px] top-customers flex flex-col gap-[10px] text-sm">
               {topCustomers.length > 0 ? topCustomers.slice(0, 5).map((customer) => (
-                <div key={customer.id} className="flex justify-between items-center py-1">
-                  <span className="text-sm text-gray-700 truncate">{customer.company_name || customer.contact_person}</span>
-                  <span className="text-xs text-gray-500">{customer.email}</span>
+                <div key={customer.id} className="customer flex items-center justify-between">
+                  <span className="text-gray-900">{customer.company_name || customer.contact_person}</span>
+                  <span className="text-gray-600">{customer.email}</span>
                 </div>
               )) : (
-                <div className="text-sm text-gray-500 text-center py-2">Keine Kunden</div>
+                <div className="text-gray-500 text-center py-2">Keine Kunden</div>
               )}
             </div>
-          </div>
+          </article>
 
           {/* Projekt Übersicht */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
-            <h3 className="font-semibold text-gray-900 mb-3">Projekt Übersicht</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-700">Gesamt: {projects.length}</span>
-                <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-medium">Planung: {statusCounts.geplant}</span>
+          <article className="bg-white border border-slate-100/60 rounded-[14px] shadow-lg mt-4">
+            <header className="flex items-center justify-between p-[14px_16px] border-b border-slate-100/60">
+              <h3 className="m-0 text-[16px] font-semibold text-gray-900">Projekt Übersicht</h3>
+            </header>
+            <div className="p-[12px_16px] grid grid-cols-2 gap-[10px] text-sm">
+              <div className="text-xs px-2 py-1 rounded-full border bg-gray-50 text-gray-700 border-gray-200 justify-self-start">
+                Gesamt: {projects.length}
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-700">In Bearbeitung: {statusCounts.in_bearbeitung}</span>
-                <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">Abgeschlossen: {statusCounts.abgeschlossen}</span>
+              <div className="text-xs px-2 py-1 rounded-full border bg-orange-50 text-orange-700 border-orange-200 justify-self-start">
+                Planung: {statusCounts.geplant}
+              </div>
+              <div className="text-xs px-2 py-1 rounded-full border bg-blue-50 text-blue-700 border-blue-200 justify-self-start">
+                In Bearbeitung: {statusCounts.in_bearbeitung}
+              </div>
+              <div className="text-xs px-2 py-1 rounded-full border bg-green-50 text-green-700 border-green-200 justify-self-start">
+                Abgeschlossen: {statusCounts.abgeschlossen}
               </div>
             </div>
-          </div>
+          </article>
         </div>
       </div>
 
