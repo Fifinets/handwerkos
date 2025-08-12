@@ -334,7 +334,7 @@ const ProjectModule = () => {
       >
         <div className="bg-white border border-slate-200/60 rounded-xl p-3 flex items-center justify-between">
           <div>
-            <h4 className="m-0 text-sm text-gray-600 font-semibold">Aktive Projekte</h4>
+            <div className="text-sm text-gray-600 font-semibold mb-1">Aktive Projekte</div>
             <div className="text-2xl font-bold text-gray-900">
               {statusCounts.in_bearbeitung + statusCounts.geplant + statusCounts.anfrage + statusCounts.besichtigung}
             </div>
@@ -342,19 +342,19 @@ const ProjectModule = () => {
         </div>
         <div className="bg-white border border-slate-200/60 rounded-xl p-3 flex items-center justify-between">
           <div>
-            <h4 className="m-0 text-sm text-gray-600 font-semibold">Abgeschlossene</h4>
+            <div className="text-sm text-gray-600 font-semibold mb-1">Abgeschlossene</div>
             <div className="text-2xl font-bold text-gray-900">{statusCounts.abgeschlossen}</div>
           </div>
         </div>
         <div className="bg-white border border-slate-200/60 rounded-xl p-3 flex items-center justify-between">
           <div>
-            <h4 className="m-0 text-sm text-gray-600 font-semibold">Gesamtbudget</h4>
+            <div className="text-sm text-gray-600 font-semibold mb-1">Gesamtbudget</div>
             <div className="text-2xl font-bold text-gray-900">€{totalBudget.toLocaleString('de-DE')}</div>
           </div>
         </div>
         <div className="bg-white border border-slate-200/60 rounded-xl p-3 flex items-center justify-between">
           <div>
-            <h4 className="m-0 text-sm text-gray-600 font-semibold">Verspätet</h4>
+            <div className="text-sm text-gray-600 font-semibold mb-1">Verspätet</div>
             <div className="text-2xl font-bold text-gray-900">{delayedProjects.length}</div>
           </div>
         </div>
@@ -367,7 +367,7 @@ const ProjectModule = () => {
           <div className="col-span-8">
             <article className="bg-white border border-slate-200/60 rounded-2xl shadow-lg">
               <header className="flex items-center justify-between p-4 border-b border-slate-200/60">
-                <h3 className="m-0 text-lg font-semibold text-gray-900">Aktuelle Projekte</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Aktuelle Projekte</h3>
                 <div className="text-gray-600 text-sm">Heute • {new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</div>
               </header>
             <div className="p-3">
