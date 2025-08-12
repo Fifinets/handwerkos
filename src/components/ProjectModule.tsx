@@ -67,7 +67,6 @@ const getStatusDisplayName = (status: string) => {
 };
 
 const generateShortId = (fullId: string) => {
-  // Create a short, individual ID from the full UUID
   const hash = fullId.split('-').join('');
   return `P${hash.substring(0, 6).toUpperCase()}`;
 };
@@ -100,49 +99,23 @@ const getEstimateInfo = (description: string) => {
   const preCalc = extractPreCalculationFromDescription(description);
   if (!preCalc) return null;
   
-  let totalEstimates = 0;
-  let totalConfirmed = 0;
+  const materialEstimates = preCalc.materials ? Object.keys(preCalc.materials).length : 0;
+  const laborEstimates = preCalc.labor ? Object.keys(preCalc.labor).length : 0;
   
-  if (preCalc.materials) {
-    preCalc.materials.forEach(material => {
-      if (material.isEstimate) totalEstimates++;
-      else totalConfirmed++;
-    });
-  }
-  
-  if (preCalc.labor) {
-    preCalc.labor.forEach(labor => {
-      if (labor.isEstimate) totalEstimates++;
-      else totalConfirmed++;
-    });
-  }
-  
-  return { totalEstimates, totalConfirmed, total: totalEstimates + totalConfirmed };
+  return {
+    totalEstimates: materialEstimates + laborEstimates,
+    materials: materialEstimates,
+    labor: laborEstimates
+  };
 };
 
-const formatBudget = (budget: any, description?: string) => {
-  let budgetValue = 0;
-  
-  // First try to get budget from budget field
-  if (budget) {
-    if (typeof budget === 'number') {
-      budgetValue = budget;
-    } else if (typeof budget === 'string') {
-      // Remove € symbol and convert to number
-      budgetValue = parseFloat(budget.replace('€', '').replace(',', '.')) || 0;
-    }
-  }
-  
-  // If no budget from field, try to extract from description
-  if (budgetValue === 0 && description) {
-    budgetValue = extractBudgetFromDescription(description);
-  }
-  
-  if (budgetValue === 0) return '0,00';
+const formatBudget = (budget: number, description: string) => {
+  const budgetFromDesc = extractBudgetFromDescription(description);
+  const budgetValue = budgetFromDesc > 0 ? budgetFromDesc : (budget || 0);
   
   return budgetValue.toLocaleString('de-DE', { 
-    minimumFractionDigits: 2, 
-    maximumFractionDigits: 2 
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0 
   });
 };
 
@@ -171,28 +144,6 @@ const ProjectModule = () => {
   const [teamMembers, setTeamMembers] = useState([]);
 
   useEffect(() => {
-    // Test database connection first
-    const testConnection = async () => {
-      try {
-        const { data, error, count } = await supabase
-          .from('projects')
-          .select('*', { count: 'exact', head: true });
-        
-        console.log('🔗 Database connection test:');
-        console.log('  - Error:', error);
-        console.log('  - Count:', count);
-        console.log('  - Can access projects table:', !error);
-        
-        // Skip insert capability test to avoid type errors in strict TS
-        // Previously attempted a dummy insert here.
-        
-        
-      } catch (testError) {
-        console.error('💥 Database connection test failed:', testError);
-      }
-    };
-    
-    testConnection();
     fetchProjects();
     fetchTopCustomers();
     fetchCustomers();
@@ -222,33 +173,25 @@ const ProjectModule = () => {
 
   const fetchTeamMembers = async () => {
     try {
-      // Get current user's company ID
       const { data: currentUserProfile } = await supabase.auth.getUser();
       if (!currentUserProfile?.user) return;
 
-      const { data: profile } = await supabase
-        .from('profiles')
+      const { data: userProfile } = await supabase
+        .from('user_profiles')
         .select('company_id')
-        .eq('id', currentUserProfile.user.id)
+        .eq('user_id', currentUserProfile.user.id)
         .single();
 
-      if (!profile?.company_id) return;
+      if (!userProfile?.company_id) return;
 
-      // Load only registered, active employees from the same company
-      const { data } = await supabase
+      const { data: employees } = await supabase
         .from('employees')
         .select('*')
-        .eq('company_id', profile.company_id)
-        .neq('status', 'eingeladen')
-        .not('user_id', 'is', null);
-      
-      if (data) {
-        setTeamMembers(data.map(employee => ({
-          id: employee.id,
-          name: `${employee.first_name} ${employee.last_name}`,
-          role: employee.position || 'Mitarbeiter',
-          projects: []
-        })));
+        .eq('company_id', userProfile.company_id)
+        .neq('status', 'eingeladen');
+
+      if (employees) {
+        setTeamMembers(employees);
       }
     } catch (error) {
       console.error('Error fetching team members:', error);
@@ -256,173 +199,90 @@ const ProjectModule = () => {
   };
 
   const fetchProjects = async () => {
-    console.log('🔄 Fetching projects...');
-    
     try {
-      // Get current user's company_id for RLS policy
-      const { data: currentUser } = await supabase.auth.getUser();
-      if (!currentUser?.user) {
-        console.error('❌ No authenticated user for project fetch');
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('company_id')
-        .eq('id', currentUser.user.id)
-        .single();
-
-      if (!profile?.company_id) {
-        console.error('❌ No company_id found for project fetch');
-        return;
-      }
-
-      console.log('🏢 Fetching projects for company_id:', profile.company_id);
-      
-      // Fetch projects for the user's company
       const { data, error } = await supabase
         .from('projects')
-        .select('*')
-        .eq('company_id', profile.company_id);
-      
-      if (error) {
-        console.error('❌ Error fetching projects:', error);
-        return;
-      }
-      
-      if (!data) {
-        console.log('⚠️ No project data returned');
-        return;
-      }
-      
-      console.log('✅ Projects fetched:', data.length, 'projects');
-      console.log('📋 Project data:', data);
-      setProjects(data);
+        .select(`
+          *,
+          customers (
+            company_name,
+            contact_person,
+            email
+          )
+        `)
+        .order('created_at', { ascending: false });
 
-      // compute derived metrics
-      let totalBudgetSum = 0;
-      const counts = { 
-        anfrage: 0, 
-        besichtigung: 0, 
-        geplant: 0, 
-        in_bearbeitung: 0, 
-        abgeschlossen: 0 
-      } as any;
-      const delayed: any[] = [];
-      const today = new Date();
-      data.forEach((p: any) => {
-        if (p.status === 'anfrage') counts.anfrage++;
-        else if (p.status === 'besichtigung') counts.besichtigung++;
-        else if (p.status === 'geplant') counts.geplant++;
-        else if (p.status === 'in_bearbeitung') counts["in_bearbeitung"]++;
-        else if (p.status === 'abgeschlossen') counts.abgeschlossen++;
+      if (error) {
+        console.error('Error fetching projects:', error);
+        return;
+      }
+
+      if (data) {
+        setProjects(data);
         
-        // Sum up the budgets - handle both string and number formats
-        let budgetValue = 0;
-        if (p.budget) {
-          if (typeof p.budget === 'number') {
-            budgetValue = p.budget;
-          } else if (typeof p.budget === 'string') {
-            // Remove € symbol and convert to number
-            budgetValue = parseFloat(p.budget.replace('€', '').replace(',', '.')) || 0;
+        const counts = {
+          anfrage: 0,
+          besichtigung: 0,
+          geplant: 0,
+          in_bearbeitung: 0,
+          abgeschlossen: 0
+        };
+
+        let budget = 0;
+        const delayed = [];
+        const today = new Date().toISOString().split('T')[0];
+
+        data.forEach(project => {
+          if (counts.hasOwnProperty(project.status)) {
+            counts[project.status]++;
           }
-        }
-        
-        // If no budget from field, try to extract from description
-        if (budgetValue === 0 && p.description) {
-          budgetValue = extractBudgetFromDescription(p.description);
-        }
-        
-        totalBudgetSum += budgetValue;
-        
-        if (p.end_date) {
-          const endDate = new Date(p.end_date);
-          if (endDate < today && p.status !== 'abgeschlossen') delayed.push(p);
-        }
-      });
-      setTotalBudget(totalBudgetSum);
-      setStatusCounts(counts);
-      setDelayedProjects(delayed);
-    } catch (err) {
-      console.error('💥 Error in fetchProjects:', err);
-      return;
+
+          const projectBudget = extractBudgetFromDescription(project.description) || project.budget || 0;
+          budget += projectBudget;
+
+          if (project.end_date && project.end_date < today && project.status !== 'abgeschlossen') {
+            delayed.push(project);
+          }
+        });
+
+        setStatusCounts(counts);
+        setTotalBudget(budget);
+        setDelayedProjects(delayed);
+      }
+    } catch (error) {
+      console.error('Error fetching projects:', error);
     }
   };
 
   const fetchTopCustomers = async () => {
-    const { data, error } = await supabase.from('customers').select('*');
-    if (error || !data) return;
-    setTopCustomers(data.slice(0, 5));
-  };
-
-  const handleEditProject = async (project) => {
-    console.log('✏️ handleEditProject called with project:', project);
-    console.log('📊 Project budget from database:', project.budget, 'type:', typeof project.budget);
-    
     try {
-      // Get customer name if customer_id exists
-      let customerName = '';
-      if (project.customer_id) {
-        const { data: customer } = await supabase
-          .from('customers')
-          .select('company_name')
-          .eq('id', project.customer_id)
-          .single();
-        customerName = customer?.company_name || '';
-      }
+      const { data } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('status', 'Aktiv')
+        .limit(5);
 
-      // Extract budget from description if not in budget field
-      let budgetValue = project.budget || 0;
-      if (!budgetValue && project.description) {
-        budgetValue = extractBudgetFromDescription(project.description);
+      if (data) {
+        setTopCustomers(data);
       }
-
-      // Transform database project to match dialog interface
-      const transformedProject = {
-        id: project.id,
-        name: project.name,
-        customer: customerName,
-        status: getStatusDisplayName(project.status), // Convert to German display name
-        progress: project.progress_percentage || 0,
-        startDate: project.start_date,
-        endDate: project.end_date,
-        budget: budgetValue.toString(),
-        team: [],
-        location: project.location || ''
-      };
-      
-      console.log('🔄 Transformed project for dialog:', transformedProject);
-      
-      setSelectedProject(transformedProject);
-      setIsEditDialogOpen(true);
     } catch (error) {
-      console.error('Error in handleEditProject:', error);
-      
-      // Extract budget from description if not in budget field  
-      let budgetValue = project.budget || 0;
-      if (!budgetValue && project.description) {
-        budgetValue = extractBudgetFromDescription(project.description);
-      }
-      
-      setSelectedProject({
-        id: project.id,
-        name: project.name,
-        customer: '',
-        status: getStatusDisplayName(project.status),
-        progress: project.progress_percentage || 0,
-        startDate: project.start_date,
-        endDate: project.end_date,
-        budget: budgetValue.toString(),
-        team: [],
-        location: project.location || ''
-      });
-      setIsEditDialogOpen(true);
+      console.error('Error fetching top customers:', error);
     }
   };
 
-  const handleShowDetails = (project) => {
-    setSelectedProject(project);
-    setIsDetailDialogOpen(true);
+  const handleProjectAdded = () => {
+    fetchProjects();
+    setIsAddDialogOpen(false);
+  };
+
+  const handleProjectUpdated = () => {
+    fetchProjects();
+    setIsEditDialogOpen(false);
+  };
+
+  const handleProjectDeleted = () => {
+    fetchProjects();
+    setIsEditDialogOpen(false);
   };
 
   const handleDoubleClickProject = (project) => {
@@ -440,289 +300,12 @@ const ProjectModule = () => {
     setIsProfitabilityOpen(true);
   };
 
-  const handleProjectUpdated = (updatedProject) => {
-    console.log('🔄 handleProjectUpdated called with:', updatedProject);
-    console.log('📊 Budget value received:', updatedProject.budget, 'type:', typeof updatedProject.budget);
-    
-    // Optimistic update - immediately update local state
-    const statusMapping = {
-      'Anfrage': 'anfrage',
-      'Besichtigung': 'besichtigung',
-      'Planung': 'geplant',
-      'In Bearbeitung': 'in_bearbeitung', 
-      'Abgeschlossen': 'abgeschlossen'
-    };
-
-    // Parse budget safely
-    let budget = 0;
-    if (updatedProject.budget) {
-      const budgetStr = typeof updatedProject.budget === 'string' 
-        ? updatedProject.budget 
-        : updatedProject.budget.toString();
-      budget = parseFloat(budgetStr.replace(/[€,\s]/g, '')) || 0;
-      console.log('💰 Parsed budget:', budget);
-    } else {
-      console.log('⚠️ No budget provided, defaulting to 0');
-    }
-
-    // Update local projects state immediately for instant UI feedback
-    setProjects(prevProjects => 
-      prevProjects.map(project => 
-        project.id === updatedProject.id 
-          ? {
-              ...project,
-              name: updatedProject.name,
-              status: statusMapping[updatedProject.status] || updatedProject.status,
-              start_date: updatedProject.startDate,
-              end_date: updatedProject.endDate,
-              location: updatedProject.location,
-              description: updatedProject.description,
-              budget: budget,
-              progress_percentage: updatedProject.progress || 0
-            }
-          : project
-      )
-    );
-
-    // Update total budget immediately
-    setTotalBudget(prevTotal => {
-      let totalBudgetSum = 0;
-      projects.forEach(project => {
-        if (project.id === updatedProject.id) {
-          totalBudgetSum += budget;
-        } else {
-          totalBudgetSum += project.budget || 0;
-        }
-      });
-      return totalBudgetSum;
+  const handleCreateInvoice = (projectId: string, projectName: string) => {
+    console.log(`Creating invoice for project ${projectId}: ${projectName}`);
+    toast({
+      title: "Rechnung erstellen",
+      description: `Rechnung für ${projectName} wird erstellt...`,
     });
-
-    // Then update in database
-    const updateProject = async () => {
-      try {
-        console.log('🔄 Updating project in database:', updatedProject);
-        
-        // Find customer by name to get customer_id
-        let customer_id = null;
-        if (updatedProject.customer) {
-          const { data: customer } = await supabase
-            .from('customers')
-            .select('id')
-            .eq('company_name', updatedProject.customer)
-            .single();
-          customer_id = customer?.id || null;
-        }
-        
-        const updateData = {
-          name: updatedProject.name,
-          status: statusMapping[updatedProject.status] || updatedProject.status,
-          start_date: updatedProject.startDate,
-          end_date: updatedProject.endDate,
-          location: updatedProject.location,
-          description: updatedProject.description,
-          customer_id: customer_id
-        };
-
-        // Try to add budget and progress_percentage
-        // Store budget in description field as a workaround until budget column is added
-        if (budget > 0) {
-          const budgetInfo = `[BUDGET:${budget}]`;
-          if (updateData.description) {
-            // If description exists, append budget info if not already there
-            if (!updateData.description.includes('[BUDGET:')) {
-              updateData.description += ` ${budgetInfo}`;
-            } else {
-              // Replace existing budget info
-              updateData.description = updateData.description.replace(/\[BUDGET:\d+\.?\d*\]/, budgetInfo);
-            }
-          } else {
-            updateData.description = budgetInfo;
-          }
-        }
-        
-        console.log('📝 Update data:', updateData);
-        
-        // First try with basic update (without budget column)
-        const basicUpdateData = {
-          name: updatedProject.name,
-          status: statusMapping[updatedProject.status] || updatedProject.status,
-          start_date: updatedProject.startDate,
-          end_date: updatedProject.endDate,
-          location: updatedProject.location,
-          description: updateData.description,
-          customer_id: customer_id
-        };
-        
-        const { error } = await supabase
-          .from('projects')
-          .update(basicUpdateData)
-          .eq('id', updatedProject.id);
-
-        if (error) {
-          console.error('❌ Error updating project:', error);
-          
-          // Revert optimistic update on error
-          await fetchProjects();
-          toast({
-            title: "Fehler",
-            description: "Projekt konnte nicht aktualisiert werden: " + error.message,
-            variant: "destructive"
-          });
-        } else {
-          console.log('✅ Project updated successfully (budget stored in description)');
-          toast({
-            title: "Erfolg",
-            description: "Projekt wurde erfolgreich aktualisiert."
-          });
-        }
-      } catch (err) {
-        console.error('💥 Error in handleProjectUpdated:', err);
-        // Revert optimistic update on error
-        await fetchProjects();
-        toast({
-          title: "Fehler",
-          description: "Unerwarteter Fehler beim Aktualisieren des Projekts",
-          variant: "destructive"
-        });
-      }
-    };
-
-    updateProject();
-  };
-
-  const handleCreateInvoice = async (projectId: string, projectName: string) => {
-    try {
-      console.log('Creating invoice from project:', projectId);
-      
-      const invoiceId = await workflowService.createInvoiceFromProject(projectId);
-      if (invoiceId) {
-        toast({
-          title: "Rechnung erstellt",
-          description: `Rechnungsentwurf für Projekt "${projectName}" wurde erfolgreich erstellt.`,
-        });
-        
-        // Refresh projects to show updated status
-        fetchProjects();
-      }
-    } catch (error) {
-      console.error('Error creating invoice from project:', error);
-      toast({
-        title: "Fehler",
-        description: "Rechnung konnte nicht erstellt werden. Projekt muss abgeschlossen sein.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleProjectDeleted = async (projectId: string) => {
-    console.log('🗑️ Project deletion callback received for:', projectId);
-    
-    // Optimistic update - remove project from local state immediately
-    setProjects(prevProjects => {
-      const filteredProjects = prevProjects.filter(project => project.id !== projectId);
-      console.log('📊 Projects before delete:', prevProjects.length, 'after delete:', filteredProjects.length);
-      return filteredProjects;
-    });
-    
-    // Refresh projects from database to ensure consistency
-    console.log('🔄 Refreshing projects from database...');
-    await fetchProjects();
-    console.log('✅ Project deletion completed and UI refreshed');
-  };
-
-  const handleProjectAdded = (newProject) => {
-    console.log('🆕 Adding new project:', newProject);
-    
-    // Add project to Supabase
-    const addProject = async () => {
-      try {
-        // Get current user's company_id for RLS policy
-        const { data: currentUser } = await supabase.auth.getUser();
-        if (!currentUser?.user) {
-          console.error('❌ No authenticated user found');
-          return;
-        }
-
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('company_id')
-          .eq('id', currentUser.user.id)
-          .single();
-
-        if (!profile?.company_id) {
-          console.error('❌ No company_id found for user');
-          return;
-        }
-
-        console.log('🏢 User company_id:', profile.company_id);
-        
-        // Find customer by name
-        const customer = customers.find(c => c.name === newProject.customer);
-        console.log('👤 Found customer:', customer);
-        
-        // Map German status to database values
-        const statusMapping = {
-          'Planung': 'geplant',
-          'In Bearbeitung': 'in_bearbeitung', 
-          'Abgeschlossen': 'abgeschlossen'
-        };
-        
-        // Handle date formatting more safely
-        let startDate = null;
-        let endDate = null;
-        
-        try {
-          if (newProject.startDate) {
-            if (newProject.startDate.includes('.')) {
-              startDate = newProject.startDate.split('.').reverse().join('-');
-            } else {
-              startDate = newProject.startDate;
-            }
-          }
-          
-          if (newProject.endDate) {
-            if (newProject.endDate.includes('.')) {
-              endDate = newProject.endDate.split('.').reverse().join('-');
-            } else {
-              endDate = newProject.endDate;
-            }
-          }
-        } catch (dateError) {
-          console.warn('⚠️ Date formatting error:', dateError);
-        }
-        
-        const projectData = {
-          name: newProject.name,
-          customer_id: customer?.id || null,
-          company_id: profile.company_id, // Required for RLS policy
-          status: statusMapping[newProject.status] || 'geplant',
-          start_date: startDate,
-          end_date: endDate,
-          location: newProject.location,
-          budget: parseFloat(newProject.budget.replace(/[€,\s]/g, '')) || 0,
-          description: newProject.description || null
-        };
-        
-        console.log('📝 Inserting project data:', projectData);
-        
-        const { data, error } = await supabase
-          .from('projects')
-          .insert(projectData)
-          .select();
-
-        if (error) {
-          console.error('❌ Error creating project:', error);
-        } else {
-          console.log('✅ Project created successfully:', data);
-          console.log('🔄 Refreshing projects list...');
-          await fetchProjects(); // Wait for refetch to complete
-        }
-      } catch (err) {
-        console.error('💥 Unexpected error in addProject:', err);
-      }
-    };
-
-    addProject();
   };
 
   return (
@@ -748,7 +331,9 @@ const ProjectModule = () => {
       <div className="grid grid-cols-4 gap-6">
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="text-center">
-            <div className="text-3xl font-bold text-blue-600">{statusCounts.in_bearbeitung + statusCounts.geplant + statusCounts.anfrage + statusCounts.besichtigung}</div>
+            <div className="text-3xl font-bold text-blue-600">
+              {statusCounts.in_bearbeitung + statusCounts.geplant + statusCounts.anfrage + statusCounts.besichtigung}
+            </div>
             <div className="text-gray-600 mt-1">Aktive Projekte</div>
           </div>
         </div>
@@ -784,7 +369,6 @@ const ProjectModule = () => {
               </div>
             </div>
             <div className="p-6 space-y-4">
-
               {projects.filter(p => p.status !== 'abgeschlossen').map(project => {
                 const endDate = project.end_date ? new Date(project.end_date) : null;
                 const isOverdue = endDate && endDate < new Date();
@@ -950,135 +534,6 @@ const ProjectModule = () => {
         </div>
       </div>
 
-                <div className="space-y-3 flex-grow">
-                  
-                  <div className="flex space-x-1 mb-4">
-                    {(() => {
-                      if (!project.end_date) {
-                        return null;
-                      }
-                      const start = new Date(project.start_date);
-                      const end = new Date(project.end_date);
-                      const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-                      const today = new Date();
-                      const daysPassed = today >= start ?
-                        Math.min(totalDays, Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1)
-                        : 0;
-                      return Array.from({ length: totalDays }).map((_, idx) => (
-                        <div
-                          key={idx}
-                          className={`flex-1 h-2 rounded ${idx < daysPassed ? 'bg-blue-600' : 'bg-gray-200'}`}
-                        />
-                      ));
-                    })()}
-                  </div>
-                </div>
-
-                <div className="flex gap-2 pt-4 mt-auto justify-end">
-                  <Button
-                    size="sm" 
-                    variant={hasPreCalculation(project.description) ? "default" : "outline"}
-                    onClick={() => handlePreCalculation(project)}
-                    title={hasPreCalculation(project.description) ? "Vor-Kalkulation bearbeiten" : "Vor-Kalkulation erstellen"}
-                  >
-                    <Calculator className="h-4 w-4" />
-                  </Button>
-                  {(project.status === 'in_bearbeitung' || project.status === 'abgeschlossen') && (
-                    <Button
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => handleProfitabilityAnalysis(project)}
-                      title="Nachkalkulation & Rentabilität"
-                    >
-                      <TrendingUp className="h-4 w-4" />
-                    </Button>
-                  )}
-                  {project.status === 'abgeschlossen' && (
-                    <Button
-                      size="sm" 
-                      variant="default"
-                      onClick={() => handleCreateInvoice(project.id, project.name)}
-                      title="Rechnung erstellen"
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      <Receipt className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <Button
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => handleEditProject(project)}
-                    title="Projekt bearbeiten"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-              </Card>
-            );
-          })}
-
-          <Card>
-            <CardHeader><CardTitle>Verzögerte Projekte</CardTitle></CardHeader>
-            <CardContent>
-              {delayedProjects.length === 0 ? (
-                <p className="text-sm text-gray-500">Keine Projekte im Verzug</p>
-              ) : delayedProjects.map((p) => (
-                <div key={p.id} className="flex justify-between border-b py-1">
-                  <span>{p.name}</span>
-                  <Badge variant="destructive">überfällig</Badge>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-4">
-          <Card>
-            <CardHeader><CardTitle>Projektstatus</CardTitle></CardHeader>
-            <CardContent>
-              {Object.entries(statusCounts).map(([status, count]) => (
-                <div key={status} className="flex justify-between text-sm">
-                  <span>{getStatusDisplayName(status)}</span>
-                  <span>{count}</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader><CardTitle>Top Kunden</CardTitle></CardHeader>
-            <CardContent>
-              {topCustomers.map((c) => (
-                <div key={c.id} className="flex justify-between text-sm">
-                  <span>{c.company_name}</span>
-                  <span>{c.email}</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader><CardTitle>Projekt Übersicht</CardTitle></CardHeader>
-            <CardContent>
-              <div className="text-sm text-gray-500">
-                Gesamt: {projects.length} Projekte
-              </div>
-              <div className="text-sm">
-                {getStatusDisplayName('geplant')}: {statusCounts.geplant}
-              </div>
-              <div className="text-sm">
-                {getStatusDisplayName('in_bearbeitung')}: {statusCounts.in_bearbeitung}
-              </div>
-              <div className="text-sm">
-                {getStatusDisplayName('abgeschlossen')}: {statusCounts.abgeschlossen}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-
       <AddProjectDialog
         isOpen={isAddDialogOpen}
         onClose={() => setIsAddDialogOpen(false)}
@@ -1120,7 +575,6 @@ const ProjectModule = () => {
           projectName={selectedProject.name}
           customerId={selectedProject.customer_id || ''}
           onCalculationSaved={async () => {
-            // Refresh projects after calculation is saved
             await fetchProjects();
           }}
         />
