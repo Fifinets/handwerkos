@@ -71,10 +71,10 @@ export function VacationManagement() {
     if (!user) return;
 
     try {
-      // Get employee data
+      // Get employee data including id for vacation_requests lookup
       const { data: employee } = await supabase
         .from('employees')
-        .select('vacation_days_total, vacation_days_used')
+        .select('id, vacation_days_total, vacation_days_used')
         .eq('user_id', user.id)
         .single();
 
