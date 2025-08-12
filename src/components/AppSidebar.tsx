@@ -97,8 +97,7 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
   return (
     <div 
       className={`fixed left-0 top-0 h-full z-50 transition-all duration-500 ease-in-out ${isExpanded ? "w-64" : "w-16"} 
-      bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 
-      border-r border-slate-700/50 backdrop-blur-xl shadow-2xl shadow-slate-900/20`}
+      bg-white border-r border-gray-200 shadow-lg`}
       onMouseEnter={() => {
         if (hoverTimeout) clearTimeout(hoverTimeout);
         const timeout = setTimeout(() => setIsHovered(true), 150);
@@ -112,14 +111,12 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
       }}
     >
       {/* Logo at top */}
-      <div className="p-4 border-b border-slate-700/50">
+      <div className="p-4 border-b border-gray-200">
         <div className="flex items-center gap-3">
-          <img 
-            src="/handwerkos-logo.svg" 
-            alt="HandwerkOS" 
-            className="h-8 w-8 object-contain"
-          />
-          <span className={`font-bold text-white transition-all duration-300 ${
+          <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
+            <span className="text-white font-bold text-sm">H</span>
+          </div>
+          <span className={`font-bold text-gray-900 transition-all duration-300 ${
             isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
           }`}>
             HandwerkOS
@@ -137,8 +134,8 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
                   <div>
                     <button
                       onClick={() => toggleGroup(item.id)}
-                      className={`group w-full flex items-center p-3 rounded-xl transition-all duration-300 relative 
-                      text-slate-300 hover:text-white hover:bg-white/10 hover:scale-105 hover:shadow-lg backdrop-blur-sm`}
+                      className={`group w-full flex items-center p-3 rounded-lg transition-all duration-300 relative 
+                      text-gray-700 hover:text-gray-900 hover:bg-gray-100`}
                       title={!isExpanded ? item.name : undefined}
                     >
                       <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
@@ -169,8 +166,8 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
                             onClick={() => onModuleChange(child.id)}
                             className={`group w-full flex items-center p-2.5 rounded-lg transition-all duration-200 text-sm ${
                               activeModule === child.id
-                                ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/25"
-                                : "text-slate-400 hover:text-white hover:bg-white/5"
+                                ? "bg-blue-600 text-white shadow-sm"
+                                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                             }`}
                           >
                             <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
@@ -191,10 +188,10 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
                   // Einzelnes Menüelement
                   <button
                     onClick={() => onModuleChange(item.id)}
-                    className={`group w-full flex items-center p-3 rounded-xl transition-all duration-300 relative ${
+                    className={`group w-full flex items-center p-3 rounded-lg transition-all duration-300 relative ${
                       activeModule === item.id
-                        ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/25 scale-105"
-                        : "text-slate-300 hover:text-white hover:bg-white/10 hover:scale-105 hover:shadow-lg"
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
                     }`}
                     title={!isExpanded ? item.name : undefined}
                   >
@@ -216,10 +213,10 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
           </div>
         </div>
 
-        <div className="p-3 border-t border-slate-700/50">
+        <div className="p-3 border-t border-gray-200">
           <button
             onClick={handleSignOut}
-            className="group w-full flex items-center p-3 rounded-xl text-red-400 hover:text-white hover:bg-red-500/10 hover:scale-105 transition-all duration-300 relative backdrop-blur-sm"
+            className="group w-full flex items-center p-3 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-300 relative"
             title={!isExpanded ? "Abmelden" : undefined}
           >
             <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">

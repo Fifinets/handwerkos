@@ -286,82 +286,192 @@ const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ onNavigate }) =
   }
 
   return (
-    <div className="space-y-8 animate-fadeIn">
-      {/* Modern Header mit kritischen Alerts */}
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-blue-600 bg-clip-text text-transparent">
-            Dashboard
-          </h1>
-          <p className="text-slate-600 text-lg">Zentrale Übersicht Ihres Handwerksbetriebs</p>
-        </div>
-        
-        {getCriticalAlertCount() > 0 && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 rounded-lg">
-            <AlertTriangle className="h-5 w-5 text-red-600" />
-            <span className="text-red-700 font-medium">
-              {getCriticalAlertCount()} Punkte benötigen Aufmerksamkeit
-            </span>
+    <div className="space-y-6 animate-fadeIn p-6 bg-gray-50 min-h-screen">
+      {/* Modern Header entsprechend der Vorlage */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold text-gray-900">Projekte & Baustellen</h1>
+            <p className="text-gray-600">Übersicht Ihrer aktuellen Projekte und deren Status</p>
           </div>
-        )}
+          
+          {getCriticalAlertCount() > 0 && (
+            <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-100 rounded-xl">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              <span className="text-red-700 font-medium">
+                {getCriticalAlertCount()} Punkte benötigen Aufmerksamkeit
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Kritische Alerts - Höchste Priorität */}
-      {getCriticalAlertCount() > 0 && (
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-700">
-              <AlertCircle className="h-5 w-5" />
-              Sofortige Aufmerksamkeit erforderlich
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {dashboardData.criticalAlerts.budgetWarnings > 0 && (
-                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
-                  <Target className="h-8 w-8 text-red-600" />
-                  <div>
-                    <div className="font-semibold text-red-700">{dashboardData.criticalAlerts.budgetWarnings}</div>
-                    <div className="text-sm text-red-600">Budget-Warnungen</div>
-                  </div>
-                </div>
-              )}
-              
-              {dashboardData.criticalAlerts.overdueProjects > 0 && (
-                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
-                  <Clock className="h-8 w-8 text-orange-600" />
-                  <div>
-                    <div className="font-semibold text-orange-700">{dashboardData.criticalAlerts.overdueProjects}</div>
-                    <div className="text-sm text-orange-600">Verzögerte Projekte</div>
-                  </div>
-                </div>
-              )}
-              
-              {dashboardData.criticalAlerts.overdueInvoices > 0 && (
-                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
-                  <Euro className="h-8 w-8 text-red-600" />
-                  <div>
-                    <div className="font-semibold text-red-700">{dashboardData.criticalAlerts.overdueInvoices}</div>
-                    <div className="text-sm text-red-600">Überfällige Rechnungen</div>
-                  </div>
-                </div>
-              )}
-              
-              {dashboardData.criticalAlerts.pendingQuotes > 0 && (
-                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
-                  <FileText className="h-8 w-8 text-blue-600" />
-                  <div>
-                    <div className="font-semibold text-blue-700">{dashboardData.criticalAlerts.pendingQuotes}</div>
-                    <div className="text-sm text-blue-600">Offene Angebote</div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Statistik-Header wie in der Vorlage */}
+      <div className="grid grid-cols-4 gap-6">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="text-center">
+            <div className="text-3xl font-bold text-blue-600">{dashboardData.projectStatus.active + dashboardData.projectStatus.planning}</div>
+            <div className="text-gray-600 mt-1">Aktive Projekte</div>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="text-center">
+            <div className="text-3xl font-bold text-gray-900">{dashboardData.criticalAlerts.overdueProjects}</div>
+            <div className="text-gray-600 mt-1">Abgeschlossene</div>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="text-center">
+            <div className="text-3xl font-bold text-green-600">€0</div>
+            <div className="text-gray-600 mt-1">Gesamtbudget</div>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="text-center">
+            <div className="text-3xl font-bold text-gray-900">0</div>
+            <div className="text-gray-600 mt-1">Verspätet</div>
+          </div>
+        </div>
+      </div>
 
-      <Tabs defaultValue="kpis" className="w-full">
+      {/* Hauptbereich mit zwei Spalten wie in der Vorlage */}
+      <div className="grid grid-cols-12 gap-6">
+        {/* Linke Spalte - Aktuelle Projekte */}
+        <div className="col-span-8 space-y-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-gray-900">Aktuelle Projekte</h2>
+                <div className="text-sm text-gray-500">Heute • 01.08 — 29.08</div>
+              </div>
+            </div>
+            <div className="p-6">
+              {/* Beispiel-Projekt im Stil der Vorlage */}
+              <div className="space-y-4">
+                <div className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50 transition-colors cursor-pointer">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-8 bg-orange-500 rounded-full"></div>
+                      <div>
+                        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-orange-100 text-orange-800 mr-2">
+                          Planung
+                        </span>
+                        <span className="font-medium text-gray-900">Elektroinstallation für Altbauwohnung in Berlin</span>
+                      </div>
+                    </div>
+                    <span className="text-sm text-gray-500">ID: FF7350C</span>
+                  </div>
+                  <div className="ml-5 text-sm text-gray-600">
+                    Start: 01.08 • Ende: 29.08 • Budget: €0
+                  </div>
+                  <div className="ml-5 mt-3 flex items-center gap-4">
+                    <button className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600">
+                      <Building2 className="w-4 h-4" />
+                      Öffnen
+                    </button>
+                    <button className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600">
+                      <Clock className="w-4 h-4" />
+                      Zeit
+                    </button>
+                    <button className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600">
+                      <FileText className="w-4 h-4" />
+                      Details
+                    </button>
+                  </div>
+                  {/* Fortschrittsbalken */}
+                  <div className="ml-5 mt-3">
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-blue-500 h-2 rounded-full" style={{width: '60%'}}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Verzögerte Projekte Sektion */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div className="p-6 border-b border-gray-100">
+              <h2 className="text-xl font-semibold text-gray-900">Verzögerte Projekte</h2>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-500 text-center py-8">Keine Projekte im Verzug 🏆</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Rechte Spalte - Sidebar wie in der Vorlage */}
+        <div className="col-span-4 space-y-6">
+          {/* Projektstatus */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 className="font-semibold text-gray-900 mb-4">Projektstatus</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                  <span className="text-sm text-gray-700">Anfrage</span>
+                </div>
+                <span className="text-sm font-medium">{dashboardData.projectStatus.planning}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                  <span className="text-sm text-gray-700">Besichtigung</span>
+                </div>
+                <span className="text-sm font-medium">0</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                  <span className="text-sm text-gray-700">Planung</span>
+                </div>
+                <span className="text-sm font-medium">1</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                  <span className="text-sm text-gray-700">In Bearbeitung</span>
+                </div>
+                <span className="text-sm font-medium">{dashboardData.projectStatus.active}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                  <span className="text-sm text-gray-700">Abgeschlossen</span>
+                </div>
+                <span className="text-sm font-medium">{dashboardData.projectStatus.completed}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Top Kunden */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 className="font-semibold text-gray-900 mb-4">Top Kunden</h3>
+            <div className="space-y-3">
+              <div className="text-sm text-gray-700">
+                Bauer <span className="text-gray-500 float-right">filipboss007@gmail.com</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Projekt Übersicht */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 className="font-semibold text-gray-900 mb-4">Projekt Übersicht</h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-700">Gesamt: 1</span>
+                <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">Planung: 1</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-700">In Bearbeitung: 0</span>
+                <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Abgeschlossen: 0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Tabs defaultValue="kpis" className="w-full hidden">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="kpis">Kennzahlen</TabsTrigger>
           <TabsTrigger value="overview">Übersicht</TabsTrigger>
