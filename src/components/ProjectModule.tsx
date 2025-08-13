@@ -319,7 +319,7 @@ const ProjectModule = () => {
         <h1 className="text-2xl font-bold text-gray-900">Projekte & Baustellen</h1>
         <Button
           onClick={() => setIsAddDialogOpen(true)}
-          className="bg-blue-600 hover:bg-blue-700"
+          className="bg-blue-600 hover:bg-blue-700 rounded-full"
         >
           <Plus className="h-4 w-4 mr-2" />
           Neues Projekt
@@ -337,10 +337,10 @@ const ProjectModule = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* linke 2/3 */}
         <div className="lg:col-span-2 space-y-4">
-          <Card className="shadow-soft">
+          <Card className="shadow-soft rounded-2xl overflow-hidden">
             <CardHeader className="pb-2 flex-row items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="badge-pill bg-green-100 text-green-800 border-green-200">Aktuelle</span>
+                <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-green-100 text-green-800 border-green-200">Aktuelle</span>
                 <CardTitle>Projekte</CardTitle>
               </div>
               <div className="text-sm text-muted-foreground">Heute • {new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</div>
@@ -369,7 +369,7 @@ const ProjectModule = () => {
             </CardContent>
           </Card>
 
-          <Card className="shadow-soft">
+          <Card className="shadow-soft rounded-2xl overflow-hidden">
             <CardHeader className="pb-2"><CardTitle>Verzögerte Projekte</CardTitle></CardHeader>
             <CardContent>
               {delayedProjects.length === 0 ? (
@@ -394,12 +394,12 @@ const ProjectModule = () => {
 
         {/* rechte 1/3 */}
         <div className="space-y-4">
-          <Card className="shadow-soft">
+          <Card className="shadow-soft rounded-2xl overflow-hidden">
             <CardHeader className="pb-2"><CardTitle>Projektstatus</CardTitle></CardHeader>
             <CardContent><StatusList counts={statusCounts} /></CardContent>
           </Card>
 
-          <Card className="shadow-soft">
+          <Card className="shadow-soft rounded-2xl overflow-hidden">
             <CardHeader className="pb-2"><CardTitle>Top Kunden</CardTitle></CardHeader>
             <CardContent className="space-y-2">
               {topCustomers.length === 0 ? (
@@ -413,13 +413,13 @@ const ProjectModule = () => {
             </CardContent>
           </Card>
 
-          <Card className="shadow-soft">
+          <Card className="shadow-soft rounded-2xl overflow-hidden">
             <CardHeader className="pb-2"><CardTitle>Projekt Übersicht</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-2 gap-2 text-sm">
-              <span className="badge-pill bg-slate-50   text-slate-700  border-slate-200">Gesamt: {projects.length}</span>
-              <span className="badge-pill bg-amber-50  text-amber-700 border-amber-200">Planung: {statusCounts.geplant}</span>
-              <span className="badge-pill bg-blue-50   text-blue-700  border-blue-200">In Bearbeitung: {statusCounts.in_bearbeitung}</span>
-              <span className="badge-pill bg-green-50  text-green-700 border-green-200">Abgeschlossen: {statusCounts.abgeschlossen}</span>
+              <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-slate-50 text-slate-700 border-slate-200">Gesamt: {projects.length}</span>
+              <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-amber-50 text-amber-700 border-amber-200">Planung: {statusCounts.geplant}</span>
+              <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-blue-50 text-blue-700 border-blue-200">In Bearbeitung: {statusCounts.in_bearbeitung}</span>
+              <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-green-50 text-green-700 border-green-200">Abgeschlossen: {statusCounts.abgeschlossen}</span>
             </CardContent>
           </Card>
         </div>

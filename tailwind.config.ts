@@ -66,7 +66,13 @@ export default {
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)'
+				sm: 'calc(var(--radius) - 4px)',
+				xl: "14px",
+				"2xl": "20px",
+			},
+			boxShadow: {
+				soft: "0 10px 30px rgba(2,6,23,.06)",
+				softer: "0 6px 18px rgba(2,6,23,.05)",
 			},
 			keyframes: {
 				'accordion-down': {

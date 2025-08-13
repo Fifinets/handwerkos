@@ -32,13 +32,15 @@ export default function ProjectRow(p: Props) {
     <div className="flex flex-col gap-2 py-2">
       <div className="flex flex-wrap items-center gap-2">
         {/* Status-Badge */}
-        <span className={`badge-pill ${st.cls}`}>{st.label}</span>
+        <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs ${st.cls}`}>{st.label}</span>
 
         {/* Titel */}
         <strong className="mr-2">{p.name}</strong>
 
         {/* ID-Pill wie im Shot */}
-        <span className="badge-pill bg-blue-50 text-blue-700 border-blue-200">ID: {p.id}</span>
+        <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-blue-50 text-blue-700 border-blue-200">
+          ID: {p.id}
+        </span>
       </div>
 
       <div className="text-sm text-muted-foreground">
@@ -48,7 +50,7 @@ export default function ProjectRow(p: Props) {
 
       {/* Progressbar: flach, rund, dezent grau */}
       {typeof p.progress === "number" && (
-        <div className="h-2 w-full rounded-full bg-neutral-200">
+        <div className="h-2 w-full rounded-full bg-neutral-200 overflow-hidden">
           <div
             className="h-full rounded-full bg-blue-500 transition-all"
             style={{ width: `${p.progress}%` }}
@@ -61,9 +63,9 @@ export default function ProjectRow(p: Props) {
       )}
 
       <div className="flex gap-2 pt-1">
-        <Button variant="outline" size="sm" onClick={p.onOpen} className="shadow-softer">🔎 Öffnen</Button>
-        <Button variant="outline" size="sm" className="shadow-softer">⏱️ Zeit</Button>
-        <Button variant="outline" size="sm" className="shadow-softer">📎 Dateien</Button>
+        <Button variant="outline" size="sm" onClick={p.onOpen} className="rounded-xl shadow-softer">🔎 Öffnen</Button>
+        <Button variant="outline" size="sm" className="rounded-xl shadow-softer">⏱️ Zeit</Button>
+        <Button variant="outline" size="sm" className="rounded-xl shadow-softer">📎 Dateien</Button>
       </div>
     </div>
   );
