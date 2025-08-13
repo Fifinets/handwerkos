@@ -41,10 +41,6 @@ export class ProjectService {
             company_name,
             contact_person,
             email
-          ),
-          orders (
-            order_number,
-            total_amount
           )
         `, { count: 'exact' });
       
