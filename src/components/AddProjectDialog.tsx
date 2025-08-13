@@ -56,6 +56,10 @@ interface AddProjectDialogProps {
 
 const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMembers }: AddProjectDialogProps) => {
   const { toast } = useToast();
+  
+  // Debug logging
+  console.log('AddProjectDialog - customers:', customers);
+  console.log('AddProjectDialog - teamMembers:', teamMembers);
   const [formData, setFormData] = useState({
     name: '',
     customer: '',
