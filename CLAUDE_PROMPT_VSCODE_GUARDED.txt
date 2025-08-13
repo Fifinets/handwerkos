@@ -1,0 +1,227 @@
+
+[SYSTEM — VS CODE GUARDRAILS]
+You are operating INSIDE the user's current VS Code workspace (the HandwerkOS repo). 
+Obey these rules at all times:
+1) Work ONLY within this repository. Do NOT create external projects or scaffolds.
+2) Make SMALL, REVIEWABLE commits. Complete exactly one commit set at a time from the plan below.
+3) AFTER each commit: run typecheck/lint/tests (or provide exact commands to run), then WAIT for user confirmation before continuing.
+4) Do NOT add dependencies beyond what the plan specifies. If unsure, ASK.
+5) If an expected file/folder does not exist, PAUSE and ASK how to adapt. Do NOT invent paths.
+6) Keep changes minimal; prefer extension over replacement. Preserve existing conventions.
+7) Use Conventional Commits for messages. Include concise rationale in the body.
+8) Update docs and OpenAPI when you touch APIs.
+9) If a step fails (build/test/migrate), FIX in the same commit set before moving on.
+
+====================================================
+TITLE: HandwerkOS – AI‑First Umbau + GoBD + DATEV‑CSV (Multi‑Commit Plan, VS Code Edition)
+====================================================
+
+ROLE
+Senior full‑stack engineer/architect. Transform this repository into an AI‑First platform with GoBD compliance and DATEV‑CSV export. Follow the multi‑commit plan, keep builds green, and request confirmation before proceeding to the next commit set.
+
+GOALS
+1) Phase 1: Foundation & data pipeline
+2) Phase 2: AI Co‑Pilot (parse‑intent, estimate, schedule)
+3) GoBD: immutability, audit trail, versioning, numbered invoices, immutable PDFs
+4) DATEV‑CSV export (ASCII/CSV) for invoices/postings (+ mapping config)
+5) Chef‑Cockpit dashboard + guided Quote→Order→Project→Invoice flow
+6) Everything integrated into current repo structure
+
+ASSUMPTIONS (ADAPT IF NEEDED)
+- Frontend: React + Vite (TypeScript) under /apps/web (or similar)
+- API: Node.js (Express, TypeScript) under /apps/api (or similar)
+- ORM: Prisma + PostgreSQL under /packages/db
+- Shared: /packages/core (types/zod/dto), /packages/ai (prompts/RAG), /packages/worker (cron)
+- Realtime: Socket.io
+- Auth: JWT with roles admin | manager | worker
+If your inspection finds differences, FIRST create a short README section explaining the actual structure, then adapt all paths.
+
+QUALITY GATES (EACH COMMIT)
+- npm run typecheck && npm run lint && npm run test → GREEN
+- DB migrations up/down apply cleanly (dev)
+- OpenAPI updated if API changed
+- Minimal docs updated (README and/or /docs/*)
+
+BRANCHING
+- Feature branch: feat/aifirst-gobd-datev
+- Conventional Commits
+- Small PRs per commit set
+
+====================================================
+PHASE 0 — HOUSEKEEPING & DX (COMMIT SET 1)
+====================================================
+Tasks:
+1. Root package scripts add/update: "dev", "build", "typecheck", "lint", "test", "openapi", "db:migrate", "db:seed", "worker".
+2. Create .env.example (DB_URL, JWT_SECRET, SMTP_*, etc.).
+3. Root README: how to run API+Web+DB, migrations, tests.
+4. CI workflow (GitHub Actions): install, build, lint, test, prisma migrate on test DB.
+Deliverables: scripts, env template, README, CI file.
+Commit: chore: add dev scripts, env template, CI, and repo README
+
+====================================================
+PHASE 1 — DATA MODEL & MIGRATIONS (COMMIT SET 2)
+====================================================
+Add/extend Prisma schema (adapt to existing):
+- Customer(id, company, contact?, email?, phone?, address Json?, createdAt, updatedAt)
+- Quote(id, customerId, title, body Json?, status enum[draft|sent|accepted|rejected], totalNet?, totalGross?, createdAt, updatedAt)
+- Order(id, quoteId, status enum[open|in_progress|completed|cancelled], createdAt, updatedAt)
+- Project(id, orderId, name, description?, status enum[planned|active|blocked|done], budget?, startDate?, endDate?, hoursPlanned?, hoursActual=0, materialCost=0, createdAt, updatedAt)
+- Employee(id, name, role enum[admin|manager|worker], email?, phone?, hourlyRate=0, availability Json?, createdAt, updatedAt)
+- Timesheet(id, projectId, employeeId, date, hours, note?, createdAt)
+- Material(id, name, sku? unique, unit?, unitPrice=0, stock=0, reorderMin=0, createdAt, updatedAt)
+- ProjectMaterial(id, projectId, materialId, qty, cost, createdAt)
+- StockMovement(id, materialId, projectId?, qty, type enum[issue|receive|adjust], createdAt)
+- Invoice(id, projectId, amount, status enum[draft|sent|paid|overdue|void], dueDate?, createdAt, updatedAt)
+- Expense(id, projectId, category, amount, note?, createdAt)
+- Document(id, projectId?, type, url, meta Json?, createdAt)
+
+GoBD:
+- AuditLog(id, entityType, entityId, action, oldValue Json?, newValue Json?, userId?, timestamp)
+- NumberSequence(id, name, currentValue)
+- ImmutableFile(id, sha256, url, mime, size, createdAt, meta Json?)
+
+AI/Index:
+- AiIndex(id, refType, refId, text, embedding Bytes, createdAt)
+- AiSuggestion(id, projectId?, kind, payload Json, traceId, createdAt)
+
+Run migrations + seed demo data.
+Commit: feat(db): add core schema incl. audit log, number sequences, immutable files, ai index
+
+====================================================
+PHASE 1 — CORE DTOs & MIDDLEWARE (COMMIT SET 3)
+====================================================
+- /packages/core/dto: Zod schemas for Customer, Quote, Order, Project, Timesheet, Material, Invoice, Expense, Document, KPI.
+- API middlewares: ErrorHandler, RequestId logger.
+Commit: feat(core): add zod DTOs, error handler and request id logging
+
+====================================================
+PHASE 1 — API CRUD & WORKFLOW (COMMIT SET 4)
+====================================================
+Implement endpoints with validation + OpenAPI:
+
+Customers
+GET /api/customers
+POST /api/customers
+GET /api/customers/:id
+PATCH /api/customers/:id
+
+Quotes
+POST /api/quotes               -> 201 {id,status:'draft'}
+POST /api/quotes/:id/send      -> 200 {status:'sent'}
+POST /api/quotes/:id/accept    -> 200 {status:'accepted'} + emit QUOTE_ACCEPTED
+GET  /api/quotes?status=...
+
+Orders
+(created by QUOTE_ACCEPTED handler)
+
+Projects
+GET  /api/projects?status=...
+GET  /api/projects/:id
+POST /api/projects
+PATCH /api/projects/:id
+POST /api/projects/:id/complete -> emit PROJECT_COMPLETED + create invoice draft
+
+Timesheets
+POST /api/timesheets
+GET  /api/projects/:id/timesheets
+
+Materials & Stock
+POST /api/materials
+PATCH /api/materials/:id
+POST /api/materials/issue
+POST /api/materials/receive
+GET  /api/projects/:id/materials
+
+Finance
+GET  /api/projects/:id/kpis
+POST /api/invoices
+PATCH /api/invoices/:id
+POST /api/expenses
+
+Documents
+POST /api/documents
+GET  /api/projects/:id/documents
+
+Notifications
+GET  /api/notifications?unread=true
+PATCH /api/notifications/:id
+
+EventBus: QUOTE_ACCEPTED → create Order+Project; PROJECT_COMPLETED → create Invoice draft; TIMESHEET_RECORDED → KPI update
+Commit: feat(api): implement CRUD endpoints and workflow transitions with OpenAPI
+
+====================================================
+PHASE 1 — KPIs & WORKER (COMMIT SET 5)
+====================================================
+KPI calc:
+labor = Σ(timesheets.hours * employee.hourlyRate)
+material = Σ(projectMaterials.cost)
+expenses = Σ(expense.amount)
+total = labor + material + expenses
+utilization = budget>0 ? total/budget : 0
+
+Worker (/packages/worker): cron checks
+- utilization >= 0.9 → emit BUDGET_90_REACHED → Notification
+- invoices due < now && status=sent → set overdue + Notification
+Commit: feat(finance): KPI endpoint, budget guard worker and notifications
+
+====================================================
+PHASE 1 — GoBD ENFORCEMENT (COMMIT SET 6)
+====================================================
+1) AuditLog: add hooks for create/update/status_change on Quote, Order, Project, Invoice, Timesheet, Material, StockMovement, Expense, Document.
+2) Immutability: Invoices with status != draft → block direct edits to key fields; require Storno/Gutschrift flow (TODO marker OK).
+3) NumberSequence: assign invoiceNumber on transition to 'sent'; assign quoteNumber on 'send'.
+4) ImmutableFile: on invoice 'sent' require PDF URL, compute sha256 and store.
+
+Commit: feat(gobd): audit trail, immutable invoices, numbered sequences and immutable file store
+
+====================================================
+PHASE 1 — DATEV CSV EXPORT (COMMIT SET 7)
+====================================================
+Endpoint: GET /api/export/datev/csv?from=YYYY-MM-DD&to=YYYY-MM-DD
+
+- Generate DATEV‑compatible CSV with columns like:
+  Belegdatum; Rechnungsnummer; Debitorenkonto; Gegenkonto; BU‑Schlüssel; Nettobetrag; Steuerbetrag; Bruttobetrag; Belegfeld1; KOST1; KOST2
+- Provide mapping config: /apps/api/src/datev/mapping.ts (accounts, VAT→BU key, cost centers by project)
+- Encoding: CP1252 (or UTF‑8 if acceptable by tax advisor), delimiter ; 
+- Unit tests with sample data; docs /docs/DATEV_EXPORT.md
+
+Commit: feat(datev): CSV export endpoint with mapping config, tests and docs
+
+====================================================
+PHASE 2 — AI MODULES (COMMIT SET 8)
+====================================================
+/packages/ai:
+- RAG connector (Weaviate/Pinecone) + indexer for quote/project/material texts
+- Prompts with schema‑enforced JSON outputs
+
+Endpoints:
+POST /api/ai/parse-intent -> {type:'quote'|'project', data:{customerName,title,description?,items[]}}
+POST /api/ai/estimate -> {hours, materials[{name|materialId,qty,unitPrice,cost}], laborCost, materialCost, total, confidence}
+POST /api/ai/schedule -> {plan[{employeeId,day,hours}], conflicts[]}
+
+Store all results in AiSuggestion with traceId.
+Commit: feat(ai): add parse-intent, estimator and scheduler with suggestions store
+
+====================================================
+PHASE 2 — DASHBOARD & GUIDED FLOW (COMMIT SET 9)
+====================================================
+Frontend: Chef‑Cockpit dashboard
+- Cards: offene Angebote, kritische Projekte (utilization>=90%), überfällige Rechnungen, Wartungen fällig, heutige Teams
+- Guided buttons: Quote→Order→Project, Project Done→Invoice Draft→Send
+
+Commit: feat(ui): add chef dashboard and guided quote→order→project→invoice flow
+
+====================================================
+FINAL — TESTS & DOCS
+====================================================
+- Unit/integration tests for Budget calc, Datev export, Numbering, Audit
+- E2E (Playwright): Anfrage → Angebot → Auftrag → Projekt → Rechnung → DATEV‑Export
+- README and /docs updated; OpenAPI regenerated
+Commit: docs(tests): finalize tests, docs, and openapi refresh
+
+HOW TO PROCEED (FOR CLAUDE)
+1) Read this file fully.
+2) Confirm the repo structure matches assumptions or propose minimal path changes.
+3) Create feature branch feat/aifirst-gobd-datev.
+4) Start with PHASE 0 — COMMIT SET 1. After finishing, run checks and STOP for confirmation.
+5) Continue sequentially.
