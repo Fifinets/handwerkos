@@ -63,6 +63,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
   const [activeTab, setActiveTab] = useState('overview');
   const [isTimeFormOpen, setIsTimeFormOpen] = useState(false);
   const [isMaterialFormOpen, setIsMaterialFormOpen] = useState(false);
+  const [isAddTeamMemberOpen, setIsAddTeamMemberOpen] = useState(false);
+  const [availableEmployees, setAvailableEmployees] = useState<any[]>([]);
 
   useEffect(() => {
     if (isOpen && projectId) {
@@ -128,8 +130,77 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         customerData = customer;
       }
 
-      // Mock data for development - replace with real Supabase queries when tables exist
-      const mockProjectData: ProjectDashboardData = {
+      // Calculate real statistics from database
+      
+      // Get real time entries for this project
+      const { data: timeEntries, error: timeError } = await supabase
+        .from('time_entries')
+        .select('hours_worked')
+        .eq('project_id', projectId);
+      
+      if (timeError) {
+        console.error('Error fetching time entries:', timeError);
+      }
+      
+      // Calculate total hours from real time entries
+      const totalHours = timeEntries?.reduce((sum, entry) => sum + (entry.hours_worked || 0), 0) || 0;
+      
+      // Get real material costs for this project
+      const { data: materialEntries, error: materialError } = await supabase
+        .from('material_entries')
+        .select('total_cost')
+        .eq('project_id', projectId);
+      
+      if (materialError) {
+        console.error('Error fetching material entries:', materialError);
+      }
+      
+      // Calculate total material costs from real data
+      const totalMaterialCost = materialEntries?.reduce((sum, entry) => sum + (entry.total_cost || 0), 0) || 0;
+      
+      // Get assigned team members for this project
+      const { data: teamMembers, error: teamError } = await supabase
+        .from('project_team_members')
+        .select('employee_id, employees!inner(first_name, last_name, email)')
+        .eq('project_id', projectId);
+      
+      if (teamError) {
+        console.error('Error fetching team members:', teamError);
+      }
+      
+      // Get project comments count
+      const { data: comments, error: commentsError } = await supabase
+        .from('project_comments')
+        .select('id')
+        .eq('project_id', projectId);
+      
+      if (commentsError) {
+        console.error('Error fetching comments:', commentsError);
+      }
+      
+      // Get project documents count
+      const { data: documents, error: documentsError } = await supabase
+        .from('project_documents')
+        .select('id')
+        .eq('project_id', projectId);
+      
+      if (documentsError) {
+        console.error('Error fetching documents:', documentsError);
+      }
+      
+      // Calculate budget utilization
+      const projectBudget = projectData.budget || 0;
+      const totalProjectCost = totalMaterialCost + (totalHours * 50); // Assuming 50€/hour
+      const budgetUtilization = projectBudget > 0 ? Math.round((totalProjectCost / projectBudget) * 100) : 0;
+      
+      // Calculate days active and remaining
+      const startDate = new Date(projectData.start_date || new Date());
+      const endDate = new Date(projectData.end_date || new Date());
+      const today = new Date();
+      const daysActive = Math.max(0, Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+      const daysRemaining = Math.max(0, Math.floor((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+
+      const realProjectData: ProjectDashboardData = {
         id: projectData.id,
         company_id: projectData.company_id,
         project_name: projectData.name,
@@ -144,7 +215,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         created_at: projectData.created_at || new Date().toISOString(),
         updated_at: projectData.updated_at || new Date().toISOString(),
         created_by: currentUser.user.id,
-        assigned_team: [],
+        assigned_team: teamMembers?.map(tm => tm.employee_id) || [],
         
         customer: customerData ? {
           company_name: customerData.company_name,
@@ -159,57 +230,27 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         },
 
         stats: {
-          total_hours_logged: 45.5,
-          total_material_cost: 2850.00,
-          total_project_cost: 12750.00,
-          budget_utilization: 68.5,
-          days_active: 12,
-          days_remaining: 8,
-          team_size: 3,
-          documents_count: 8,
-          comments_count: 12,
-          last_activity: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+          total_hours_logged: totalHours,
+          total_material_cost: totalMaterialCost,
+          total_project_cost: projectBudget || totalProjectCost,
+          budget_utilization: budgetUtilization,
+          days_active: daysActive,
+          days_remaining: daysRemaining,
+          team_size: teamMembers?.length || 0,
+          documents_count: documents?.length || 0,
+          comments_count: comments?.length || 0,
+          last_activity: new Date().toISOString()
         },
 
-        recent_activities: [
-          {
-            id: '1',
-            project_id: projectId,
-            event_type: 'comment',
-            title: 'Neuer Kommentar hinzugefügt',
-            description: 'Materiallieferung für Freitag geplant',
-            user_name: 'Max Mustermann',
-            user_role: 'projektleiter',
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-          },
-          {
-            id: '2',
-            project_id: projectId,
-            event_type: 'document',
-            title: 'Dokument hochgeladen',
-            description: 'Bauplan_Final.pdf',
-            user_name: 'Anna Schmidt',
-            user_role: 'admin',
-            timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
-          }
-        ],
+        recent_activities: [], // Will be populated with real data below
 
-        team_members: [
-          {
-            id: '1',
-            name: 'Max Mustermann',
-            role: 'projektleiter',
-            email: 'max@example.com',
-            hours_this_week: 32.5
-          },
-          {
-            id: '2', 
-            name: 'Anna Schmidt',
-            role: 'admin',
-            email: 'anna@example.com',
-            hours_this_week: 28.0
-          }
-        ],
+        team_members: teamMembers?.map(tm => ({
+          id: tm.employee_id,
+          name: `${tm.employees.first_name} ${tm.employees.last_name}`.trim(),
+          role: 'team_member',
+          email: tm.employees.email,
+          hours_this_week: 0 // TODO: Calculate from time entries
+        })) || [],
 
         permissions: getProjectPermissions('admin', true)
       };
@@ -219,7 +260,91 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       setUserRole(currentUserRole);
       setPermissions(getProjectPermissions(currentUserRole, true));
       
-      setProject(mockProjectData);
+      // Get real project activities
+      const activities = [];
+      
+      // Get recent comments
+      if (comments && comments.length > 0) {
+        const { data: recentComments } = await supabase
+          .from('project_comments')
+          .select('id, content, created_at, profiles!inner(first_name, last_name)')
+          .eq('project_id', projectId)
+          .order('created_at', { ascending: false })
+          .limit(5);
+        
+        if (recentComments) {
+          recentComments.forEach(comment => {
+            activities.push({
+              id: `comment_${comment.id}`,
+              project_id: projectId,
+              event_type: 'comment',
+              title: 'Neuer Kommentar hinzugefügt',
+              description: comment.content.substring(0, 100) + (comment.content.length > 100 ? '...' : ''),
+              user_name: `${comment.profiles.first_name} ${comment.profiles.last_name}`,
+              user_role: 'team_member',
+              timestamp: comment.created_at
+            });
+          });
+        }
+      }
+      
+      // Get recent time entries
+      if (timeEntries && timeEntries.length > 0) {
+        const { data: recentTimeEntries } = await supabase
+          .from('time_entries')
+          .select('id, hours_worked, work_date, profiles!inner(first_name, last_name)')
+          .eq('project_id', projectId)
+          .order('created_at', { ascending: false })
+          .limit(3);
+        
+        if (recentTimeEntries) {
+          recentTimeEntries.forEach(entry => {
+            activities.push({
+              id: `time_${entry.id}`,
+              project_id: projectId,
+              event_type: 'time',
+              title: 'Arbeitszeit erfasst',
+              description: `${entry.hours_worked}h am ${new Date(entry.work_date).toLocaleDateString('de-DE')}`,
+              user_name: `${entry.profiles.first_name} ${entry.profiles.last_name}`,
+              user_role: 'team_member',
+              timestamp: entry.work_date
+            });
+          });
+        }
+      }
+      
+      // Get recent material entries
+      if (materialEntries && materialEntries.length > 0) {
+        const { data: recentMaterialEntries } = await supabase
+          .from('material_entries')
+          .select('id, material_name, quantity, total_cost, created_at, profiles!inner(first_name, last_name)')
+          .eq('project_id', projectId)
+          .order('created_at', { ascending: false })
+          .limit(3);
+        
+        if (recentMaterialEntries) {
+          recentMaterialEntries.forEach(entry => {
+            activities.push({
+              id: `material_${entry.id}`,
+              project_id: projectId,
+              event_type: 'material',
+              title: 'Material hinzugefügt',
+              description: `${entry.material_name} (${entry.quantity}x) - ${entry.total_cost}€`,
+              user_name: `${entry.profiles.first_name} ${entry.profiles.last_name}`,
+              user_role: 'team_member',
+              timestamp: entry.created_at
+            });
+          });
+        }
+      }
+      
+      // Sort activities by timestamp (newest first)
+      activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      
+      // Update project data with real activities
+      realProjectData.recent_activities = activities.slice(0, 10); // Show max 10 activities
+      
+      setProject(realProjectData);
     } catch (error) {
       console.error('Error fetching project data:', error);
       toast({
@@ -229,6 +354,75 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAvailableEmployees = async () => {
+    try {
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser?.user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', currentUser.user.id)
+        .single();
+
+      if (!profile?.company_id) return;
+
+      // Get all employees from the company who are not already in the project
+      const { data: employees } = await supabase
+        .from('employees')
+        .select('id, first_name, last_name, email, position')
+        .eq('company_id', profile.company_id)
+        .eq('status', 'active');
+
+      // Filter out employees who are already in the project
+      const currentTeamIds = project?.assigned_team || [];
+      const available = employees?.filter(emp => !currentTeamIds.includes(emp.id)) || [];
+      
+      setAvailableEmployees(available);
+    } catch (error) {
+      console.error('Error loading available employees:', error);
+    }
+  };
+
+  const handleAddTeamMember = async (employeeId: string) => {
+    try {
+      // Add team member to project_team_members table
+      const { error } = await supabase
+        .from('project_team_members')
+        .insert({
+          project_id: projectId,
+          employee_id: employeeId,
+          assigned_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.error('Error adding team member:', error);
+        toast({
+          title: "Fehler",
+          description: "Team-Mitglied konnte nicht hinzugefügt werden",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Erfolg",
+        description: "Team-Mitglied wurde erfolgreich hinzugefügt"
+      });
+
+      // Refresh project data to show new team member
+      await fetchProjectData();
+      setIsAddTeamMemberOpen(false);
+    } catch (error) {
+      console.error('Error adding team member:', error);
+      toast({
+        title: "Fehler", 
+        description: "Ein unerwarteter Fehler ist aufgetreten",
+        variant: "destructive"
+      });
     }
   };
 
@@ -487,7 +681,14 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                     <CardTitle className="flex items-center justify-between">
                       Team-Mitglieder
                       {permissions.can_manage_team && (
-                        <Button size="sm" variant="outline">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            loadAvailableEmployees();
+                            setIsAddTeamMemberOpen(true);
+                          }}
+                        >
                           <Plus className="h-4 w-4 mr-1" />
                           Hinzufügen
                         </Button>
@@ -654,6 +855,48 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             });
           }}
         />
+
+        {/* Add Team Member Dialog */}
+        {isAddTeamMemberOpen && (
+          <Dialog open={isAddTeamMemberOpen} onOpenChange={setIsAddTeamMemberOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Team-Mitglied hinzufügen</DialogTitle>
+                <DialogDescription>
+                  Wählen Sie einen Mitarbeiter aus, der dem Projekt hinzugefügt werden soll.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                {availableEmployees.length === 0 ? (
+                  <p className="text-sm text-gray-500">
+                    Keine verfügbaren Mitarbeiter gefunden oder alle sind bereits dem Projekt zugewiesen.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {availableEmployees.map(employee => (
+                      <div 
+                        key={employee.id}
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
+                      >
+                        <div>
+                          <p className="font-medium">{employee.first_name} {employee.last_name}</p>
+                          <p className="text-sm text-gray-500">{employee.position}</p>
+                          <p className="text-xs text-gray-400">{employee.email}</p>
+                        </div>
+                        <Button 
+                          size="sm"
+                          onClick={() => handleAddTeamMember(employee.id)}
+                        >
+                          Hinzufügen
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </DialogContent>
     </Dialog>
   );
