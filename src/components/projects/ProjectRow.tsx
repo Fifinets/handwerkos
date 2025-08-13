@@ -29,7 +29,10 @@ export default function ProjectRow(p: Props) {
   };
 
   return (
-    <div className="flex flex-col gap-2 py-2">
+    <div 
+      className="flex flex-col gap-2 py-2 cursor-pointer" 
+      onDoubleClick={p.onOpen}
+    >
       <div className="flex flex-wrap items-center gap-2">
         {/* Status-Badge */}
         <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs ${st.cls}`}>{st.label}</span>

@@ -509,6 +509,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
   }
 
   const statusConfig = getStatusConfig(project.status);
+  console.log('Project status:', project.status, 'Status config:', statusConfig);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

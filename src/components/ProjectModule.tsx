@@ -322,7 +322,11 @@ const ProjectModule = () => {
                 <p className="text-sm text-muted-foreground">Keine Projekte vorhanden</p>
               ) : (
                 projects.filter(p => p.status !== 'abgeschlossen').map((project) => (
-                  <div key={project.id} className="border rounded-xl p-3 shadow-softer">
+                  <div 
+                    key={project.id} 
+                    className="border rounded-xl p-3 shadow-softer cursor-pointer hover:shadow-md transition-shadow"
+                    onDoubleClick={() => handleDoubleClickProject(project)}
+                  >
                     <ProjectRow
                       id={generateShortId(project.id)}
                       name={project.name}
@@ -352,7 +356,11 @@ const ProjectModule = () => {
               ) : delayedProjects.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Keine Projekte im Verzug 🎉</p>
               ) : delayedProjects.map((project: Project) => (
-                <div key={project.id} className="border rounded-xl p-3 mb-2">
+                <div 
+                  key={project.id} 
+                  className="border rounded-xl p-3 mb-2 cursor-pointer hover:shadow-md transition-shadow"
+                  onDoubleClick={() => handleDoubleClickProject(project)}
+                >
                   <ProjectRow 
                     id={generateShortId(project.id)} 
                     name={project.name} 
