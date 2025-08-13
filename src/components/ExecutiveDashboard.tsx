@@ -286,19 +286,18 @@ const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ onNavigate }) =
   }
 
   return (
-    <div className="space-y-6 animate-fadeIn p-6 bg-gray-50 min-h-screen">
-      {/* Dashboard Header */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+    <div className="space-y-4 animate-fadeIn p-4 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
+      {/* Dashboard Header - Compact */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-white/20 p-4">
         <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-600">Zentrale Übersicht Ihres Handwerksbetriebs</p>
+          <div className="space-y-1">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Projekte & Baustellen</h1>
           </div>
           
           {getCriticalAlertCount() > 0 && (
-            <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-100 rounded-xl">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              <span className="text-red-700 font-medium">
+            <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-100 rounded-lg">
+              <AlertTriangle className="h-4 w-4 text-red-500" />
+              <span className="text-red-700 font-medium text-sm">
                 {getCriticalAlertCount()} Punkte benötigen Aufmerksamkeit
               </span>
             </div>
@@ -306,96 +305,95 @@ const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ onNavigate }) =
         </div>
       </div>
 
-      {/* KPI-Header für Dashboard */}
-      <div className="grid grid-cols-4 gap-6">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      {/* KPI-Header für Dashboard - Compact */}
+      <div className="grid grid-cols-4 gap-4">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-white/20">
           <div className="text-center">
-            <div className="text-3xl font-bold text-blue-600">{dashboardData.projectStatus.active + dashboardData.projectStatus.planning}</div>
-            <div className="text-gray-600 mt-1">Offene Aufträge</div>
+            <div className="text-2xl font-bold text-blue-600">{dashboardData.projectStatus.active + dashboardData.projectStatus.planning}</div>
+            <div className="text-gray-600 text-sm mt-1">Aktive Projekte</div>
           </div>
         </div>
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-white/20">
           <div className="text-center">
-            <div className="text-3xl font-bold text-green-600">{formatCurrency(dashboardData.financialKPIs.monthlyRevenue)}</div>
-            <div className="text-gray-600 mt-1">Monatsumsatz</div>
+            <div className="text-2xl font-bold text-green-600">{dashboardData.projectStatus.completed}</div>
+            <div className="text-gray-600 text-sm mt-1">Abgeschlossene</div>
           </div>
         </div>
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-white/20">
           <div className="text-center">
-            <div className="text-3xl font-bold text-orange-600">{dashboardData.criticalAlerts.pendingQuotes}</div>
-            <div className="text-gray-600 mt-1">Offene Angebote</div>
+            <div className="text-2xl font-bold text-green-600">€{dashboardData.financialKPIs.monthlyRevenue.toLocaleString()}</div>
+            <div className="text-gray-600 text-sm mt-1">Gesamtbudget</div>
           </div>
         </div>
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-white/20">
           <div className="text-center">
-            <div className="text-3xl font-bold text-purple-600">{dashboardData.teamOverview.activeEmployees}</div>
-            <div className="text-gray-600 mt-1">Mitarbeiter</div>
+            <div className="text-2xl font-bold text-red-600">{dashboardData.projectStatus.delayed}</div>
+            <div className="text-gray-600 text-sm mt-1">Verspätet</div>
           </div>
         </div>
       </div>
 
-      {/* Dashboard Hauptbereich */}
-      <div className="grid grid-cols-12 gap-6">
-        {/* Linke Spalte - Dashboard Content */}
-        <div className="col-span-8 space-y-6">
-          {/* Finanzübersicht */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-            <div className="p-6 border-b border-gray-100">
-              <h2 className="text-xl font-semibold text-gray-900">Finanzübersicht</h2>
+      {/* Dashboard Hauptbereich - Compact Layout */}
+      <div className="grid grid-cols-12 gap-4">
+        {/* Linke Spalte - Aktuelle Projekte */}
+        <div className="col-span-8 space-y-4">
+          {/* Aktuelle Projekte */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-white/20">
+            <div className="p-4 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">Aktuelle Projekte</h2>
+                <span className="text-sm text-gray-500">Heute • 13:08</span>
+              </div>
             </div>
-            <div className="p-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <div className="text-sm text-gray-600 mb-1">Umsatz</div>
-                  <div className="text-2xl font-bold text-green-600">{formatCurrency(dashboardData.financialKPIs.monthlyRevenue)}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-600 mb-1">Gewinn</div>
-                  <div className="text-2xl font-bold text-blue-600">{formatCurrency(dashboardData.financialKPIs.profit)}</div>
+            <div className="p-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                    <div>
+                      <span className="font-medium text-gray-900">Elektroinstallation für Altbausanierung in Berlin</span>
+                      <div className="text-sm text-gray-500">ID PF732CC</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm text-blue-600 font-medium">Planung</div>
+                    <div className="text-xs text-gray-500">Start: 01.08 • Ende: 25.08 • Budget: €0</div>
+                  </div>
                 </div>
               </div>
-              <div className="mt-6 p-4 bg-gray-50 rounded-xl">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-700">Gewinnmarge</span>
-                  <span className="font-semibold text-gray-900">{dashboardData.financialKPIs.profitMargin}%</span>
-                </div>
+              <div className="flex gap-2 mt-4">
+                <button className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
+                  Öffnen
+                </button>
+                <button className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200">
+                  Zeit
+                </button>
+                <button className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200">
+                  Details
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Schnellaktionen */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-            <div className="p-6 border-b border-gray-100">
-              <h2 className="text-xl font-semibold text-gray-900">Schnellaktionen</h2>
+          {/* Verzögerte Projekte */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-white/20">
+            <div className="p-4 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-900">Verzögerte Projekte</h2>
             </div>
-            <div className="p-6">
-              <div className="grid grid-cols-2 gap-4">
-                {quickActions.map((action) => (
-                  <button
-                    key={action.id}
-                    onClick={action.onClick}
-                    className="flex items-center gap-4 p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors text-left"
-                  >
-                    <div className={`p-3 rounded-lg ${action.color}`}>
-                      <action.icon className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">{action.title}</div>
-                      <div className="text-sm text-gray-500">{action.description}</div>
-                    </div>
-                  </button>
-                ))}
+            <div className="p-4">
+              <div className="text-center py-8">
+                <p className="text-gray-500">Keine Projekte im Verzug 🎉</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Rechte Spalte - Dashboard Sidebar */}
-        <div className="col-span-4 space-y-6">
+        <div className="col-span-4 space-y-4">
           {/* Projektstatus */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Projektstatus</h3>
-            <div className="space-y-3">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-white/20 p-4">
+            <h3 className="font-semibold text-gray-900 mb-3">Projektstatus</h3>
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-blue-500"></div>
@@ -405,45 +403,56 @@ const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ onNavigate }) =
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                  <span className="text-sm text-gray-700">In Bearbeitung</span>
+                  <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                  <span className="text-sm text-gray-700">Besichtigung</span>
                 </div>
-                <span className="text-sm font-medium">{dashboardData.projectStatus.active}</span>
+                <span className="text-sm font-medium">0</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                  <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                  <span className="text-sm text-gray-700">Planung</span>
+                </div>
+                <span className="text-sm font-medium">1</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-600"></div>
+                  <span className="text-sm text-gray-700">In Bearbeitung</span>
+                </div>
+                <span className="text-sm font-medium">0</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
                   <span className="text-sm text-gray-700">Abgeschlossen</span>
                 </div>
-                <span className="text-sm font-medium">{dashboardData.projectStatus.completed}</span>
+                <span className="text-sm font-medium">0</span>
               </div>
             </div>
           </div>
 
-          {/* Team Übersicht */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Team Übersicht</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-700">Aktive Mitarbeiter</span>
-                <span className="font-medium">{dashboardData.teamOverview.activeEmployees}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-700">Stunden heute</span>
-                <span className="font-medium">{dashboardData.teamOverview.todayHours}h</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-700">Auslastung</span>
-                <span className="font-medium">{dashboardData.teamOverview.utilizationRate}%</span>
-              </div>
+          {/* Top Kunden */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-white/20 p-4">
+            <h3 className="font-semibold text-gray-900 mb-3">Top Kunden</h3>
+            <div className="space-y-2">
+              <div className="text-sm text-gray-700">Bauer</div>
+              <div className="text-xs text-gray-500">fispotcx007@gmail.com</div>
             </div>
           </div>
 
-          {/* Heute / Termine */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Heute</h3>
-            <div className="text-center py-4">
-              <p className="text-gray-500">Keine Termine für heute</p>
+          {/* Projekt Übersicht */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-white/20 p-4">
+            <h3 className="font-semibold text-gray-900 mb-3">Projekt Übersicht</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-700">Gesamt</span>
+                <span className="font-medium text-orange-600">1</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-700">In Bearbeitung</span>
+                <span className="font-medium text-green-600">0</span>
+              </div>
             </div>
           </div>
         </div>
