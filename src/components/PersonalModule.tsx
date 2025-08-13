@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { UserCheck, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -54,9 +54,9 @@ const PersonalModule = () => {
     if (companyId) {
       fetchEmployees();
     }
-  }, [companyId]);
+  }, [companyId, fetchEmployees]);
 
-  const fetchEmployees = async () => {
+  const fetchEmployees = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -155,7 +155,7 @@ const PersonalModule = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [companyId, showToast]);
 
   const handleAddEmployee = async (newEmployee: NewEmployee) => {
     setIsAddingEmployee(true);
@@ -221,7 +221,7 @@ const PersonalModule = () => {
           phone: editFormData.phone,
           status: editFormData.status,
           license: editFormData.license,
-          qualifications: (editFormData.qualifications ? JSON.stringify(editFormData.qualifications) : '[]') as any
+          qualifications: (editFormData.qualifications ? JSON.stringify(editFormData.qualifications) : '[]') as string
         })
         .eq('id', selectedEmployee.id);
 

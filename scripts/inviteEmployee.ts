@@ -95,8 +95,9 @@ export async function inviteEmployee(email: string, name: string, companyId: str
     await sendInvite(email, name, link);
     await insertProfile(user.id, name, companyId);
     console.log('✅ Invite sent to', email);
-  } catch (err: any) {
-    console.error('🚨 inviteEmployee error:', err.message);
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error('🚨 inviteEmployee error:', errorMessage);
     throw err;
   }
 }

@@ -1,12 +1,70 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+
+// Type definitions
+type ProjectStatus = 'anfrage' | 'besichtigung' | 'geplant' | 'in_bearbeitung' | 'abgeschlossen';
+
+interface Customer {
+  id: string;
+  company_name?: string;
+  contact_person?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  status?: string;
+}
+
+interface ProjectCustomer {
+  company_name?: string;
+  contact_person?: string;
+  email?: string;
+}
+
+interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  status: ProjectStatus;
+  budget?: number;
+  start_date?: string;
+  end_date?: string;
+  customer_id?: string;
+  created_at?: string;
+  customers?: ProjectCustomer;
+}
+
+interface TeamMember {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  position?: string;
+  status?: string;
+  company_id?: string;
+}
+
+interface StatusCounts {
+  anfrage: number;
+  besichtigung: number;
+  geplant: number;
+  in_bearbeitung: number;
+  abgeschlossen: number;
+}
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Plus, CheckCircle, Clock, AlertTriangle, Building2, FileText, Edit, Calculator, TrendingUp, Receipt } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
-import { workflowService } from "@/services/WorkflowService";
 import { useToast } from "@/hooks/use-toast";
+import { 
+  useProjects, 
+  useCustomers, 
+  useEmployees,
+  useCreateProject,
+  useUpdateProject,
+  useDeleteProject
+} from "@/hooks/useApi";
+import { Skeleton } from "@/components/ui/skeleton";
 import AddProjectDialog from "./AddProjectDialog";
 import EditProjectDialog from "./EditProjectDialog";
 import ProjectDetailDialogWithTasks from "./ProjectDetailDialogWithTasks";
@@ -125,181 +183,74 @@ const formatBudget = (budget: number, description: string) => {
 
 const ProjectModule = () => {
   const { toast } = useToast();
-  const [projects, setProjects] = useState([]);
-  const [statusCounts, setStatusCounts] = useState({ 
-    anfrage: 0, 
-    besichtigung: 0, 
-    geplant: 0, 
-    in_bearbeitung: 0, 
-    abgeschlossen: 0 
-  });
-  const [topCustomers, setTopCustomers] = useState([]);
-  const [totalBudget, setTotalBudget] = useState(0);
-  const [delayedProjects, setDelayedProjects] = useState([]);
+  
+  // React Query hooks
+  const { data: projectsResponse, isLoading: projectsLoading } = useProjects();
+  const { data: customersResponse, isLoading: customersLoading } = useCustomers();
+  const { data: teamMembersResponse, isLoading: teamLoading } = useEmployees();
+  
+  // Local state for dialogs
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isProjectDetailViewOpen, setIsProjectDetailViewOpen] = useState(false);
   const [isPreCalculationOpen, setIsPreCalculationOpen] = useState(false);
   const [isProfitabilityOpen, setIsProfitabilityOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState(null);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [customers, setCustomers] = useState([]);
-  const [teamMembers, setTeamMembers] = useState([]);
-
-  useEffect(() => {
-    fetchProjects();
-    fetchTopCustomers();
-    fetchCustomers();
-    fetchTeamMembers();
-  }, []);
-
-  const fetchCustomers = async () => {
-    const { data } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('status', 'Aktiv');
-    
-    if (data) {
-      setCustomers(data.map(customer => ({
-        id: customer.id,
-        name: customer.company_name,
-        contact: customer.contact_person,
-        email: customer.email,
-        phone: customer.phone,
-        address: customer.address,
-        projects: 0,
-        revenue: '€0',
-        status: customer.status
-      })));
-    }
+  
+  // Extract data from responses
+  const projects = projectsResponse?.items || [];
+  const customers = customersResponse?.items || [];
+  const teamMembers = teamMembersResponse?.items || [];
+  
+  // Calculate derived data
+  const statusCounts: StatusCounts = {
+    anfrage: projects.filter(p => p.status === 'anfrage').length,
+    besichtigung: projects.filter(p => p.status === 'besichtigung').length,
+    geplant: projects.filter(p => p.status === 'geplant').length,
+    in_bearbeitung: projects.filter(p => p.status === 'in_bearbeitung').length,
+    abgeschlossen: projects.filter(p => p.status === 'abgeschlossen').length
   };
+  
+  const totalBudget = projects.reduce((total, project) => {
+    const budget = extractBudgetFromDescription(project.description) || project.budget || 0;
+    return total + budget;
+  }, 0);
+  
+  const today = new Date().toISOString().split('T')[0];
+  const delayedProjects = projects.filter(project => 
+    project.end_date && project.end_date < today && project.status !== 'abgeschlossen'
+  );
+  
+  const topCustomers = customers.filter(c => c.status === 'Aktiv').slice(0, 5);
 
-  const fetchTeamMembers = async () => {
-    try {
-      const { data: currentUserProfile } = await supabase.auth.getUser();
-      if (!currentUserProfile?.user) return;
-
-      const { data: userProfile } = await supabase
-        .from('user_profiles')
-        .select('company_id')
-        .eq('user_id', currentUserProfile.user.id)
-        .single();
-
-      if (!userProfile?.company_id) return;
-
-      const { data: employees } = await supabase
-        .from('employees')
-        .select('*')
-        .eq('company_id', userProfile.company_id)
-        .neq('status', 'eingeladen');
-
-      if (employees) {
-        setTeamMembers(employees);
-      }
-    } catch (error) {
-      console.error('Error fetching team members:', error);
-    }
-  };
-
-  const fetchProjects = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select(`
-          *,
-          customers (
-            company_name,
-            contact_person,
-            email
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching projects:', error);
-        return;
-      }
-
-      if (data) {
-        setProjects(data);
-        
-        const counts = {
-          anfrage: 0,
-          besichtigung: 0,
-          geplant: 0,
-          in_bearbeitung: 0,
-          abgeschlossen: 0
-        };
-
-        let budget = 0;
-        const delayed = [];
-        const today = new Date().toISOString().split('T')[0];
-
-        data.forEach(project => {
-          if (counts.hasOwnProperty(project.status)) {
-            counts[project.status]++;
-          }
-
-          const projectBudget = extractBudgetFromDescription(project.description) || project.budget || 0;
-          budget += projectBudget;
-
-          if (project.end_date && project.end_date < today && project.status !== 'abgeschlossen') {
-            delayed.push(project);
-          }
-        });
-
-        setStatusCounts(counts);
-        setTotalBudget(budget);
-        setDelayedProjects(delayed);
-      }
-    } catch (error) {
-      console.error('Error fetching projects:', error);
-    }
-  };
-
-  const fetchTopCustomers = async () => {
-    try {
-      const { data } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('status', 'Aktiv')
-        .limit(5);
-
-      if (data) {
-        setTopCustomers(data);
-      }
-    } catch (error) {
-      console.error('Error fetching top customers:', error);
-    }
-  };
+  // Loading state
+  const isLoading = projectsLoading || customersLoading || teamLoading;
 
   const handleProjectAdded = () => {
-    fetchProjects();
     setIsAddDialogOpen(false);
   };
 
   const handleProjectUpdated = () => {
-    fetchProjects();
     setIsEditDialogOpen(false);
   };
 
   const handleProjectDeleted = () => {
-    fetchProjects();
     setIsEditDialogOpen(false);
   };
 
-  const handleDoubleClickProject = (project) => {
+  const handleDoubleClickProject = (project: Project) => {
     setSelectedProjectId(project.id);
     setIsProjectDetailViewOpen(true);
   };
 
-  const handlePreCalculation = (project) => {
+  const handlePreCalculation = (project: Project) => {
     setSelectedProject(project);
     setIsPreCalculationOpen(true);
   };
 
-  const handleProfitabilityAnalysis = (project) => {
+  const handleProfitabilityAnalysis = (project: Project) => {
     setSelectedProject(project);
     setIsProfitabilityOpen(true);
   };
@@ -346,7 +297,20 @@ const ProjectModule = () => {
               <div className="text-sm text-muted-foreground">Heute • {new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {projects.filter(p => p.status !== 'abgeschlossen').length === 0 ? (
+              {isLoading ? (
+                Array(3).fill(0).map((_, i) => (
+                  <div key={i} className="border rounded-xl p-3 shadow-softer">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <Skeleton className="h-4 w-24 mb-2" />
+                        <Skeleton className="h-3 w-32 mb-1" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
+                      <Skeleton className="h-6 w-16" />
+                    </div>
+                  </div>
+                ))
+              ) : projects.filter(p => p.status !== 'abgeschlossen').length === 0 ? (
                 <p className="text-sm text-muted-foreground">Keine Projekte vorhanden</p>
               ) : (
                 projects.filter(p => p.status !== 'abgeschlossen').map((project) => (
@@ -354,7 +318,7 @@ const ProjectModule = () => {
                     <ProjectRow
                       id={generateShortId(project.id)}
                       name={project.name}
-                      status={project.status as any}
+                      status={project.status}
                       budget={extractBudgetFromDescription(project.description) || project.budget || 0}
                       start={project.start_date}
                       end={project.end_date}
@@ -372,9 +336,14 @@ const ProjectModule = () => {
           <Card className="shadow-soft rounded-2xl overflow-hidden">
             <CardHeader className="pb-2"><CardTitle>Verzögerte Projekte</CardTitle></CardHeader>
             <CardContent>
-              {delayedProjects.length === 0 ? (
+              {isLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              ) : delayedProjects.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Keine Projekte im Verzug 🎉</p>
-              ) : delayedProjects.map((project: any) => (
+              ) : delayedProjects.map((project: Project) => (
                 <div key={project.id} className="border rounded-xl p-3 mb-2">
                   <ProjectRow 
                     id={generateShortId(project.id)} 
@@ -402,9 +371,16 @@ const ProjectModule = () => {
           <Card className="shadow-soft rounded-2xl overflow-hidden">
             <CardHeader className="pb-2"><CardTitle>Top Kunden</CardTitle></CardHeader>
             <CardContent className="space-y-2">
-              {topCustomers.length === 0 ? (
+              {isLoading ? (
+                Array(3).fill(0).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                ))
+              ) : topCustomers.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Hier erscheinen Kunden, sobald Projekte abgeschlossen sind.</p>
-              ) : topCustomers.map((customer: any) => (
+              ) : topCustomers.map((customer: Customer) => (
                 <div key={customer.id} className="flex items-center justify-between text-sm">
                   <span>{customer.company_name || customer.contact_person}</span>
                   <span className="text-muted-foreground">{customer.email}</span>
@@ -465,8 +441,8 @@ const ProjectModule = () => {
           projectId={selectedProject.id}
           projectName={selectedProject.name}
           customerId={selectedProject.customer_id || ''}
-          onCalculationSaved={async () => {
-            await fetchProjects();
+          onCalculationSaved={() => {
+            // React Query will automatically refetch due to cache invalidation
           }}
         />
       )}

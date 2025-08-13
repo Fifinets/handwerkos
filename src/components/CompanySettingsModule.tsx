@@ -57,9 +57,9 @@ export function CompanySettingsModule() {
       if (error) throw error;
       return data;
     },
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error: unknown) => {
       // Don't retry if it's an RLS policy violation
-      if (error?.code === 'PGRST116' || error?.message?.includes('row-level security')) {
+      if ((error as any)?.code === 'PGRST116' || (error as any)?.message?.includes('row-level security')) {
         return false;
       }
       return failureCount < 3;
@@ -133,7 +133,7 @@ export function CompanySettingsModule() {
     }
   };
 
-  const updateSetting = (key: keyof CompanySettings, value: any) => {
+  const updateSetting = (key: keyof CompanySettings, value: string | number | boolean) => {
     if (settings) {
       setSettings({ ...settings, [key]: value });
     }

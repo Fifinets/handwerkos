@@ -96,7 +96,7 @@ interface Email {
   ai_confidence?: number;
   ai_sentiment?: string;
   ai_summary?: string;
-  ai_extracted_data?: any;
+  ai_extracted_data?: Record<string, unknown>;
   processing_status: string;
   has_attachments?: boolean;
   email_categories?: {
@@ -161,23 +161,23 @@ export function EmailModule() {
 
   useEffect(() => {
     initializeModule();
-  }, []);
+  }, [initializeModule]);
 
   useEffect(() => {
     if (companyEmail) {
       fetchEmails();
       setupRealtimeSubscription();
     }
-  }, [companyEmail]);
+  }, [companyEmail, fetchEmails, setupRealtimeSubscription]);
 
-  const initializeModule = async () => {
+  const initializeModule = useCallback(async () => {
     await Promise.all([
       fetchCompanySettings(),
       fetchCategories()
     ]);
-  };
+  }, [fetchCompanySettings, fetchCategories]);
 
-  const fetchCompanySettings = async () => {
+  const fetchCompanySettings = useCallback(async () => {
     const { data, error } = await supabase
       .from('company_settings')
       .select('company_email')
@@ -188,9 +188,9 @@ export function EmailModule() {
     if (!error && data?.company_email) {
       setCompanyEmail(data.company_email);
     }
-  };
+  }, []);
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     const { data, error } = await supabase
       .from('email_categories')
       .select('*')
@@ -199,9 +199,9 @@ export function EmailModule() {
     if (!error) {
       setCategories(data || []);
     }
-  };
+  }, []);
 
-  const fetchEmails = async () => {
+  const fetchEmails = useCallback(async () => {
     if (!companyEmail) return;
 
     setLoading(true);
@@ -225,9 +225,9 @@ export function EmailModule() {
       setEmails(processedEmails);
     }
     setLoading(false);
-  };
+  }, [companyEmail]);
 
-  const setupRealtimeSubscription = () => {
+  const setupRealtimeSubscription = useCallback(() => {
     const channel = supabase
       .channel('emails-modern')
       .on('postgres_changes', {
@@ -255,7 +255,7 @@ export function EmailModule() {
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  };
+  }, [companyEmail, toast]);
 
   const fetchEmailThread = async (threadId: string) => {
     if (!threadId) return;
