@@ -10,11 +10,11 @@ export type StatusCounts = {
 
 export default function StatusList({ counts }: { counts: StatusCounts }) {
   const rows: { label: string; key: keyof StatusCounts; dot: string }[] = [
-    { label: "Anfrage", key: "anfrage", dot: "bg-sky-400" },
-    { label: "Besichtigung", key: "besichtigung", dot: "bg-amber-400" },
-    { label: "Planung", key: "geplant", dot: "bg-blue-500" },
+    { label: "Anfrage",        key: "anfrage",        dot: "bg-blue-400" },
+    { label: "Besichtigung",   key: "besichtigung",   dot: "bg-sky-400" },
+    { label: "Planung",        key: "geplant",        dot: "bg-amber-400" },
     { label: "In Bearbeitung", key: "in_bearbeitung", dot: "bg-yellow-400" },
-    { label: "Abgeschlossen", key: "abgeschlossen", dot: "bg-green-500" },
+    { label: "Abgeschlossen",  key: "abgeschlossen",  dot: "bg-green-500" },
   ];
 
   return (

@@ -335,18 +335,22 @@ const ProjectModule = () => {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Linke 2/3 – Aktuelle + Verzögerte Projekte */}
+        {/* linke 2/3 */}
         <div className="lg:col-span-2 space-y-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle>Aktuelle Projekte</CardTitle>
+          <Card className="shadow-soft">
+            <CardHeader className="pb-2 flex-row items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="badge-pill bg-green-100 text-green-800 border-green-200">Aktuelle</span>
+                <CardTitle>Projekte</CardTitle>
+              </div>
+              <div className="text-sm text-muted-foreground">Heute • {new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</div>
             </CardHeader>
             <CardContent className="space-y-3">
               {projects.filter(p => p.status !== 'abgeschlossen').length === 0 ? (
-                <EmptyState>Keine Projekte vorhanden</EmptyState>
+                <p className="text-sm text-muted-foreground">Keine Projekte vorhanden</p>
               ) : (
                 projects.filter(p => p.status !== 'abgeschlossen').map((project) => (
-                  <div key={project.id} className="border-b last:border-0 pb-3 last:pb-0">
+                  <div key={project.id} className="border rounded-xl p-3 shadow-softer">
                     <ProjectRow
                       id={generateShortId(project.id)}
                       name={project.name}
@@ -365,47 +369,41 @@ const ProjectModule = () => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle>Verzögerte Projekte</CardTitle>
-            </CardHeader>
+          <Card className="shadow-soft">
+            <CardHeader className="pb-2"><CardTitle>Verzögerte Projekte</CardTitle></CardHeader>
             <CardContent>
               {delayedProjects.length === 0 ? (
-                <EmptyState>Keine Projekte im Verzug 🎉</EmptyState>
-              ) : (
-                delayedProjects.map((project: any) => (
-                  <div key={project.id} className="py-2 border-b last:border-0">
-                    <ProjectRow
-                      id={generateShortId(project.id)}
-                      name={project.name}
-                      status={project.status}
-                      budget={extractBudgetFromDescription(project.description) || project.budget || 0}
-                      progress={project.status === 'abgeschlossen' ? 100 : 
-                               project.status === 'in_bearbeitung' ? 60 : 
-                               project.status === 'geplant' ? 30 : 10}
-                      onOpen={() => handleDoubleClickProject(project)}
-                    />
-                  </div>
-                ))
-              )}
+                <p className="text-sm text-muted-foreground">Keine Projekte im Verzug 🎉</p>
+              ) : delayedProjects.map((project: any) => (
+                <div key={project.id} className="border rounded-xl p-3 mb-2">
+                  <ProjectRow 
+                    id={generateShortId(project.id)} 
+                    name={project.name} 
+                    status={project.status} 
+                    budget={extractBudgetFromDescription(project.description) || project.budget || 0} 
+                    progress={project.status === 'abgeschlossen' ? 100 : 
+                             project.status === 'in_bearbeitung' ? 60 : 
+                             project.status === 'geplant' ? 30 : 10}
+                    onOpen={() => handleDoubleClickProject(project)}
+                  />
+                </div>
+              ))}
             </CardContent>
           </Card>
         </div>
 
-        {/* Rechte 1/3 – Status & Kunden & Übersicht */}
+        {/* rechte 1/3 */}
         <div className="space-y-4">
-          <Card>
+          <Card className="shadow-soft">
             <CardHeader className="pb-2"><CardTitle>Projektstatus</CardTitle></CardHeader>
-            <CardContent>
-              <StatusList counts={statusCounts} />
-            </CardContent>
+            <CardContent><StatusList counts={statusCounts} /></CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-soft">
             <CardHeader className="pb-2"><CardTitle>Top Kunden</CardTitle></CardHeader>
             <CardContent className="space-y-2">
               {topCustomers.length === 0 ? (
-                <EmptyState>Hier erscheinen Kunden, sobald Projekte abgeschlossen sind.</EmptyState>
+                <p className="text-sm text-muted-foreground">Hier erscheinen Kunden, sobald Projekte abgeschlossen sind.</p>
               ) : topCustomers.map((customer: any) => (
                 <div key={customer.id} className="flex items-center justify-between text-sm">
                   <span>{customer.company_name || customer.contact_person}</span>
@@ -415,13 +413,13 @@ const ProjectModule = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-soft">
             <CardHeader className="pb-2"><CardTitle>Projekt Übersicht</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-2 gap-2 text-sm">
-              <span className="inline-flex items-center rounded-full border px-2.5 py-1 bg-secondary/40">Gesamt: {projects.length}</span>
-              <span className="inline-flex items-center rounded-full border px-2.5 py-1 bg-blue-100 text-blue-800">Planung: {statusCounts.geplant}</span>
-              <span className="inline-flex items-center rounded-full border px-2.5 py-1">In Bearbeitung: {statusCounts.in_bearbeitung}</span>
-              <span className="inline-flex items-center rounded-full border px-2.5 py-1 bg-green-100 text-green-800">Abgeschlossen: {statusCounts.abgeschlossen}</span>
+              <span className="badge-pill bg-slate-50   text-slate-700  border-slate-200">Gesamt: {projects.length}</span>
+              <span className="badge-pill bg-amber-50  text-amber-700 border-amber-200">Planung: {statusCounts.geplant}</span>
+              <span className="badge-pill bg-blue-50   text-blue-700  border-blue-200">In Bearbeitung: {statusCounts.in_bearbeitung}</span>
+              <span className="badge-pill bg-green-50  text-green-700 border-green-200">Abgeschlossen: {statusCounts.abgeschlossen}</span>
             </CardContent>
           </Card>
         </div>

@@ -112,5 +112,12 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    background-image: radial-gradient(60% 40% at 70% -10%, rgba(99,102,241,.08), transparent 60%);
   }
 }
+
+/* sanfter Seitenverlauf + softer Schatten */
+.shadow-soft { box-shadow: 0 10px 30px rgba(2,6,23,.06); }     /* Karten */
+.shadow-softer { box-shadow: 0 6px 18px rgba(2,6,23,.05); }    /* kleine Elemente */
+.badge-pill { @apply inline-flex items-center rounded-full border px-2.5 py-1 text-xs; }
+.kpi-card  { @apply bg-card border rounded-lg px-4 py-3 flex items-center justify-between; }
