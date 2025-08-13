@@ -3,6 +3,7 @@
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import type {
   Customer, CustomerCreate, CustomerUpdate,
   Material, MaterialCreate, MaterialUpdate,
@@ -1454,13 +1455,70 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
   return useQuery({
     queryKey: QUERY_KEYS.employees,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
+      // Get current user session to determine company_id
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return { items: [] };
+
+      // Fetch employees from the employees table like in PersonalModule
+      const { data: employeesData, error: employeesError } = await supabase
+        .from('employees')
+        .select(`
+          id,
+          user_id,
+          first_name,
+          last_name,
+          email,
+          phone,
+          position,
+          status,
+          qualifications,
+          license
+        `)
+        .eq('company_id', session.user.user_metadata?.company_id || session.user.id)
+        .eq('status', 'Aktiv')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data;
+      if (employeesError) {
+        console.error('Error fetching employees:', employeesError);
+        return { items: [] };
+      }
+
+      // Fetch profile names separately for employees with user_id
+      const userIds = employeesData?.filter(emp => emp.user_id).map(emp => emp.user_id) || [];
+      let profilesData = [];
+      
+      if (userIds.length > 0) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .in('id', userIds);
+        
+        if (!error) {
+          profilesData = data || [];
+        }
+      }
+
+      // Map employee data - use profile names if available, fallback to employee names
+      const employeeList = employeesData?.map(employee => {
+        const profile = profilesData.find(p => p.id === employee.user_id);
+        const firstName = profile?.first_name || employee.first_name || '';
+        const lastName = profile?.last_name || employee.last_name || '';
+        
+        return {
+          id: employee.id,
+          first_name: firstName,
+          last_name: lastName,
+          name: `${firstName} ${lastName}`.trim(),
+          email: employee.email,
+          phone: employee.phone,
+          position: employee.position,
+          status: employee.status,
+          qualifications: employee.qualifications || [],
+          license: employee.license
+        };
+      }) || [];
+
+      return { items: employeeList };
     },
     ...options,
   });
