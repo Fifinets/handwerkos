@@ -1590,19 +1590,19 @@ export const useQueryInvalidation = () => {
 
     // Cleanup function
     return () => {
-      customerCreatedUnsubscribe();
-      customerUpdatedUnsubscribe();
-      quoteAcceptedUnsubscribe();
-      quoteSentUnsubscribe();
-      orderStartedUnsubscribe();
-      orderCompletedUnsubscribe();
-      projectStatusChangedUnsubscribe();
-      timesheetApprovedUnsubscribe();
-      stockAdjustedUnsubscribe();
-      materialLowStockUnsubscribe();
-      invoicePaidUnsubscribe();
-      expenseApprovedUnsubscribe();
-      documentUploadedUnsubscribe();
+      eventBus.off(customerCreatedUnsubscribe);
+      eventBus.off(customerUpdatedUnsubscribe);
+      eventBus.off(quoteAcceptedUnsubscribe);
+      eventBus.off(quoteSentUnsubscribe);
+      eventBus.off(orderStartedUnsubscribe);
+      eventBus.off(orderCompletedUnsubscribe);
+      eventBus.off(projectStatusChangedUnsubscribe);
+      eventBus.off(timesheetApprovedUnsubscribe);
+      eventBus.off(stockAdjustedUnsubscribe);
+      eventBus.off(materialLowStockUnsubscribe);
+      eventBus.off(invoicePaidUnsubscribe);
+      eventBus.off(expenseApprovedUnsubscribe);
+      eventBus.off(documentUploadedUnsubscribe);
     };
   }, [queryClient]);
 };
