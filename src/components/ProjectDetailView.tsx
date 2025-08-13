@@ -319,48 +319,49 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[98vw] max-h-[98vh] w-full h-full overflow-y-auto">
-        <DialogHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="text-2xl flex items-center gap-2">
-                <Building2 className="h-6 w-6" />
-                {project.project_name}
-              </DialogTitle>
-              <DialogDescription className="flex items-center gap-4 mt-1">
-                <Badge className={`${statusConfig.bgColor} ${statusConfig.color} text-sm`}>
-                  {statusConfig.icon} {statusConfig.label}
-                </Badge>
-                <span className="text-gray-500">ID: {generateShortId(project.id)}</span>
-              </DialogDescription>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm text-gray-600">Budget</p>
-                <p className="text-3xl font-bold text-green-600">{formatCurrency(project.stats.total_project_cost)}</p>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <DialogHeader className="pb-2">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <DialogTitle className="text-2xl flex items-center gap-2">
+                  <Building2 className="h-6 w-6" />
+                  {project.project_name}
+                </DialogTitle>
+                <DialogDescription className="flex items-center gap-4 mt-1">
+                  <Badge className={`${statusConfig.bgColor} ${statusConfig.color} text-sm`}>
+                    {statusConfig.icon} {statusConfig.label}
+                  </Badge>
+                  <span className="text-gray-500">ID: {generateShortId(project.id)}</span>
+                </DialogDescription>
               </div>
-              <div className="flex gap-2">
-                {permissions.can_edit_basic_data && (
-                  <Button variant="outline" size="sm">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Bearbeiten
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <p className="text-sm text-gray-600">Budget</p>
+                  <p className="text-3xl font-bold text-green-600">{formatCurrency(project.stats.total_project_cost)}</p>
+                </div>
+                <div className="flex gap-2">
+                  {permissions.can_edit_basic_data && (
+                    <Button variant="outline" size="sm">
+                      <Edit className="h-4 w-4 mr-2" />
+                      Bearbeiten
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" onClick={onClose}>
+                    Schließen
                   </Button>
-                )}
-                <Button variant="outline" size="sm" onClick={onClose}>
-                  Schließen
-                </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </DialogHeader>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full -mt-2">
-          <TabsList className="grid w-full grid-cols-5 mb-4">
-            <TabsTrigger value="overview">Übersicht</TabsTrigger>
-            <TabsTrigger value="time">Zeiten</TabsTrigger>
-            <TabsTrigger value="materials">Material</TabsTrigger>
-            <TabsTrigger value="documents">Dokumente</TabsTrigger>
-            <TabsTrigger value="comments">Kommentare</TabsTrigger>
-          </TabsList>
+            
+            {/* Tabs direkt im Header */}
+            <TabsList className="grid w-full grid-cols-5 mb-4">
+              <TabsTrigger value="overview">Übersicht</TabsTrigger>
+              <TabsTrigger value="time">Zeiten</TabsTrigger>
+              <TabsTrigger value="materials">Material</TabsTrigger>
+              <TabsTrigger value="documents">Dokumente</TabsTrigger>
+              <TabsTrigger value="comments">Kommentare</TabsTrigger>
+            </TabsList>
+          </DialogHeader>
 
           <TabsContent value="overview" className="space-y-4 min-h-[600px] mt-0">
             {/* Project Statistics Cards */}

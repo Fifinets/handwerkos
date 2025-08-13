@@ -78,14 +78,15 @@ const ProjectDetailDialogWithTasks = ({ isOpen, onClose, project }: ProjectDetai
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-[98vw] max-h-[98vh] w-full h-full overflow-y-auto">
-        <DialogHeader className="pb-2">
-          <DialogTitle>{project.name} – Details</DialogTitle>
-        </DialogHeader>
-        <Tabs defaultValue="overview" className="w-full -mt-2">
-          <TabsList>
-            <TabsTrigger value="overview">Übersicht</TabsTrigger>
-            <TabsTrigger value="tasks">Teilaufgaben</TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="overview" className="w-full">
+          <DialogHeader className="pb-2">
+            <DialogTitle>{project.name} – Details</DialogTitle>
+            <TabsList>
+              <TabsTrigger value="overview">Übersicht</TabsTrigger>
+              <TabsTrigger value="tasks">Teilaufgaben</TabsTrigger>
+            </TabsList>
+          </DialogHeader>
+          
           <TabsContent value="overview" className="mt-0">
             <div className="grid grid-cols-2 gap-4">
               <Card>
