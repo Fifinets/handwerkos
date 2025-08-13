@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 
 // Type definitions
 type ProjectStatus = 'anfrage' | 'besichtigung' | 'geplant' | 'in_bearbeitung' | 'abgeschlossen';
@@ -59,11 +59,12 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   useProjects, 
   useCustomers, 
-  useEmployees,
   useCreateProject,
   useUpdateProject,
   useDeleteProject
 } from "@/hooks/useApi";
+import { supabase } from "@/integrations/supabase/client";
+import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 import AddProjectDialog from "./AddProjectDialog";
 import EditProjectDialog from "./EditProjectDialog";
@@ -183,11 +184,112 @@ const formatBudget = (budget: number, description: string) => {
 
 const ProjectModule = () => {
   const { toast } = useToast();
+  const { companyId } = useSupabaseAuth();
   
   // React Query hooks
   const { data: projectsResponse, isLoading: projectsLoading } = useProjects();
   const { data: customersResponse, isLoading: customersLoading } = useCustomers();
-  const { data: teamMembersResponse, isLoading: teamLoading } = useEmployees();
+  
+  // Local state for employees (using same logic as PersonalModule)
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [teamLoading, setTeamLoading] = useState(true);
+  
+  // Fetch employees using PersonalModule logic
+  const fetchEmployees = useCallback(async () => {
+    try {
+      setTeamLoading(true);
+      
+      console.log('ProjectModule: fetchEmployees called with companyId:', companyId);
+      
+      if (!companyId) {
+        console.error('ProjectModule: No company ID available');
+        setTeamLoading(false);
+        return;
+      }
+      
+      // Debug query - get ALL employees for this company
+      const { data: allEmployeesData, error: debugError } = await supabase
+        .from('employees')
+        .select('id, email, status, user_id, company_id')
+        .eq('company_id', companyId);
+      
+      console.log('ProjectModule: DEBUG - All employees for company:', allEmployeesData);
+      
+      // Main employees query
+      const { data: employeesData, error: employeesError } = await supabase
+        .from('employees')
+        .select(`
+          id,
+          user_id,
+          first_name,
+          last_name,
+          email,
+          phone,
+          position,
+          status,
+          qualifications,
+          license
+        `)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+
+      console.log('ProjectModule: Employees query result:', employeesData, employeesError);
+
+      if (employeesError) {
+        console.error('ProjectModule: Error fetching employees:', employeesError);
+        setTeamLoading(false);
+        return;
+      }
+
+      // Fetch profile names separately for employees with user_id
+      const userIds = employeesData?.filter(emp => emp.user_id).map(emp => emp.user_id) || [];
+      let profilesData = [];
+      
+      if (userIds.length > 0) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .in('id', userIds);
+        
+        if (!error) {
+          profilesData = data || [];
+        }
+      }
+
+      // Map employee data
+      const employeeList = employeesData?.map(employee => {
+        const profile = profilesData.find(p => p.id === employee.user_id);
+        const firstName = profile?.first_name || employee.first_name || '';
+        const lastName = profile?.last_name || employee.last_name || '';
+        
+        return {
+          id: employee.id,
+          first_name: firstName,
+          last_name: lastName,
+          name: `${firstName} ${lastName}`.trim(),
+          email: employee.email,
+          phone: employee.phone,
+          position: employee.position,
+          status: employee.status,
+          qualifications: employee.qualifications || [],
+          license: employee.license,
+          projects: [] // Add for compatibility with AddProjectDialog
+        };
+      }) || [];
+
+      console.log('ProjectModule: Final employee list:', employeeList);
+      setTeamMembers(employeeList);
+    } catch (error) {
+      console.error('ProjectModule: fetchEmployees error:', error);
+    } finally {
+      setTeamLoading(false);
+    }
+  }, [companyId]);
+
+  // Fetch employees when component mounts or companyId changes
+  useEffect(() => {
+    fetchEmployees();
+  }, [fetchEmployees]);
   
   // Local state for dialogs
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -202,12 +304,10 @@ const ProjectModule = () => {
   // Extract data from responses
   const projects = projectsResponse?.items || [];
   const customers = customersResponse?.items || [];
-  const teamMembers = teamMembersResponse?.items || [];
   
   // Debug logging
   console.log('Customers data:', customers);
   console.log('Team members data:', teamMembers);
-  console.log('Team members response:', teamMembersResponse);
   console.log('Team members loading:', teamLoading);
   
   // Always use real data, with fallback only if completely empty
@@ -226,11 +326,8 @@ const ProjectModule = () => {
     }
   ];
   
-  // Use only real team members - no fallback to see what's happening
+  // Use team members directly from state
   const teamMembersWithFallback = teamMembers;
-  
-  console.log('Team members with fallback:', teamMembersWithFallback);
-  console.log('Team members length:', teamMembers.length);
   
   // Loading state
   const isLoading = projectsLoading || customersLoading || teamLoading;
