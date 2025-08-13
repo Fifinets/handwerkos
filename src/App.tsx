@@ -33,70 +33,70 @@ const EventBusQueryInvalidation = () => {
     // Set up EventBus to invalidate React Query cache on relevant events
     const subscriptions = [
       // Customer events
-      eventBus.subscribe('customer.created', () => {
+      eventBus.on('CUSTOMER_CREATED', () => {
         queryClient.invalidateQueries({ queryKey: ['customers'] });
       }),
-      eventBus.subscribe('customer.updated', () => {
+      eventBus.on('CUSTOMER_UPDATED', () => {
         queryClient.invalidateQueries({ queryKey: ['customers'] });
       }),
-      eventBus.subscribe('customer.deleted', () => {
+      eventBus.on('CUSTOMER_DELETED', () => {
         queryClient.invalidateQueries({ queryKey: ['customers'] });
       }),
       
       // Project events
-      eventBus.subscribe('project.created', () => {
+      eventBus.on('PROJECT_CREATED', () => {
         queryClient.invalidateQueries({ queryKey: ['projects'] });
         queryClient.invalidateQueries({ queryKey: ['financial-kpis'] });
       }),
-      eventBus.subscribe('project.updated', () => {
+      eventBus.on('PROJECT_UPDATED', () => {
         queryClient.invalidateQueries({ queryKey: ['projects'] });
         queryClient.invalidateQueries({ queryKey: ['financial-kpis'] });
       }),
-      eventBus.subscribe('project.status_changed', () => {
+      eventBus.on('PROJECT_STATUS_CHANGED', () => {
         queryClient.invalidateQueries({ queryKey: ['projects'] });
         queryClient.invalidateQueries({ queryKey: ['financial-kpis'] });
       }),
       
       // Quote events
-      eventBus.subscribe('quote.created', () => {
+      eventBus.on('QUOTE_CREATED', () => {
         queryClient.invalidateQueries({ queryKey: ['quotes'] });
       }),
-      eventBus.subscribe('quote.updated', () => {
+      eventBus.on('QUOTE_UPDATED', () => {
         queryClient.invalidateQueries({ queryKey: ['quotes'] });
       }),
-      eventBus.subscribe('quote.status_changed', () => {
+      eventBus.on('QUOTE_ACCEPTED', () => {
         queryClient.invalidateQueries({ queryKey: ['quotes'] });
         queryClient.invalidateQueries({ queryKey: ['financial-kpis'] });
       }),
       
       // Invoice events
-      eventBus.subscribe('invoice.created', () => {
+      eventBus.on('INVOICE_CREATED', () => {
         queryClient.invalidateQueries({ queryKey: ['invoices'] });
         queryClient.invalidateQueries({ queryKey: ['financial-kpis'] });
       }),
-      eventBus.subscribe('invoice.updated', () => {
+      eventBus.on('INVOICE_UPDATED', () => {
         queryClient.invalidateQueries({ queryKey: ['invoices'] });
         queryClient.invalidateQueries({ queryKey: ['financial-kpis'] });
       }),
-      eventBus.subscribe('invoice.payment_received', () => {
+      eventBus.on('INVOICE_PAID', () => {
         queryClient.invalidateQueries({ queryKey: ['invoices'] });
         queryClient.invalidateQueries({ queryKey: ['financial-kpis'] });
       }),
       
       // Time entry events
-      eventBus.subscribe('time_entry.created', () => {
+      eventBus.on('TIMESHEET_CREATED', () => {
         queryClient.invalidateQueries({ queryKey: ['time-entries'] });
       }),
-      eventBus.subscribe('time_entry.updated', () => {
+      eventBus.on('TIMESHEET_UPDATED', () => {
         queryClient.invalidateQueries({ queryKey: ['time-entries'] });
       }),
       
       // Material/Stock events
-      eventBus.subscribe('material.stock_updated', () => {
+      eventBus.on('STOCK_ADJUSTED', () => {
         queryClient.invalidateQueries({ queryKey: ['materials'] });
         queryClient.invalidateQueries({ queryKey: ['stock-counts'] });
       }),
-      eventBus.subscribe('stock.transfer_completed', () => {
+      eventBus.on('STOCK_TRANSFER_COMPLETED', () => {
         queryClient.invalidateQueries({ queryKey: ['materials'] });
         queryClient.invalidateQueries({ queryKey: ['stock-transfers'] });
         queryClient.invalidateQueries({ queryKey: ['stock-counts'] });
@@ -105,7 +105,7 @@ const EventBusQueryInvalidation = () => {
     
     // Cleanup subscriptions on unmount
     return () => {
-      subscriptions.forEach(unsubscribe => unsubscribe());
+      subscriptions.forEach(subscriptionId => eventBus.off(subscriptionId));
     };
   }, []);
   
