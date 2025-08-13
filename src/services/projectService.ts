@@ -116,11 +116,6 @@ export class ProjectService {
             address,
             city,
             postal_code
-          ),
-          orders (
-            order_number,
-            total_amount,
-            status
           )
         `)
         .eq('id', id);
