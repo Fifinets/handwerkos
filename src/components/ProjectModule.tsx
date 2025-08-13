@@ -59,7 +59,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   useProjects, 
   useCustomers, 
-  useTeamMembers,
+  useEmployees,
   useCreateProject,
   useUpdateProject,
   useDeleteProject
@@ -187,7 +187,7 @@ const ProjectModule = () => {
   // React Query hooks
   const { data: projectsResponse, isLoading: projectsLoading } = useProjects();
   const { data: customersResponse, isLoading: customersLoading } = useCustomers();
-  const { data: teamMembersResponse, isLoading: teamLoading } = useTeamMembers();
+  const { data: teamMembersResponse, isLoading: teamLoading } = useEmployees();
   
   // Local state for dialogs
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);

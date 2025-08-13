@@ -1447,6 +1447,26 @@ export const useGetDocumentDownloadUrl = (options?: UseApiMutationOptions<string
 };
 
 // ==========================================
+// EMPLOYEE HOOKS
+// ==========================================
+
+export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.employees,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    ...options,
+  });
+};
+
+// ==========================================
 // QUERY INVALIDATION UTILITIES
 // ==========================================
 
@@ -1590,6 +1610,7 @@ export const useQueryInvalidation = () => {
 export default {
   // Export all hooks for convenience
   useCustomers, useCustomer, useCreateCustomer, useUpdateCustomer, useDeleteCustomer, useSearchCustomers,
+  useEmployees,
   useQuotes, useQuote, useCreateQuote, useUpdateQuote, useSendQuote, useAcceptQuote, useRejectQuote, useQuoteStats,
   useOrders, useOrder, useCreateOrder, useStartOrder, useCompleteOrder, useCancelOrder, useOrderStats,
   useProjects, useProject, useCreateProject, useUpdateProject, useStartProject, useCompleteProject, useBlockProject, useSearchProjects,
@@ -1600,6 +1621,23 @@ export default {
   useDocuments, useDocument, useUploadDocument, useUpdateDocument, useDeleteDocument, useSearchDocuments,
   useFinancialKpis, useRevenueByMonth, useExpensesByCategory, useProfitLossReport,
   useInvalidateQueries, useQueryInvalidation,
+  // KPI, Notification, and Worker hooks
+  useProjectKPIs, useProjectKPIsSummary, useCriticalBudgetProjects,
+  useNotifications, useNotificationStats, useMarkNotificationRead, useMarkAllNotificationsRead, 
+  useArchiveNotification, useCreateNotification,
+  useWorkerStatus, useRunWorkerJob,
+  // GoBD and Audit hooks
+  useAuditLogs, useAuditTrail, useAuditStatistics,
+  useImmutabilityCheck, useNumberSequence, useGetNextNumber, useMakeImmutable,
+  useCreateDocumentHash, useVerifyDocumentIntegrity,
+  // DATEV and German Accounting hooks
+  useGenerateDATEVExport, useDATEVAccountMapping, useSetDATEVAccountMapping,
+  useGenerateGermanVATReturn, useGenerateGermanExpenseReport, useCalculateGermanDepreciation,
+  useValidateGermanInvoiceCompliance, useCreateGermanAccountingPeriod,
+  // AI Module hooks
+  useAISearchDocuments, useIndexDocument, useGenerateAIResponse, useAnalyzeIntent, useExecuteIntent,
+  useCreateAIEstimation, useQuickAIEstimate, useAIIndexingStatus, useBulkIndexEntities,
+  useUpdateEstimationAccuracy, useEstimationStatistics,
 };
 
 // ============================================
@@ -2602,23 +2640,3 @@ export const useEstimationStatistics = (
   });
 };
 
-// Export all hooks
-export {
-  // KPI, Notification, and Worker hooks
-  useProjectKPIs, useProjectKPIsSummary, useCriticalBudgetProjects,
-  useNotifications, useNotificationStats, useMarkNotificationRead, useMarkAllNotificationsRead, 
-  useArchiveNotification, useCreateNotification,
-  useWorkerStatus, useRunWorkerJob,
-  // GoBD and Audit hooks
-  useAuditLogs, useAuditTrail, useAuditStatistics,
-  useImmutabilityCheck, useNumberSequence, useGetNextNumber, useMakeImmutable,
-  useCreateDocumentHash, useVerifyDocumentIntegrity,
-  // DATEV and German Accounting hooks
-  useGenerateDATEVExport, useDATEVAccountMapping, useSetDATEVAccountMapping,
-  useGenerateGermanVATReturn, useGenerateGermanExpenseReport, useCalculateGermanDepreciation,
-  useValidateGermanInvoiceCompliance, useCreateGermanAccountingPeriod,
-  // AI Module hooks
-  useAISearchDocuments, useIndexDocument, useGenerateAIResponse, useAnalyzeIntent, useExecuteIntent,
-  useCreateAIEstimation, useQuickAIEstimate, useAIIndexingStatus, useBulkIndexEntities,
-  useUpdateEstimationAccuracy, useEstimationStatistics,
-};

@@ -22,11 +22,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { OfflineTimeTrackingManager, GPSLocationManager, NetworkManager, type GeolocationPosition, type OfflineTimeEntry } from "@/lib/timetrackingUtils";
 import EditTimeEntryDialog from "./EditTimeEntryDialog";
 import { 
-  useTimeEntries, 
+  useTimesheets, 
   useProjects, 
-  useTeamMembers,
-  useCreateTimeEntry,
-  useUpdateTimeEntry
+  useEmployees,
+  useCreateTimesheet,
+  useUpdateTimesheet
 } from "@/hooks/useApi";
 interface TimeEntry {
   id: string;

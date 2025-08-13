@@ -25,10 +25,9 @@ import { useToast } from "@/hooks/use-toast";
 import { FinancialStats, MonthlyRevenue, Invoice, Expense } from "@/types/financial";
 import { 
   useInvoices, 
-  useFinancialKPIs,
+  useFinancialKpis,
   useExpenses,
-  useCreateInvoice,
-  useUpdateInvoice
+  useCreateInvoice
 } from "@/hooks/useApi";
 
 // Simplified interface for mock/display data that may not have all required Invoice fields
@@ -52,10 +51,9 @@ const FinanceModule = () => {
   // React Query hooks
   const { data: invoicesResponse, isLoading: invoicesLoading } = useInvoices();
   const { data: expensesResponse, isLoading: expensesLoading } = useExpenses();
-  const { data: financialKPIs, isLoading: kpisLoading } = useFinancialKPIs();
+  const { data: financialKPIs, isLoading: kpisLoading } = useFinancialKpis();
   
   const createInvoiceMutation = useCreateInvoice();
-  const updateInvoiceMutation = useUpdateInvoice();
   
   // Local state
   const [activeTab, setActiveTab] = useState('dashboard');
