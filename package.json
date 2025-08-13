@@ -8,7 +8,12 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "db:init": "npx supabase init",
+    "db:start": "npx supabase start",
+    "db:reset": "npx supabase db reset",
+    "db:push": "npx supabase db push",
+    "db:diff": "npx supabase db diff --schema public --local --name"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.2",
