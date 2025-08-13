@@ -159,6 +159,13 @@ export function EmailModuleModern() {
   
   const { toast } = useToast();
 
+  const initializeModule = async () => {
+    await Promise.all([
+      fetchCompanySettings(),
+      fetchCategories()
+    ]);
+  };
+
   useEffect(() => {
     initializeModule();
   }, []);
@@ -170,36 +177,6 @@ export function EmailModuleModern() {
     }
   }, [companyEmail]);
 
-  const initializeModule = async () => {
-    await Promise.all([
-      fetchCompanySettings(),
-      fetchCategories()
-    ]);
-  };
-
-  const fetchCompanySettings = async () => {
-    const { data, error } = await supabase
-      .from('company_settings')
-      .select('company_email')
-      .eq('is_active', true)
-      .limit(1)
-      .single();
-
-    if (!error && data?.company_email) {
-      setCompanyEmail(data.company_email);
-    }
-  };
-
-  const fetchCategories = async () => {
-    const { data, error } = await supabase
-      .from('email_categories')
-      .select('*')
-      .order('name');
-
-    if (!error) {
-      setCategories(data || []);
-    }
-  };
 
   const fetchEmails = async () => {
     if (!companyEmail) return;

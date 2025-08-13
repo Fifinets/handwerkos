@@ -100,12 +100,12 @@ const TimeTrackingModule: React.FC = () => {
   } = useAuth();
   
   // React Query hooks
-  const { data: timeEntriesResponse, isLoading: timeEntriesLoading } = useTimeEntries();
+  const { data: timeEntriesResponse, isLoading: timeEntriesLoading } = useTimesheets();
   const { data: projectsResponse, isLoading: projectsLoading } = useProjects();
-  const { data: teamMembersResponse, isLoading: teamLoading } = useTeamMembers();
+  const { data: teamMembersResponse, isLoading: teamLoading } = useEmployees();
   
-  const createTimeEntryMutation = useCreateTimeEntry();
-  const updateTimeEntryMutation = useUpdateTimeEntry();
+  const createTimeEntryMutation = useCreateTimesheet();
+  const updateTimeEntryMutation = useUpdateTimesheet();
   
   // Extract data from responses
   const timeEntries = timeEntriesResponse?.items || [];
