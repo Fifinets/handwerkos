@@ -17,6 +17,9 @@ export { gobdService, GoBDService } from './gobdService';
 export { gobdHooks, GoBDHooks } from './gobdHooks';
 export { datevService, DATEVService } from './datevService';
 export { germanAccountingService, GermanAccountingService } from './germanAccountingService';
+export { aiRAGService, AIRAGService } from './aiRAGService';
+export { aiIntentService, AIIntentService } from './aiIntentService';
+export { aiEstimationService, AIEstimationService } from './aiEstimationService';
 export { eventBus } from './eventBus';
 
 // Re-export types from eventBus
@@ -77,3 +80,32 @@ export type {
   GermanDepreciationSchedule, 
   GermanVATType 
 } from './germanAccountingService';
+
+// Re-export types from aiRAGService
+export type { 
+  AIDocument, 
+  AISearchQuery, 
+  AISearchResult, 
+  AIRAGContext, 
+  AIIndexingStatus, 
+  DocumentType 
+} from './aiRAGService';
+
+// Re-export types from aiIntentService
+export type { 
+  IntentAnalysis, 
+  IntentAction, 
+  ConversationalContext, 
+  IntentCategory, 
+  EntityType, 
+  ActionType 
+} from './aiIntentService';
+
+// Re-export types from aiEstimationService
+export type { 
+  EstimationRequest, 
+  AIEstimation, 
+  EstimationAccuracy, 
+  EstimationType, 
+  ProjectCategory 
+} from './aiEstimationService';
