@@ -324,51 +324,51 @@ const ProjectModule = () => {
         </div>
       </div>
 
-      {/* Sticky KPIs - Larger for better readability */}
+      {/* Compact KPIs */}
       <section 
-        className="sticky top-0 z-10 backdrop-blur-sm bg-white/85 border border-slate-900/6 p-6 rounded-2xl shadow-lg grid grid-cols-4 gap-6 mb-8"
+        className="sticky top-0 z-10 backdrop-blur-sm bg-white/85 border border-slate-900/6 p-4 rounded-2xl shadow-lg grid grid-cols-4 gap-4 mb-6"
         style={{ backdropFilter: 'saturate(1.2) blur(6px)' }}
         aria-label="Kennzahlen"
       >
-        <div className="bg-white border border-slate-200/60 rounded-xl p-6 flex items-center justify-between">
+        <div className="bg-white border border-slate-200/60 rounded-xl p-4 flex items-center justify-between">
           <div>
-            <div className="text-lg text-gray-600 font-semibold mb-2">Aktive Projekte</div>
-            <div className="text-4xl font-bold text-blue-600">
+            <div className="text-sm text-gray-600 font-semibold mb-1">Aktive Projekte</div>
+            <div className="text-2xl font-bold text-blue-600">
               {statusCounts.in_bearbeitung + statusCounts.geplant + statusCounts.anfrage + statusCounts.besichtigung}
             </div>
           </div>
         </div>
-        <div className="bg-white border border-slate-200/60 rounded-xl p-6 flex items-center justify-between">
+        <div className="bg-white border border-slate-200/60 rounded-xl p-4 flex items-center justify-between">
           <div>
-            <div className="text-lg text-gray-600 font-semibold mb-2">Abgeschlossene</div>
-            <div className="text-4xl font-bold text-green-600">{statusCounts.abgeschlossen}</div>
+            <div className="text-sm text-gray-600 font-semibold mb-1">Abgeschlossene</div>
+            <div className="text-2xl font-bold text-green-600">{statusCounts.abgeschlossen}</div>
           </div>
         </div>
-        <div className="bg-white border border-slate-200/60 rounded-xl p-6 flex items-center justify-between">
+        <div className="bg-white border border-slate-200/60 rounded-xl p-4 flex items-center justify-between">
           <div>
-            <div className="text-lg text-gray-600 font-semibold mb-2">Gesamtbudget</div>
-            <div className="text-4xl font-bold text-green-600">€{totalBudget.toLocaleString('de-DE')}</div>
+            <div className="text-sm text-gray-600 font-semibold mb-1">Gesamtbudget</div>
+            <div className="text-2xl font-bold text-green-600">€{totalBudget.toLocaleString('de-DE')}</div>
           </div>
         </div>
-        <div className="bg-white border border-slate-200/60 rounded-xl p-6 flex items-center justify-between">
+        <div className="bg-white border border-slate-200/60 rounded-xl p-4 flex items-center justify-between">
           <div>
-            <div className="text-lg text-gray-600 font-semibold mb-2">Verspätet</div>
-            <div className="text-4xl font-bold text-red-600">{delayedProjects.length}</div>
+            <div className="text-sm text-gray-600 font-semibold mb-1">Verspätet</div>
+            <div className="text-2xl font-bold text-red-600">{delayedProjects.length}</div>
           </div>
         </div>
       </section>
 
       {/* Main Content - Full Width */}
-      <div className="space-y-6">
-        {/* Content Grid - Larger for better readability */}
-        <div className="grid grid-cols-12 gap-6">
+      <div className="space-y-4">
+        {/* Content Grid - Compact */}
+        <div className="grid grid-cols-12 gap-4">
           <div className="col-span-8">
             <article className="bg-white border border-slate-200/60 rounded-2xl shadow-lg">
-              <header className="flex items-center justify-between p-6 border-b border-slate-200/60">
-                <h3 className="text-2xl font-bold text-gray-900">Aktuelle Projekte</h3>
-                <div className="text-gray-600 text-lg">Heute • {new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</div>
+              <header className="flex items-center justify-between p-4 border-b border-slate-200/60">
+                <h3 className="text-lg font-bold text-gray-900">Aktuelle Projekte</h3>
+                <div className="text-gray-600 text-sm">Heute • {new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</div>
               </header>
-            <div className="p-6">
+            <div className="p-4">
               {projects.filter(p => p.status !== 'abgeschlossen').length > 0 ? 
                 projects.filter(p => p.status !== 'abgeschlossen').map(project => {
                   const statusColor = project.status === 'geplant' ? 'bg-orange-100 text-orange-800' : 
@@ -378,7 +378,7 @@ const ProjectModule = () => {
                   return (
                     <div 
                       key={project.id} 
-                      className="project flex flex-col gap-4 mb-8 cursor-pointer hover:bg-gray-50 p-4 rounded-lg border border-gray-200"
+                      className="project flex flex-col gap-3 mb-4 cursor-pointer hover:bg-gray-50 p-3 rounded-lg border border-gray-200"
                       onDoubleClick={() => handleDoubleClickProject(project)}
                     >
                       <div className="row flex items-center gap-4 flex-wrap">
@@ -439,68 +439,68 @@ const ProjectModule = () => {
           </div>
           
           {/* Right Column - Sidebar Content */}
-          <div className="col-span-4 space-y-6">
+          <div className="col-span-4 space-y-4">
             {/* Projektstatus */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="font-bold text-gray-900 mb-4 text-xl">Projektstatus</h3>
-              <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <h3 className="font-bold text-gray-900 mb-3 text-lg">Projektstatus</h3>
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-4 h-4 rounded-full bg-blue-500"></div>
-                    <span className="text-base text-gray-700 font-medium">Anfrage</span>
+                    <span className="text-sm text-gray-700 font-medium">Anfrage</span>
                   </div>
-                  <span className="text-lg font-bold text-gray-900">{statusCounts.anfrage}</span>
+                  <span className="text-sm font-bold text-gray-900">{statusCounts.anfrage}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-4 h-4 rounded-full bg-yellow-500"></div>
-                    <span className="text-base text-gray-700 font-medium">Besichtigung</span>
+                    <span className="text-sm text-gray-700 font-medium">Besichtigung</span>
                   </div>
-                  <span className="text-lg font-bold text-gray-900">{statusCounts.besichtigung}</span>
+                  <span className="text-sm font-bold text-gray-900">{statusCounts.besichtigung}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-4 h-4 rounded-full bg-orange-500"></div>
-                    <span className="text-base text-gray-700 font-medium">Planung</span>
+                    <span className="text-sm text-gray-700 font-medium">Planung</span>
                   </div>
-                  <span className="text-lg font-bold text-gray-900">{statusCounts.geplant}</span>
+                  <span className="text-sm font-bold text-gray-900">{statusCounts.geplant}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-4 h-4 rounded-full bg-blue-500"></div>
-                    <span className="text-base text-gray-700 font-medium">In Bearbeitung</span>
+                    <span className="text-sm text-gray-700 font-medium">In Bearbeitung</span>
                   </div>
-                  <span className="text-lg font-bold text-gray-900">{statusCounts.in_bearbeitung}</span>
+                  <span className="text-sm font-bold text-gray-900">{statusCounts.in_bearbeitung}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-4 h-4 rounded-full bg-green-500"></div>
-                    <span className="text-base text-gray-700 font-medium">Abgeschlossen</span>
+                    <span className="text-sm text-gray-700 font-medium">Abgeschlossen</span>
                   </div>
-                  <span className="text-lg font-bold text-gray-900">{statusCounts.abgeschlossen}</span>
+                  <span className="text-sm font-bold text-gray-900">{statusCounts.abgeschlossen}</span>
                 </div>
               </div>
             </div>
 
             {/* Top Kunden */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="font-bold text-gray-900 mb-4 text-xl">Top Kunden</h3>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <h3 className="font-bold text-gray-900 mb-3 text-lg">Top Kunden</h3>
               <div className="space-y-3">
                 {topCustomers.length > 0 ? topCustomers.slice(0, 5).map((customer) => (
                   <div key={customer.id} className="flex justify-between items-center py-2">
-                    <span className="text-base text-gray-700 truncate font-medium">{customer.company_name || customer.contact_person}</span>
+                    <span className="text-sm text-gray-700 truncate font-medium">{customer.company_name || customer.contact_person}</span>
                     <span className="text-sm text-gray-500">{customer.email}</span>
                   </div>
                 )) : (
-                  <div className="text-base text-gray-500 text-center">Keine Kunden</div>
+                  <div className="text-sm text-gray-500 text-center">Keine Kunden</div>
                 )}
               </div>
             </div>
 
             {/* Projekt Übersicht */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="font-bold text-gray-900 mb-4 text-xl">Projekt Übersicht</h3>
-              <div className="space-y-4 text-base">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <h3 className="font-bold text-gray-900 mb-3 text-lg">Projekt Übersicht</h3>
+              <div className="space-y-2 text-sm">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-700 font-medium">Gesamt: {projects.length}</span>
                   <span className="px-3 py-2 bg-orange-100 text-orange-700 rounded-lg text-sm font-medium">Planung: {statusCounts.geplant}</span>
@@ -514,22 +514,22 @@ const ProjectModule = () => {
           </div>
         </div>
         
-        {/* Verzögerte Projekte - Full Width */}
+        {/* Verzögerte Projekte - Compact */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900">Verzögerte Projekte</h2>
+          <div className="p-4 border-b border-gray-200">
+            <h2 className="text-lg font-bold text-gray-900">Verzögerte Projekte</h2>
           </div>
-          <div className="p-6">
+          <div className="p-4">
             {delayedProjects.length > 0 ? (
               <div className="space-y-4">
                 {delayedProjects.map(project => (
-                  <div key={project.id} className="text-base text-red-600 font-medium p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <div key={project.id} className="text-sm text-red-600 font-medium p-2 bg-red-50 border border-red-200 rounded-lg">
                     {project.name} - {new Date(project.end_date).toLocaleDateString('de-DE')}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 text-center py-8 text-xl">Keine Projekte im Verzug 🎉</p>
+              <p className="text-gray-500 text-center py-4 text-base">Keine Projekte im Verzug 🎉</p>
             )}
           </div>
         </div>
