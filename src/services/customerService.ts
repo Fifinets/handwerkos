@@ -254,11 +254,7 @@ export class CustomerService {
       const query = supabase
         .from('projects')
         .select(`
-          *,
-          orders (
-            order_number,
-            total_amount
-          )
+          *
         `)
         .eq('customer_id', id)
         .order('created_at', { ascending: false });

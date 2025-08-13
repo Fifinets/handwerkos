@@ -41,10 +41,6 @@ export class ProjectService {
             company_name,
             contact_person,
             email
-          ),
-          orders (
-            order_number,
-            total_amount
           )
         `, { count: 'exact' });
       
@@ -83,6 +79,15 @@ export class ProjectService {
       
       const { data, count } = await createQuery<Project>(query).executeWithCount();
       
+      // Debug logging
+      console.log('ProjectService.getProjects:', {
+        query: query.toString(),
+        data,
+        count,
+        pagination,
+        filters
+      });
+      
       return {
         items: data,
         pagination: {
@@ -111,11 +116,6 @@ export class ProjectService {
             address,
             city,
             postal_code
-          ),
-          orders (
-            order_number,
-            total_amount,
-            status
           )
         `)
         .eq('id', id);
