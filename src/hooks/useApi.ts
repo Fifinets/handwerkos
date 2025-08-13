@@ -1607,38 +1607,6 @@ export const useQueryInvalidation = () => {
   }, [queryClient]);
 };
 
-export default {
-  // Export all hooks for convenience
-  useCustomers, useCustomer, useCreateCustomer, useUpdateCustomer, useDeleteCustomer, useSearchCustomers,
-  useEmployees,
-  useQuotes, useQuote, useCreateQuote, useUpdateQuote, useSendQuote, useAcceptQuote, useRejectQuote, useQuoteStats,
-  useOrders, useOrder, useCreateOrder, useStartOrder, useCompleteOrder, useCancelOrder, useOrderStats,
-  useProjects, useProject, useCreateProject, useUpdateProject, useStartProject, useCompleteProject, useBlockProject, useSearchProjects,
-  useTimesheets, useTimesheet, useCreateTimesheet, useUpdateTimesheet, useApproveTimesheet, useBulkApproveTimesheets,
-  useMaterials, useMaterial, useCreateMaterial, useUpdateMaterial, useAdjustStock, useAddStock, useRemoveStock, useSearchMaterials,
-  useInvoices, useInvoice, useCreateInvoice, useSendInvoice, useMarkInvoicePaid,
-  useExpenses, useCreateExpense, useApproveExpense,
-  useDocuments, useDocument, useUploadDocument, useUpdateDocument, useDeleteDocument, useSearchDocuments,
-  useFinancialKpis, useRevenueByMonth, useExpensesByCategory, useProfitLossReport,
-  useInvalidateQueries, useQueryInvalidation,
-  // KPI, Notification, and Worker hooks
-  useProjectKPIs, useProjectKPIsSummary, useCriticalBudgetProjects,
-  useNotifications, useNotificationStats, useMarkNotificationRead, useMarkAllNotificationsRead, 
-  useArchiveNotification, useCreateNotification,
-  useWorkerStatus, useRunWorkerJob,
-  // GoBD and Audit hooks
-  useAuditLogs, useAuditTrail, useAuditStatistics,
-  useImmutabilityCheck, useNumberSequence, useGetNextNumber, useMakeImmutable,
-  useCreateDocumentHash, useVerifyDocumentIntegrity,
-  // DATEV and German Accounting hooks
-  useGenerateDATEVExport, useDATEVAccountMapping, useSetDATEVAccountMapping,
-  useGenerateGermanVATReturn, useGenerateGermanExpenseReport, useCalculateGermanDepreciation,
-  useValidateGermanInvoiceCompliance, useCreateGermanAccountingPeriod,
-  // AI Module hooks
-  useAISearchDocuments, useIndexDocument, useGenerateAIResponse, useAnalyzeIntent, useExecuteIntent,
-  useCreateAIEstimation, useQuickAIEstimate, useAIIndexingStatus, useBulkIndexEntities,
-  useUpdateEstimationAccuracy, useEstimationStatistics,
-};
 
 // ============================================
 // PROJECT KPI HOOKS  
@@ -2638,5 +2606,39 @@ export const useEstimationStatistics = (
     staleTime: 10 * 60 * 1000, // 10 minutes
     ...options,
   });
+};
+
+// Export all hooks as default export (moved to end to avoid hoisting issues)
+export default {
+  // Export all hooks for convenience
+  useCustomers, useCustomer, useCreateCustomer, useUpdateCustomer, useDeleteCustomer, useSearchCustomers,
+  useEmployees,
+  useQuotes, useQuote, useCreateQuote, useUpdateQuote, useSendQuote, useAcceptQuote, useRejectQuote, useQuoteStats,
+  useOrders, useOrder, useCreateOrder, useStartOrder, useCompleteOrder, useCancelOrder, useOrderStats,
+  useProjects, useProject, useCreateProject, useUpdateProject, useStartProject, useCompleteProject, useBlockProject, useSearchProjects,
+  useTimesheets, useTimesheet, useCreateTimesheet, useUpdateTimesheet, useApproveTimesheet, useBulkApproveTimesheets,
+  useMaterials, useMaterial, useCreateMaterial, useUpdateMaterial, useAdjustStock, useAddStock, useRemoveStock, useSearchMaterials,
+  useInvoices, useInvoice, useCreateInvoice, useSendInvoice, useMarkInvoicePaid,
+  useExpenses, useCreateExpense, useApproveExpense,
+  useDocuments, useDocument, useUploadDocument, useUpdateDocument, useDeleteDocument, useSearchDocuments,
+  useFinancialKpis, useRevenueByMonth, useExpensesByCategory, useProfitLossReport,
+  useInvalidateQueries, useQueryInvalidation,
+  // KPI, Notification, and Worker hooks
+  useProjectKPIs, useProjectKPIsSummary, useCriticalBudgetProjects,
+  useNotifications, useNotificationStats, useMarkNotificationRead, useMarkAllNotificationsRead, 
+  useArchiveNotification, useCreateNotification,
+  useWorkerStatus, useRunWorkerJob,
+  // GoBD and Audit hooks
+  useAuditLogs, useAuditTrail, useAuditStatistics,
+  useImmutabilityCheck, useNumberSequence, useGetNextNumber, useMakeImmutable,
+  useCreateDocumentHash, useVerifyDocumentIntegrity,
+  // DATEV and German Accounting hooks
+  useGenerateDATEVExport, useDATEVAccountMapping, useSetDATEVAccountMapping,
+  useGenerateGermanVATReturn, useGenerateGermanExpenseReport, useCalculateGermanDepreciation,
+  useValidateGermanInvoiceCompliance, useCreateGermanAccountingPeriod,
+  // AI Module hooks
+  useAISearchDocuments, useIndexDocument, useGenerateAIResponse, useAnalyzeIntent, useExecuteIntent,
+  useCreateAIEstimation, useQuickAIEstimate, useAIIndexingStatus, useBulkIndexEntities,
+  useUpdateEstimationAccuracy, useEstimationStatistics,
 };
 
