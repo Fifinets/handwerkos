@@ -15,11 +15,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { OfflineTimeTrackingManager, GPSLocationManager, NetworkManager, type GeolocationPosition, type OfflineTimeEntry } from "@/lib/timetrackingUtils";
 import EditTimeEntryDialog from "./EditTimeEntryDialog";
+import { 
+  useTimeEntries, 
+  useProjects, 
+  useTeamMembers,
+  useCreateTimeEntry,
+  useUpdateTimeEntry
+} from "@/hooks/useApi";
 interface TimeEntry {
   id: string;
   employee_id: string;
@@ -90,15 +98,25 @@ const TimeTrackingModule: React.FC = () => {
   const {
     userRole
   } = useAuth();
-  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  
+  // React Query hooks
+  const { data: timeEntriesResponse, isLoading: timeEntriesLoading } = useTimeEntries();
+  const { data: projectsResponse, isLoading: projectsLoading } = useProjects();
+  const { data: teamMembersResponse, isLoading: teamLoading } = useTeamMembers();
+  
+  const createTimeEntryMutation = useCreateTimeEntry();
+  const updateTimeEntryMutation = useUpdateTimeEntry();
+  
+  // Extract data from responses
+  const timeEntries = timeEntriesResponse?.items || [];
+  const projects = projectsResponse?.items || [];
+  const employees = teamMembersResponse?.items || [];
+  
+  // Local state
   const [absences, setAbsences] = useState<any[]>([]);
   const [workingHours, setWorkingHours] = useState<WorkingHoursConfig[]>([]);
   const [corrections, setCorrections] = useState<TimeEntryCorrection[]>([]);
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
-  const [activeEntry, setActiveEntry] = useState<TimeEntry | null>(null);
-  const [loading, setLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(NetworkManager.isOnline());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedProject, setSelectedProject] = useState<string>('');
@@ -111,6 +129,10 @@ const TimeTrackingModule: React.FC = () => {
   const [selectedEmployeeForHours, setSelectedEmployeeForHours] = useState<string>('');
   const [editDialog, setEditDialog] = useState(false);
   const [selectedEntryForEdit, setSelectedEntryForEdit] = useState<TimeEntry | null>(null);
+  
+  // Derived data
+  const activeEntry = timeEntries.find(entry => entry.status === 'aktiv') || null;
+  const loading = timeEntriesLoading || projectsLoading || teamLoading;
 
   // Manager Instanzen
   const offlineManager = new OfflineTimeTrackingManager();
@@ -140,22 +162,10 @@ const TimeTrackingModule: React.FC = () => {
     return cleanup;
   }, []);
   useEffect(() => {
-    loadData();
+    loadCurrentEmployee();
+    loadWorkingHours();
+    loadAbsences();
   }, [selectedDate, selectedEmployee, selectedEmployeeId]);
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      await Promise.all([loadTimeEntries(), loadProjects(), loadEmployees(), loadCurrentEmployee(), loadWorkingHours(), loadAbsences()]);
-    } catch (error) {
-      console.error('Error loading time tracking data:', error);
-      toast({
-        title: "Fehler beim Laden",
-        description: "Die Zeiterfassungsdaten konnten nicht geladen werden.",
-        variant: "destructive"
-      });
-    }
-    setLoading(false);
-  };
   const loadCurrentEmployee = async () => {
   // Erst prüfen, ob ein User eingeloggt ist
   const {
@@ -186,9 +196,7 @@ const TimeTrackingModule: React.FC = () => {
       const offlineEntries = await offlineManager.getOfflineEntries();
       for (const entry of offlineEntries) {
         try {
-          const {
-            error
-          } = await supabase.from('time_entries').insert({
+          createTimeEntryMutation.mutate({
             employee_id: entry.employee_id,
             project_id: entry.project_id,
             start_time: entry.start_time,
@@ -203,16 +211,16 @@ const TimeTrackingModule: React.FC = () => {
             end_location_address: entry.end_location?.address,
             is_offline_synced: true,
             offline_created_at: entry.offline_created_at
+          }, {
+            onSuccess: () => {
+              offlineManager.removeOfflineEntry(entry.id);
+            }
           });
-          if (!error) {
-            await offlineManager.removeOfflineEntry(entry.id);
-          }
         } catch (syncError) {
           console.error('Error syncing offline entry:', syncError);
         }
       }
       if (offlineEntries.length > 0) {
-        loadTimeEntries();
         toast({
           title: "Synchronisation abgeschlossen",
           description: `${offlineEntries.length} Offline-Einträge wurden synchronisiert.`
@@ -222,91 +230,7 @@ const TimeTrackingModule: React.FC = () => {
       console.error('Error syncing offline entries:', error);
     }
   };
-  const loadTimeEntries = async () => {
-    const dateStart = startOfDay(selectedDate);
-    const dateEnd = endOfDay(selectedDate);
-    let query = supabase.from('time_entries').select(`
-        *,
-        employee:employees(first_name, last_name),
-        project:projects(name, color)
-      `).gte('start_time', dateStart.toISOString()).lte('start_time', dateEnd.toISOString()).order('start_time', {
-      ascending: false
-    });
-    if (selectedEmployee !== 'all') {
-      query = query.eq('employee_id', selectedEmployee);
-    }
-    const {
-      data,
-      error
-    } = await query;
-    if (error) throw error;
-    setTimeEntries(data || []);
-
-    // Find active entry
-    const active = data?.find(entry => entry.status === 'aktiv');
-    setActiveEntry(active || null);
-  };
-  const loadProjects = async () => {
-    const {
-      data,
-      error
-    } = await supabase.from('projects').select('id, name, color, status').order('name');
-    if (error) throw error;
-    setProjects(data || []);
-  };
-const loadEmployees = async () => {
-  try {
-    // Get current user's company ID (you might need to get this from auth context)
-    const { data: currentUserProfile } = await supabase.auth.getUser();
-    if (!currentUserProfile?.user) return;
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .eq('id', currentUserProfile.user.id)
-      .single();
-
-    if (!profile?.company_id) {
-      console.error('No company ID found for current user');
-      return;
-    }
-
-    // Load only registered, active employees from the same company (same logic as PersonalModule)
-    const { data: employeesData, error: employeesError } = await supabase
-      .from('employees')
-      .select(`
-        id,
-        user_id,
-        first_name,
-        last_name,
-        email,
-        status,
-        company_id
-      `)
-      .eq('company_id', profile.company_id)
-      .neq('status', 'eingeladen')
-      .not('user_id', 'is', null)
-      .order('last_name');
-
-    if (employeesError) {
-      toast({
-        title: 'Mitarbeiterliste konnte nicht geladen werden',
-        description: employeesError.message,
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setEmployees(employeesData || []);
-  } catch (error) {
-    console.error('Error loading employees:', error);
-    toast({
-      title: 'Fehler beim Laden der Mitarbeiter',
-      description: 'Ein unerwarteter Fehler ist aufgetreten',
-      variant: 'destructive',
-    });
-  }
-};
+  // Data is now loaded via React Query hooks
 
   const loadWorkingHours = async () => {
     const {
@@ -381,28 +305,21 @@ const loadEmployees = async () => {
       });
       return;
     }
-    const {
-      data,
-      error
-    } = await supabase.from('time_entries').insert(timeEntry).select(`
-        *,
-        employee:employees(first_name, last_name),
-        project:projects(name, color)
-      `).single();
-    if (error) {
-      toast({
-        title: "Fehler beim Starten",
-        description: "Die Zeiterfassung konnte nicht gestartet werden.",
-        variant: "destructive"
-      });
-      return;
-    }
-    setActiveEntry(data);
-    loadTimeEntries();
-    setNewEntryDialog(false);
-    toast({
-      title: "Zeiterfassung gestartet",
-      description: startLocation ? `Gestartet an: ${startLocation.address}` : "Die Zeiterfassung wurde erfolgreich gestartet."
+    createTimeEntryMutation.mutate(timeEntry, {
+      onSuccess: (data) => {
+        setNewEntryDialog(false);
+        toast({
+          title: "Zeiterfassung gestartet",
+          description: startLocation ? `Gestartet an: ${startLocation.address}` : "Die Zeiterfassung wurde erfolgreich gestartet."
+        });
+      },
+      onError: () => {
+        toast({
+          title: "Fehler beim Starten",
+          description: "Die Zeiterfassung konnte nicht gestartet werden.",
+          variant: "destructive"
+        });
+      }
     });
   };
   const stopTimeTracking = async () => {
@@ -422,45 +339,40 @@ const loadEmployees = async () => {
       end_location_lng: endLocation?.lng,
       end_location_address: endLocation?.address
     };
-    const {
-      error
-    } = await supabase.from('time_entries').update(updateData).eq('id', activeEntry.id);
-    if (error) {
-      toast({
-        title: "Fehler beim Stoppen",
-        description: "Die Zeiterfassung konnte nicht gestoppt werden.",
-        variant: "destructive"
-      });
-      return;
-    }
-    setActiveEntry(null);
-    loadTimeEntries();
-    toast({
-      title: "Zeiterfassung beendet",
-      description: endLocation ? `Beendet an: ${endLocation.address}` : "Die Zeiterfassung wurde erfolgreich beendet."
-    });
+    updateTimeEntryMutation.mutate(
+      { id: activeEntry.id, data: updateData },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Zeiterfassung beendet",
+            description: endLocation ? `Beendet an: ${endLocation.address}` : "Die Zeiterfassung wurde erfolgreich beendet."
+          });
+        },
+        onError: () => {
+          toast({
+            title: "Fehler beim Stoppen",
+            description: "Die Zeiterfassung konnte nicht gestoppt werden.",
+            variant: "destructive"
+          });
+        }
+      }
+    );
   };
   const pauseTimeTracking = async () => {
     if (!activeEntry) return;
     const newStatus = activeEntry.status === 'aktiv' ? 'pausiert' : 'aktiv';
-    const {
-      error
-    } = await supabase.from('time_entries').update({
-      status: newStatus
-    }).eq('id', activeEntry.id);
-    if (error) {
-      toast({
-        title: "Fehler",
-        description: "Der Status konnte nicht geändert werden.",
-        variant: "destructive"
-      });
-      return;
-    }
-    setActiveEntry({
-      ...activeEntry,
-      status: newStatus
-    });
-    loadTimeEntries();
+    updateTimeEntryMutation.mutate(
+      { id: activeEntry.id, data: { status: newStatus } },
+      {
+        onError: () => {
+          toast({
+            title: "Fehler",
+            description: "Der Status konnte nicht geändert werden.",
+            variant: "destructive"
+          });
+        }
+      }
+    );
   };
   const startTimeTrackingForEmployee = async (employeeId: string, projectId?: string, description?: string) => {
     if (!userRole || userRole !== 'manager') {
@@ -484,32 +396,26 @@ const loadEmployees = async () => {
       });
       return;
     }
-    const {
-      data,
-      error
-    } = await supabase.from('time_entries').insert({
+    createTimeEntryMutation.mutate({
       employee_id: employeeId,
       project_id: projectId || null,
       start_time: new Date().toISOString(),
       description: description || null,
       status: 'aktiv'
-    }).select(`
-        *,
-        employee:employees(first_name, last_name),
-        project:projects(name, color)
-      `).single();
-    if (error) {
-      toast({
-        title: "Fehler beim Starten",
-        description: "Die Zeiterfassung konnte nicht gestartet werden.",
-        variant: "destructive"
-      });
-      return;
-    }
-    loadTimeEntries();
-    toast({
-      title: "Zeiterfassung gestartet",
-      description: `Zeiterfassung für ${data.employee?.first_name} ${data.employee?.last_name} wurde gestartet.`
+    }, {
+      onSuccess: (data) => {
+        toast({
+          title: "Zeiterfassung gestartet",
+          description: `Zeiterfassung für ${data.employee?.first_name} ${data.employee?.last_name} wurde gestartet.`
+        });
+      },
+      onError: () => {
+        toast({
+          title: "Fehler beim Starten",
+          description: "Die Zeiterfassung konnte nicht gestartet werden.",
+          variant: "destructive"
+        });
+      }
     });
   };
   const updateWorkingHours = async (employeeId: string | null, config: Partial<WorkingHoursConfig>) => {
@@ -808,7 +714,62 @@ const loadEmployees = async () => {
       </Dialog>;
   };
   if (loading) {
-    return <div className="flex items-center justify-center h-64">Lade Zeiterfassung...</div>;
+    return (
+      <div className="p-6 bg-gray-50 min-h-screen">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <Skeleton className="h-10 w-64" />
+          <div className="flex gap-6">
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-40" />
+          </div>
+        </div>
+
+        {/* Current Status Card */}
+        <Card className="mb-6">
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Skeleton className="h-6 w-32 mb-2" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+                <div className="text-right">
+                  <Skeleton className="h-8 w-16 mb-2" />
+                  <Skeleton className="h-6 w-20" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Skeleton className="h-10 flex-1" />
+                <Skeleton className="h-10 flex-1" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Time Tracking Log */}
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-32" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <Skeleton className="h-10 w-full" />
+              <div className="space-y-3">
+                {Array(3).fill(0).map((_, i) => (
+                  <div key={i} className="border rounded-lg p-4">
+                    <Skeleton className="h-16 w-full" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
   return <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
@@ -1153,7 +1114,9 @@ const loadEmployees = async () => {
         onOpenChange={setEditDialog}
         timeEntry={selectedEntryForEdit}
         projects={projects}
-        onSave={loadData}
+        onSave={() => {
+          // React Query will automatically refetch due to cache invalidation
+        }}
       />
     </div>;
 };

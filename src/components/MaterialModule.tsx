@@ -1,99 +1,51 @@
 import React, { useState } from 'react';
-
-// Type definitions
-interface Material {
-  id: string;
-  name: string;
-  category: string;
-  currentStock: number;
-  minStock: number;
-  maxStock: number;
-  unit: string;
-  price: string;
-  supplier: string;
-  lastOrder: string;
-  status: string;
-}
-
-interface RecentOrder {
-  id: string;
-  supplier: string;
-  amount: string;
-  status: string;
-  date: string;
-}
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Package, AlertTriangle, TrendingDown, TrendingUp, Plus, Search, Truck, Edit } from "lucide-react";
 import EditMaterialDialog from "./EditMaterialDialog";
 import ReorderSuggestions from "./material/ReorderSuggestions";
+import { 
+  useMaterials, 
+  useStockTransfers,
+  useCreateMaterial,
+  useUpdateMaterial,
+  useStockCounts 
+} from "@/hooks/useApi";
 
 const MaterialModule = () => {
+  // React Query hooks
+  const { data: materialsResponse, isLoading: materialsLoading } = useMaterials();
+  const { data: stockCountsResponse, isLoading: stockLoading } = useStockCounts();
+  const { data: stockTransfersResponse, isLoading: transfersLoading } = useStockTransfers();
+  
+  const createMaterialMutation = useCreateMaterial();
+  const updateMaterialMutation = useUpdateMaterial();
+  
+  // Local state for dialogs
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
-  const [materials, setMaterials] = useState<Material[]>([
-    {
-      id: 'MAT001',
-      name: 'Kabel NYM-J 3x1,5 mm²',
-      category: 'Kabel & Leitungen',
-      currentStock: 150,
-      minStock: 100,
-      maxStock: 500,
-      unit: 'm',
-      price: '€1.25/m',
-      supplier: 'ElektroGroßhandel GmbH',
-      lastOrder: '15.01.2024',
-      status: 'Verfügbar'
-    },
-    {
-      id: 'MAT002',
-      name: 'Schalter Jung LS990',
-      category: 'Installationsmaterial',
-      currentStock: 25,
-      minStock: 50,
-      maxStock: 200,
-      unit: 'Stk',
-      price: '€8.90/Stk',
-      supplier: 'Jung Vertrieb',
-      lastOrder: '10.01.2024',
-      status: 'Niedrig'
-    },
-    {
-      id: 'MAT003',
-      name: 'Sicherungsautomat B16A',
-      category: 'Schaltgeräte',
-      currentStock: 75,
-      minStock: 30,
-      maxStock: 150,
-      unit: 'Stk',
-      price: '€12.50/Stk',
-      supplier: 'Hager Vertrieb',
-      lastOrder: '20.01.2024',
-      status: 'Verfügbar'
-    },
-    {
-      id: 'MAT004',
-      name: 'Kabel YCYM 5x1,5 mm²',
-      category: 'Kabel & Leitungen',
-      currentStock: 5,
-      minStock: 25,
-      maxStock: 200,
-      unit: 'm',
-      price: '€2.80/m',
-      supplier: 'ElektroGroßhandel GmbH',
-      lastOrder: '05.01.2024',
-      status: 'Kritisch'
-    }
-  ]);
-
-  const recentOrders: RecentOrder[] = [
-    { id: 'B2024-001', supplier: 'ElektroGroßhandel GmbH', amount: '€1.247', status: 'Geliefert', date: '20.01.2024' },
-    { id: 'B2024-002', supplier: 'Jung Vertrieb', amount: '€445', status: 'Unterwegs', date: '22.01.2024' },
-    { id: 'B2024-003', supplier: 'Hager Vertrieb', amount: '€875', status: 'Bestellt', date: '24.01.2024' }
-  ];
+  const [selectedMaterial, setSelectedMaterial] = useState<any | null>(null);
+  
+  // Extract data from responses
+  const materials = materialsResponse?.items || [];
+  const stockCounts = stockCountsResponse?.items || [];
+  const recentOrders = stockTransfersResponse?.items?.slice(0, 3) || [];
+  
+  // Loading state
+  const isLoading = materialsLoading || stockLoading || transfersLoading;
+  
+  // Calculate stats from real data
+  const totalItems = materials.length;
+  const totalValue = materials.reduce((sum, material) => sum + (material.unit_cost * material.current_stock || 0), 0);
+  const lowStockItems = materials.filter(material => 
+    material.current_stock <= material.min_stock
+  ).length;
+  const openOrders = recentOrders.filter(order => 
+    order.status === 'pending' || order.status === 'in_transit'
+  ).length;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -116,21 +68,24 @@ const MaterialModule = () => {
     if (current <= min) return 'Niedrig';
     return 'Verfügbar';
   };
+  
+  const getStatusFromStockLevel = (material: any) => {
+    if (!material.current_stock || !material.min_stock) return 'Verfügbar';
+    return getStockLevel(material.current_stock, material.min_stock);
+  };
 
-  const handleEditMaterial = (material: Material) => {
+  const handleEditMaterial = (material: any) => {
     setSelectedMaterial(material);
     setIsEditDialogOpen(true);
   };
 
-  const handleMaterialUpdated = (updatedMaterial: Material) => {
-    setMaterials(prev => prev.map(material => 
-      material.id === updatedMaterial.id ? updatedMaterial : material
-    ));
+  const handleMaterialUpdated = (updatedMaterial: any) => {
+    // React Query will automatically refetch and update the cache
+    setIsEditDialogOpen(false);
   };
 
-  const handleShowMaterialDetails = (material: Material) => {
-    // Für jetzt als einfacher Alert - später kann hier ein Detail-Dialog geöffnet werden
-    alert(`Details für ${material.name}:\n\nKategorie: ${material.category}\nBestand: ${material.currentStock} ${material.unit}\nLieferant: ${material.supplier}\nPreis: ${material.price}`);
+  const handleShowMaterialDetails = (material: any) => {
+    alert(`Details für ${material.name}:\n\nKategorie: ${material.category}\nBestand: ${material.current_stock} ${material.unit}\nLieferant: ${material.supplier_name}\nPreis: €${material.unit_cost}/${material.unit}`);
   };
 
   return (
@@ -160,7 +115,11 @@ const MaterialModule = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Lagerposten</p>
-                <p className="text-2xl font-bold">247</p>
+                {isLoading ? (
+                  <Skeleton className="h-8 w-16" />
+                ) : (
+                  <p className="text-2xl font-bold">{totalItems}</p>
+                )}
               </div>
               <Package className="h-8 w-8 text-blue-600" />
             </div>
@@ -171,7 +130,11 @@ const MaterialModule = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Lagerwert</p>
-                <p className="text-2xl font-bold">€24.580</p>
+                {isLoading ? (
+                  <Skeleton className="h-8 w-20" />
+                ) : (
+                  <p className="text-2xl font-bold">€{totalValue.toLocaleString('de-DE', { minimumFractionDigits: 0 })}</p>
+                )}
               </div>
               <TrendingUp className="h-8 w-8 text-green-600" />
             </div>
@@ -182,7 +145,11 @@ const MaterialModule = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Niedrige Bestände</p>
-                <p className="text-2xl font-bold">8</p>
+                {isLoading ? (
+                  <Skeleton className="h-8 w-8" />
+                ) : (
+                  <p className="text-2xl font-bold">{lowStockItems}</p>
+                )}
               </div>
               <AlertTriangle className="h-8 w-8 text-yellow-600" />
             </div>
@@ -193,7 +160,11 @@ const MaterialModule = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Offene Bestellungen</p>
-                <p className="text-2xl font-bold">3</p>
+                {isLoading ? (
+                  <Skeleton className="h-8 w-8" />
+                ) : (
+                  <p className="text-2xl font-bold">{openOrders}</p>
+                )}
               </div>
               <Truck className="h-8 w-8 text-purple-600" />
             </div>
@@ -214,99 +185,139 @@ const MaterialModule = () => {
             </div>
           </div>
 
-          {materials.map((material) => (
-            <Card key={material.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6 flex flex-col h-full">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="text-lg font-semibold">{material.name}</h4>
-                      <Badge className={getStatusColor(material.status)}>
-                        {material.status}
-                      </Badge>
-                    </div>
-                    <p className="text-gray-600 mb-2">{material.category}</p>
-                    <p className="text-sm text-gray-500">Art.-Nr: {material.id}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-blue-600">{material.price}</p>
-                    <p className="text-sm text-gray-500">{material.supplier}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3 flex-grow">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Lagerbestand</span>
-                      <span>{material.currentStock} {material.unit} / {material.maxStock} {material.unit}</span>
-                    </div>
-                    <Progress 
-                      value={getStockPercentage(material.currentStock, material.maxStock)} 
-                      className={`h-2 ${
-                        getStockLevel(material.currentStock, material.minStock) === 'Kritisch' ? 'bg-red-100' :
-                        getStockLevel(material.currentStock, material.minStock) === 'Niedrig' ? 'bg-yellow-100' : 'bg-green-100'
-                      }`}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-500">Mindestbestand:</p>
-                      <p>{material.minStock} {material.unit}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Letzte Bestellung:</p>
-                      <p>{material.lastOrder}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Preis pro {material.unit}:</p>
-                      <p>{material.price}</p>
-                    </div>
-                  </div>
-
-                  {material.currentStock <= material.minStock && (
-                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <div className="flex items-center gap-2 text-yellow-800">
-                        <AlertTriangle className="h-4 w-4" />
-                        <span className="text-sm font-medium">
-                          Bestand unter Mindestmenge! Nachbestellung empfohlen.
-                        </span>
+          {isLoading ? (
+            Array(4).fill(0).map((_, i) => (
+              <Card key={i} className="hover:shadow-lg transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Skeleton className="h-6 w-48" />
+                        <Skeleton className="h-6 w-20" />
                       </div>
+                      <Skeleton className="h-4 w-32 mb-2" />
+                      <Skeleton className="h-4 w-24" />
                     </div>
-                  )}
-                </div>
-
-                <div className="flex gap-2 pt-4 mt-auto">
-                  <Button
-                    size="sm" 
-                    variant="outline"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleShowMaterialDetails(material);
-                    }}
-                  >
-                    <Package className="h-4 w-4 mr-1" />
-                    Details
-                  </Button>
-                  <Button
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => handleEditMaterial(material)}
-                  >
-                    <Edit className="h-4 w-4 mr-1" />
-                    Bearbeiten
-                  </Button>
-                  {material.status !== 'Verfügbar' && (
-                    <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
-                      <Truck className="h-4 w-4 mr-1" />
-                      Nachbestellen
-                    </Button>
-                  )}
-                </div>
+                    <div className="text-right">
+                      <Skeleton className="h-6 w-20 mb-1" />
+                      <Skeleton className="h-4 w-28" />
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <Skeleton className="h-2 w-full" />
+                    <div className="grid grid-cols-3 gap-4">
+                      <Skeleton className="h-8 w-full" />
+                      <Skeleton className="h-8 w-full" />
+                      <Skeleton className="h-8 w-full" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : materials.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <p className="text-gray-500">Keine Materialien gefunden.</p>
               </CardContent>
             </Card>
-          ))}
+          ) : (
+            materials.map((material) => {
+              const status = getStatusFromStockLevel(material);
+              return (
+                <Card key={material.id} className="hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6 flex flex-col h-full">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h4 className="text-lg font-semibold">{material.name}</h4>
+                          <Badge className={getStatusColor(status)}>
+                            {status}
+                          </Badge>
+                        </div>
+                        <p className="text-gray-600 mb-2">{material.category}</p>
+                        <p className="text-sm text-gray-500">Art.-Nr: {material.sku}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-blue-600">€{material.unit_cost}/{material.unit}</p>
+                        <p className="text-sm text-gray-500">{material.supplier_name}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 flex-grow">
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>Lagerbestand</span>
+                          <span>{material.current_stock} {material.unit} / {material.max_stock} {material.unit}</span>
+                        </div>
+                        <Progress 
+                          value={getStockPercentage(material.current_stock, material.max_stock)} 
+                          className={`h-2 ${
+                            getStockLevel(material.current_stock, material.min_stock) === 'Kritisch' ? 'bg-red-100' :
+                            getStockLevel(material.current_stock, material.min_stock) === 'Niedrig' ? 'bg-yellow-100' : 'bg-green-100'
+                          }`}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <p className="text-gray-500">Mindestbestand:</p>
+                          <p>{material.min_stock} {material.unit}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500">Letzte Bestellung:</p>
+                          <p>{material.last_ordered_at ? new Date(material.last_ordered_at).toLocaleDateString('de-DE') : 'Nie'}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500">Preis pro {material.unit}:</p>
+                          <p>€{material.unit_cost}/{material.unit}</p>
+                        </div>
+                      </div>
+
+                      {material.current_stock <= material.min_stock && (
+                        <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <div className="flex items-center gap-2 text-yellow-800">
+                            <AlertTriangle className="h-4 w-4" />
+                            <span className="text-sm font-medium">
+                              Bestand unter Mindestmenge! Nachbestellung empfohlen.
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2 pt-4 mt-auto">
+                      <Button
+                        size="sm" 
+                        variant="outline"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleShowMaterialDetails(material);
+                        }}
+                      >
+                        <Package className="h-4 w-4 mr-1" />
+                        Details
+                      </Button>
+                      <Button
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleEditMaterial(material)}
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
+                        Bearbeiten
+                      </Button>
+                      {status !== 'Verfügbar' && (
+                        <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+                          <Truck className="h-4 w-4 mr-1" />
+                          Nachbestellen
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })
+          )}
         </div>
 
         {/* Recent Orders & Quick Actions */}
@@ -320,21 +331,41 @@ const MaterialModule = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {recentOrders.map((order) => (
-                  <div key={order.id} className="p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="font-medium text-sm">{order.id}</p>
-                      <Badge className={getStatusColor(order.status)}>
-                        {order.status}
-                      </Badge>
+                {isLoading ? (
+                  Array(3).fill(0).map((_, i) => (
+                    <div key={i} className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-6 w-16" />
+                      </div>
+                      <Skeleton className="h-4 w-32 mb-1" />
+                      <div className="flex justify-between items-center">
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
                     </div>
-                    <p className="text-sm text-gray-600 mb-1">{order.supplier}</p>
-                    <div className="flex justify-between items-center">
-                      <p className="text-sm font-bold text-green-600">{order.amount}</p>
-                      <p className="text-xs text-gray-500">{order.date}</p>
+                  ))
+                ) : recentOrders.length === 0 ? (
+                  <p className="text-sm text-gray-500 text-center py-4">Keine aktuellen Bestellungen</p>
+                ) : (
+                  recentOrders.map((order) => (
+                    <div key={order.id} className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="font-medium text-sm">{order.transfer_number || order.id}</p>
+                        <Badge className={getStatusColor(order.status)}>
+                          {order.status === 'completed' ? 'Geliefert' : 
+                           order.status === 'in_transit' ? 'Unterwegs' : 
+                           order.status === 'pending' ? 'Bestellt' : order.status}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-1">{order.from_location || 'Unbekannter Lieferant'}</p>
+                      <div className="flex justify-between items-center">
+                        <p className="text-sm font-bold text-green-600">€{order.total_value || '0'}</p>
+                        <p className="text-xs text-gray-500">{new Date(order.created_at).toLocaleDateString('de-DE')}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -371,14 +402,29 @@ const MaterialModule = () => {
             </CardHeader>
             <CardContent className="p-4">
               <div className="space-y-2">
-                <div className="flex items-center justify-between p-2 bg-red-50 rounded">
-                  <span className="text-sm">Kabel YCYM 5x1,5</span>
-                  <span className="text-xs text-red-600">5m</span>
-                </div>
-                <div className="flex items-center justify-between p-2 bg-yellow-50 rounded">
-                  <span className="text-sm">Schalter Jung LS990</span>
-                  <span className="text-xs text-yellow-600">25 Stk</span>
-                </div>
+                {isLoading ? (
+                  Array(2).fill(0).map((_, i) => (
+                    <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-3 w-12" />
+                    </div>
+                  ))
+                ) : materials.filter(m => getStatusFromStockLevel(m) === 'Kritisch' || getStatusFromStockLevel(m) === 'Niedrig').slice(0, 5).map((material) => {
+                  const status = getStatusFromStockLevel(material);
+                  return (
+                    <div key={material.id} className={`flex items-center justify-between p-2 rounded ${
+                      status === 'Kritisch' ? 'bg-red-50' : 'bg-yellow-50'
+                    }`}>
+                      <span className="text-sm">{material.name}</span>
+                      <span className={`text-xs ${
+                        status === 'Kritisch' ? 'text-red-600' : 'text-yellow-600'
+                      }`}>{material.current_stock} {material.unit}</span>
+                    </div>
+                  )
+                })}
+                {!isLoading && materials.filter(m => getStatusFromStockLevel(m) === 'Kritisch' || getStatusFromStockLevel(m) === 'Niedrig').length === 0 && (
+                  <p className="text-sm text-gray-500 text-center py-2">Keine kritischen Bestände 🎉</p>
+                )}
               </div>
           </CardContent>
           </Card>

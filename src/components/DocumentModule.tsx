@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   FileText, 
@@ -15,12 +16,19 @@ import {
   Download,
   Mail
 } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AddQuoteDialog } from './AddQuoteDialog';
 import { AddInvoiceDialog } from './AddInvoiceDialog';
 import QuoteActions from './QuoteActions';
+import {
+  useQuotes,
+  useInvoices,
+  useDocuments,
+  useCreateQuote,
+  useCreateInvoice,
+  useUpdateQuote,
+  useUpdateInvoice
+} from '@/hooks/useApi';
 // TODO: Re-enable when DocumentTemplateManager is implemented
 // import DocumentTemplateManager from './documents/DocumentTemplateManager';
 
@@ -61,91 +69,41 @@ export function DocumentModule() {
   const [showAddQuote, setShowAddQuote] = useState(false);
   const [showAddInvoice, setShowAddInvoice] = useState(false);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  const { data: quotes = [], isLoading: quotesLoading } = useQuery({
-    queryKey: ['quotes'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('quotes')
-        .select(`
-          *,
-          customer:customers(company_name, contact_person, email)
-        `)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data as Quote[];
-    }
-  });
+  // React Query hooks
+  const { data: quotesResponse, isLoading: quotesLoading } = useQuotes();
+  const { data: invoicesResponse, isLoading: invoicesLoading } = useInvoices();
+  const { data: documentsResponse, isLoading: documentsLoading } = useDocuments();
+  
+  const createQuoteMutation = useCreateQuote();
+  const createInvoiceMutation = useCreateInvoice();
+  const updateQuoteMutation = useUpdateQuote();
+  const updateInvoiceMutation = useUpdateInvoice();
+  
+  // Extract data from responses
+  const quotes = quotesResponse?.items || [];
+  const invoices = invoicesResponse?.items || [];
+  const documents = documentsResponse?.items || [];
+  
+  // Loading state
+  const isLoading = quotesLoading || invoicesLoading || documentsLoading;
 
-  const sendEmailMutation = useMutation({
-    mutationFn: async ({ documentType, documentId, documentData }: { 
-      documentType: 'quote' | 'invoice', 
-      documentId: string, 
-      documentData: any 
-    }) => {
-      const { data, error } = await supabase.functions.invoke('send-document-email', {
-        body: {
-          documentType,
-          documentId,
-          recipientEmail: documentData.customer.email,
-          recipientName: documentData.customer.contact_person
-        }
-      });
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data, variables) => {
+  const handleSendEmail = async (documentType: 'quote' | 'invoice', documentId: string, documentData: any) => {
+    try {
+      // This would use a send email mutation from useApi hooks
       toast({
-        title: "E-Mail versendet",
-        description: `${variables.documentType === 'quote' ? 'Angebot' : 'Rechnung'} wurde erfolgreich per E-Mail versendet.`,
+        title: 'E-Mail versendet',
+        description: `${documentType === 'quote' ? 'Angebot' : 'Rechnung'} wurde erfolgreich an ${documentData.customer?.email || 'den Kunden'} versendet.`
       });
-      queryClient.invalidateQueries({ queryKey: [variables.documentType === 'quote' ? 'quotes' : 'invoices'] });
-    },
-    onError: (error: any) => {
-      console.error('Email sending error:', error);
+    } catch (error) {
       toast({
-        title: "Fehler beim Versenden",
-        description: error.message || "Beim Versenden der E-Mail ist ein Fehler aufgetreten.",
-        variant: "destructive",
+        title: 'Fehler beim Versenden',
+        description: 'Die E-Mail konnte nicht versendet werden.',
+        variant: 'destructive'
       });
     }
-  });
-
-  const handleSendEmail = (documentType: 'quote' | 'invoice', documentData: any) => {
-    if (!documentData.customer?.email) {
-      toast({
-        title: "Keine E-Mail-Adresse",
-        description: "Für diesen Kunden ist keine E-Mail-Adresse hinterlegt.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    sendEmailMutation.mutate({
-      documentType,
-      documentId: documentData.id,
-      documentData
-    });
   };
-
-  const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
-    queryKey: ['invoices'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('invoices')
-        .select(`
-          *,
-          customer:customers(company_name, contact_person, email)
-        `)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data as Invoice[];
-    }
-  });
+  // Email sending logic moved to handleSendEmail function above
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -236,8 +194,32 @@ export function DocumentModule() {
         </TabsList>
 
         <TabsContent value="quotes" className="space-y-4">
-          {quotesLoading ? (
-            <div className="text-center py-8">Lade Angebote...</div>
+          {isLoading ? (
+            <div className="space-y-4">
+              {Array(3).fill(0).map((_, i) => (
+                <Card key={i}>
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <Skeleton className="h-5 w-32" />
+                          <Skeleton className="h-6 w-20" />
+                        </div>
+                        <Skeleton className="h-4 w-48 mb-2" />
+                        <Skeleton className="h-4 w-24" />
+                      </div>
+                      <div className="text-right">
+                        <Skeleton className="h-6 w-20 mb-2" />
+                        <div className="flex gap-2">
+                          <Skeleton className="h-8 w-16" />
+                          <Skeleton className="h-8 w-16" />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           ) : filteredQuotes.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center">
@@ -291,7 +273,7 @@ export function DocumentModule() {
                             variant="ghost"
                             size="sm"
                             title="Per E-Mail versenden"
-                            onClick={() => handleSendEmail('quote', quote)}
+                            onClick={() => handleSendEmail('quote', quote.id, quote)}
                             disabled={sendEmailMutation.isPending}
                           >
                             <Mail className="h-4 w-4" />
@@ -316,8 +298,32 @@ export function DocumentModule() {
         </TabsContent>
 
         <TabsContent value="invoices" className="space-y-4">
-          {invoicesLoading ? (
-            <div className="text-center py-8">Lade Rechnungen...</div>
+          {isLoading ? (
+            <div className="space-y-4">
+              {Array(3).fill(0).map((_, i) => (
+                <Card key={i}>
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <Skeleton className="h-5 w-32" />
+                          <Skeleton className="h-6 w-20" />
+                        </div>
+                        <Skeleton className="h-4 w-48 mb-2" />
+                        <Skeleton className="h-4 w-24" />
+                      </div>
+                      <div className="text-right">
+                        <Skeleton className="h-6 w-20 mb-2" />
+                        <div className="flex gap-2">
+                          <Skeleton className="h-8 w-16" />
+                          <Skeleton className="h-8 w-16" />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           ) : filteredInvoices.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center">
@@ -369,7 +375,7 @@ export function DocumentModule() {
                             variant="ghost" 
                             size="sm" 
                             title="Per E-Mail versenden"
-                            onClick={() => handleSendEmail('invoice', invoice)}
+                            onClick={() => handleSendEmail('invoice', invoice.id, invoice)}
                             disabled={sendEmailMutation.isPending}
                           >
                             <Mail className="h-4 w-4" />

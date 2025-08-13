@@ -1,42 +1,34 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Plus, Search, Phone, Mail, MapPin, Calendar, FileText, Euro } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { Customer } from "@/types";
+import { useCustomers, useCreateCustomer, useUpdateCustomer } from "@/hooks/useApi";
 import AddCustomerDialog from "./AddCustomerDialog";
 import EditCustomerDialog from "./EditCustomerDialog";
 
-interface Customer {
-  id: string;
-  company_name: string;
-  contact_person: string;
-  email: string;
-  phone?: string;
-  address?: string;
-  city?: string;
-  postal_code?: string;
-  country?: string;
-  tax_number?: string;
-  customer_number?: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-}
-
 const CustomerModule = () => {
-  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
   const [isEditCustomerOpen, setIsEditCustomerOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  // React Query hooks for data management
+  const { data: customersResponse, isLoading, error } = useCustomers(
+    undefined, // No pagination for now
+    searchTerm.length >= 2 ? { search: searchTerm } : undefined
+  );
+
+  const createCustomerMutation = useCreateCustomer();
+  const updateCustomerMutation = useUpdateCustomer();
+
+  const customers = customersResponse?.items || [];
 
   const recentOrders = [
     { id: 'A2024-001', customer: 'Müller GmbH', project: 'Büroerweiterung', amount: '€12.500', status: 'In Bearbeitung', date: '15.01.2024' },
@@ -44,42 +36,6 @@ const CustomerModule = () => {
     { id: 'A2024-003', customer: 'Weber Bau', project: 'Wohnanlage Phase 2', amount: '€28.900', status: 'Angebot', date: '20.01.2024' }
   ];
 
-  const fetchCustomersCallback = useCallback(fetchCustomers, []);
-  
-  useEffect(() => {
-    fetchCustomersCallback();
-  }, [fetchCustomersCallback]);
-
-  const fetchCustomers = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('customers')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching customers:', error);
-        toast({
-          title: "Fehler",
-          description: "Kunden konnten nicht geladen werden.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      setCustomers(data || []);
-    } catch (error) {
-      console.error('Error fetching customers:', error);
-      toast({
-        title: "Fehler",
-        description: "Ein unerwarteter Fehler ist aufgetreten.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -93,37 +49,8 @@ const CustomerModule = () => {
     }
   };
 
-  const handleAddCustomer = async (newCustomerData: Omit<Customer, 'id' | 'created_at' | 'updated_at'>) => {
-    try {
-      const { data, error } = await supabase
-        .from('customers')
-        .insert([newCustomerData])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error adding customer:', error);
-        toast({
-          title: "Fehler",
-          description: "Kunde konnte nicht hinzugefügt werden.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      setCustomers(prev => [data, ...prev]);
-      toast({
-        title: "Erfolg",
-        description: "Kunde wurde erfolgreich hinzugefügt."
-      });
-    } catch (error) {
-      console.error('Error adding customer:', error);
-      toast({
-        title: "Fehler",
-        description: "Ein unerwarteter Fehler ist aufgetreten.",
-        variant: "destructive"
-      });
-    }
+  const handleAddCustomer = async (newCustomerData: any) => {
+    createCustomerMutation.mutate(newCustomerData);
   };
 
   const handleEditCustomer = (customer: Customer) => {
@@ -132,51 +59,13 @@ const CustomerModule = () => {
   };
 
   const handleUpdateCustomer = async (updatedCustomer: Customer) => {
-    try {
-      const { error } = await supabase
-        .from('customers')
-        .update({
-          company_name: updatedCustomer.company_name,
-          contact_person: updatedCustomer.contact_person,
-          email: updatedCustomer.email,
-          phone: updatedCustomer.phone,
-          address: updatedCustomer.address,
-          city: updatedCustomer.city,
-          postal_code: updatedCustomer.postal_code,
-          country: updatedCustomer.country,
-          tax_number: updatedCustomer.tax_number,
-          status: updatedCustomer.status
-        })
-        .eq('id', updatedCustomer.id);
-
-      if (error) {
-        console.error('Error updating customer:', error);
-        toast({
-          title: "Fehler",
-          description: "Kunde konnte nicht aktualisiert werden.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      setCustomers(prev => 
-        prev.map(customer => 
-          customer.id === updatedCustomer.id ? updatedCustomer : customer
-        )
-      );
-      
-      toast({
-        title: "Erfolg",
-        description: "Kunde wurde erfolgreich aktualisiert."
-      });
-    } catch (error) {
-      console.error('Error updating customer:', error);
-      toast({
-        title: "Fehler",
-        description: "Ein unerwarteter Fehler ist aufgetreten.",
-        variant: "destructive"
-      });
-    }
+    if (!selectedCustomer) return;
+    
+    const { id, created_at, updated_at, ...updateData } = updatedCustomer;
+    updateCustomerMutation.mutate({ 
+      id: selectedCustomer.id, 
+      data: updateData 
+    });
   };
 
   const handleShowCustomerDetails = (customer: Customer) => {
@@ -184,7 +73,8 @@ const CustomerModule = () => {
     alert(`Details für ${customer.company_name}:\n\nKontakt: ${customer.contact_person}\nE-Mail: ${customer.email}\nStatus: ${customer.status}`);
   };
 
-  const filteredCustomers = customers.filter(customer =>
+  // For search terms less than 2 characters, filter locally. For longer terms, server-side search is used
+  const filteredCustomers = searchTerm.length >= 2 ? customers : customers.filter(customer =>
     customer.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.contact_person.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -238,10 +128,39 @@ const CustomerModule = () => {
           </Card>
 
           {/* Customer List */}
-          {loading ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500">Lade Kunden...</p>
+          {isLoading ? (
+            <div className="grid gap-4">
+              {Array(3).fill(0).map((_, i) => (
+                <Card key={i}>
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <Skeleton className="h-5 w-32" />
+                          <Skeleton className="h-6 w-16" />
+                        </div>
+                        <Skeleton className="h-4 w-24 mb-3" />
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <Skeleton className="h-4 w-28" />
+                          <Skeleton className="h-4 w-36" />
+                          <Skeleton className="h-4 w-40" />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Skeleton className="h-8 w-20" />
+                        <Skeleton className="h-8 w-24" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
+          ) : error ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <p className="text-red-500">Fehler beim Laden der Kunden: {error.message}</p>
+              </CardContent>
+            </Card>
           ) : (
             <div className="grid gap-4">
               {filteredCustomers.length === 0 ? (

@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Calculator, 
   Euro, 
@@ -20,9 +21,15 @@ import {
   Settings,
   Download
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FinancialStats, MonthlyRevenue, Invoice, Expense } from "@/types/financial";
+import { 
+  useInvoices, 
+  useFinancialKPIs,
+  useExpenses,
+  useCreateInvoice,
+  useUpdateInvoice
+} from "@/hooks/useApi";
 
 // Simplified interface for mock/display data that may not have all required Invoice fields
 interface InvoiceDisplay {
@@ -41,12 +48,23 @@ interface InvoiceDisplay {
 
 const FinanceModule = () => {
   const { toast } = useToast();
-  const [invoices, setInvoices] = useState<InvoiceDisplay[]>([]);
-  const [expenses, setExpenses] = useState<any[]>([]); // Keep as any for now since we're using mock data
-  const [loading, setLoading] = useState(true);
+  
+  // React Query hooks
+  const { data: invoicesResponse, isLoading: invoicesLoading } = useInvoices();
+  const { data: expensesResponse, isLoading: expensesLoading } = useExpenses();
+  const { data: financialKPIs, isLoading: kpisLoading } = useFinancialKPIs();
+  
+  const createInvoiceMutation = useCreateInvoice();
+  const updateInvoiceMutation = useUpdateInvoice();
+  
+  // Local state
   const [activeTab, setActiveTab] = useState('dashboard');
   const [monthlyData, setMonthlyData] = useState<MonthlyRevenue[]>([]);
-  const [stats, setStats] = useState<FinancialStats>({
+  
+  // Extract data from responses
+  const invoices = invoicesResponse?.items || [];
+  const expenses = expensesResponse?.items || [];
+  const stats = financialKPIs || {
     monthly_revenue: 0,
     monthly_expenses: 0,
     monthly_profit: 0,
@@ -57,82 +75,18 @@ const FinanceModule = () => {
     revenue_trend: 0,
     expense_trend: 0,
     profit_trend: 0
-  });
+  };
+  
+  // Loading state
+  const loading = invoicesLoading || expensesLoading || kpisLoading;
 
   useEffect(() => {
-    fetchAllFinancialData();
+    fetchMonthlyData();
   }, []);
 
-  const fetchAllFinancialData = async () => {
-    try {
-      setLoading(true);
-      await Promise.all([
-        fetchInvoices(),
-        fetchExpenses(),
-        fetchMonthlyData()
-      ]);
-    } catch (error) {
-      console.error('Error fetching financial data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchExpenses = async () => {
-    try {
-      // For now, always use mock data since expenses table might not exist
-      const mockExpenses = [
-        {
-          id: 1,
-          description: 'Baumaterial Projekt Weber',
-          amount: 2500.00,
-          category: 'materials',
-          date: new Date().toISOString().split('T')[0],
-          project: 'Weber Hausbau'
-        },
-        {
-          id: 2,
-          description: 'Subunternehmer Elektrik',
-          amount: 4200.00,
-          category: 'subcontractor',
-          date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          project: 'Müller Renovation'
-        },
-        {
-          id: 3,
-          description: 'Fahrzeugkosten Januar',
-          amount: 850.00,
-          category: 'operating',
-          date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          project: null
-        },
-        {
-          id: 4,
-          description: 'Werkzeugkauf - neue Bohrmaschine',
-          amount: 320.00,
-          category: 'materials',
-          date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          project: null
-        },
-        {
-          id: 5,
-          description: 'Miete Büro Januar',
-          amount: 1200.00,
-          category: 'operating',
-          date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          project: null
-        }
-      ];
-
-      setExpenses(mockExpenses);
-    } catch (error) {
-      console.error('Error setting up expenses:', error);
-      setExpenses([]); // Fallback to empty array
-    }
-  };
-
   const fetchMonthlyData = async () => {
-    // Mock-Daten für monatlichen Verlauf
+    // This could be replaced with a React Query hook for monthly financial data
+    // For now, keeping mock data until monthly financial endpoints are implemented
     const mockMonthlyData: MonthlyRevenue[] = [
       { month: '2024-08', revenue: 22000, expenses: 16000, profit: 6000 },
       { month: '2024-09', revenue: 28000, expenses: 19000, profit: 9000 },
@@ -198,9 +152,7 @@ const FinanceModule = () => {
 
     } catch (error: unknown) {
       console.log('Error fetching invoices, using mock data:', error);
-      // Fallback to mock data instead of showing error
-      setInvoices(getMockInvoices());
-      calculateStats(getMockInvoices());
+      // This will be handled by React Query hooks
     }
   };
 
@@ -369,10 +321,64 @@ const FinanceModule = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Finanzdaten werden geladen...</p>
+      <div className="p-6 bg-gray-50 min-h-screen">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <Skeleton className="h-10 w-64" />
+          <div className="flex gap-6">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+        </div>
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {Array(4).fill(0).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Skeleton className="h-4 w-20 mb-2" />
+                    <Skeleton className="h-8 w-16" />
+                    <Skeleton className="h-3 w-12 mt-1" />
+                  </div>
+                  <Skeleton className="h-8 w-8 rounded-full" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Content Area */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {Array(5).fill(0).map((_, i) => (
+                  <div key={i} className="border rounded p-4">
+                    <Skeleton className="h-20 w-full" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {Array(3).fill(0).map((_, i) => (
+                  <div key={i} className="p-3 bg-gray-50 rounded">
+                    <Skeleton className="h-16 w-full" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );

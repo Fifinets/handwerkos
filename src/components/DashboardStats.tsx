@@ -46,7 +46,7 @@ const DashboardStats = () => {
     buttonText: "Zur Buchhaltung"
   }, {
     title: "Mitarbeiterverwaltung",
-    description: "Es liegen 0 Arbeitszeitleitträge zur Entscheidung.",
+    description: isLoading ? "Lade Mitarbeiterdaten..." : `${pendingTimeEntries} Arbeitszeitleitträge zur Entscheidung`,
     icon: UserCheck,
     buttonText: "Mitarbeiter anzeigen"
   },
