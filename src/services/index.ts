@@ -12,6 +12,9 @@ export { documentService, DocumentService } from './documentService';
 export { projectKPIService, ProjectKPIService } from './projectKPIService';
 export { notificationService, NotificationService } from './notificationService';
 export { workerService, WorkerService } from './workerService';
+export { auditLogService, AuditLogService } from './auditLogService';
+export { gobdService, GoBDService } from './gobdService';
+export { gobdHooks, GoBDHooks } from './gobdHooks';
 export { eventBus } from './eventBus';
 
 // Re-export types from eventBus
@@ -33,3 +36,22 @@ export type {
 
 // Re-export types from workerService
 export type { WorkerJob } from './workerService';
+
+// Re-export types from auditLogService
+export type { 
+  AuditLog, 
+  AuditLogCreate, 
+  AuditLogFilters, 
+  AuditTrail, 
+  AuditAction, 
+  AuditEntityType 
+} from './auditLogService';
+
+// Re-export types from gobdService
+export type { 
+  NumberSequence, 
+  NumberSequenceGap, 
+  GoBDDocument, 
+  ImmutabilityCheck, 
+  NumberSequenceType 
+} from './gobdService';
