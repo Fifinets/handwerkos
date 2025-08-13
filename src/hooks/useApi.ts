@@ -1,17 +1,8 @@
-// React hooks for API calls with type safety and error handling
-// Built on top of TanStack Query for caching and synchronization
+// Comprehensive React hooks for HandwerkOS API with TanStack Query
+// Provides type-safe hooks for all business entities with caching, optimistic updates, and error handling
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  apiCall, 
-  createQuery, 
-  createSuccessResponse, 
-  createErrorResponse, 
-  ApiError,
-  API_ERROR_CODES 
-} from '@/utils/api';
 import type {
   Customer, CustomerCreate, CustomerUpdate,
   Material, MaterialCreate, MaterialUpdate,
@@ -21,57 +12,102 @@ import type {
   Invoice, InvoiceCreate, InvoiceUpdate,
   Timesheet, TimesheetCreate, TimesheetUpdate,
   Expense, ExpenseCreate, ExpenseUpdate,
-  StockMovement, StockMovementCreate,
   Employee, EmployeeCreate, EmployeeUpdate,
-  ApiResponse,
   PaginationQuery,
   PaginationResponse,
-} from '@/types/core';
+} from '@/types';
+import { ApiError } from '@/utils/api';
+import { 
+  customerService,
+  quoteService,
+  orderService,
+  projectService,
+  timesheetService,
+  materialService,
+  stockService,
+  financeService,
+  documentService,
+  eventBus
+} from '@/services';
 
-// Query keys for consistent caching
+// Query keys for consistent caching and invalidation
 export const QUERY_KEYS = {
+  // Customer keys
   customers: ['customers'] as const,
   customer: (id: string) => ['customers', id] as const,
-  materials: ['materials'] as const,
-  material: (id: string) => ['materials', id] as const,
+  customerStats: (id: string) => ['customers', id, 'stats'] as const,
+  customerProjects: (id: string) => ['customers', id, 'projects'] as const,
+  customerQuotes: (id: string) => ['customers', id, 'quotes'] as const,
+  customerInvoices: (id: string) => ['customers', id, 'invoices'] as const,
+  
+  // Quote keys
   quotes: ['quotes'] as const,
   quote: (id: string) => ['quotes', id] as const,
+  quoteStats: ['quotes', 'stats'] as const,
+  
+  // Order keys
   orders: ['orders'] as const,
   order: (id: string) => ['orders', id] as const,
+  orderStats: ['orders', 'stats'] as const,
+  
+  // Project keys
   projects: ['projects'] as const,
   project: (id: string) => ['projects', id] as const,
-  invoices: ['invoices'] as const,
-  invoice: (id: string) => ['invoices', id] as const,
+  projectStats: (id: string) => ['projects', id, 'stats'] as const,
+  projectTimeline: (id: string) => ['projects', id, 'timeline'] as const,
+  
+  // Timesheet keys
   timesheets: ['timesheets'] as const,
   timesheet: (id: string) => ['timesheets', id] as const,
+  employeeTimesheetStats: (employeeId: string) => ['timesheets', 'employee', employeeId, 'stats'] as const,
+  projectTimesheetSummary: (projectId: string) => ['timesheets', 'project', projectId, 'summary'] as const,
+  
+  // Material & Stock keys
+  materials: ['materials'] as const,
+  material: (id: string) => ['materials', id] as const,
+  materialStats: ['materials', 'stats'] as const,
+  lowStockMaterials: ['materials', 'low-stock'] as const,
+  stockMovements: ['stock-movements'] as const,
+  stockValuation: ['stock', 'valuation'] as const,
+  stockAnalytics: ['stock', 'analytics'] as const,
+  
+  // Finance keys
+  invoices: ['invoices'] as const,
+  invoice: (id: string) => ['invoices', id] as const,
   expenses: ['expenses'] as const,
   expense: (id: string) => ['expenses', id] as const,
-  stockMovements: ['stockMovements'] as const,
+  financialKpis: ['finance', 'kpis'] as const,
+  revenueByMonth: ['finance', 'revenue-by-month'] as const,
+  expensesByCategory: ['finance', 'expenses-by-category'] as const,
+  profitLossReport: ['finance', 'profit-loss'] as const,
+  
+  // Document keys
+  documents: ['documents'] as const,
+  document: (id: string) => ['documents', id] as const,
+  documentStats: ['documents', 'stats'] as const,
+  expiringDocuments: ['documents', 'expiring'] as const,
+  
+  // Employee keys
   employees: ['employees'] as const,
   employee: (id: string) => ['employees', id] as const,
 } as const;
 
-// Generic hooks
+// Generic hook types
 interface UseApiQueryOptions<T> extends Omit<UseQueryOptions<T, ApiError>, 'queryKey' | 'queryFn'> {}
 interface UseApiMutationOptions<T, V> extends Omit<UseMutationOptions<T, ApiError, V>, 'mutationFn'> {}
 
-// Customer hooks
-export const useCustomers = (pagination?: PaginationQuery, options?: UseApiQueryOptions<Customer[]>) => {
+// ==========================================
+// CUSTOMER HOOKS
+// ==========================================
+
+export const useCustomers = (
+  pagination?: PaginationQuery,
+  filters?: { status?: Customer['status']; search?: string },
+  options?: UseApiQueryOptions<PaginationResponse<Customer>>
+) => {
   return useQuery({
-    queryKey: [...QUERY_KEYS.customers, pagination],
-    queryFn: () => apiCall(async () => {
-      let query = supabase
-        .from('customers')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (pagination) {
-        const offset = (pagination.page - 1) * pagination.limit;
-        query = query.range(offset, offset + pagination.limit - 1);
-      }
-      
-      return createQuery<Customer>(query).execute();
-    }, 'Fetch customers'),
+    queryKey: [...QUERY_KEYS.customers, pagination, filters],
+    queryFn: () => customerService.getCustomers(pagination, filters),
     ...options,
   });
 };
@@ -79,14 +115,16 @@ export const useCustomers = (pagination?: PaginationQuery, options?: UseApiQuery
 export const useCustomer = (id: string, options?: UseApiQueryOptions<Customer>) => {
   return useQuery({
     queryKey: QUERY_KEYS.customer(id),
-    queryFn: () => apiCall(async () => {
-      const query = supabase
-        .from('customers')
-        .select('*')
-        .eq('id', id);
-      
-      return createQuery<Customer>(query).executeSingle();
-    }, `Fetch customer ${id}`),
+    queryFn: () => customerService.getCustomer(id),
+    enabled: !!id,
+    ...options,
+  });
+};
+
+export const useCustomerStats = (id: string, options?: UseApiQueryOptions<any>) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.customerStats(id),
+    queryFn: () => customerService.getCustomerStats(id),
     enabled: !!id,
     ...options,
   });
@@ -97,15 +135,7 @@ export const useCreateCustomer = (options?: UseApiMutationOptions<Customer, Cust
   const { toast } = useToast();
   
   return useMutation({
-    mutationFn: (data: CustomerCreate) => apiCall(async () => {
-      const query = supabase
-        .from('customers')
-        .insert(data)
-        .select()
-        .single();
-      
-      return createQuery<Customer>(query).executeSingle();
-    }, 'Create customer'),
+    mutationFn: customerService.createCustomer,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers });
       toast({
@@ -129,19 +159,11 @@ export const useUpdateCustomer = (options?: UseApiMutationOptions<Customer, { id
   const { toast } = useToast();
   
   return useMutation({
-    mutationFn: ({ id, data }) => apiCall(async () => {
-      const query = supabase
-        .from('customers')
-        .update(data)
-        .eq('id', id)
-        .select()
-        .single();
-      
-      return createQuery<Customer>(query).executeSingle();
-    }, `Update customer ${id}`),
+    mutationFn: ({ id, data }) => customerService.updateCustomer(id, data),
     onSuccess: (data, { id }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customer(id) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customerStats(id) });
       toast({
         title: 'Kunde aktualisiert',
         description: `${data.company_name} wurde erfolgreich aktualisiert.`,
@@ -158,258 +180,18 @@ export const useUpdateCustomer = (options?: UseApiMutationOptions<Customer, { id
   });
 };
 
-// Material hooks
-export const useMaterials = (pagination?: PaginationQuery, options?: UseApiQueryOptions<Material[]>) => {
-  return useQuery({
-    queryKey: [...QUERY_KEYS.materials, pagination],
-    queryFn: () => apiCall(async () => {
-      let query = supabase
-        .from('materials')
-        .select('*')
-        .order('name');
-      
-      if (pagination) {
-        const offset = (pagination.page - 1) * pagination.limit;
-        query = query.range(offset, offset + pagination.limit - 1);
-      }
-      
-      return createQuery<Material>(query).execute();
-    }, 'Fetch materials'),
-    ...options,
-  });
-};
-
-export const useCreateMaterial = (options?: UseApiMutationOptions<Material, MaterialCreate>) => {
+export const useDeleteCustomer = (options?: UseApiMutationOptions<void, string>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
   return useMutation({
-    mutationFn: (data: MaterialCreate) => apiCall(async () => {
-      const query = supabase
-        .from('materials')
-        .insert(data)
-        .select()
-        .single();
-      
-      return createQuery<Material>(query).executeSingle();
-    }, 'Create material'),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materials });
+    mutationFn: customerService.deleteCustomer,
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers });
+      queryClient.removeQueries({ queryKey: QUERY_KEYS.customer(id) });
       toast({
-        title: 'Material erstellt',
-        description: `${data.name} wurde erfolgreich erstellt.`,
-      });
-    },
-    ...options,
-  });
-};
-
-// Quote hooks
-export const useQuotes = (pagination?: PaginationQuery, options?: UseApiQueryOptions<Quote[]>) => {
-  return useQuery({
-    queryKey: [...QUERY_KEYS.quotes, pagination],
-    queryFn: () => apiCall(async () => {
-      let query = supabase
-        .from('quotes')
-        .select(`
-          *,
-          customers (
-            company_name,
-            contact_person
-          )
-        `)
-        .order('created_at', { ascending: false });
-      
-      if (pagination) {
-        const offset = (pagination.page - 1) * pagination.limit;
-        query = query.range(offset, offset + pagination.limit - 1);
-      }
-      
-      return createQuery<Quote>(query).execute();
-    }, 'Fetch quotes'),
-    ...options,
-  });
-};
-
-export const useCreateQuote = (options?: UseApiMutationOptions<Quote, QuoteCreate>) => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-  
-  return useMutation({
-    mutationFn: (data: QuoteCreate) => apiCall(async () => {
-      // Calculate totals from body.items
-      const items = data.body?.items || [];
-      const totalNet = items.reduce((sum, item) => sum + item.total_price, 0);
-      const totalGross = totalNet * (1 + (data.tax_rate || 19) / 100);
-      
-      const quoteData = {
-        ...data,
-        total_net: totalNet,
-        total_gross: totalGross,
-      };
-      
-      const query = supabase
-        .from('quotes')
-        .insert(quoteData)
-        .select()
-        .single();
-      
-      return createQuery<Quote>(query).executeSingle();
-    }, 'Create quote'),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes });
-      toast({
-        title: 'Angebot erstellt',
-        description: `${data.title} wurde erfolgreich erstellt.`,
-      });
-    },
-    ...options,
-  });
-};
-
-// Project hooks
-export const useProjects = (pagination?: PaginationQuery, options?: UseApiQueryOptions<Project[]>) => {
-  return useQuery({
-    queryKey: [...QUERY_KEYS.projects, pagination],
-    queryFn: () => apiCall(async () => {
-      let query = supabase
-        .from('projects')
-        .select(`
-          *,
-          customers (
-            company_name,
-            contact_person
-          ),
-          orders (
-            order_number,
-            total_amount
-          )
-        `)
-        .order('created_at', { ascending: false });
-      
-      if (pagination) {
-        const offset = (pagination.page - 1) * pagination.limit;
-        query = query.range(offset, offset + pagination.limit - 1);
-      }
-      
-      return createQuery<Project>(query).execute();
-    }, 'Fetch projects'),
-    ...options,
-  });
-};
-
-// Timesheet hooks
-export const useTimesheets = (projectId?: string, options?: UseApiQueryOptions<Timesheet[]>) => {
-  return useQuery({
-    queryKey: [...QUERY_KEYS.timesheets, projectId],
-    queryFn: () => apiCall(async () => {
-      let query = supabase
-        .from('timesheets')
-        .select(`
-          *,
-          projects (name),
-          employees (first_name, last_name)
-        `)
-        .order('date', { ascending: false });
-      
-      if (projectId) {
-        query = query.eq('project_id', projectId);
-      }
-      
-      return createQuery<Timesheet>(query).execute();
-    }, `Fetch timesheets${projectId ? ` for project ${projectId}` : ''}`),
-    ...options,
-  });
-};
-
-export const useCreateTimesheet = (options?: UseApiMutationOptions<Timesheet, TimesheetCreate>) => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-  
-  return useMutation({
-    mutationFn: (data: TimesheetCreate) => apiCall(async () => {
-      const query = supabase
-        .from('timesheets')
-        .insert(data)
-        .select()
-        .single();
-      
-      return createQuery<Timesheet>(query).executeSingle();
-    }, 'Create timesheet'),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timesheets });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
-      toast({
-        title: 'Zeiteintrag erstellt',
-        description: 'Der Zeiteintrag wurde erfolgreich erstellt.',
-      });
-    },
-    ...options,
-  });
-};
-
-// Stock movement hooks
-export const useCreateStockMovement = (options?: UseApiMutationOptions<StockMovement, StockMovementCreate>) => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-  
-  return useMutation({
-    mutationFn: (data: StockMovementCreate) => apiCall(async () => {
-      const query = supabase
-        .from('stock_movements')
-        .insert(data)
-        .select()
-        .single();
-      
-      return createQuery<StockMovement>(query).executeSingle();
-    }, 'Create stock movement'),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stockMovements });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materials });
-      toast({
-        title: 'Lagerbewegung erstellt',
-        description: 'Die Lagerbewegung wurde erfolgreich erfasst.',
-      });
-    },
-    ...options,
-  });
-};
-
-// Generic delete hook
-export const useDeleteEntity = <T>(
-  entity: string,
-  onSuccess?: (deletedId: string) => void
-) => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-  
-  return useMutation({
-    mutationFn: (id: string) => apiCall(async () => {
-      const { error } = await supabase
-        .from(entity)
-        .delete()
-        .eq('id', id);
-      
-      if (error) {
-        if (error.code === '23503') {
-          throw new ApiError(
-            API_ERROR_CODES.BUSINESS_RULE_VIOLATION,
-            'Dieser Datensatz wird noch von anderen Daten referenziert und kann nicht gelöscht werden.',
-            { constraint: error.constraint }
-          );
-        }
-        throw error;
-      }
-      
-      return id;
-    }, `Delete ${entity}`),
-    onSuccess: (deletedId) => {
-      // Invalidate all related queries
-      queryClient.invalidateQueries();
-      onSuccess?.(deletedId);
-      toast({
-        title: 'Datensatz gelöscht',
-        description: 'Der Datensatz wurde erfolgreich gelöscht.',
+        title: 'Kunde gelöscht',
+        description: 'Der Kunde wurde erfolgreich gelöscht.',
       });
     },
     onError: (error) => {
@@ -419,5 +201,1351 @@ export const useDeleteEntity = <T>(
         variant: 'destructive',
       });
     },
+    ...options,
   });
+};
+
+export const useSearchCustomers = (query: string, limit?: number, options?: UseApiQueryOptions<Customer[]>) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.customers, 'search', query, limit],
+    queryFn: () => customerService.searchCustomers(query, limit),
+    enabled: query.length >= 2,
+    ...options,
+  });
+};
+
+// ==========================================
+// QUOTE HOOKS
+// ==========================================
+
+export const useQuotes = (
+  pagination?: PaginationQuery,
+  filters?: { status?: Quote['status']; customer_id?: string; search?: string },
+  options?: UseApiQueryOptions<PaginationResponse<Quote>>
+) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.quotes, pagination, filters],
+    queryFn: () => quoteService.getQuotes(pagination, filters),
+    ...options,
+  });
+};
+
+export const useQuote = (id: string, options?: UseApiQueryOptions<Quote>) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.quote(id),
+    queryFn: () => quoteService.getQuote(id),
+    enabled: !!id,
+    ...options,
+  });
+};
+
+export const useCreateQuote = (options?: UseApiMutationOptions<Quote, QuoteCreate>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: quoteService.createQuote,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customerQuotes(data.customer_id) });
+      toast({
+        title: 'Angebot erstellt',
+        description: `${data.title} wurde erfolgreich erstellt.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Erstellen',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useUpdateQuote = (options?: UseApiMutationOptions<Quote, { id: string; data: QuoteUpdate }>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: ({ id, data }) => quoteService.updateQuote(id, data),
+    onSuccess: (data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quote(id) });
+      toast({
+        title: 'Angebot aktualisiert',
+        description: `${data.title} wurde erfolgreich aktualisiert.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Aktualisieren',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useSendQuote = (options?: UseApiMutationOptions<Quote, string>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: quoteService.sendQuote,
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quote(id) });
+      toast({
+        title: 'Angebot versendet',
+        description: `${data.title} wurde erfolgreich versendet.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Versenden',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useAcceptQuote = (options?: UseApiMutationOptions<{ quote: Quote; order: any }, string>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: quoteService.acceptQuote,
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quote(id) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders });
+      toast({
+        title: 'Angebot angenommen',
+        description: `${data.quote.title} wurde angenommen und ein Auftrag erstellt.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Annehmen',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useRejectQuote = (options?: UseApiMutationOptions<Quote, { id: string; reason?: string }>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: ({ id, reason }) => quoteService.rejectQuote(id, reason),
+    onSuccess: (data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quote(id) });
+      toast({
+        title: 'Angebot abgelehnt',
+        description: `${data.title} wurde abgelehnt.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Ablehnen',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useQuoteStats = (options?: UseApiQueryOptions<any>) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.quoteStats,
+    queryFn: () => quoteService.getQuoteStats(),
+    ...options,
+  });
+};
+
+// ==========================================
+// ORDER HOOKS
+// ==========================================
+
+export const useOrders = (
+  pagination?: PaginationQuery,
+  filters?: { status?: Order['status']; customer_id?: string; search?: string },
+  options?: UseApiQueryOptions<PaginationResponse<Order>>
+) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.orders, pagination, filters],
+    queryFn: () => orderService.getOrders(pagination, filters),
+    ...options,
+  });
+};
+
+export const useOrder = (id: string, options?: UseApiQueryOptions<Order>) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.order(id),
+    queryFn: () => orderService.getOrder(id),
+    enabled: !!id,
+    ...options,
+  });
+};
+
+export const useCreateOrder = (options?: UseApiMutationOptions<Order, OrderCreate>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: orderService.createOrder,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders });
+      toast({
+        title: 'Auftrag erstellt',
+        description: `${data.title} wurde erfolgreich erstellt.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Erstellen',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useStartOrder = (options?: UseApiMutationOptions<Order, string>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: orderService.startOrder,
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.order(id) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
+      toast({
+        title: 'Auftrag gestartet',
+        description: `${data.title} wurde gestartet.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Starten',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useCompleteOrder = (options?: UseApiMutationOptions<Order, string>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: orderService.completeOrder,
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.order(id) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
+      toast({
+        title: 'Auftrag abgeschlossen',
+        description: `${data.title} wurde abgeschlossen.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Abschließen',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useCancelOrder = (options?: UseApiMutationOptions<Order, { id: string; reason?: string }>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: ({ id, reason }) => orderService.cancelOrder(id, reason),
+    onSuccess: (data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.order(id) });
+      toast({
+        title: 'Auftrag storniert',
+        description: `${data.title} wurde storniert.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Stornieren',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useOrderStats = (options?: UseApiQueryOptions<any>) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.orderStats,
+    queryFn: () => orderService.getOrderStats(),
+    ...options,
+  });
+};
+
+// ==========================================
+// PROJECT HOOKS
+// ==========================================
+
+export const useProjects = (
+  pagination?: PaginationQuery,
+  filters?: { status?: Project['status']; customer_id?: string; employee_id?: string; search?: string },
+  options?: UseApiQueryOptions<PaginationResponse<Project>>
+) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.projects, pagination, filters],
+    queryFn: () => projectService.getProjects(pagination, filters),
+    ...options,
+  });
+};
+
+export const useProject = (id: string, options?: UseApiQueryOptions<Project>) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.project(id),
+    queryFn: () => projectService.getProject(id),
+    enabled: !!id,
+    ...options,
+  });
+};
+
+export const useProjectStats = (id: string, options?: UseApiQueryOptions<any>) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.projectStats(id),
+    queryFn: () => projectService.getProjectStats(id),
+    enabled: !!id,
+    ...options,
+  });
+};
+
+export const useProjectTimeline = (id: string, limit?: number, options?: UseApiQueryOptions<any[]>) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.projectTimeline(id), limit],
+    queryFn: () => projectService.getProjectTimeline(id, limit),
+    enabled: !!id,
+    ...options,
+  });
+};
+
+export const useCreateProject = (options?: UseApiMutationOptions<Project, ProjectCreate>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: projectService.createProject,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customerProjects(data.customer_id || '') });
+      toast({
+        title: 'Projekt erstellt',
+        description: `${data.name} wurde erfolgreich erstellt.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Erstellen',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useUpdateProject = (options?: UseApiMutationOptions<Project, { id: string; data: ProjectUpdate }>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: ({ id, data }) => projectService.updateProject(id, data),
+    onSuccess: (data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.project(id) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projectStats(id) });
+      toast({
+        title: 'Projekt aktualisiert',
+        description: `${data.name} wurde erfolgreich aktualisiert.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Aktualisieren',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useStartProject = (options?: UseApiMutationOptions<Project, string>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: projectService.startProject,
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.project(id) });
+      toast({
+        title: 'Projekt gestartet',
+        description: `${data.name} wurde gestartet.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Starten',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useCompleteProject = (options?: UseApiMutationOptions<Project, string>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: projectService.completeProject,
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.project(id) });
+      toast({
+        title: 'Projekt abgeschlossen',
+        description: `${data.name} wurde abgeschlossen.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Abschließen',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useBlockProject = (options?: UseApiMutationOptions<Project, { id: string; reason?: string }>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: ({ id, reason }) => projectService.blockProject(id, reason),
+    onSuccess: (data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.project(id) });
+      toast({
+        title: 'Projekt blockiert',
+        description: `${data.name} wurde blockiert.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Blockieren',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useSearchProjects = (query: string, limit?: number, options?: UseApiQueryOptions<Project[]>) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.projects, 'search', query, limit],
+    queryFn: () => projectService.searchProjects(query, limit),
+    enabled: query.length >= 2,
+    ...options,
+  });
+};
+
+// ==========================================
+// TIMESHEET HOOKS
+// ==========================================
+
+export const useTimesheets = (
+  pagination?: PaginationQuery,
+  filters?: {
+    project_id?: string;
+    employee_id?: string;
+    date_from?: string;
+    date_to?: string;
+    approved?: boolean;
+  },
+  options?: UseApiQueryOptions<PaginationResponse<Timesheet>>
+) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.timesheets, pagination, filters],
+    queryFn: () => timesheetService.getTimesheets(pagination, filters),
+    ...options,
+  });
+};
+
+export const useTimesheet = (id: string, options?: UseApiQueryOptions<Timesheet>) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.timesheet(id),
+    queryFn: () => timesheetService.getTimesheet(id),
+    enabled: !!id,
+    ...options,
+  });
+};
+
+export const useCreateTimesheet = (options?: UseApiMutationOptions<Timesheet, TimesheetCreate>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: timesheetService.createTimesheet,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timesheets });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projectStats(data.project_id || '') });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.employeeTimesheetStats(data.employee_id) });
+      toast({
+        title: 'Zeiteintrag erstellt',
+        description: 'Der Zeiteintrag wurde erfolgreich erstellt.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Erstellen',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useUpdateTimesheet = (options?: UseApiMutationOptions<Timesheet, { id: string; data: TimesheetUpdate }>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: ({ id, data }) => timesheetService.updateTimesheet(id, data),
+    onSuccess: (data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timesheets });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timesheet(id) });
+      toast({
+        title: 'Zeiteintrag aktualisiert',
+        description: 'Der Zeiteintrag wurde erfolgreich aktualisiert.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Aktualisieren',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useApproveTimesheet = (options?: UseApiMutationOptions<Timesheet, string>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: timesheetService.approveTimesheet,
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timesheets });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timesheet(id) });
+      toast({
+        title: 'Zeiteintrag genehmigt',
+        description: 'Der Zeiteintrag wurde erfolgreich genehmigt.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Genehmigen',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useBulkApproveTimesheets = (options?: UseApiMutationOptions<Timesheet[], string[]>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: timesheetService.bulkApproveTimesheets,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timesheets });
+      toast({
+        title: 'Zeiteinträge genehmigt',
+        description: `${data.length} Zeiteinträge wurden erfolgreich genehmigt.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Genehmigen',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useEmployeeTimesheetStats = (
+  employeeId: string,
+  dateFrom?: string,
+  dateTo?: string,
+  options?: UseApiQueryOptions<any>
+) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.employeeTimesheetStats(employeeId), dateFrom, dateTo],
+    queryFn: () => timesheetService.getEmployeeTimesheetStats(employeeId, dateFrom, dateTo),
+    enabled: !!employeeId,
+    ...options,
+  });
+};
+
+export const useProjectTimesheetSummary = (projectId: string, options?: UseApiQueryOptions<any>) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.projectTimesheetSummary(projectId),
+    queryFn: () => timesheetService.getProjectTimesheetSummary(projectId),
+    enabled: !!projectId,
+    ...options,
+  });
+};
+
+// ==========================================
+// MATERIAL & STOCK HOOKS
+// ==========================================
+
+export const useMaterials = (
+  pagination?: PaginationQuery,
+  filters?: { category?: string; supplier?: string; low_stock?: boolean; search?: string },
+  options?: UseApiQueryOptions<PaginationResponse<Material>>
+) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.materials, pagination, filters],
+    queryFn: () => materialService.getMaterials(pagination, filters),
+    ...options,
+  });
+};
+
+export const useMaterial = (id: string, options?: UseApiQueryOptions<Material>) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.material(id),
+    queryFn: () => materialService.getMaterial(id),
+    enabled: !!id,
+    ...options,
+  });
+};
+
+export const useCreateMaterial = (options?: UseApiMutationOptions<Material, MaterialCreate>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: materialService.createMaterial,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materials });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materialStats });
+      toast({
+        title: 'Material erstellt',
+        description: `${data.name} wurde erfolgreich erstellt.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Erstellen',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useUpdateMaterial = (options?: UseApiMutationOptions<Material, { id: string; data: MaterialUpdate }>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: ({ id, data }) => materialService.updateMaterial(id, data),
+    onSuccess: (data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materials });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.material(id) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materialStats });
+      toast({
+        title: 'Material aktualisiert',
+        description: `${data.name} wurde erfolgreich aktualisiert.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Aktualisieren',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useAdjustStock = (options?: UseApiMutationOptions<Material, { id: string; adjustment: number; reason: string; reference?: string }>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: ({ id, adjustment, reason, reference }) => materialService.adjustStock(id, adjustment, reason, reference),
+    onSuccess: (data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materials });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.material(id) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stockMovements });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materialStats });
+      toast({
+        title: 'Bestand angepasst',
+        description: `Bestand für ${data.name} wurde angepasst.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Anpassen',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useAddStock = (options?: UseApiMutationOptions<Material, { id: string; quantity: number; unitCost?: number; supplier?: string; invoiceReference?: string }>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: ({ id, quantity, unitCost, supplier, invoiceReference }) => 
+      materialService.addStock(id, quantity, unitCost, supplier, invoiceReference),
+    onSuccess: (data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materials });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.material(id) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stockMovements });
+      toast({
+        title: 'Wareneingang erfasst',
+        description: `Wareneingang für ${data.name} wurde erfasst.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Wareneingang',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useRemoveStock = (options?: UseApiMutationOptions<Material, { id: string; quantity: number; projectId?: string; reason?: string }>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: ({ id, quantity, projectId, reason }) => 
+      materialService.removeStock(id, quantity, projectId, reason),
+    onSuccess: (data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materials });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.material(id) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stockMovements });
+      toast({
+        title: 'Verbrauch erfasst',
+        description: `Verbrauch für ${data.name} wurde erfasst.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Verbrauch',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useLowStockMaterials = (options?: UseApiQueryOptions<Material[]>) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.lowStockMaterials,
+    queryFn: () => materialService.getLowStockMaterials(),
+    ...options,
+  });
+};
+
+export const useMaterialStats = (options?: UseApiQueryOptions<any>) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.materialStats,
+    queryFn: () => materialService.getMaterialStats(),
+    ...options,
+  });
+};
+
+export const useSearchMaterials = (query: string, limit?: number, options?: UseApiQueryOptions<Material[]>) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.materials, 'search', query, limit],
+    queryFn: () => materialService.searchMaterials(query, limit),
+    enabled: query.length >= 2,
+    ...options,
+  });
+};
+
+// Stock operations
+export const useStockMovements = (
+  pagination?: PaginationQuery,
+  filters?: {
+    material_id?: string;
+    movement_type?: any;
+    project_id?: string;
+    date_from?: string;
+    date_to?: string;
+  },
+  options?: UseApiQueryOptions<any>
+) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.stockMovements, pagination, filters],
+    queryFn: () => stockService.getStockMovements(pagination, filters),
+    ...options,
+  });
+};
+
+export const useStockValuation = (location?: string, options?: UseApiQueryOptions<any>) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.stockValuation, location],
+    queryFn: () => stockService.getStockValuation(location),
+    ...options,
+  });
+};
+
+export const useStockAnalytics = (dateFrom: string, dateTo: string, options?: UseApiQueryOptions<any>) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.stockAnalytics, dateFrom, dateTo],
+    queryFn: () => stockService.getStockAnalytics(dateFrom, dateTo),
+    enabled: !!dateFrom && !!dateTo,
+    ...options,
+  });
+};
+
+// ==========================================
+// FINANCE HOOKS
+// ==========================================
+
+export const useInvoices = (
+  pagination?: PaginationQuery,
+  filters?: {
+    status?: Invoice['status'];
+    customer_id?: string;
+    project_id?: string;
+    overdue?: boolean;
+    date_from?: string;
+    date_to?: string;
+  },
+  options?: UseApiQueryOptions<PaginationResponse<Invoice>>
+) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.invoices, pagination, filters],
+    queryFn: () => financeService.getInvoices(pagination, filters),
+    ...options,
+  });
+};
+
+export const useInvoice = (id: string, options?: UseApiQueryOptions<Invoice>) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.invoice(id),
+    queryFn: () => financeService.getInvoice(id),
+    enabled: !!id,
+    ...options,
+  });
+};
+
+export const useCreateInvoice = (options?: UseApiMutationOptions<Invoice, InvoiceCreate>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: financeService.createInvoice,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.invoices });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.financialKpis });
+      toast({
+        title: 'Rechnung erstellt',
+        description: `${data.invoice_number || 'Rechnung'} wurde erfolgreich erstellt.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Erstellen',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useSendInvoice = (options?: UseApiMutationOptions<Invoice, string>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: financeService.sendInvoice,
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.invoices });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.invoice(id) });
+      toast({
+        title: 'Rechnung versendet',
+        description: `${data.invoice_number} wurde erfolgreich versendet.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Versenden',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useMarkInvoicePaid = (options?: UseApiMutationOptions<Invoice, { id: string; paymentDate?: string; notes?: string }>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: ({ id, paymentDate, notes }) => financeService.markInvoicePaid(id, paymentDate, notes),
+    onSuccess: (data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.invoices });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.invoice(id) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.financialKpis });
+      toast({
+        title: 'Rechnung als bezahlt markiert',
+        description: `${data.invoice_number} wurde als bezahlt markiert.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Markieren',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useExpenses = (
+  pagination?: PaginationQuery,
+  filters?: {
+    category?: string;
+    project_id?: string;
+    employee_id?: string;
+    date_from?: string;
+    date_to?: string;
+    approved?: boolean;
+  },
+  options?: UseApiQueryOptions<PaginationResponse<Expense>>
+) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.expenses, pagination, filters],
+    queryFn: () => financeService.getExpenses(pagination, filters),
+    ...options,
+  });
+};
+
+export const useCreateExpense = (options?: UseApiMutationOptions<Expense, ExpenseCreate>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: financeService.createExpense,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.expenses });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.financialKpis });
+      if (data.project_id) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projectStats(data.project_id) });
+      }
+      toast({
+        title: 'Ausgabe erstellt',
+        description: 'Die Ausgabe wurde erfolgreich erstellt.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Erstellen',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useApproveExpense = (options?: UseApiMutationOptions<Expense, string>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: financeService.approveExpense,
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.expenses });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.expense(id) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.financialKpis });
+      toast({
+        title: 'Ausgabe genehmigt',
+        description: 'Die Ausgabe wurde erfolgreich genehmigt.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Genehmigen',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useFinancialKpis = (dateRange?: { from: string; to: string }, options?: UseApiQueryOptions<any>) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.financialKpis, dateRange],
+    queryFn: () => financeService.getFinancialKPIs(dateRange),
+    ...options,
+  });
+};
+
+export const useRevenueByMonth = (months?: number, options?: UseApiQueryOptions<any[]>) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.revenueByMonth, months],
+    queryFn: () => financeService.getRevenueByMonth(months),
+    ...options,
+  });
+};
+
+export const useExpensesByCategory = (dateRange?: { from: string; to: string }, options?: UseApiQueryOptions<any[]>) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.expensesByCategory, dateRange],
+    queryFn: () => financeService.getExpensesByCategory(dateRange),
+    ...options,
+  });
+};
+
+export const useProfitLossReport = (dateRange: { from: string; to: string }, options?: UseApiQueryOptions<any>) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.profitLossReport, dateRange],
+    queryFn: () => financeService.getProfitLossReport(dateRange),
+    enabled: !!dateRange.from && !!dateRange.to,
+    ...options,
+  });
+};
+
+// ==========================================
+// DOCUMENT HOOKS
+// ==========================================
+
+export const useDocuments = (
+  pagination?: PaginationQuery,
+  filters?: {
+    category?: any;
+    legal_category?: any;
+    project_id?: string;
+    customer_id?: string;
+    tags?: string[];
+    uploaded_by?: string;
+    date_from?: string;
+    date_to?: string;
+    search?: string;
+  },
+  options?: UseApiQueryOptions<PaginationResponse<any>>
+) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.documents, pagination, filters],
+    queryFn: () => documentService.getDocuments(pagination, filters),
+    ...options,
+  });
+};
+
+export const useDocument = (id: string, options?: UseApiQueryOptions<any>) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.document(id),
+    queryFn: () => documentService.getDocument(id),
+    enabled: !!id,
+    ...options,
+  });
+};
+
+export const useUploadDocument = (options?: UseApiMutationOptions<any, any>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: documentService.uploadDocument,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.documents });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.documentStats });
+      toast({
+        title: 'Dokument hochgeladen',
+        description: `${data.original_filename} wurde erfolgreich hochgeladen.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Upload',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useUpdateDocument = (options?: UseApiMutationOptions<any, { id: string; data: any }>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: ({ id, data }) => documentService.updateDocument(id, data),
+    onSuccess: (data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.documents });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.document(id) });
+      toast({
+        title: 'Dokument aktualisiert',
+        description: 'Das Dokument wurde erfolgreich aktualisiert.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Aktualisieren',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useDeleteDocument = (options?: UseApiMutationOptions<void, string>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: documentService.deleteDocument,
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.documents });
+      queryClient.removeQueries({ queryKey: QUERY_KEYS.document(id) });
+      toast({
+        title: 'Dokument gelöscht',
+        description: 'Das Dokument wurde erfolgreich gelöscht.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Löschen',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+export const useDocumentStats = (options?: UseApiQueryOptions<any>) => {
+  return useQuery({
+    queryKey: QUERY_KEYS.documentStats,
+    queryFn: () => documentService.getDocumentStats(),
+    ...options,
+  });
+};
+
+export const useExpiringDocuments = (days?: number, options?: UseApiQueryOptions<any[]>) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.expiringDocuments, days],
+    queryFn: () => documentService.getExpiringDocuments(days),
+    ...options,
+  });
+};
+
+export const useSearchDocuments = (query: string, limit?: number, options?: UseApiQueryOptions<any[]>) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.documents, 'search', query, limit],
+    queryFn: () => documentService.searchDocuments(query, limit),
+    enabled: query.length >= 2,
+    ...options,
+  });
+};
+
+export const useGetDocumentDownloadUrl = (options?: UseApiMutationOptions<string, { id: string; expiresIn?: number }>) => {
+  return useMutation({
+    mutationFn: ({ id, expiresIn }) => documentService.getDownloadUrl(id, expiresIn),
+    ...options,
+  });
+};
+
+// ==========================================
+// QUERY INVALIDATION UTILITIES
+// ==========================================
+
+export const useInvalidateQueries = () => {
+  const queryClient = useQueryClient();
+  
+  return {
+    invalidateAll: () => queryClient.invalidateQueries(),
+    invalidateCustomers: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers }),
+    invalidateQuotes: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes }),
+    invalidateOrders: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders }),
+    invalidateProjects: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects }),
+    invalidateTimesheets: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timesheets }),
+    invalidateMaterials: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materials }),
+    invalidateInvoices: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.invoices }),
+    invalidateExpenses: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.expenses }),
+    invalidateDocuments: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.documents }),
+    invalidateFinance: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.financialKpis }),
+  };
+};
+
+// ==========================================
+// EVENT BUS INTEGRATION
+// ==========================================
+
+// Initialize query invalidation based on events
+export const initializeQueryInvalidation = () => {
+  const queryClient = useQueryClient();
+  
+  // Customer events
+  eventBus.on('CUSTOMER_CREATED', () => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers });
+  });
+  
+  eventBus.on('CUSTOMER_UPDATED', () => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers });
+  });
+  
+  // Quote events
+  eventBus.on('QUOTE_ACCEPTED', (data) => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders });
+    if (data.quote?.id) {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quote(data.quote.id) });
+    }
+  });
+  
+  eventBus.on('QUOTE_SENT', (data) => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes });
+    if (data.quote?.id) {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quote(data.quote.id) });
+    }
+  });
+  
+  // Order events
+  eventBus.on('ORDER_STARTED', (data) => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
+    if (data.order?.id) {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.order(data.order.id) });
+    }
+  });
+  
+  eventBus.on('ORDER_COMPLETED', (data) => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.financialKpis });
+    if (data.order?.id) {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.order(data.order.id) });
+    }
+  });
+  
+  // Project events
+  eventBus.on('PROJECT_STATUS_CHANGED', (data) => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
+    if (data.project?.id) {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.project(data.project.id) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projectStats(data.project.id) });
+    }
+  });
+  
+  // Timesheet events
+  eventBus.on('TIMESHEET_APPROVED', (data) => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timesheets });
+    if (data.timesheet?.id) {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timesheet(data.timesheet.id) });
+    }
+    if (data.timesheet?.project_id) {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projectStats(data.timesheet.project_id) });
+    }
+  });
+  
+  // Stock events
+  eventBus.on('STOCK_ADJUSTED', () => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materials });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stockMovements });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materialStats });
+  });
+  
+  eventBus.on('MATERIAL_LOW_STOCK', () => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.lowStockMaterials });
+  });
+  
+  // Finance events
+  eventBus.on('INVOICE_PAID', () => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.invoices });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.financialKpis });
+  });
+  
+  eventBus.on('EXPENSE_APPROVED', () => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.expenses });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.financialKpis });
+  });
+  
+  // Document events
+  eventBus.on('DOCUMENT_UPLOADED', () => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.documents });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.documentStats });
+  });
+};
+
+export default {
+  // Export all hooks for convenience
+  useCustomers, useCustomer, useCreateCustomer, useUpdateCustomer, useDeleteCustomer, useSearchCustomers,
+  useQuotes, useQuote, useCreateQuote, useUpdateQuote, useSendQuote, useAcceptQuote, useRejectQuote, useQuoteStats,
+  useOrders, useOrder, useCreateOrder, useStartOrder, useCompleteOrder, useCancelOrder, useOrderStats,
+  useProjects, useProject, useCreateProject, useUpdateProject, useStartProject, useCompleteProject, useBlockProject, useSearchProjects,
+  useTimesheets, useTimesheet, useCreateTimesheet, useUpdateTimesheet, useApproveTimesheet, useBulkApproveTimesheets,
+  useMaterials, useMaterial, useCreateMaterial, useUpdateMaterial, useAdjustStock, useAddStock, useRemoveStock, useSearchMaterials,
+  useInvoices, useInvoice, useCreateInvoice, useSendInvoice, useMarkInvoicePaid,
+  useExpenses, useCreateExpense, useApproveExpense,
+  useDocuments, useDocument, useUploadDocument, useUpdateDocument, useDeleteDocument, useSearchDocuments,
+  useFinancialKpis, useRevenueByMonth, useExpensesByCategory, useProfitLossReport,
+  useInvalidateQueries, initializeQueryInvalidation,
 };
