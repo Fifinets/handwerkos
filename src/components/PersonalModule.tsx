@@ -50,12 +50,6 @@ const PersonalModule = () => {
   const [loading, setLoading] = useState(true);
   const [employees, setEmployees] = useState<Employee[]>([]);
 
-  useEffect(() => {
-    if (companyId) {
-      fetchEmployees();
-    }
-  }, [companyId, fetchEmployees]);
-
   const fetchEmployees = useCallback(async () => {
     try {
       setLoading(true);
@@ -156,6 +150,12 @@ const PersonalModule = () => {
       setLoading(false);
     }
   }, [companyId, showToast]);
+
+  useEffect(() => {
+    if (companyId) {
+      fetchEmployees();
+    }
+  }, [companyId, fetchEmployees]);
 
   const handleAddEmployee = async (newEmployee: NewEmployee) => {
     setIsAddingEmployee(true);

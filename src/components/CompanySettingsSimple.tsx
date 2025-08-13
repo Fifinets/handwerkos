@@ -43,12 +43,67 @@ export function CompanySettingsSimple() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Load settings
-  const loadSettingsCallback = useCallback(loadSettings, []);
-  
-  useEffect(() => {
-    loadSettingsCallback();
-  }, [loadSettingsCallback]);
+  const createDefaultSettings = async () => {
+    try {
+      console.log('Creating default settings...');
+      
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Nicht angemeldet');
+      
+      const defaultSettings = {
+        company_name: "Meine Firma",
+        address: "",
+        postal_code: "",
+        city: "",
+        country: "Deutschland",
+        phone: "",
+        email: "",
+        website: "",
+        tax_id: "",
+        // Working hours defaults
+        default_working_hours_start: "08:00",
+        default_working_hours_end: "17:00",
+        default_break_duration: 60,
+        // Financial defaults
+        default_hourly_rate: 50.00,
+        default_overtime_rate: 62.50,
+        default_currency: "EUR",
+        default_tax_rate: 19.0,
+        // Vacation defaults
+        default_vacation_days: 25,
+        // Document prefixes
+        invoice_prefix: "RE",
+        quote_prefix: "AN",
+        project_prefix: "PR",
+        is_active: true,
+      };
+
+      console.log('Inserting default settings:', defaultSettings);
+      const { data, error } = await supabase
+        .from("company_settings")
+        .insert(defaultSettings)
+        .select()
+        .single();
+
+      console.log('Insert result:', { data, error });
+      if (error) throw error;
+
+      setSettings(data);
+      toast({
+        title: "Erfolg",
+        description: "Standard-Einstellungen wurden erstellt.",
+      });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error creating default settings:', error);
+      toast({
+        title: "Fehler",
+        description: `Standard-Einstellungen konnten nicht erstellt werden: ${errorMessage}`,
+        variant: "destructive",
+      });
+    }
+  };
 
   const loadSettings = async () => {
     try {
@@ -97,68 +152,10 @@ export function CompanySettingsSimple() {
     }
   };
 
-  const createDefaultSettings = async () => {
-    try {
-      console.log('Creating default settings...');
-      
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Nicht angemeldet');
-      
-      const defaultSettings = {
-        company_name: "Meine Firma",
-        company_address: "",
-        company_city: "",
-        company_postal_code: "",
-        company_country: "Deutschland",
-        company_phone: "",
-        company_email: "",
-        tax_number: "",
-        vat_id: "",
-        website: "",
-        // Working hours (8:00 - 17:00 with 1h break)
-        default_working_hours_start: "08:00",
-        default_working_hours_end: "17:00",
-        default_break_duration: 60,
-        // Financial defaults
-        default_hourly_rate: 50.00,
-        default_overtime_rate: 62.50,
-        default_currency: "EUR",
-        default_tax_rate: 19.0,
-        // Vacation defaults
-        default_vacation_days: 25,
-        // Document prefixes
-        invoice_prefix: "RE",
-        quote_prefix: "AN",
-        project_prefix: "PR",
-        is_active: true,
-      };
-
-      console.log('Inserting default settings:', defaultSettings);
-      const { data, error } = await supabase
-        .from("company_settings")
-        .insert(defaultSettings)
-        .select()
-        .single();
-
-      console.log('Insert result:', { data, error });
-      if (error) throw error;
-
-      setSettings(data);
-      toast({
-        title: "Erfolg",
-        description: "Standard-Einstellungen wurden erstellt.",
-      });
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('Error creating default settings:', error);
-      toast({
-        title: "Fehler",
-        description: `Standard-Einstellungen konnten nicht erstellt werden: ${errorMessage}`,
-        variant: "destructive",
-      });
-    }
-  };
+  // Load settings on component mount
+  useEffect(() => {
+    loadSettings();
+  }, []);
 
   const saveSettings = async () => {
     if (!settings?.id) {
