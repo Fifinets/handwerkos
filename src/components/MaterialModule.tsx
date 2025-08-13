@@ -111,22 +111,20 @@ const MaterialModule = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Package className="h-6 w-6 text-blue-600" />
-            Materialwirtschaft
-          </h2>
-          <p className="text-gray-600">Lagerbestand und Bestellungen verwalten</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Truck className="h-4 w-4 mr-2" />
+    <div className="p-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-4xl font-bold text-gray-900">Materialwirtschaft</h1>
+        <div className="flex items-center gap-6">
+          <Button 
+            variant="outline"
+            className="rounded-lg px-6 py-3 text-lg font-medium"
+          >
+            <Truck className="h-5 w-5 mr-3" />
             Bestellung
           </Button>
-          <Button >
-            <Plus className="h-4 w-4 mr-2" />
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 text-lg font-medium">
+            <Plus className="h-5 w-5 mr-3" />
             Material hinzufügen
           </Button>
         </div>

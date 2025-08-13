@@ -194,22 +194,19 @@ const CustomerModule = () => {
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn">
-      <div className="flex justify-between items-center">
-        <div className="space-y-2">
-          <h2 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-emerald-600 bg-clip-text text-transparent flex items-center gap-3">
-            <Users className="h-8 w-8 text-emerald-600" />
-            Kunden & Aufträge
-          </h2>
-          <p className="text-slate-600 text-lg">Verwalten Sie Ihre Kunden und Auftragsdaten</p>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-4xl font-bold text-gray-900">Kunden & Aufträge</h1>
+        <div className="flex items-center gap-6">
+          <Button
+            onClick={() => setIsAddCustomerOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 text-lg font-medium"
+          >
+            <Plus className="h-5 w-5 mr-3" />
+            Neuer Kunde
+          </Button>
         </div>
-        <Button
-          onClick={() => setIsAddCustomerOpen(true)}
-          className="bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 px-6 py-3 text-base"
-        >
-          <Plus className="h-5 w-5 mr-2" />
-          Neuer Kunde
-        </Button>
       </div>
 
       <Tabs defaultValue="customers" className="space-y-6">

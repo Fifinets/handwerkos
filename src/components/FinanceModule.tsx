@@ -364,23 +364,20 @@ const FinanceModule = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-cyan-600 bg-clip-text text-transparent flex items-center gap-3">
-            <Calculator className="h-8 w-8 text-cyan-600" />
-            Finanzen & Buchhaltung
-          </h2>
-          <p className="text-gray-600">Umfassende Finanz- und Rechnungsverwaltung</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <FileSpreadsheet className="h-4 w-4 mr-2" />
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-4xl font-bold text-gray-900">Finanzen & Buchhaltung</h1>
+        <div className="flex items-center gap-6">
+          <Button 
+            variant="outline"
+            className="rounded-lg px-6 py-3 text-lg font-medium"
+          >
+            <FileSpreadsheet className="h-5 w-5 mr-3" />
             Export
           </Button>
-          <Button size="sm">
-            <Plus className="h-4 w-4 mr-2" />
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 text-lg font-medium">
+            <Plus className="h-5 w-5 mr-3" />
             Neue Rechnung
           </Button>
         </div>

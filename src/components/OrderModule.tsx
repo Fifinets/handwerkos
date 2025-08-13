@@ -204,22 +204,19 @@ const OrderModule = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <FileText className="h-6 w-6 text-blue-600" />
-            Auftragsverwaltung
-          </h2>
-          <p className="text-gray-600">Verwalten Sie alle Aufträge und deren Status</p>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-4xl font-bold text-gray-900">Auftragsverwaltung</h1>
+        <div className="flex items-center gap-6">
+          <Button
+            onClick={() => setIsAddDialogOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 text-lg font-medium"
+          >
+            <Plus className="h-5 w-5 mr-3" />
+            Neuer Auftrag
+          </Button>
         </div>
-        <Button
-          onClick={() => setIsAddDialogOpen(true)}
-          
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Neuer Auftrag
-        </Button>
       </div>
 
       <div className="flex gap-4 items-center">

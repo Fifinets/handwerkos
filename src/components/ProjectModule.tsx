@@ -314,8 +314,6 @@ const ProjectModule = () => {
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-4xl font-bold text-gray-900">Projekte & Baustellen</h1>
         <div className="flex items-center gap-6">
-          <span className="text-lg text-gray-600">🌙 Dark Mode</span>
-          <span className="text-lg text-gray-600">👥 Mitarbeiter-Ansicht</span>
           <Button
             onClick={() => setIsAddDialogOpen(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 text-lg font-medium"

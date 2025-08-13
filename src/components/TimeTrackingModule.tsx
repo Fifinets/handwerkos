@@ -810,19 +810,24 @@ const loadEmployees = async () => {
   if (loading) {
     return <div className="flex items-center justify-center h-64">Lade Zeiterfassung...</div>;
   }
-  return <div className="space-y-6">
+  return <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-yellow-600 bg-clip-text text-transparent flex items-center gap-3">
-          <Clock className="h-8 w-8 text-yellow-600" />
-          Zeiterfassung</h1>
-        <div className="flex gap-2">
-          {userRole === 'manager' && <Button variant="outline" onClick={() => setWorkingHoursDialog(true)}>
-              <Settings className="w-4 h-4 mr-2" />
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-4xl font-bold text-gray-900">Zeiterfassung</h1>
+        <div className="flex items-center gap-6">
+          {userRole === 'manager' && <Button 
+              variant="outline" 
+              onClick={() => setWorkingHoursDialog(true)}
+              className="rounded-lg px-6 py-3 text-lg font-medium"
+            >
+              <Settings className="h-5 w-5 mr-3" />
               Arbeitszeiten
             </Button>}
-          <Button onClick={() => setNewEntryDialog(true)}>
-            <Plus className="w-4 h-4 mr-2" />
+          <Button 
+            onClick={() => setNewEntryDialog(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 text-lg font-medium"
+          >
+            <Plus className="h-5 w-5 mr-3" />
             {userRole === 'manager' ? 'Zeiterfassung starten' : 'Meine Zeiterfassung'}
           </Button>
         </div>

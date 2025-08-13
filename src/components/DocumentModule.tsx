@@ -185,18 +185,23 @@ export function DocumentModule() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-emerald-600 bg-clip-text text-transparent flex items-center gap-3">
-          <Receipt className="h-8 w-8 text-emerald-600" />
-          Dokumente</h1>
-        <div className="flex gap-2">
-          <Button onClick={() => setShowAddQuote(true)}>
-            <Plus className="h-4 w-4 mr-2" />
+    <div className="p-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-4xl font-bold text-gray-900">Dokumente</h1>
+        <div className="flex items-center gap-6">
+          <Button 
+            onClick={() => setShowAddQuote(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 text-lg font-medium"
+          >
+            <Plus className="h-5 w-5 mr-3" />
             Angebot erstellen
           </Button>
-          <Button onClick={() => setShowAddInvoice(true)}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button 
+            onClick={() => setShowAddInvoice(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 text-lg font-medium"
+          >
+            <Plus className="h-5 w-5 mr-3" />
             Rechnung erstellen
           </Button>
         </div>

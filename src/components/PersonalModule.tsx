@@ -277,15 +277,10 @@ const PersonalModule = () => {
   const totalHours = employees.reduce((sum, emp) => sum + emp.hoursThisMonth, 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-purple-600 bg-clip-text text-transparent flex items-center gap-3">
-            <UserCheck className="h-8 w-8 text-purple-600" />
-            Personalverwaltung
-          </h2>
-          <p className="text-gray-600">Mitarbeiterdaten und Qualifikationen verwalten</p>
-        </div>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-4xl font-bold text-gray-900">Personalverwaltung</h1>
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
