@@ -231,6 +231,7 @@ const ProjectModule = () => {
           license
         `)
         .eq('company_id', companyId)
+        .eq('status', 'Aktiv') // Only show active employees
         .order('created_at', { ascending: false });
 
       console.log('ProjectModule: Employees query result:', employeesData, employeesError);
@@ -256,7 +257,7 @@ const ProjectModule = () => {
         }
       }
 
-      // Map employee data
+      // Map employee data and filter for complete profiles
       const employeeList = employeesData?.map(employee => {
         const profile = profilesData.find(p => p.id === employee.user_id);
         const firstName = profile?.first_name || employee.first_name || '';
@@ -273,8 +274,26 @@ const ProjectModule = () => {
           status: employee.status,
           qualifications: employee.qualifications || [],
           license: employee.license,
-          projects: [] // Add for compatibility with AddProjectDialog
+          projects: [], // Add for compatibility with AddProjectDialog
+          user_id: employee.user_id // Keep for filtering
         };
+      })
+      .filter(employee => {
+        // Only show employees that have:
+        // 1. A user_id (registered) OR
+        // 2. Both first_name and last_name filled out OR  
+        // 3. A proper name that's not empty
+        const hasUserId = employee.user_id;
+        const hasCompleteName = employee.first_name && employee.last_name;
+        const hasValidName = employee.name && employee.name.trim().length > 0;
+        
+        const shouldInclude = hasUserId || hasCompleteName || hasValidName;
+        
+        if (!shouldInclude) {
+          console.log('ProjectModule: Filtering out incomplete employee:', employee);
+        }
+        
+        return shouldInclude;
       }) || [];
 
       console.log('ProjectModule: Final employee list:', employeeList);
