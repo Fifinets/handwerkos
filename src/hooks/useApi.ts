@@ -126,8 +126,8 @@ export const QUERY_KEYS = {
 } as const;
 
 // Generic hook types
-interface UseApiQueryOptions<T> extends Omit<UseQueryOptions<T, ApiError>, 'queryKey' | 'queryFn'> {}
-interface UseApiMutationOptions<T, V> extends Omit<UseMutationOptions<T, ApiError, V>, 'mutationFn'> {}
+type UseApiQueryOptions<T> = Omit<UseQueryOptions<T, ApiError>, 'queryKey' | 'queryFn'>
+type UseApiMutationOptions<T, V> = Omit<UseMutationOptions<T, ApiError, V>, 'mutationFn'>
 
 // ==========================================
 // CUSTOMER HOOKS
@@ -1472,100 +1472,119 @@ export const useInvalidateQueries = () => {
 // EVENT BUS INTEGRATION
 // ==========================================
 
-// Initialize query invalidation based on events
-export const initializeQueryInvalidation = () => {
+// Hook to initialize query invalidation based on events
+export const useQueryInvalidation = () => {
   const queryClient = useQueryClient();
   
-  // Customer events
-  eventBus.on('CUSTOMER_CREATED', () => {
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers });
-  });
-  
-  eventBus.on('CUSTOMER_UPDATED', () => {
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers });
-  });
-  
-  // Quote events
-  eventBus.on('QUOTE_ACCEPTED', (data) => {
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders });
-    if (data.quote?.id) {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quote(data.quote.id) });
-    }
-  });
-  
-  eventBus.on('QUOTE_SENT', (data) => {
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes });
-    if (data.quote?.id) {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quote(data.quote.id) });
-    }
-  });
-  
-  // Order events
-  eventBus.on('ORDER_STARTED', (data) => {
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
-    if (data.order?.id) {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.order(data.order.id) });
-    }
-  });
-  
-  eventBus.on('ORDER_COMPLETED', (data) => {
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.financialKpis });
-    if (data.order?.id) {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.order(data.order.id) });
-    }
-  });
-  
-  // Project events
-  eventBus.on('PROJECT_STATUS_CHANGED', (data) => {
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
-    if (data.project?.id) {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.project(data.project.id) });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projectStats(data.project.id) });
-    }
-  });
-  
-  // Timesheet events
-  eventBus.on('TIMESHEET_APPROVED', (data) => {
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timesheets });
-    if (data.timesheet?.id) {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timesheet(data.timesheet.id) });
-    }
-    if (data.timesheet?.project_id) {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projectStats(data.timesheet.project_id) });
-    }
-  });
-  
-  // Stock events
-  eventBus.on('STOCK_ADJUSTED', () => {
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materials });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stockMovements });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materialStats });
-  });
-  
-  eventBus.on('MATERIAL_LOW_STOCK', () => {
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.lowStockMaterials });
-  });
-  
-  // Finance events
-  eventBus.on('INVOICE_PAID', () => {
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.invoices });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.financialKpis });
-  });
-  
-  eventBus.on('EXPENSE_APPROVED', () => {
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.expenses });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.financialKpis });
-  });
-  
-  // Document events
-  eventBus.on('DOCUMENT_UPLOADED', () => {
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.documents });
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.documentStats });
-  });
+  React.useEffect(() => {
+    // Customer events
+    const customerCreatedUnsubscribe = eventBus.on('CUSTOMER_CREATED', () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers });
+    });
+    
+    const customerUpdatedUnsubscribe = eventBus.on('CUSTOMER_UPDATED', () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers });
+    });
+    
+    // Quote events
+    const quoteAcceptedUnsubscribe = eventBus.on('QUOTE_ACCEPTED', (data) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders });
+      if (data.quote?.id) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quote(data.quote.id) });
+      }
+    });
+    
+    const quoteSentUnsubscribe = eventBus.on('QUOTE_SENT', (data) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes });
+      if (data.quote?.id) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quote(data.quote.id) });
+      }
+    });
+    
+    // Order events
+    const orderStartedUnsubscribe = eventBus.on('ORDER_STARTED', (data) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
+      if (data.order?.id) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.order(data.order.id) });
+      }
+    });
+    
+    const orderCompletedUnsubscribe = eventBus.on('ORDER_COMPLETED', (data) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.financialKpis });
+      if (data.order?.id) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.order(data.order.id) });
+      }
+    });
+    
+    // Project events
+    const projectStatusChangedUnsubscribe = eventBus.on('PROJECT_STATUS_CHANGED', (data) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
+      if (data.project?.id) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.project(data.project.id) });
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projectStats(data.project.id) });
+      }
+    });
+    
+    // Timesheet events
+    const timesheetApprovedUnsubscribe = eventBus.on('TIMESHEET_APPROVED', (data) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timesheets });
+      if (data.timesheet?.id) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timesheet(data.timesheet.id) });
+      }
+      if (data.timesheet?.project_id) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projectStats(data.timesheet.project_id) });
+      }
+    });
+    
+    // Stock events
+    const stockAdjustedUnsubscribe = eventBus.on('STOCK_ADJUSTED', () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materials });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stockMovements });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materialStats });
+    });
+    
+    const materialLowStockUnsubscribe = eventBus.on('MATERIAL_LOW_STOCK', () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.lowStockMaterials });
+    });
+    
+    // Finance events
+    const invoicePaidUnsubscribe = eventBus.on('INVOICE_PAID', () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.invoices });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.financialKpis });
+    });
+    
+    const expenseApprovedUnsubscribe = eventBus.on('EXPENSE_APPROVED', () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.expenses });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.financialKpis });
+    });
+    
+    // Document events
+    const documentUploadedUnsubscribe = eventBus.on('DOCUMENT_UPLOADED', () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.documents });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.documentStats });
+    });
+
+    // Cleanup function
+    return () => {
+      customerCreatedUnsubscribe();
+      customerUpdatedUnsubscribe();
+      quoteAcceptedUnsubscribe();
+      quoteSentUnsubscribe();
+      orderStartedUnsubscribe();
+      orderCompletedUnsubscribe();
+      projectStatusChangedUnsubscribe();
+      timesheetApprovedUnsubscribe();
+      stockAdjustedUnsubscribe();
+      materialLowStockUnsubscribe();
+      invoicePaidUnsubscribe();
+      expenseApprovedUnsubscribe();
+      documentUploadedUnsubscribe();
+    };
+  }, [queryClient]);
 };
 
 export default {
@@ -1580,7 +1599,7 @@ export default {
   useExpenses, useCreateExpense, useApproveExpense,
   useDocuments, useDocument, useUploadDocument, useUpdateDocument, useDeleteDocument, useSearchDocuments,
   useFinancialKpis, useRevenueByMonth, useExpensesByCategory, useProfitLossReport,
-  useInvalidateQueries, initializeQueryInvalidation,
+  useInvalidateQueries, useQueryInvalidation,
 };
 
 // ============================================

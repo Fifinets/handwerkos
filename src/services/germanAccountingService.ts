@@ -471,14 +471,15 @@ export class GermanAccountingService {
     let month: number | undefined;
 
     switch (periodType) {
-      case 'MONTHLY':
+      case 'MONTHLY': {
         month = periodNumber || 1;
         startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
         const lastDay = new Date(year, month, 0).getDate();
         endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay}`;
         break;
+      }
 
-      case 'QUARTERLY':
+      case 'QUARTERLY': {
         quarter = (periodNumber as 1 | 2 | 3 | 4) || 1;
         const quarterStartMonth = (quarter - 1) * 3 + 1;
         const quarterEndMonth = quarter * 3;
@@ -486,6 +487,7 @@ export class GermanAccountingService {
         const quarterLastDay = new Date(year, quarterEndMonth, 0).getDate();
         endDate = `${year}-${quarterEndMonth.toString().padStart(2, '0')}-${quarterLastDay}`;
         break;
+      }
 
       case 'ANNUAL':
         startDate = `${year}-01-01`;
