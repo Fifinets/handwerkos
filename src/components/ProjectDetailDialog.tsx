@@ -145,7 +145,7 @@ const ProjectDetailDialog = ({ isOpen, onClose, project }: ProjectDetailDialogPr
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[98vw] max-h-[98vh] w-full h-full overflow-y-auto">
-        <DialogHeader>
+        <DialogHeader className="pb-2">
           <DialogTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
             {project.name} - Details
@@ -230,7 +230,7 @@ const ProjectDetailDialog = ({ isOpen, onClose, project }: ProjectDetailDialogPr
           </div>
 
           {/* Detaillierte Tabs */}
-          <Tabs defaultValue="work-hours" className="w-full mt-2">
+          <Tabs defaultValue="work-hours" className="w-full -mt-4">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="work-hours">Arbeitsstunden</TabsTrigger>
               <TabsTrigger value="material-purchases">Materialeinkäufe</TabsTrigger>

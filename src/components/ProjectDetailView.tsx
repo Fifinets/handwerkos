@@ -319,14 +319,14 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[98vw] max-h-[98vh] w-full h-full overflow-y-auto">
-        <DialogHeader>
+        <DialogHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div>
               <DialogTitle className="text-2xl flex items-center gap-2">
                 <Building2 className="h-6 w-6" />
                 {project.project_name}
               </DialogTitle>
-              <DialogDescription className="flex items-center gap-4 mt-2">
+              <DialogDescription className="flex items-center gap-4 mt-1">
                 <Badge className={`${statusConfig.bgColor} ${statusConfig.color} text-sm`}>
                   {statusConfig.icon} {statusConfig.label}
                 </Badge>
@@ -353,7 +353,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           </div>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-2">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full -mt-2">
           <TabsList className="grid w-full grid-cols-5 mb-4">
             <TabsTrigger value="overview">Übersicht</TabsTrigger>
             <TabsTrigger value="time">Zeiten</TabsTrigger>
