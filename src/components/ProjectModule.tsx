@@ -208,53 +208,24 @@ const ProjectModule = () => {
   console.log('Customers data:', customers);
   console.log('Team members data:', teamMembers);
   
-  // Fallback data for customers if none available
+  // Always use real data, with fallback only if completely empty
   const customersWithFallback = customers.length > 0 ? customers : [
     {
       id: 'demo_customer_1',
-      name: 'Musterfirma GmbH',
-      contact: 'Max Mustermann',
-      email: 'max@musterfirma.de',
-      phone: '+49 123 456789',
-      address: 'Musterstraße 123, 12345 Berlin',
+      name: 'Demo Kunde - Bitte echte Kunden hinzufügen',
+      company_name: 'Demo Kunde',
+      contact_person: 'Bitte echte Kunden hinzufügen',
+      email: 'demo@example.com',
+      phone: '+49 000 000000',
+      address: 'Demo Adresse',
       projects: 0,
       revenue: '0',
-      status: 'Aktiv'
-    },
-    {
-      id: 'demo_customer_2', 
-      name: 'Schmidt Bau AG',
-      contact: 'Anna Schmidt',
-      email: 'anna@schmidt-bau.de',
-      phone: '+49 987 654321',
-      address: 'Baustraße 456, 54321 Hamburg',
-      projects: 0,
-      revenue: '0', 
-      status: 'Aktiv'
+      status: 'Demo'
     }
   ];
   
-  // Fallback data for team members if none available
-  const teamMembersWithFallback = teamMembers.length > 0 ? teamMembers : [
-    {
-      id: 'demo_employee_1',
-      name: 'Max Mustermann',
-      role: 'Projektleiter',
-      projects: []
-    },
-    {
-      id: 'demo_employee_2',
-      name: 'Anna Schmidt', 
-      role: 'Elektrikerin',
-      projects: []
-    },
-    {
-      id: 'demo_employee_3',
-      name: 'Tom Weber',
-      role: 'Installateur', 
-      projects: []
-    }
-  ];
+  // Always use real team members - no fallback
+  const teamMembersWithFallback = teamMembers;
   
   // Loading state
   const isLoading = projectsLoading || customersLoading || teamLoading;

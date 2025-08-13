@@ -17,22 +17,29 @@ import { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 
 interface Customer {
-  id: number;
-  name: string;
-  contact: string;
-  email: string;
-  phone: string;
-  address: string;
-  projects: number;
-  revenue: string;
-  status: string;
+  id: string;
+  name?: string;
+  company_name?: string;
+  contact?: string;
+  contact_person?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  projects?: number;
+  revenue?: string;
+  status?: string;
 }
 
 interface TeamMember {
-  id: number;
-  name: string;
-  role: string;
-  projects: Array<{
+  id: string;
+  name?: string;
+  first_name?: string;
+  last_name?: string;
+  role?: string;
+  position?: string;
+  email?: string;
+  phone?: string;
+  projects?: Array<{
     name: string;
     startDate: string;
     endDate: string;
@@ -162,7 +169,9 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
   };
 
   const handleCustomerChange = (customerName: string) => {
-    const selectedCustomer = customers.find(customer => customer.name === customerName);
+    const selectedCustomer = customers.find(customer => 
+      (customer.name === customerName) || (customer.company_name === customerName)
+    );
     
     setFormData(prev => ({
       ...prev,
@@ -172,11 +181,18 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
   };
 
   const handleTeamMemberToggle = (memberName: string, checked: boolean) => {
+    // Get the actual name to use for the member
+    const member = teamMembers.find(m => 
+      m.name === memberName || 
+      `${m.first_name || ''} ${m.last_name || ''}`.trim() === memberName
+    );
+    const nameToUse = member?.name || `${member?.first_name || ''} ${member?.last_name || ''}`.trim() || memberName;
+    
     setFormData(prev => ({
       ...prev,
       team: checked 
-        ? [...prev.team, memberName]
-        : prev.team.filter(name => name !== memberName)
+        ? [...prev.team, nameToUse]
+        : prev.team.filter(name => name !== nameToUse)
     }));
   };
 
@@ -210,8 +226,8 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
               </SelectTrigger>
               <SelectContent>
                 {customers.map((customer) => (
-                  <SelectItem key={customer.id} value={customer.name}>
-                    {customer.name}
+                  <SelectItem key={customer.id} value={customer.name || customer.company_name || 'Unbekannt'}>
+                    {customer.name || customer.company_name || 'Unbekannt'}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -287,14 +303,14 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id={`team-${member.id}`}
-                      checked={formData.team.includes(member.name)}
-                      onCheckedChange={(checked) => handleTeamMemberToggle(member.name, checked as boolean)}
+                      checked={formData.team.includes(member.name || `${member.first_name || ''} ${member.last_name || ''}`.trim())}
+                      onCheckedChange={(checked) => handleTeamMemberToggle(member.name || `${member.first_name || ''} ${member.last_name || ''}`.trim(), checked as boolean)}
                     />
                     <div>
                       <label htmlFor={`team-${member.id}`} className="text-sm font-medium cursor-pointer">
-                        {member.name}
+                        {member.name || `${member.first_name || ''} ${member.last_name || ''}`.trim() || 'Unbekannt'}
                       </label>
-                      <p className="text-xs text-gray-500">{member.role}</p>
+                      <p className="text-xs text-gray-500">{member.role || member.position || 'Mitarbeiter'}</p>
                     </div>
                   </div>
                   {getAvailabilityBadge(member.availability)}
