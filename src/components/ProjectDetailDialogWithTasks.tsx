@@ -81,12 +81,12 @@ const ProjectDetailDialogWithTasks = ({ isOpen, onClose, project }: ProjectDetai
         <DialogHeader>
           <DialogTitle>{project.name} – Details</DialogTitle>
         </DialogHeader>
-        <Tabs defaultValue="overview" className="w-full mt-4">
+        <Tabs defaultValue="overview" className="w-full mt-2">
           <TabsList>
             <TabsTrigger value="overview">Übersicht</TabsTrigger>
             <TabsTrigger value="tasks">Teilaufgaben</TabsTrigger>
           </TabsList>
-          <TabsContent value="overview" className="mt-4">
+          <TabsContent value="overview" className="mt-0">
             <div className="grid grid-cols-2 gap-4">
               <Card>
                 <ShadCardHeader>
@@ -114,7 +114,7 @@ const ProjectDetailDialogWithTasks = ({ isOpen, onClose, project }: ProjectDetai
               </Card>
             </div>
           </TabsContent>
-          <TabsContent value="tasks" className="mt-4">
+          <TabsContent value="tasks" className="mt-0">
             <div>
               <h3 className="text-lg font-semibold mb-2">Aufgabenplan</h3>
               {loadingTasks ? (

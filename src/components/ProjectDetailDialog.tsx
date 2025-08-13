@@ -230,14 +230,14 @@ const ProjectDetailDialog = ({ isOpen, onClose, project }: ProjectDetailDialogPr
           </div>
 
           {/* Detaillierte Tabs */}
-          <Tabs defaultValue="work-hours" className="w-full">
+          <Tabs defaultValue="work-hours" className="w-full mt-2">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="work-hours">Arbeitsstunden</TabsTrigger>
               <TabsTrigger value="material-purchases">Materialeinkäufe</TabsTrigger>
               <TabsTrigger value="material-usage">Materialverbrauch</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="work-hours" className="space-y-4 min-h-[600px]">
+            <TabsContent value="work-hours" className="space-y-4 min-h-[600px] mt-0">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -276,7 +276,7 @@ const ProjectDetailDialog = ({ isOpen, onClose, project }: ProjectDetailDialogPr
               </Card>
             </TabsContent>
 
-            <TabsContent value="material-purchases" className="space-y-4 min-h-[600px]">
+            <TabsContent value="material-purchases" className="space-y-4 min-h-[600px] mt-0">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -319,7 +319,7 @@ const ProjectDetailDialog = ({ isOpen, onClose, project }: ProjectDetailDialogPr
               </Card>
             </TabsContent>
 
-            <TabsContent value="material-usage" className="space-y-4 min-h-[600px]">
+            <TabsContent value="material-usage" className="space-y-4 min-h-[600px] mt-0">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">

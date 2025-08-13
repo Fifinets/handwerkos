@@ -353,8 +353,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           </div>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-2">
+          <TabsList className="grid w-full grid-cols-5 mb-4">
             <TabsTrigger value="overview">Übersicht</TabsTrigger>
             <TabsTrigger value="time">Zeiten</TabsTrigger>
             <TabsTrigger value="materials">Material</TabsTrigger>
@@ -362,7 +362,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             <TabsTrigger value="comments">Kommentare</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6 min-h-[600px]">
+          <TabsContent value="overview" className="space-y-4 min-h-[600px] mt-0">
             {/* Project Statistics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card>
@@ -557,7 +557,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             </div>
           </TabsContent>
 
-          <TabsContent value="time" className="space-y-4 min-h-[600px]">
+          <TabsContent value="time" className="space-y-4 min-h-[600px] mt-0">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Zeiterfassung</h3>
               {permissions.can_add_time && (
@@ -574,7 +574,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             </Card>
           </TabsContent>
 
-          <TabsContent value="materials" className="space-y-4 min-h-[600px]">
+          <TabsContent value="materials" className="space-y-4 min-h-[600px] mt-0">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Materialverwaltung</h3>
               {permissions.can_add_materials && (
@@ -591,7 +591,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             </Card>
           </TabsContent>
 
-          <TabsContent value="documents" className="space-y-4 min-h-[600px]">
+          <TabsContent value="documents" className="space-y-4 min-h-[600px] mt-0">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Dokumente</h3>
               {permissions.can_upload_files && (
@@ -608,7 +608,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             </Card>
           </TabsContent>
 
-          <TabsContent value="comments" className="space-y-4 min-h-[600px]">
+          <TabsContent value="comments" className="space-y-4 min-h-[600px] mt-0">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Kommentare & Notizen</h3>
               <Button>
