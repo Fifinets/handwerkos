@@ -15,6 +15,8 @@ export { workerService, WorkerService } from './workerService';
 export { auditLogService, AuditLogService } from './auditLogService';
 export { gobdService, GoBDService } from './gobdService';
 export { gobdHooks, GoBDHooks } from './gobdHooks';
+export { datevService, DATEVService } from './datevService';
+export { germanAccountingService, GermanAccountingService } from './germanAccountingService';
 export { eventBus } from './eventBus';
 
 // Re-export types from eventBus
@@ -55,3 +57,23 @@ export type {
   ImmutabilityCheck, 
   NumberSequenceType 
 } from './gobdService';
+
+// Re-export types from datevService
+export type { 
+  DATEVTransaction, 
+  DATEVCSVExport, 
+  DATEVAccountMapping, 
+  DATEVAccountingPeriod, 
+  DATEVTransactionType, 
+  DATEVVATRate 
+} from './datevService';
+
+// Re-export types from germanAccountingService
+export type { 
+  GermanAccountingPeriod, 
+  GermanVATReturn, 
+  GermanTaxReport, 
+  GermanBusinessExpenseCategory, 
+  GermanDepreciationSchedule, 
+  GermanVATType 
+} from './germanAccountingService';
