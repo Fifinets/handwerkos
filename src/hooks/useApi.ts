@@ -1457,7 +1457,13 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
     queryFn: async () => {
       // Get current user session to determine company_id
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return { items: [] };
+      if (!session) {
+        console.log('No session found');
+        return { items: [] };
+      }
+
+      const companyId = session.user.user_metadata?.company_id || session.user.id;
+      console.log('Using company_id for employees:', companyId);
 
       // Fetch employees from the employees table like in PersonalModule
       const { data: employeesData, error: employeesError } = await supabase
@@ -1474,9 +1480,10 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
           qualifications,
           license
         `)
-        .eq('company_id', session.user.user_metadata?.company_id || session.user.id)
-        .eq('status', 'Aktiv')
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false });
+
+      console.log('Employees query result:', employeesData, employeesError);
 
       if (employeesError) {
         console.error('Error fetching employees:', employeesError);

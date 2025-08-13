@@ -226,38 +226,11 @@ const ProjectModule = () => {
     }
   ];
   
-  // Team members with fallback if empty
-  const teamMembersWithFallback = teamMembers.length > 0 ? teamMembers : [
-    {
-      id: 'demo_employee_1',
-      first_name: 'Max',
-      last_name: 'Mustermann',
-      name: 'Max Mustermann',
-      position: 'Projektleiter',
-      email: 'max@demo.com',
-      projects: []
-    },
-    {
-      id: 'demo_employee_2',
-      first_name: 'Anna',
-      last_name: 'Schmidt',
-      name: 'Anna Schmidt',
-      position: 'Elektrikerin',
-      email: 'anna@demo.com',
-      projects: []
-    },
-    {
-      id: 'demo_employee_3',
-      first_name: 'Tom',
-      last_name: 'Weber',
-      name: 'Tom Weber',
-      position: 'Installateur',
-      email: 'tom@demo.com',
-      projects: []
-    }
-  ];
+  // Use only real team members - no fallback to see what's happening
+  const teamMembersWithFallback = teamMembers;
   
   console.log('Team members with fallback:', teamMembersWithFallback);
+  console.log('Team members length:', teamMembers.length);
   
   // Loading state
   const isLoading = projectsLoading || customersLoading || teamLoading;
