@@ -279,18 +279,25 @@ const ProjectModule = () => {
         };
       })
       .filter(employee => {
-        // Only show employees that have:
-        // 1. A user_id (registered) OR
-        // 2. Both first_name and last_name filled out OR  
-        // 3. A proper name that's not empty
-        const hasUserId = employee.user_id;
-        const hasCompleteName = employee.first_name && employee.last_name;
-        const hasValidName = employee.name && employee.name.trim().length > 0;
+        // Show employees that have a meaningful name
+        // Accept if first_name OR last_name exists, or if combined name is not empty
+        const hasFirstName = employee.first_name && employee.first_name.trim().length > 0;
+        const hasLastName = employee.last_name && employee.last_name.trim().length > 0;
+        const hasValidName = employee.name && employee.name.trim().length > 0 && employee.name.trim() !== ' ';
         
-        const shouldInclude = hasUserId || hasCompleteName || hasValidName;
+        const shouldInclude = hasFirstName || hasLastName || hasValidName;
+        
+        console.log('ProjectModule: Employee filter check:', {
+          employee: employee.name,
+          hasFirstName,
+          hasLastName, 
+          hasValidName,
+          shouldInclude,
+          user_id: employee.user_id
+        });
         
         if (!shouldInclude) {
-          console.log('ProjectModule: Filtering out incomplete employee:', employee);
+          console.log('ProjectModule: Filtering out employee without proper name:', employee);
         }
         
         return shouldInclude;
