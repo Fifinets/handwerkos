@@ -28,6 +28,7 @@ import {
   useCreateInvoice,
   useUpdateQuote
 } from '@/hooks/useApi';
+import { useQueryClient } from '@tanstack/react-query';
 // TODO: Re-enable when DocumentTemplateManager is implemented
 // import DocumentTemplateManager from './documents/DocumentTemplateManager';
 
@@ -74,10 +75,10 @@ export function DocumentModule() {
   const { data: invoicesResponse, isLoading: invoicesLoading } = useInvoices();
   const { data: documentsResponse, isLoading: documentsLoading } = useDocuments();
   
+  const queryClient = useQueryClient();
   const createQuoteMutation = useCreateQuote();
   const createInvoiceMutation = useCreateInvoice();
   const updateQuoteMutation = useUpdateQuote();
-  const updateInvoiceMutation = useUpdateInvoice();
   
   // Extract data from responses
   const quotes = quotesResponse?.items || [];
@@ -273,7 +274,7 @@ export function DocumentModule() {
                             size="sm"
                             title="Per E-Mail versenden"
                             onClick={() => handleSendEmail('quote', quote.id, quote)}
-                            disabled={sendEmailMutation.isPending}
+                            disabled={false}
                           >
                             <Mail className="h-4 w-4" />
                           </Button>
@@ -375,7 +376,7 @@ export function DocumentModule() {
                             size="sm" 
                             title="Per E-Mail versenden"
                             onClick={() => handleSendEmail('invoice', invoice.id, invoice)}
-                            disabled={sendEmailMutation.isPending}
+                            disabled={false}
                           >
                             <Mail className="h-4 w-4" />
                           </Button>
