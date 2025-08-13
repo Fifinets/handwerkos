@@ -26,8 +26,7 @@ import {
   useDocuments,
   useCreateQuote,
   useCreateInvoice,
-  useUpdateQuote,
-  useUpdateInvoice
+  useUpdateQuote
 } from '@/hooks/useApi';
 // TODO: Re-enable when DocumentTemplateManager is implemented
 // import DocumentTemplateManager from './documents/DocumentTemplateManager';
