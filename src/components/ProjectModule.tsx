@@ -204,6 +204,9 @@ const ProjectModule = () => {
   const customers = customersResponse?.items || [];
   const teamMembers = teamMembersResponse?.items || [];
   
+  // Loading state
+  const isLoading = projectsLoading || customersLoading || teamLoading;
+  
   // Debug logging
   console.log('ProjectModule Debug:', {
     projectsResponse,
@@ -232,9 +235,6 @@ const ProjectModule = () => {
   );
   
   const topCustomers = customers.filter(c => c.status === 'Aktiv').slice(0, 5);
-
-  // Loading state
-  const isLoading = projectsLoading || customersLoading || teamLoading;
 
   const handleProjectAdded = () => {
     setIsAddDialogOpen(false);
