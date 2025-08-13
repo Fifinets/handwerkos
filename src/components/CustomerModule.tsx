@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,9 +44,11 @@ const CustomerModule = () => {
     { id: 'A2024-003', customer: 'Weber Bau', project: 'Wohnanlage Phase 2', amount: '€28.900', status: 'Angebot', date: '20.01.2024' }
   ];
 
+  const fetchCustomersCallback = useCallback(fetchCustomers, []);
+  
   useEffect(() => {
-    fetchCustomers();
-  }, []);
+    fetchCustomersCallback();
+  }, [fetchCustomersCallback]);
 
   const fetchCustomers = async () => {
     try {

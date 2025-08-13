@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -44,9 +44,11 @@ export function CompanySettingsSimple() {
   const [saving, setSaving] = useState(false);
 
   // Load settings
+  const loadSettingsCallback = useCallback(loadSettings, []);
+  
   useEffect(() => {
-    loadSettings();
-  }, []);
+    loadSettingsCallback();
+  }, [loadSettingsCallback]);
 
   const loadSettings = async () => {
     try {
@@ -82,11 +84,12 @@ export function CompanySettingsSimple() {
         // Create default settings if none exist
         await createDefaultSettings();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('Error loading settings:', error);
       toast({
         title: "Fehler beim Laden",
-        description: `Einstellungen konnten nicht geladen werden: ${error.message}`,
+        description: `Einstellungen konnten nicht geladen werden: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
@@ -146,11 +149,12 @@ export function CompanySettingsSimple() {
         title: "Erfolg",
         description: "Standard-Einstellungen wurden erstellt.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('Error creating default settings:', error);
       toast({
         title: "Fehler",
-        description: `Standard-Einstellungen konnten nicht erstellt werden: ${error.message}`,
+        description: `Standard-Einstellungen konnten nicht erstellt werden: ${errorMessage}`,
         variant: "destructive",
       });
     }
@@ -221,11 +225,12 @@ export function CompanySettingsSimple() {
         title: "Erfolgreich gespeichert",
         description: "Die Firmeneinstellungen wurden aktualisiert.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('Error saving settings:', error);
       toast({
         title: "Fehler beim Speichern",
-        description: `Einstellungen konnten nicht gespeichert werden: ${error.message}`,
+        description: `Einstellungen konnten nicht gespeichert werden: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {

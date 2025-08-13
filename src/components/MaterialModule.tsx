@@ -1,4 +1,27 @@
 import React, { useState } from 'react';
+
+// Type definitions
+interface Material {
+  id: string;
+  name: string;
+  category: string;
+  currentStock: number;
+  minStock: number;
+  maxStock: number;
+  unit: string;
+  price: string;
+  supplier: string;
+  lastOrder: string;
+  status: string;
+}
+
+interface RecentOrder {
+  id: string;
+  supplier: string;
+  amount: string;
+  status: string;
+  date: string;
+}
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,8 +33,8 @@ import ReorderSuggestions from "./material/ReorderSuggestions";
 
 const MaterialModule = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedMaterial, setSelectedMaterial] = useState(null);
-  const [materials, setMaterials] = useState([
+  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
+  const [materials, setMaterials] = useState<Material[]>([
     {
       id: 'MAT001',
       name: 'Kabel NYM-J 3x1,5 mm²',
@@ -66,7 +89,7 @@ const MaterialModule = () => {
     }
   ]);
 
-  const recentOrders = [
+  const recentOrders: RecentOrder[] = [
     { id: 'B2024-001', supplier: 'ElektroGroßhandel GmbH', amount: '€1.247', status: 'Geliefert', date: '20.01.2024' },
     { id: 'B2024-002', supplier: 'Jung Vertrieb', amount: '€445', status: 'Unterwegs', date: '22.01.2024' },
     { id: 'B2024-003', supplier: 'Hager Vertrieb', amount: '€875', status: 'Bestellt', date: '24.01.2024' }
@@ -94,18 +117,18 @@ const MaterialModule = () => {
     return 'Verfügbar';
   };
 
-  const handleEditMaterial = (material) => {
+  const handleEditMaterial = (material: Material) => {
     setSelectedMaterial(material);
     setIsEditDialogOpen(true);
   };
 
-  const handleMaterialUpdated = (updatedMaterial) => {
+  const handleMaterialUpdated = (updatedMaterial: Material) => {
     setMaterials(prev => prev.map(material => 
       material.id === updatedMaterial.id ? updatedMaterial : material
     ));
   };
 
-  const handleShowMaterialDetails = (material) => {
+  const handleShowMaterialDetails = (material: Material) => {
     // Für jetzt als einfacher Alert - später kann hier ein Detail-Dialog geöffnet werden
     alert(`Details für ${material.name}:\n\nKategorie: ${material.category}\nBestand: ${material.currentStock} ${material.unit}\nLieferant: ${material.supplier}\nPreis: ${material.price}`);
   };

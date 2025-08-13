@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { LucideIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -78,9 +79,18 @@ interface QuickAction {
   id: string;
   title: string;
   description: string;
-  icon: any;
+  icon: LucideIcon;
   color: string;
   onClick: () => void;
+}
+
+interface CriticalItem {
+  id: string;
+  type: string;
+  title: string;
+  description?: string;
+  severity?: 'low' | 'medium' | 'high';
+  created_at?: string;
 }
 
 interface ExecutiveDashboardProps {
@@ -117,7 +127,7 @@ const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ onNavigate }) =
   });
   
   const [loading, setLoading] = useState(true);
-  const [criticalItems, setCriticalItems] = useState<any[]>([]);
+  const [criticalItems, setCriticalItems] = useState<CriticalItem[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {

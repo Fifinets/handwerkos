@@ -1,11 +1,11 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, FileText, CheckSquare, Users, Calendar, Calculator, UserCheck, Settings, DollarSign } from "lucide-react";
+import { Building2, FileText, CheckSquare, Users, Calendar, Calculator, UserCheck, Settings, DollarSign, LucideIcon } from "lucide-react";
 interface DashboardCard {
   title: string;
   description: string;
-  icon: any;
+  icon: LucideIcon;
   buttonText: string;
   onClick?: () => void;
 }

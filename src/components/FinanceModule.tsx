@@ -22,12 +22,27 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { FinancialStats, MonthlyRevenue } from "@/types/financial";
+import { FinancialStats, MonthlyRevenue, Invoice, Expense } from "@/types/financial";
+
+// Simplified interface for mock/display data that may not have all required Invoice fields
+interface InvoiceDisplay {
+  id: string | number;
+  invoice_number: string;
+  title: string;
+  total_amount: number;
+  status: string;
+  invoice_date: string;
+  due_date: string;
+  customers?: {
+    company_name: string;
+    contact_person: string;
+  };
+}
 
 const FinanceModule = () => {
   const { toast } = useToast();
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [expenses, setExpenses] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<InvoiceDisplay[]>([]);
+  const [expenses, setExpenses] = useState<any[]>([]); // Keep as any for now since we're using mock data
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [monthlyData, setMonthlyData] = useState<MonthlyRevenue[]>([]);
@@ -181,7 +196,7 @@ const FinanceModule = () => {
       setInvoices(finalInvoicesData);
       calculateStats(finalInvoicesData);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.log('Error fetching invoices, using mock data:', error);
       // Fallback to mock data instead of showing error
       setInvoices(getMockInvoices());
@@ -246,7 +261,7 @@ const FinanceModule = () => {
     ];
   };
 
-  const calculateStats = (invoicesData: any[]) => {
+  const calculateStats = (invoicesData: InvoiceDisplay[]) => {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
 
@@ -339,7 +354,7 @@ const FinanceModule = () => {
     }
   };
 
-  const isOverdue = (invoice: any) => {
+  const isOverdue = (invoice: InvoiceDisplay) => {
     const today = new Date();
     const dueDate = new Date(invoice.due_date);
     return dueDate < today && (invoice.status === 'Versendet' || invoice.status === 'Offen');

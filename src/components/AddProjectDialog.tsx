@@ -42,7 +42,7 @@ interface TeamMember {
 interface AddProjectDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onProjectAdded: (project: any) => void;
+  onProjectAdded: (project: { id: string; name: string; status: string }) => void;
   customers: Customer[];
   teamMembers: TeamMember[];
 }
@@ -67,7 +67,7 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
     const endDate = dateRange.to;
     
     let conflictDays = 0;
-    let totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     
     member.projects.forEach(project => {
       const memberProjectStart = new Date(project.startDate.split('.').reverse().join('-'));

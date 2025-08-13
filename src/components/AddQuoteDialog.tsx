@@ -70,7 +70,7 @@ export function AddQuoteDialog({ open, onOpenChange }: AddQuoteDialogProps) {
   });
 
   const createQuoteMutation = useMutation({
-    mutationFn: async (quoteData: any) => {
+    mutationFn: async (quoteData: { title: string; description: string; customerId: string }) => {
       // Calculate totals
       const netAmount = items.reduce((sum, item) => sum + item.total_price, 0);
       const taxAmount = (netAmount * taxRate) / 100;
@@ -169,7 +169,7 @@ export function AddQuoteDialog({ open, onOpenChange }: AddQuoteDialogProps) {
     }
   };
 
-  const updateItem = (id: string, field: keyof DocumentItem, value: any) => {
+  const updateItem = (id: string, field: keyof DocumentItem, value: string | number) => {
     setItems(items.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };

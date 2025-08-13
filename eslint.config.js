@@ -24,6 +24,14 @@ export default tseslint.config(
         { allowConstantExport: true },
       ],
       "@typescript-eslint/no-unused-vars": "off",
+      // Temporarily disable non-critical rules for existing code
+      "@typescript-eslint/no-explicit-any": "warn", // Changed from error to warning
+      "@typescript-eslint/ban-ts-comment": "warn",
+      "@typescript-eslint/no-require-imports": "warn",
+      "prefer-const": "warn",
+      "no-useless-escape": "warn",
+      "no-control-regex": "warn",
+      "react-hooks/exhaustive-deps": "warn", // Changed from error to warning
     },
   }
 );

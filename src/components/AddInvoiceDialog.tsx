@@ -94,7 +94,7 @@ export function AddInvoiceDialog({ open, onOpenChange }: AddInvoiceDialogProps) 
   });
 
   const createInvoiceMutation = useMutation({
-    mutationFn: async (invoiceData: any) => {
+    mutationFn: async (invoiceData: { title: string; description: string; customerId: string }) => {
       // Calculate totals
       const netAmount = items.reduce((sum, item) => sum + item.total_price, 0);
       const taxAmount = (netAmount * taxRate) / 100;
@@ -199,7 +199,7 @@ export function AddInvoiceDialog({ open, onOpenChange }: AddInvoiceDialogProps) 
     }
   };
 
-  const updateItem = (id: string, field: keyof DocumentItem, value: any) => {
+  const updateItem = (id: string, field: keyof DocumentItem, value: string | number) => {
     setItems(items.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };

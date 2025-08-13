@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Building2, Users, DollarSign, CheckSquare, Wrench, Mail, FileText, Euro, Clock, Calendar, UserCheck } from 'lucide-react';
+import { Building2, Users, DollarSign, CheckSquare, Wrench, Mail, FileText, Euro, Clock, Calendar, UserCheck, LucideIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -18,7 +18,7 @@ import { de } from 'date-fns/locale';
 interface DashboardCard {
   title: string;
   description: string;
-  icon: any;
+  icon: LucideIcon;
   buttonText: string;
   onClick?: () => void;
 }
@@ -114,7 +114,12 @@ const DashboardStatsWithKpis: React.FC<{ onNavigate?: (moduleId: string) => void
           .lt('start_time', today + 'T23:59:59');
 
         // 6. Mitarbeiter-Status (nur für Manager)
-        let employeesData: any[] = [];
+        interface Employee {
+          first_name: string;
+          last_name: string;
+          status: string;
+        }
+        let employeesData: Employee[] = [];
         if (role === 'manager') {
           const { data } = await supabase
             .from('employees')
@@ -133,7 +138,12 @@ const DashboardStatsWithKpis: React.FC<{ onNavigate?: (moduleId: string) => void
           .lt('start_date', new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
 
         const totalOpenAmount = invoicesData?.reduce((sum, inv) => sum + (inv.total_amount || 0), 0) || 0;
-        const todayMinutes = (timeEntriesData || []).reduce((sum, entry: any) => {
+        interface TimeEntry {
+          start_time?: string;
+          end_time?: string;
+          break_duration?: number;
+        }
+        const todayMinutes = (timeEntriesData || []).reduce((sum, entry: TimeEntry) => {
           const start = entry.start_time ? new Date(entry.start_time).getTime() : 0;
           const end = entry.end_time ? new Date(entry.end_time).getTime() : 0;
           if (!start || !end) return sum;
@@ -148,7 +158,7 @@ const DashboardStatsWithKpis: React.FC<{ onNavigate?: (moduleId: string) => void
           openInvoices: invoicesData?.length || 0,
           totalOpenAmount,
           todayHours: Math.round(todayMinutes / 60 * 10) / 10,
-          activeEmployees: employeesData.map((emp: any) => ({
+          activeEmployees: employeesData.map((emp) => ({
             name: `${emp.first_name || ''} ${emp.last_name || ''}`.trim(),
             status: emp.status === 'aktiv' ? 'active' : 'offline',
             hours: 0
@@ -158,7 +168,7 @@ const DashboardStatsWithKpis: React.FC<{ onNavigate?: (moduleId: string) => void
             time: format(new Date(apt.start_date), 'HH:mm', { locale: de }),
             employees: 1
           })) || [],
-          recentEmails: emailsData?.map((email: any) => ({
+          recentEmails: (emailsData as Array<{subject: string; sender_name: string; created_at: string}>)?.map((email) => ({
             subject: email.subject,
             from: email.sender_name,
             category: 'Allgemein',

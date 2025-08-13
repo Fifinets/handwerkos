@@ -1,4 +1,55 @@
 import React, { useEffect, useState } from 'react';
+
+// Type definitions
+type ProjectStatus = 'anfrage' | 'besichtigung' | 'geplant' | 'in_bearbeitung' | 'abgeschlossen';
+
+interface Customer {
+  id: string;
+  company_name?: string;
+  contact_person?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  status?: string;
+}
+
+interface ProjectCustomer {
+  company_name?: string;
+  contact_person?: string;
+  email?: string;
+}
+
+interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  status: ProjectStatus;
+  budget?: number;
+  start_date?: string;
+  end_date?: string;
+  customer_id?: string;
+  created_at?: string;
+  customers?: ProjectCustomer;
+}
+
+interface TeamMember {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  position?: string;
+  status?: string;
+  company_id?: string;
+}
+
+interface StatusCounts {
+  anfrage: number;
+  besichtigung: number;
+  geplant: number;
+  in_bearbeitung: number;
+  abgeschlossen: number;
+}
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Plus, CheckCircle, Clock, AlertTriangle, Building2, FileText, Edit, Calculator, TrendingUp, Receipt } from "lucide-react";
@@ -125,27 +176,27 @@ const formatBudget = (budget: number, description: string) => {
 
 const ProjectModule = () => {
   const { toast } = useToast();
-  const [projects, setProjects] = useState([]);
-  const [statusCounts, setStatusCounts] = useState({ 
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [statusCounts, setStatusCounts] = useState<StatusCounts>({ 
     anfrage: 0, 
     besichtigung: 0, 
     geplant: 0, 
     in_bearbeitung: 0, 
     abgeschlossen: 0 
   });
-  const [topCustomers, setTopCustomers] = useState([]);
+  const [topCustomers, setTopCustomers] = useState<Customer[]>([]);
   const [totalBudget, setTotalBudget] = useState(0);
-  const [delayedProjects, setDelayedProjects] = useState([]);
+  const [delayedProjects, setDelayedProjects] = useState<Project[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isProjectDetailViewOpen, setIsProjectDetailViewOpen] = useState(false);
   const [isPreCalculationOpen, setIsPreCalculationOpen] = useState(false);
   const [isProfitabilityOpen, setIsProfitabilityOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState(null);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [customers, setCustomers] = useState([]);
-  const [teamMembers, setTeamMembers] = useState([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
 
   useEffect(() => {
     fetchProjects();
@@ -224,7 +275,7 @@ const ProjectModule = () => {
       if (data) {
         setProjects(data);
         
-        const counts = {
+        const counts: StatusCounts = {
           anfrage: 0,
           besichtigung: 0,
           geplant: 0,
@@ -233,12 +284,12 @@ const ProjectModule = () => {
         };
 
         let budget = 0;
-        const delayed = [];
+        const delayed: Project[] = [];
         const today = new Date().toISOString().split('T')[0];
 
         data.forEach(project => {
-          if (counts.hasOwnProperty(project.status)) {
-            counts[project.status]++;
+          if (project.status in counts) {
+            counts[project.status as ProjectStatus]++;
           }
 
           const projectBudget = extractBudgetFromDescription(project.description) || project.budget || 0;
@@ -289,17 +340,17 @@ const ProjectModule = () => {
     setIsEditDialogOpen(false);
   };
 
-  const handleDoubleClickProject = (project) => {
+  const handleDoubleClickProject = (project: Project) => {
     setSelectedProjectId(project.id);
     setIsProjectDetailViewOpen(true);
   };
 
-  const handlePreCalculation = (project) => {
+  const handlePreCalculation = (project: Project) => {
     setSelectedProject(project);
     setIsPreCalculationOpen(true);
   };
 
-  const handleProfitabilityAnalysis = (project) => {
+  const handleProfitabilityAnalysis = (project: Project) => {
     setSelectedProject(project);
     setIsProfitabilityOpen(true);
   };
@@ -354,7 +405,7 @@ const ProjectModule = () => {
                     <ProjectRow
                       id={generateShortId(project.id)}
                       name={project.name}
-                      status={project.status as any}
+                      status={project.status}
                       budget={extractBudgetFromDescription(project.description) || project.budget || 0}
                       start={project.start_date}
                       end={project.end_date}
@@ -374,7 +425,7 @@ const ProjectModule = () => {
             <CardContent>
               {delayedProjects.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Keine Projekte im Verzug 🎉</p>
-              ) : delayedProjects.map((project: any) => (
+              ) : delayedProjects.map((project: Project) => (
                 <div key={project.id} className="border rounded-xl p-3 mb-2">
                   <ProjectRow 
                     id={generateShortId(project.id)} 
@@ -404,7 +455,7 @@ const ProjectModule = () => {
             <CardContent className="space-y-2">
               {topCustomers.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Hier erscheinen Kunden, sobald Projekte abgeschlossen sind.</p>
-              ) : topCustomers.map((customer: any) => (
+              ) : topCustomers.map((customer: Customer) => (
                 <div key={customer.id} className="flex items-center justify-between text-sm">
                   <span>{customer.company_name || customer.contact_person}</span>
                   <span className="text-muted-foreground">{customer.email}</span>
