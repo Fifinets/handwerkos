@@ -3,7 +3,7 @@
  * Basiert auf den spezifizierten Anforderungen für Projektmanagement
  */
 
-export type ProjectStatus = 'geplant' | 'in_bearbeitung' | 'fertig' | 'abgerechnet' | 'archiviert';
+export type ProjectStatus = 'anfrage' | 'besichtigung' | 'geplant' | 'in_bearbeitung' | 'abgeschlossen';
 
 export type UserRole = 'mitarbeiter' | 'projektleiter' | 'admin';
 
@@ -307,44 +307,44 @@ export const PROJECT_STATUS_CONFIG: Record<ProjectStatus, {
   description: string;
   nextStates: ProjectStatus[];
 }> = {
+  anfrage: {
+    label: 'Anfrage',
+    color: 'text-purple-700',
+    bgColor: 'bg-purple-100',
+    icon: '📋',
+    description: 'Projekt-Anfrage eingegangen',
+    nextStates: ['besichtigung']
+  },
+  besichtigung: {
+    label: 'Termin ausmachen',
+    color: 'text-orange-700',
+    bgColor: 'bg-orange-100',
+    icon: '📅',
+    description: 'Besichtigungstermin vereinbaren',
+    nextStates: ['geplant']
+  },
   geplant: {
-    label: 'Geplant',
+    label: 'In Planung',
     color: 'text-blue-700',
     bgColor: 'bg-blue-100',
-    icon: '📋',
-    description: 'Projekt ist in Planung, noch nicht gestartet',
+    icon: '📝',
+    description: 'Projekt ist in Planung',
     nextStates: ['in_bearbeitung']
   },
   in_bearbeitung: {
-    label: 'In Bearbeitung',
+    label: 'In Arbeit',
     color: 'text-yellow-700',
     bgColor: 'bg-yellow-100',
     icon: '🔨',
     description: 'Projekt läuft aktiv',
-    nextStates: ['fertig']
+    nextStates: ['abgeschlossen']
   },
-  fertig: {
-    label: 'Fertig',
+  abgeschlossen: {
+    label: 'Erledigt',
     color: 'text-green-700',
     bgColor: 'bg-green-100',
     icon: '✅',
-    description: 'Arbeiten abgeschlossen, bereit für Abrechnung',
-    nextStates: ['abgerechnet']
-  },
-  abgerechnet: {
-    label: 'Abgerechnet',
-    color: 'text-purple-700',
-    bgColor: 'bg-purple-100',
-    icon: '💰',
-    description: 'Projekt abgerechnet und bezahlt',
-    nextStates: ['archiviert']
-  },
-  archiviert: {
-    label: 'Archiviert',
-    color: 'text-gray-700',
-    bgColor: 'bg-gray-100',
-    icon: '📁',
-    description: 'Projekt ist abgeschlossen und archiviert',
+    description: 'Projekt ist abgeschlossen',
     nextStates: []
   }
 };

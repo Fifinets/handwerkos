@@ -116,13 +116,13 @@ const getStatusDisplayName = (status: string) => {
     case 'anfrage':
       return 'Anfrage';
     case 'besichtigung':
-      return 'Besichtigung';
+      return 'Termin ausmachen';
     case 'geplant':
-      return 'Planung';
+      return 'In Planung';
     case 'in_bearbeitung':
-      return 'In Bearbeitung';
+      return 'In Arbeit';
     case 'abgeschlossen':
-      return 'Abgeschlossen';
+      return 'Erledigt';
     default:
       return status;
   }
@@ -401,9 +401,9 @@ const ProjectModule = () => {
             <CardHeader className="pb-2"><CardTitle>Projekt Übersicht</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-2 gap-2 text-sm">
               <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-slate-50 text-slate-700 border-slate-200">Gesamt: {projects.length}</span>
-              <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-amber-50 text-amber-700 border-amber-200">Planung: {statusCounts.geplant}</span>
-              <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-blue-50 text-blue-700 border-blue-200">In Bearbeitung: {statusCounts.in_bearbeitung}</span>
-              <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-green-50 text-green-700 border-green-200">Abgeschlossen: {statusCounts.abgeschlossen}</span>
+              <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-amber-50 text-amber-700 border-amber-200">In Planung: {statusCounts.geplant}</span>
+              <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-blue-50 text-blue-700 border-blue-200">In Arbeit: {statusCounts.in_bearbeitung}</span>
+              <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-green-50 text-green-700 border-green-200">Erledigt: {statusCounts.abgeschlossen}</span>
             </CardContent>
           </Card>
         </div>

@@ -13,11 +13,11 @@ type Props = {
 };
 
 const STYLES: Record<Props["status"], { label: string; cls: string }> = {
-  anfrage:        { label: "Anfrage",        cls: "bg-indigo-100 text-indigo-800 border-indigo-200" },
-  besichtigung:   { label: "Besichtigung",   cls: "bg-amber-100  text-amber-800  border-amber-200" },
-  geplant:        { label: "Planung",        cls: "bg-blue-100   text-blue-800   border-blue-200" },
-  in_bearbeitung: { label: "In Bearbeitung", cls: "bg-yellow-100 text-yellow-800 border-yellow-200" },
-  abgeschlossen:  { label: "Abgeschlossen",  cls: "bg-green-100  text-green-800  border-green-200" }
+  anfrage:        { label: "Anfrage",         cls: "bg-indigo-100 text-indigo-800 border-indigo-200" },
+  besichtigung:   { label: "Termin ausmachen", cls: "bg-amber-100  text-amber-800  border-amber-200" },
+  geplant:        { label: "In Planung",      cls: "bg-blue-100   text-blue-800   border-blue-200" },
+  in_bearbeitung: { label: "In Arbeit",      cls: "bg-yellow-100 text-yellow-800 border-yellow-200" },
+  abgeschlossen:  { label: "Erledigt",       cls: "bg-green-100  text-green-800  border-green-200" }
 };
 
 export default function ProjectRow(p: Props) {
