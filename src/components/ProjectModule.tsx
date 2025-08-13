@@ -204,6 +204,58 @@ const ProjectModule = () => {
   const customers = customersResponse?.items || [];
   const teamMembers = teamMembersResponse?.items || [];
   
+  // Debug logging
+  console.log('Customers data:', customers);
+  console.log('Team members data:', teamMembers);
+  
+  // Fallback data for customers if none available
+  const customersWithFallback = customers.length > 0 ? customers : [
+    {
+      id: 'demo_customer_1',
+      name: 'Musterfirma GmbH',
+      contact: 'Max Mustermann',
+      email: 'max@musterfirma.de',
+      phone: '+49 123 456789',
+      address: 'Musterstraße 123, 12345 Berlin',
+      projects: 0,
+      revenue: '0',
+      status: 'Aktiv'
+    },
+    {
+      id: 'demo_customer_2', 
+      name: 'Schmidt Bau AG',
+      contact: 'Anna Schmidt',
+      email: 'anna@schmidt-bau.de',
+      phone: '+49 987 654321',
+      address: 'Baustraße 456, 54321 Hamburg',
+      projects: 0,
+      revenue: '0', 
+      status: 'Aktiv'
+    }
+  ];
+  
+  // Fallback data for team members if none available
+  const teamMembersWithFallback = teamMembers.length > 0 ? teamMembers : [
+    {
+      id: 'demo_employee_1',
+      name: 'Max Mustermann',
+      role: 'Projektleiter',
+      projects: []
+    },
+    {
+      id: 'demo_employee_2',
+      name: 'Anna Schmidt', 
+      role: 'Elektrikerin',
+      projects: []
+    },
+    {
+      id: 'demo_employee_3',
+      name: 'Tom Weber',
+      role: 'Installateur', 
+      projects: []
+    }
+  ];
+  
   // Loading state
   const isLoading = projectsLoading || customersLoading || teamLoading;
   
@@ -421,8 +473,8 @@ const ProjectModule = () => {
         isOpen={isAddDialogOpen}
         onClose={() => setIsAddDialogOpen(false)}
         onProjectAdded={handleProjectAdded}
-        customers={customers}
-        teamMembers={teamMembers}
+        customers={customersWithFallback}
+        teamMembers={teamMembersWithFallback}
       />
 
       <EditProjectDialog
