@@ -27,11 +27,20 @@ import {
   stockService,
   financeService,
   documentService,
+  projectKPIService,
+  notificationService,
+  workerService,
   eventBus
 } from '@/services';
 
 // Query keys for consistent caching and invalidation
 export const QUERY_KEYS = {
+  // KPI and Notification keys
+  PROJECT_KPIS: 'project-kpis',
+  PROJECT_KPIS_SUMMARY: 'project-kpis-summary',
+  NOTIFICATIONS: 'notifications',
+  NOTIFICATION_STATS: 'notification-stats',
+  WORKER_STATUS: 'worker-status',
   // Customer keys
   customers: ['customers'] as const,
   customer: (id: string) => ['customers', id] as const,
@@ -1548,4 +1557,249 @@ export default {
   useDocuments, useDocument, useUploadDocument, useUpdateDocument, useDeleteDocument, useSearchDocuments,
   useFinancialKpis, useRevenueByMonth, useExpensesByCategory, useProfitLossReport,
   useInvalidateQueries, initializeQueryInvalidation,
+};
+
+// ============================================
+// PROJECT KPI HOOKS  
+// ============================================
+
+/**
+ * Get KPIs for a specific project
+ */
+export const useProjectKPIs = (
+  projectId: string,
+  dateRange?: { from?: string; to?: string },
+  options?: UseQueryOptions<any, Error>
+) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.PROJECT_KPIS, projectId, dateRange],
+    queryFn: () => projectKPIService.getProjectKPIs(projectId, dateRange),
+    enabled: !!projectId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    ...options,
+  });
+};
+
+/**
+ * Get KPIs summary for all projects
+ */
+export const useProjectKPIsSummary = (
+  dateRange?: { from?: string; to?: string },
+  options?: UseQueryOptions<any, Error>
+) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.PROJECT_KPIS_SUMMARY, dateRange],
+    queryFn: () => projectKPIService.getProjectKPIsSummary(dateRange),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    ...options,
+  });
+};
+
+/**
+ * Get projects with critical budget utilization (≥90%)
+ */
+export const useCriticalBudgetProjects = (
+  options?: UseQueryOptions<any, Error>
+) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.PROJECT_KPIS, 'critical'],
+    queryFn: () => projectKPIService.getCriticalBudgetProjects(),
+    staleTime: 2 * 60 * 1000, // 2 minutes (more frequent for critical data)
+    ...options,
+  });
+};
+
+// ============================================
+// NOTIFICATION HOOKS
+// ============================================
+
+/**
+ * Get notifications with pagination and filtering
+ */
+export const useNotifications = (
+  pagination?: PaginationQuery,
+  filters?: any,
+  options?: UseQueryOptions<any, Error>
+) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.NOTIFICATIONS, pagination, filters],
+    queryFn: () => notificationService.getNotifications(pagination, filters),
+    staleTime: 30 * 1000, // 30 seconds (fresh for notifications)
+    ...options,
+  });
+};
+
+/**
+ * Get notification statistics
+ */
+export const useNotificationStats = (
+  options?: UseQueryOptions<any, Error>
+) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.NOTIFICATION_STATS],
+    queryFn: () => notificationService.getNotificationStats(),
+    staleTime: 60 * 1000, // 1 minute
+    ...options,
+  });
+};
+
+/**
+ * Create a new notification
+ */
+export const useCreateNotification = (
+  options?: UseMutationOptions<any, Error, any>
+) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: any) => notificationService.createNotification(data),
+    onSuccess: (newNotification, variables) => {
+      // Invalidate notifications queries
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATION_STATS] });
+      
+      toast({
+        title: 'Benachrichtigung erstellt',
+        description: 'Die Benachrichtigung wurde erfolgreich erstellt.',
+      });
+    },
+    onError: (error) => {
+      console.error('Create notification error:', error);
+      toast({
+        title: 'Fehler beim Erstellen',
+        description: error.message || 'Die Benachrichtigung konnte nicht erstellt werden.',
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+/**
+ * Mark notification as read
+ */
+export const useMarkNotificationRead = (
+  options?: UseMutationOptions<any, Error, string>
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (notificationId: string) => notificationService.markAsRead(notificationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATION_STATS] });
+    },
+    ...options,
+  });
+};
+
+/**
+ * Mark all notifications as read
+ */
+export const useMarkAllNotificationsRead = (
+  options?: UseMutationOptions<void, Error, void>
+) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => notificationService.markAllAsRead(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATION_STATS] });
+      
+      toast({
+        title: 'Alle als gelesen markiert',
+        description: 'Alle Benachrichtigungen wurden als gelesen markiert.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler',
+        description: 'Die Benachrichtigungen konnten nicht aktualisiert werden.',
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+/**
+ * Archive notification
+ */
+export const useArchiveNotification = (
+  options?: UseMutationOptions<any, Error, string>
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (notificationId: string) => notificationService.archiveNotification(notificationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATION_STATS] });
+    },
+    ...options,
+  });
+};
+
+// ============================================
+// WORKER SERVICE HOOKS
+// ============================================
+
+/**
+ * Get worker service status
+ */
+export const useWorkerStatus = (
+  options?: UseQueryOptions<any, Error>
+) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.WORKER_STATUS],
+    queryFn: () => workerService.getWorkerStatus(),
+    staleTime: 30 * 1000, // 30 seconds
+    ...options,
+  });
+};
+
+/**
+ * Run a worker job manually
+ */
+export const useRunWorkerJob = (
+  options?: UseMutationOptions<void, Error, string>
+) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (jobName: string) => workerService.runJobNow(jobName),
+    onSuccess: (_, jobName) => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.WORKER_STATUS] });
+      // Also invalidate related data that might have been updated
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.PROJECT_KPIS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
+      
+      toast({
+        title: 'Worker Job ausgeführt',
+        description: `Der Job "${jobName}" wurde erfolgreich ausgeführt.`,
+      });
+    },
+    onError: (error, jobName) => {
+      console.error('Worker job execution error:', error);
+      toast({
+        title: 'Fehler beim Ausführen',
+        description: `Der Job "${jobName}" konnte nicht ausgeführt werden: ${error.message}`,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
+// Export all hooks
+export {
+  // KPI, Notification, and Worker hooks
+  useProjectKPIs, useProjectKPIsSummary, useCriticalBudgetProjects,
+  useNotifications, useNotificationStats, useMarkNotificationRead, useMarkAllNotificationsRead, 
+  useArchiveNotification, useCreateNotification,
+  useWorkerStatus, useRunWorkerJob,
 };
