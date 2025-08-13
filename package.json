@@ -13,7 +13,12 @@
     "test": "echo 'No tests configured yet' && exit 0",
     "db:migrate": "supabase db push",
     "db:seed": "echo 'DB seed not implemented yet' && exit 0",
-    "worker": "echo 'Worker not implemented yet' && exit 0"
+    "worker": "echo 'Worker not implemented yet' && exit 0",
+    "api:test": "echo 'API tests not implemented yet' && exit 0",
+    "api:docs": "echo 'API documentation not implemented yet' && exit 0",
+    "export:datev": "echo 'DATEV export not implemented yet' && exit 0",
+    "backup:db": "echo 'Database backup not implemented yet' && exit 0",
+    "audit:compliance": "echo 'Compliance audit not implemented yet' && exit 0"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.2",
