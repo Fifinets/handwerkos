@@ -204,6 +204,14 @@ const ProjectModule = () => {
   const customers = customersResponse?.items || [];
   const teamMembers = teamMembersResponse?.items || [];
   
+  // Debug logging
+  console.log('ProjectModule Debug:', {
+    projectsResponse,
+    projects,
+    projectsLoading,
+    isLoading
+  });
+  
   // Calculate derived data
   const statusCounts: StatusCounts = {
     anfrage: projects.filter(p => p.status === 'anfrage').length,

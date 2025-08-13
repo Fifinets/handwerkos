@@ -83,6 +83,15 @@ export class ProjectService {
       
       const { data, count } = await createQuery<Project>(query).executeWithCount();
       
+      // Debug logging
+      console.log('ProjectService.getProjects:', {
+        query: query.toString(),
+        data,
+        count,
+        pagination,
+        filters
+      });
+      
       return {
         items: data,
         pagination: {
