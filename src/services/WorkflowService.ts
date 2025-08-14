@@ -469,6 +469,29 @@ class WorkflowService {
     
     return data || [];
   }
+
+  async applyScheduleWithApproval(schedule: {
+    projectId?: string;
+    employeeAssignments?: any[];
+    startDate?: string;
+    endDate?: string;
+    userId?: string;
+  }) {
+    const { withApproval } = await import('./approvalService');
+    
+    return await withApproval('aiScheduleApply', {
+      reason: 'KI-Planung soll auf den Kalender angewendet werden.',
+      metadata: { 
+        projectId: schedule.projectId,
+        employeeCount: schedule.employeeAssignments?.length || 0
+      },
+      userId: schedule.userId,
+    }, async () => {
+      // Placeholder für die tatsächliche Schedule-Apply-Logik
+      console.log('Applying AI schedule:', schedule);
+      return schedule;
+    });
+  }
 }
 
 export const workflowService = new WorkflowService();

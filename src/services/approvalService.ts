@@ -47,3 +47,27 @@ export async function requireHumanApproval(ctx: ApprovalContext): Promise<boolea
 
   return approved;
 }
+
+import { complianceConfig, ComplianceGate } from "../config/compliance";
+
+export async function shouldRequireApproval(gate: ComplianceGate): Promise<boolean> {
+  return Boolean(complianceConfig.requireHumanApproval && complianceConfig.gates[gate]);
+}
+
+export async function withApproval<T>(
+  gate: ComplianceGate,
+  ctx: Omit<ApprovalContext, "action"> & { action?: string },
+  fn: () => Promise<T> | T
+): Promise<T | undefined> {
+  const need = await shouldRequireApproval(gate);
+  if (need) {
+    const ok = await requireHumanApproval({
+      action: ctx.action ?? gate.toString().toUpperCase(),
+      reason: ctx.reason,
+      metadata: ctx.metadata,
+      userId: ctx.userId,
+    });
+    if (!ok) return undefined;
+  }
+  return await fn();
+}

@@ -295,14 +295,27 @@ const PreCalculationDialog: React.FC<PreCalculationDialogProps> = ({
 
   const saveCalculation = async () => {
     try {
-      // Hier würde normalerweise die Kalkulation in der Datenbank gespeichert
-      // Da wir keine pre_calculations Tabelle haben, speichern wir es als JSON in project description
+      // Import applyEstimateWithApproval für Human-Approval
+      const { applyEstimateWithApproval } = await import('../services/aiEstimationService');
       
       const calculationData = {
         ...calculation,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
+      
+      // Human-Approval bei AI-gestützten Schätzungen
+      if (calculation.isEstimate || calculation.materials.some(m => m.isEstimate)) {
+        const approved = await applyEstimateWithApproval({
+          projectId: projectId,
+          estimate: calculationData,
+          userId: undefined // würde normalerweise aus Auth-Context kommen
+        });
+        
+        if (!approved) {
+          return; // User hat abgebrochen
+        }
+      }
 
       // In Projekt-Beschreibung als [PRECALC:...] speichern
       const calculationInfo = `[PRECALC:${JSON.stringify(calculationData)}]`;

@@ -135,6 +135,8 @@ Konfiguration: `src/config/compliance.ts`
 - `gates`: steuert, welche Aktionen die Freigabe erzwingen
 Bei jeder Freigabe/Abbruch wird ein Audit-Event an `/api/audit/approval` gesendet (best effort).
 Die Integration in konkrete Flows (z. B. „KI-Schätzung übernehmen") erfolgt schrittweise.
+„Schätzung übernehmen", „Plan anwenden" und „Mahn-Stufe erhöhen" sind durch Human-in-the-loop gesichert.
+Schalter über `src/config/compliance.ts` steuerbar.
 
 ## 📝 License
 
