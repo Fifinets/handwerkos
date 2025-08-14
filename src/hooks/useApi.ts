@@ -20,6 +20,7 @@ import type {
 import { ApiError } from '@/utils/api';
 import { 
   customerService,
+  CustomerService,
   quoteService,
   orderService,
   projectService,
@@ -169,7 +170,7 @@ export const useCreateCustomer = (options?: UseApiMutationOptions<Customer, Cust
   const { toast } = useToast();
   
   return useMutation({
-    mutationFn: customerService.createCustomer,
+    mutationFn: (data: CustomerCreate) => CustomerService.createCustomer(data),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers });
       toast({
