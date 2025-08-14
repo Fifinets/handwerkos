@@ -1485,8 +1485,8 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
         
         console.log('useEmployees: DEBUG - All employees for company:', allEmployeesData);
         
-        // Main employees query - try without company_id filter first
-        // RLS should handle the filtering automatically
+        // Main employees query - only get employees who have registered (have user_id)
+        // RLS should handle the company filtering automatically
         const { data: employeesData, error: employeesError } = await supabase
           .from('employees')
           .select(`
@@ -1502,6 +1502,8 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
             license,
             company_id
           `)
+          .not('user_id', 'is', null)  // Only employees who have registered
+          .neq('status', 'eingeladen')  // Exclude invited but not registered
           .order('created_at', { ascending: false });
         
         console.log('useEmployees: Raw query (no company filter):', employeesData);

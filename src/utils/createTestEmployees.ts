@@ -16,10 +16,20 @@ export async function createTestEmployees() {
   
   console.log('Using company_id:', companyId);
   
-  // Create test employees
+  // Helper to generate UUID
+  const generateUUID = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+  
+  // Create test employees with user_ids to simulate registered users
   const testEmployees = [
     {
       company_id: companyId,
+      user_id: generateUUID(),  // UUID to simulate registered user
       first_name: 'Marcel',
       last_name: 'Mustermann',
       email: 'marcel.mustermann@example.com',
@@ -30,6 +40,7 @@ export async function createTestEmployees() {
     },
     {
       company_id: companyId,
+      user_id: generateUUID(),  // UUID to simulate registered user
       first_name: 'Anna',
       last_name: 'Schmidt',
       email: 'anna.schmidt@example.com',
@@ -40,6 +51,7 @@ export async function createTestEmployees() {
     },
     {
       company_id: companyId,
+      user_id: generateUUID(),  // UUID to simulate registered user
       first_name: 'Thomas',
       last_name: 'Wagner',
       email: 'thomas.wagner@example.com',
