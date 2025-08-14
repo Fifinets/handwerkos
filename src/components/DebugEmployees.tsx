@@ -30,6 +30,12 @@ export default function DebugEmployees() {
         console.log('6. ALL employees in database (no filter):', directEmployees);
         console.log('7. Direct query error:', directError);
         
+        // Also check without any filters to see raw data
+        const { data: rawEmployees } = await supabase
+          .from('employees')
+          .select('id, company_id, email, first_name, last_name, status');
+        console.log('7b. Raw employees with company_id:', rawEmployees);
+        
         if (companyId) {
           const { data: companyEmployees, error: companyError } = await supabase
             .from('employees')
