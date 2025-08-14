@@ -142,7 +142,7 @@ export const useCustomers = (
 ) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.customers, pagination, filters],
-    queryFn: () => customerService.getCustomers(pagination, filters),
+    queryFn: () => CustomerService.getCustomers(pagination, filters),
     ...options,
   });
 };
@@ -150,7 +150,7 @@ export const useCustomers = (
 export const useCustomer = (id: string, options?: UseApiQueryOptions<Customer>) => {
   return useQuery({
     queryKey: QUERY_KEYS.customer(id),
-    queryFn: () => customerService.getCustomer(id),
+    queryFn: () => CustomerService.getCustomer(id),
     enabled: !!id,
     ...options,
   });
@@ -159,7 +159,7 @@ export const useCustomer = (id: string, options?: UseApiQueryOptions<Customer>) 
 export const useCustomerStats = (id: string, options?: UseApiQueryOptions<any>) => {
   return useQuery({
     queryKey: QUERY_KEYS.customerStats(id),
-    queryFn: () => customerService.getCustomerStats(id),
+    queryFn: () => CustomerService.getCustomerStats(id),
     enabled: !!id,
     ...options,
   });
@@ -243,7 +243,7 @@ export const useDeleteCustomer = (options?: UseApiMutationOptions<void, string>)
 export const useSearchCustomers = (query: string, limit?: number, options?: UseApiQueryOptions<Customer[]>) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.customers, 'search', query, limit],
-    queryFn: () => customerService.searchCustomers(query, limit),
+    queryFn: () => CustomerService.searchCustomers(query, limit),
     enabled: query.length >= 2,
     ...options,
   });
