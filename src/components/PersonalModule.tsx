@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { UserCheck, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -56,112 +56,23 @@ const PersonalModule = () => {
   const { data: employeesData, isLoading: loading, error: employeesError } = useEmployees();
   const employees = employeesData?.items || [];
 
-  const fetchEmployees = useCallback(async () => {
-    try {
-      setLoading(true);
-      
-      console.log('fetchEmployees called with companyId:', companyId);
-      
-      // Check if company ID is available
-      if (!companyId) {
-        console.error('No company ID available');
-        setLoading(false);
-        return;
-      }
-      
-      // First, let's debug by getting ALL employees for this company
-      const { data: allEmployeesData, error: debugError } = await supabase
-        .from('employees')
-        .select('id, email, status, user_id, company_id')
-        .eq('company_id', companyId);
-      
-      console.log('DEBUG - All employees for company:', allEmployeesData);
-      
-      // Fetch employees (with qualifications and license if columns exist)
-      const { data: employeesData, error: employeesError } = await supabase
-        .from('employees')
-        .select(`
-          id,
-          user_id,
-          first_name,
-          last_name,
-          email,
-          phone,
-          position,
-          status,
-          company_id,
-          created_at,
-          qualifications,
-          license
-        `)
-        .eq('company_id', companyId)
-        .neq('status', 'eingeladen')
-        .not('user_id', 'is', null)
-        .order('created_at', { ascending: false });
+  // Map the employee data to the format expected by PersonalModule
+  const mappedEmployees = useMemo(() => {
+    return employees.map(emp => ({
+      id: emp.id,
+      name: emp.name || `${emp.first_name} ${emp.last_name}`.trim() || emp.email,
+      position: emp.position || 'Mitarbeiter',
+      email: emp.email,
+      phone: emp.phone || '',
+      status: emp.status || 'Aktiv',
+      qualifications: emp.qualifications || [],
+      license: emp.license || '',
+      currentProject: '-',
+      hoursThisMonth: 0,
+      vacationDays: 25
+    }));
+  }, [employees]);
 
-      if (employeesError) {
-        console.error('Error fetching employees:', employeesError);
-        toast.error(`Fehler beim Laden der Mitarbeiter: ${employeesError.message}`);
-        setLoading(false);
-        return;
-      }
-
-      // Fetch profile names separately for employees with user_id
-      const userIds = employeesData?.filter(emp => emp.user_id).map(emp => emp.user_id) || [];
-      let profilesData = [];
-      
-      if (userIds.length > 0) {
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name')
-          .in('id', userIds);
-        
-        if (!profilesError) {
-          profilesData = profiles || [];
-        }
-      }
-
-      // Map employee data - use profile names if available, fallback to employee names
-      const employeeList = employeesData?.map(employee => {
-        const profile = profilesData.find(p => p.id === employee.user_id);
-        const firstName = profile?.first_name || employee.first_name || '';
-        const lastName = profile?.last_name || employee.last_name || '';
-        
-        return {
-          id: employee.id,
-          name: `${firstName} ${lastName}`.trim() || employee.email,
-          position: employee.position || 'Mitarbeiter',
-          email: employee.email,
-          phone: employee.phone || '',
-          status: employee.status === 'eingeladen' ? 'Eingeladen' : 'Aktiv',
-          qualifications: employee.qualifications ? 
-            (typeof employee.qualifications === 'string' ? 
-              JSON.parse(employee.qualifications) : 
-              employee.qualifications
-            ) : [],
-          license: employee.license || '',
-          currentProject: '-',
-          hoursThisMonth: 0,
-          vacationDays: 25
-        };
-      }) || [];
-
-      console.log('Loaded employees:', employeeList);
-
-      setEmployees(employeeList);
-    } catch (error) {
-      console.error('Error in fetchEmployees:', error);
-      toast.error(`Ein unerwarteter Fehler ist aufgetreten: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`);
-    } finally {
-      setLoading(false);
-    }
-  }, [companyId, showToast]);
-
-  useEffect(() => {
-    if (companyId) {
-      fetchEmployees();
-    }
-  }, [companyId, fetchEmployees]);
 
   const handleAddEmployee = async (newEmployee: NewEmployee) => {
     setIsAddingEmployee(true);
@@ -279,9 +190,9 @@ const PersonalModule = () => {
     });
   };
 
-  const activeEmployees = employees.filter(emp => emp.status === 'Aktiv').length;
-  const onVacationEmployees = employees.filter(emp => emp.status === 'Urlaub').length;
-  const totalHours = employees.reduce((sum, emp) => sum + emp.hoursThisMonth, 0);
+  const activeEmployees = mappedEmployees.filter(emp => emp.status === 'Aktiv').length;
+  const onVacationEmployees = mappedEmployees.filter(emp => emp.status === 'Urlaub').length;
+  const totalHours = mappedEmployees.reduce((sum, emp) => sum + emp.hoursThisMonth, 0);
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -305,7 +216,7 @@ const PersonalModule = () => {
           </div>
 
           <PersonalStats
-            totalEmployees={employees.length}
+            totalEmployees={mappedEmployees.length}
             activeEmployees={activeEmployees}
             onVacationEmployees={onVacationEmployees}
             totalHours={totalHours}
@@ -318,13 +229,13 @@ const PersonalModule = () => {
                 <div className="text-center p-6">
                   <p className="text-gray-500">Mitarbeiter werden geladen...</p>
                 </div>
-              ) : employees.length === 0 ? (
+              ) : mappedEmployees.length === 0 ? (
                 <div className="text-center p-6">
                   <p className="text-gray-500">Noch keine Mitarbeiter vorhanden.</p>
                   <p className="text-sm text-gray-400 mt-2">Klicken Sie auf "Mitarbeiter hinzufügen" um den ersten Mitarbeiter einzuladen.</p>
                 </div>
               ) : (
-                employees.map((employee) => (
+                mappedEmployees.map((employee) => (
                   <EmployeeCard
                     key={employee.id}
                     employee={employee}
