@@ -18,30 +18,28 @@ import type {
   PaginationResponse,
 } from '@/types';
 import { ApiError } from '@/utils/api';
-import { 
-  customerService,
-  CustomerService,
-  quoteService,
-  orderService,
-  projectService,
-  timesheetService,
-  materialService,
-  stockService,
-  financeService,
-  documentService,
-  projectKPIService,
-  notificationService,
-  workerService,
-  auditLogService,
-  gobdService,
-  gobdHooks,
-  datevService,
-  germanAccountingService,
-  aiRAGService,
-  aiIntentService,
-  aiEstimationService,
-  eventBus
-} from '@/services';
+// Import services directly to avoid circular dependency issues
+import { customerService, CustomerService } from '@/services/customerService';
+import { quoteService } from '@/services/quoteService';
+import { orderService } from '@/services/orderService';
+import { projectService } from '@/services/projectService';
+import { timesheetService } from '@/services/timesheetService';
+import { materialService } from '@/services/materialService';
+import { stockService } from '@/services/stockService';
+import { financeService } from '@/services/financeService';
+import { documentService } from '@/services/documentService';
+import { projectKPIService } from '@/services/projectKPIService';
+import { notificationService } from '@/services/notificationService';
+import { workerService } from '@/services/workerService';
+import { auditLogService } from '@/services/auditLogService';
+import { gobdService } from '@/services/gobdService';
+import { gobdHooks } from '@/services/gobdHooks';
+import { datevService } from '@/services/datevService';
+import { germanAccountingService } from '@/services/germanAccountingService';
+import { aiRAGService } from '@/services/aiRAGService';
+import { aiIntentService } from '@/services/aiIntentService';
+import { aiEstimationService } from '@/services/aiEstimationService';
+import { eventBus } from '@/services/eventBus';
 
 // Query keys for consistent caching and invalidation
 export const QUERY_KEYS = {
