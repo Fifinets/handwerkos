@@ -12,6 +12,7 @@ import React, { useState, useEffect } from 'react';
 import { LucideIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { KpiContainer, KpiCard } from '@/components/ui/kpi-card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -317,32 +318,28 @@ const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ onNavigate }) =
       </div>
 
       {/* KPI-Header für Dashboard */}
-      <div className="grid grid-cols-4 gap-6">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-blue-600">{dashboardData.projectStatus.active + dashboardData.projectStatus.planning}</div>
-            <div className="text-gray-600 mt-1">Offene Aufträge</div>
-          </div>
-        </div>
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-green-600">{formatCurrency(dashboardData.financialKPIs.monthlyRevenue)}</div>
-            <div className="text-gray-600 mt-1">Monatsumsatz</div>
-          </div>
-        </div>
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-orange-600">{dashboardData.criticalAlerts.pendingQuotes}</div>
-            <div className="text-gray-600 mt-1">Offene Angebote</div>
-          </div>
-        </div>
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-purple-600">{dashboardData.teamOverview.activeEmployees}</div>
-            <div className="text-gray-600 mt-1">Mitarbeiter</div>
-          </div>
-        </div>
-      </div>
+      <KpiContainer>
+        <KpiCard 
+          title="Offene Aufträge" 
+          value={dashboardData.projectStatus.active + dashboardData.projectStatus.planning}
+          valueClassName="text-blue-600"
+        />
+        <KpiCard 
+          title="Monatsumsatz" 
+          value={formatCurrency(dashboardData.financialKPIs.monthlyRevenue)}
+          valueClassName="text-green-600"
+        />
+        <KpiCard 
+          title="Offene Angebote" 
+          value={dashboardData.criticalAlerts.pendingQuotes}
+          valueClassName="text-orange-600"
+        />
+        <KpiCard 
+          title="Mitarbeiter" 
+          value={dashboardData.teamOverview.activeEmployees}
+          valueClassName="text-purple-600"
+        />
+      </KpiContainer>
 
       {/* Dashboard Hauptbereich */}
       <div className="grid grid-cols-12 gap-6">
