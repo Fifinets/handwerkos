@@ -66,7 +66,7 @@ const PersonalModule = () => {
       email: emp.email,
       phone: emp.phone || '',
       status: emp.status || 'Aktiv',
-      qualifications: emp.qualifications || [],
+      qualifications: Array.isArray(emp.qualifications) ? emp.qualifications : [],
       license: emp.license || '',
       currentProject: '-',
       hoursThisMonth: 0,

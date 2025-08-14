@@ -1543,7 +1543,7 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
             phone: employee.phone,
             position: employee.position,
             status: employee.status,
-            qualifications: employee.qualifications || [],
+            qualifications: Array.isArray(employee.qualifications) ? employee.qualifications : [],
             license: employee.license
           };
         }) || [];
