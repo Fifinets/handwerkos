@@ -52,6 +52,14 @@ export default function EmployeeWageManagementSimple() {
   const { data: employeesResponse, isLoading: loading, error: employeesError } = useEmployees();
   const employees = employeesResponse?.items || [];
 
+  // Debug logging
+  console.log('=== WAGE MANAGEMENT DEBUG ===');
+  console.log('employeesResponse:', employeesResponse);
+  console.log('employees array:', employees);
+  console.log('employees length:', employees.length);
+  console.log('loading:', loading);
+  console.log('error:', employeesError);
+
   const fetchWorkingHours = async () => {
     try {
       console.log('Fetching company working hours...');
