@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Shield, X } from "lucide-react";
+import { Plus, Shield, X, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useDeleteEmployee } from "@/hooks/useApi";
 
 interface Employee {
   id: string;
@@ -43,6 +45,8 @@ interface EditEmployeeDialogProps {
 }
 
 const EditEmployeeDialog = ({ isOpen, onClose, employee, onSave }: EditEmployeeDialogProps) => {
+  const { toast } = useToast();
+  const deleteEmployeeMutation = useDeleteEmployee();
   const [editFormData, setEditFormData] = useState<EditFormData>({
     name: '',
     position: '',
@@ -109,6 +113,30 @@ const EditEmployeeDialog = ({ isOpen, onClose, employee, onSave }: EditEmployeeD
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(editFormData);
+  };
+
+  const handleDelete = () => {
+    if (!employee) return;
+
+    // Bestätigungsdialog
+    if (window.confirm(`Möchten Sie den Mitarbeiter "${employee.name}" wirklich löschen?`)) {
+      deleteEmployeeMutation.mutate(employee.id, {
+        onSuccess: () => {
+          toast({
+            title: "Mitarbeiter gelöscht",
+            description: `${employee.name} wurde erfolgreich gelöscht.`,
+          });
+          onClose();
+        },
+        onError: (error) => {
+          toast({
+            title: "Fehler beim Löschen",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+      });
+    }
   };
 
   if (!employee) return null;
@@ -257,7 +285,17 @@ const EditEmployeeDialog = ({ isOpen, onClose, employee, onSave }: EditEmployeeD
             <Button type="button" variant="outline" onClick={onClose}>
               Abbrechen
             </Button>
-            <Button type="submit" >
+            <Button 
+              type="button" 
+              variant="destructive" 
+              onClick={handleDelete}
+              disabled={deleteEmployeeMutation.isPending}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              {deleteEmployeeMutation.isPending ? "Lösche..." : "Löschen"}
+            </Button>
+            <Button type="submit">
               Speichern
             </Button>
           </div>

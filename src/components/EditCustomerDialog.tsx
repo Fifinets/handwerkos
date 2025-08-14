@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useDeleteCustomer } from "@/hooks/useApi";
+import { Trash2 } from "lucide-react";
 
 interface Customer {
   id: string;
@@ -51,6 +53,7 @@ interface EditCustomerDialogProps {
 
 const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: EditCustomerDialogProps) => {
   const { toast } = useToast();
+  const deleteCustomerMutation = useDeleteCustomer();
   const [formData, setFormData] = useState({
     company_name: customer?.company_name || '',
     contact_person: customer?.contact_person || '',
@@ -157,6 +160,30 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleDelete = () => {
+    if (!customer) return;
+
+    // Bestätigungsdialog
+    if (window.confirm(`Möchten Sie den Kunden "${customer.company_name}" wirklich löschen?`)) {
+      deleteCustomerMutation.mutate(customer.id, {
+        onSuccess: () => {
+          toast({
+            title: "Kunde gelöscht",
+            description: `${customer.company_name} wurde erfolgreich gelöscht.`,
+          });
+          onClose();
+        },
+        onError: (error) => {
+          toast({
+            title: "Fehler beim Löschen",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+      });
+    }
   };
 
   if (!customer) return null;
@@ -447,6 +474,16 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
           <div className="flex gap-2 pt-4">
             <Button type="button" variant="outline" onClick={onClose} className="flex-1">
               Abbrechen
+            </Button>
+            <Button 
+              type="button" 
+              variant="destructive" 
+              onClick={handleDelete}
+              disabled={deleteCustomerMutation.isPending}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              {deleteCustomerMutation.isPending ? "Lösche..." : "Löschen"}
             </Button>
             <Button type="submit" className="flex-1">
               Speichern
