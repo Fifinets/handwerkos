@@ -1557,6 +1557,28 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
   });
 };
 
+export const useDeleteEmployee = (options?: UseApiMutationOptions<void, string>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async (employeeId: string) => {
+      const { error } = await supabase
+        .from('employees')
+        .delete()
+        .eq('id', employeeId);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.employees });
+    },
+    ...options,
+  });
+};
+
 // ==========================================
 // QUERY INVALIDATION UTILITIES
 // ==========================================
