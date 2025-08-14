@@ -1033,7 +1033,6 @@ export class AIEstimationService {
   }
 }
 
-feat/aifirst-gobd-datev
 import { withApproval } from "./approvalService";
 
 export async function applyEstimateWithApproval(args: {
@@ -1054,6 +1053,4 @@ export async function applyEstimateWithApproval(args: {
   });
 }
 
-
-main
 export const aiEstimationService = new AIEstimationService();
