@@ -17,6 +17,7 @@ import EditEmployeeDialog from "./personal/EditEmployeeDialog";
 import PersonalSidebar from "./personal/PersonalSidebar";
 import EmployeeWageManagementSimple from "./EmployeeWageManagementSimple";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import DebugEmployees from "./DebugEmployees";
 
 interface Employee {
   id: string;
@@ -201,6 +202,9 @@ const PersonalModule = () => {
         <h1 className="text-4xl font-bold text-gray-900">Personalverwaltung</h1>
       </div>
 
+      {/* DEBUG COMPONENT - REMOVE AFTER FIXING */}
+      <DebugEmployees />
+      
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="overview">Mitarbeiterübersicht</TabsTrigger>
