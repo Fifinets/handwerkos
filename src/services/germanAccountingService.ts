@@ -628,4 +628,4 @@ export async function advanceDunningStageWithApproval(params: {
   });
 }
 
-export const germanAccountingService = GermanAccountingService;
+export const germanAccountingService = new GermanAccountingService();

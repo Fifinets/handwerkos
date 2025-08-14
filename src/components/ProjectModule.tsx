@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 
 // Type definitions
 type ProjectStatus = 'anfrage' | 'besichtigung' | 'geplant' | 'in_bearbeitung' | 'abgeschlossen';
@@ -59,11 +59,12 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   useProjects, 
   useCustomers, 
-  useEmployees,
   useCreateProject,
   useUpdateProject,
   useDeleteProject
 } from "@/hooks/useApi";
+import { supabase } from "@/integrations/supabase/client";
+import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 import AddProjectDialog from "./AddProjectDialog";
 import EditProjectDialog from "./EditProjectDialog";
@@ -116,13 +117,13 @@ const getStatusDisplayName = (status: string) => {
     case 'anfrage':
       return 'Anfrage';
     case 'besichtigung':
-      return 'Besichtigung';
+      return 'Termin ausmachen';
     case 'geplant':
-      return 'Planung';
+      return 'In Planung';
     case 'in_bearbeitung':
-      return 'In Bearbeitung';
+      return 'In Arbeit';
     case 'abgeschlossen':
-      return 'Abgeschlossen';
+      return 'Erledigt';
     default:
       return status;
   }
@@ -183,11 +184,138 @@ const formatBudget = (budget: number, description: string) => {
 
 const ProjectModule = () => {
   const { toast } = useToast();
+  const { companyId } = useSupabaseAuth();
   
   // React Query hooks
   const { data: projectsResponse, isLoading: projectsLoading } = useProjects();
   const { data: customersResponse, isLoading: customersLoading } = useCustomers();
-  const { data: teamMembersResponse, isLoading: teamLoading } = useEmployees();
+  
+  // Local state for employees (using same logic as PersonalModule)
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [teamLoading, setTeamLoading] = useState(true);
+  
+  // Fetch employees using PersonalModule logic
+  const fetchEmployees = useCallback(async () => {
+    try {
+      setTeamLoading(true);
+      
+      console.log('ProjectModule: fetchEmployees called with companyId:', companyId);
+      
+      if (!companyId) {
+        console.error('ProjectModule: No company ID available');
+        setTeamLoading(false);
+        return;
+      }
+      
+      // Debug query - get ALL employees for this company
+      const { data: allEmployeesData, error: debugError } = await supabase
+        .from('employees')
+        .select('id, email, status, user_id, company_id')
+        .eq('company_id', companyId);
+      
+      console.log('ProjectModule: DEBUG - All employees for company:', allEmployeesData);
+      
+      // Main employees query
+      const { data: employeesData, error: employeesError } = await supabase
+        .from('employees')
+        .select(`
+          id,
+          user_id,
+          first_name,
+          last_name,
+          email,
+          phone,
+          position,
+          status,
+          qualifications,
+          license
+        `)
+        .eq('company_id', companyId)
+        .eq('status', 'Aktiv') // Only show active employees
+        .order('created_at', { ascending: false });
+
+      console.log('ProjectModule: Employees query result:', employeesData, employeesError);
+
+      if (employeesError) {
+        console.error('ProjectModule: Error fetching employees:', employeesError);
+        setTeamLoading(false);
+        return;
+      }
+
+      // Fetch profile names separately for employees with user_id
+      const userIds = employeesData?.filter(emp => emp.user_id).map(emp => emp.user_id) || [];
+      let profilesData = [];
+      
+      if (userIds.length > 0) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .in('id', userIds);
+        
+        if (!error) {
+          profilesData = data || [];
+        }
+      }
+
+      // Map employee data and filter for complete profiles
+      const employeeList = employeesData?.map(employee => {
+        const profile = profilesData.find(p => p.id === employee.user_id);
+        const firstName = profile?.first_name || employee.first_name || '';
+        const lastName = profile?.last_name || employee.last_name || '';
+        
+        return {
+          id: employee.id,
+          first_name: firstName,
+          last_name: lastName,
+          name: `${firstName} ${lastName}`.trim(),
+          email: employee.email,
+          phone: employee.phone,
+          position: employee.position,
+          status: employee.status,
+          qualifications: employee.qualifications || [],
+          license: employee.license,
+          projects: [], // Add for compatibility with AddProjectDialog
+          user_id: employee.user_id // Keep for filtering
+        };
+      })
+      .filter(employee => {
+        // Show employees that have a meaningful name
+        // Accept if first_name OR last_name exists, or if combined name is not empty
+        const hasFirstName = employee.first_name && employee.first_name.trim().length > 0;
+        const hasLastName = employee.last_name && employee.last_name.trim().length > 0;
+        const hasValidName = employee.name && employee.name.trim().length > 0 && employee.name.trim() !== ' ';
+        
+        const shouldInclude = hasFirstName || hasLastName || hasValidName;
+        
+        console.log('ProjectModule: Employee filter check:', {
+          employee: employee.name,
+          hasFirstName,
+          hasLastName, 
+          hasValidName,
+          shouldInclude,
+          user_id: employee.user_id
+        });
+        
+        if (!shouldInclude) {
+          console.log('ProjectModule: Filtering out employee without proper name:', employee);
+        }
+        
+        return shouldInclude;
+      }) || [];
+
+      console.log('ProjectModule: Final employee list:', employeeList);
+      setTeamMembers(employeeList);
+    } catch (error) {
+      console.error('ProjectModule: fetchEmployees error:', error);
+    } finally {
+      setTeamLoading(false);
+    }
+  }, [companyId]);
+
+  // Fetch employees when component mounts or companyId changes
+  useEffect(() => {
+    fetchEmployees();
+  }, [fetchEmployees]);
   
   // Local state for dialogs
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -202,7 +330,33 @@ const ProjectModule = () => {
   // Extract data from responses
   const projects = projectsResponse?.items || [];
   const customers = customersResponse?.items || [];
-  const teamMembers = teamMembersResponse?.items || [];
+  
+  // Debug logging
+  console.log('Customers data:', customers);
+  console.log('Team members data:', teamMembers);
+  console.log('Team members loading:', teamLoading);
+  
+  // Always use real data, with fallback only if completely empty
+  const customersWithFallback = customers.length > 0 ? customers : [
+    {
+      id: 'demo_customer_1',
+      name: 'Demo Kunde - Bitte echte Kunden hinzufügen',
+      company_name: 'Demo Kunde',
+      contact_person: 'Bitte echte Kunden hinzufügen',
+      email: 'demo@example.com',
+      phone: '+49 000 000000',
+      address: 'Demo Adresse',
+      projects: 0,
+      revenue: '0',
+      status: 'Demo'
+    }
+  ];
+  
+  // Use team members directly from state
+  const teamMembersWithFallback = teamMembers;
+  
+  // Loading state
+  const isLoading = projectsLoading || customersLoading || teamLoading;
   
   // Debug logging
   console.log('ProjectModule Debug:', {
@@ -232,9 +386,6 @@ const ProjectModule = () => {
   );
   
   const topCustomers = customers.filter(c => c.status === 'Aktiv').slice(0, 5);
-
-  // Loading state
-  const isLoading = projectsLoading || customersLoading || teamLoading;
 
   const handleProjectAdded = () => {
     setIsAddDialogOpen(false);
@@ -322,7 +473,11 @@ const ProjectModule = () => {
                 <p className="text-sm text-muted-foreground">Keine Projekte vorhanden</p>
               ) : (
                 projects.filter(p => p.status !== 'abgeschlossen').map((project) => (
-                  <div key={project.id} className="border rounded-xl p-3 shadow-softer">
+                  <div 
+                    key={project.id} 
+                    className="border rounded-xl p-3 shadow-softer cursor-pointer hover:shadow-md transition-shadow"
+                    onDoubleClick={() => handleDoubleClickProject(project)}
+                  >
                     <ProjectRow
                       id={generateShortId(project.id)}
                       name={project.name}
@@ -352,7 +507,11 @@ const ProjectModule = () => {
               ) : delayedProjects.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Keine Projekte im Verzug 🎉</p>
               ) : delayedProjects.map((project: Project) => (
-                <div key={project.id} className="border rounded-xl p-3 mb-2">
+                <div 
+                  key={project.id} 
+                  className="border rounded-xl p-3 mb-2 cursor-pointer hover:shadow-md transition-shadow"
+                  onDoubleClick={() => handleDoubleClickProject(project)}
+                >
                   <ProjectRow 
                     id={generateShortId(project.id)} 
                     name={project.name} 
@@ -401,9 +560,9 @@ const ProjectModule = () => {
             <CardHeader className="pb-2"><CardTitle>Projekt Übersicht</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-2 gap-2 text-sm">
               <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-slate-50 text-slate-700 border-slate-200">Gesamt: {projects.length}</span>
-              <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-amber-50 text-amber-700 border-amber-200">Planung: {statusCounts.geplant}</span>
-              <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-blue-50 text-blue-700 border-blue-200">In Bearbeitung: {statusCounts.in_bearbeitung}</span>
-              <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-green-50 text-green-700 border-green-200">Abgeschlossen: {statusCounts.abgeschlossen}</span>
+              <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-amber-50 text-amber-700 border-amber-200">In Planung: {statusCounts.geplant}</span>
+              <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-blue-50 text-blue-700 border-blue-200">In Arbeit: {statusCounts.in_bearbeitung}</span>
+              <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-green-50 text-green-700 border-green-200">Erledigt: {statusCounts.abgeschlossen}</span>
             </CardContent>
           </Card>
         </div>
@@ -413,8 +572,8 @@ const ProjectModule = () => {
         isOpen={isAddDialogOpen}
         onClose={() => setIsAddDialogOpen(false)}
         onProjectAdded={handleProjectAdded}
-        customers={customers}
-        teamMembers={teamMembers}
+        customers={customersWithFallback}
+        teamMembers={teamMembersWithFallback}
       />
 
       <EditProjectDialog

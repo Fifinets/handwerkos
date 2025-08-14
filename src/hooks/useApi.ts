@@ -3,6 +3,7 @@
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import type {
   Customer, CustomerCreate, CustomerUpdate,
   Material, MaterialCreate, MaterialUpdate,
@@ -1454,13 +1455,102 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
   return useQuery({
     queryKey: QUERY_KEYS.employees,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      try {
+        // Get current user session to determine company_id
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          console.log('useEmployees: No session found');
+          return { items: [] };
+        }
 
-      if (error) throw error;
-      return data;
+        // Try multiple ways to get company_id like PersonalModule does
+        const companyId = session.user.user_metadata?.company_id || 
+                         session.user.app_metadata?.company_id || 
+                         session.user.id;
+        
+        console.log('useEmployees: Using company_id:', companyId);
+        console.log('useEmployees: Session user:', session.user);
+
+        if (!companyId) {
+          console.error('useEmployees: No company ID available');
+          return { items: [] };
+        }
+
+        // First debug query - get ALL employees for this company
+        const { data: allEmployeesData, error: debugError } = await supabase
+          .from('employees')
+          .select('id, email, status, user_id, company_id')
+          .eq('company_id', companyId);
+        
+        console.log('useEmployees: DEBUG - All employees for company:', allEmployeesData);
+        
+        // Main employees query
+        const { data: employeesData, error: employeesError } = await supabase
+          .from('employees')
+          .select(`
+            id,
+            user_id,
+            first_name,
+            last_name,
+            email,
+            phone,
+            position,
+            status,
+            qualifications,
+            license
+          `)
+          .eq('company_id', companyId)
+          .order('created_at', { ascending: false });
+
+        console.log('useEmployees: Employees query result:', employeesData, employeesError);
+
+        if (employeesError) {
+          console.error('useEmployees: Error fetching employees:', employeesError);
+          return { items: [] };
+        }
+
+        // Fetch profile names separately for employees with user_id
+        const userIds = employeesData?.filter(emp => emp.user_id).map(emp => emp.user_id) || [];
+        let profilesData = [];
+        
+        if (userIds.length > 0) {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name')
+            .in('id', userIds);
+          
+          if (!error) {
+            profilesData = data || [];
+          }
+        }
+
+        // Map employee data - use profile names if available, fallback to employee names
+        const employeeList = employeesData?.map(employee => {
+          const profile = profilesData.find(p => p.id === employee.user_id);
+          const firstName = profile?.first_name || employee.first_name || '';
+          const lastName = profile?.last_name || employee.last_name || '';
+          
+          return {
+            id: employee.id,
+            first_name: firstName,
+            last_name: lastName,
+            name: `${firstName} ${lastName}`.trim(),
+            email: employee.email,
+            phone: employee.phone,
+            position: employee.position,
+            status: employee.status,
+            qualifications: employee.qualifications || [],
+            license: employee.license
+          };
+        }) || [];
+
+        console.log('useEmployees: Final employee list:', employeeList);
+        return { items: employeeList };
+        
+      } catch (error) {
+        console.error('useEmployees: Catch block error:', error);
+        return { items: [] };
+      }
     },
     ...options,
   });

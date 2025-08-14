@@ -316,4 +316,4 @@ export class ProjectKPIService {
   }
 }
 
-export const projectKPIService = ProjectKPIService;
+export const projectKPIService = new ProjectKPIService();

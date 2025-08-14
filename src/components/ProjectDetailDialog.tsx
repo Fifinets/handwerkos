@@ -144,8 +144,9 @@ const ProjectDetailDialog = ({ isOpen, onClose, project }: ProjectDetailDialogPr
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl min-h-[80vh] max-h-[90vh] overflow-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-[98vw] max-h-[98vh] w-full h-full overflow-y-auto">
+        <Tabs defaultValue="work-hours" className="w-full">
+        <DialogHeader className="pb-2">
           <DialogTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
             {project.name} - Details
@@ -153,6 +154,13 @@ const ProjectDetailDialog = ({ isOpen, onClose, project }: ProjectDetailDialogPr
           <DialogDescription>
             Detaillierte Projektinformationen, Arbeitsstunden und Materialverbrauch
           </DialogDescription>
+          
+          {/* Tabs direkt im Header */}
+          <TabsList className="grid w-full grid-cols-3 mt-3">
+            <TabsTrigger value="work-hours">Arbeitsstunden</TabsTrigger>
+            <TabsTrigger value="material-purchases">Materialeinkäufe</TabsTrigger>
+            <TabsTrigger value="material-usage">Materialverbrauch</TabsTrigger>
+          </TabsList>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -229,15 +237,9 @@ const ProjectDetailDialog = ({ isOpen, onClose, project }: ProjectDetailDialogPr
             </Card>
           </div>
 
-          {/* Detaillierte Tabs */}
-          <Tabs defaultValue="work-hours" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="work-hours">Arbeitsstunden</TabsTrigger>
-              <TabsTrigger value="material-purchases">Materialeinkäufe</TabsTrigger>
-              <TabsTrigger value="material-usage">Materialverbrauch</TabsTrigger>
-            </TabsList>
+          {/* Detaillierte Tabs - moved to header */}
 
-            <TabsContent value="work-hours" className="space-y-4 min-h-[600px]">
+            <TabsContent value="work-hours" className="space-y-4 min-h-[600px] mt-0">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -276,7 +278,7 @@ const ProjectDetailDialog = ({ isOpen, onClose, project }: ProjectDetailDialogPr
               </Card>
             </TabsContent>
 
-            <TabsContent value="material-purchases" className="space-y-4 min-h-[600px]">
+            <TabsContent value="material-purchases" className="space-y-4 min-h-[600px] mt-0">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -319,7 +321,7 @@ const ProjectDetailDialog = ({ isOpen, onClose, project }: ProjectDetailDialogPr
               </Card>
             </TabsContent>
 
-            <TabsContent value="material-usage" className="space-y-4 min-h-[600px]">
+            <TabsContent value="material-usage" className="space-y-4 min-h-[600px] mt-0">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -359,12 +361,11 @@ const ProjectDetailDialog = ({ isOpen, onClose, project }: ProjectDetailDialogPr
                 </CardContent>
               </Card>
             </TabsContent>
-          </Tabs>
-        </div>
-
+        
         <div className="flex justify-end pt-4">
           <Button onClick={onClose}>Schließen</Button>
         </div>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
