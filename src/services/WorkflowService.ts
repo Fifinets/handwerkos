@@ -7,6 +7,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { withApproval } from './approvalService';
 
 export interface WorkflowStep {
   id: string;
@@ -468,6 +469,27 @@ class WorkflowService {
       .lt('due_date', new Date().toISOString().split('T')[0]);
     
     return data || [];
+  }
+
+  async applyScheduleWithApproval(schedule: {
+    projectId?: string;
+    employeeAssignments?: any[];
+    startDate?: string;
+    endDate?: string;
+    userId?: string;
+  }) {
+    return await withApproval('aiScheduleApply', {
+      reason: 'KI-Planung soll auf den Kalender angewendet werden.',
+      metadata: { 
+        projectId: schedule.projectId,
+        employeeCount: schedule.employeeAssignments?.length || 0
+      },
+      userId: schedule.userId,
+    }, async () => {
+      // Placeholder für die tatsächliche Schedule-Apply-Logik
+      console.log('Applying AI schedule:', schedule);
+      return schedule;
+    });
   }
 }
 

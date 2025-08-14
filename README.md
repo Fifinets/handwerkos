@@ -128,6 +128,16 @@ GET    /api/export/datev/csv  # DATEV-Export
 - `docs:` - Dokumentation
 - `chore:` - Build/Config Änderungen
 
+### Human-in-the-loop (Compliance)
+KI-/Scoring-basierte Aktionen erfordern eine manuelle Freigabe.
+Konfiguration: `src/config/compliance.ts`
+- `requireHumanApproval`: globaler Schalter
+- `gates`: steuert, welche Aktionen die Freigabe erzwingen
+Bei jeder Freigabe/Abbruch wird ein Audit-Event an `/api/audit/approval` gesendet (best effort).
+Die Integration in konkrete Flows (z. B. „KI-Schätzung übernehmen") erfolgt schrittweise.
+„Schätzung übernehmen", „Plan anwenden" und „Mahn-Stufe erhöhen" sind durch Human-in-the-loop gesichert.
+Schalter über `src/config/compliance.ts` steuerbar.
+
 ## 📝 License
 
 Proprietary - Alle Rechte vorbehalten.

@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calculator, Plus, Trash2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { applyEstimateWithApproval } from "@/services/aiEstimationService";
 
 interface MaterialItem {
   id: string;
@@ -295,14 +296,24 @@ const PreCalculationDialog: React.FC<PreCalculationDialogProps> = ({
 
   const saveCalculation = async () => {
     try {
-      // Hier würde normalerweise die Kalkulation in der Datenbank gespeichert
-      // Da wir keine pre_calculations Tabelle haben, speichern wir es als JSON in project description
-      
       const calculationData = {
         ...calculation,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
+      
+      // Human-Approval bei AI-gestützten Schätzungen
+      if (calculation.isEstimate || calculation.materials.some(m => m.isEstimate)) {
+        const approved = await applyEstimateWithApproval({
+          projectId: projectId,
+          estimate: calculationData,
+          userId: undefined // würde normalerweise aus Auth-Context kommen
+        });
+        
+        if (!approved) {
+          return; // User hat abgebrochen
+        }
+      }
 
       // In Projekt-Beschreibung als [PRECALC:...] speichern
       const calculationInfo = `[PRECALC:${JSON.stringify(calculationData)}]`;

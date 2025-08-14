@@ -600,6 +600,32 @@ export class GermanAccountingService {
 
     return usefulLifeTable[assetType] || 10;
   }
+
+  static async advanceDunningStage(params: {
+    invoiceId: string | number;
+    currentLevel: number;
+    userId?: string | number;
+  }) {
+    // Placeholder für tatsächliche Dunning-Logik
+    console.log('Advancing dunning stage:', params);
+    return { ...params, newLevel: params.currentLevel + 1 };
+  }
+}
+
+import { withApproval } from "./approvalService";
+
+export async function advanceDunningStageWithApproval(params: {
+  invoiceId: string | number;
+  currentLevel: number;
+  userId?: string | number;
+}) {
+  return await withApproval('customerScoringAction', {
+    reason: `Mahn-/Dunning-Stufe soll erhöht werden (aktuell: ${params.currentLevel}).`,
+    metadata: { invoiceId: params.invoiceId },
+    userId: params.userId,
+  }, async () => {
+    return await GermanAccountingService.advanceDunningStage(params);
+  });
 }
 
 export const germanAccountingService = new GermanAccountingService();

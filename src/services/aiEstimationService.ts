@@ -1033,4 +1033,27 @@ export class AIEstimationService {
   }
 }
 
+feat/aifirst-gobd-datev
+import { withApproval } from "./approvalService";
+
+export async function applyEstimateWithApproval(args: {
+  projectId?: string | number;
+  quoteId?: string | number;
+  estimate: unknown;
+  userId?: string | number;
+}) {
+  return await withApproval('aiEstimateApply', {
+    reason: 'KI-Schätzung soll übernommen werden.',
+    metadata: { projectId: args.projectId, quoteId: args.quoteId },
+    userId: args.userId,
+  }, async () => {
+    // Placeholder für die tatsächliche Apply-Logik
+    // Diese würde normalerweise die Schätzung in die DB schreiben
+    console.log('Applying AI estimate:', args);
+    return args.estimate;
+  });
+}
+
+
+main
 export const aiEstimationService = new AIEstimationService();
