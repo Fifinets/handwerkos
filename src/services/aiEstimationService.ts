@@ -1033,4 +1033,4 @@ export class AIEstimationService {
   }
 }
 
-export const aiEstimationService = AIEstimationService;
+export const aiEstimationService = new AIEstimationService();

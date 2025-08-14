@@ -529,4 +529,4 @@ export class OrderService {
 }
 
 // Export singleton instance
-export const orderService = OrderService;
+export const orderService = new OrderService();

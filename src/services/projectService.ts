@@ -569,4 +569,4 @@ export class ProjectService {
 }
 
 // Export singleton instance
-export const projectService = ProjectService;
+export const projectService = new ProjectService();

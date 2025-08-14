@@ -452,4 +452,4 @@ export class QuoteService {
 }
 
 // Export singleton instance
-export const quoteService = QuoteService;
+export const quoteService = new QuoteService();

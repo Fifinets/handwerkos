@@ -545,4 +545,4 @@ export class MaterialService {
 }
 
 // Export singleton instance
-export const materialService = MaterialService;
+export const materialService = new MaterialService();

@@ -454,4 +454,4 @@ export class AuditLogService {
   }
 }
 
-export const auditLogService = AuditLogService;
+export const auditLogService = new AuditLogService();

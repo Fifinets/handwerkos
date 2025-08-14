@@ -602,4 +602,4 @@ export class GermanAccountingService {
   }
 }
 
-export const germanAccountingService = GermanAccountingService;
+export const germanAccountingService = new GermanAccountingService();
