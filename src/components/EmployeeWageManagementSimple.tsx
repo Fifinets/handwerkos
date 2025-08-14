@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useEmployees } from '@/hooks/useApi';
 
 interface Employee {
   id: string;
@@ -46,64 +47,11 @@ export default function EmployeeWageManagementSimple() {
   const [editingEmployee, setEditingEmployee] = useState<string | null>(null);
   const [editWage, setEditWage] = useState<number>(0);
   const [workingHoursPerWeek, setWorkingHoursPerWeek] = useState<number>(40);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [employeesError, setEmployeesError] = useState<Error | null>(null);
+  
+  // Use the existing useEmployees hook instead of direct queries
+  const { data: employeesData, isLoading: loading, error: employeesError } = useEmployees();
+  const employees = employeesData?.items || [];
 
-  // Fetch employees directly with working query
-  useEffect(() => {
-    const fetchEmployees = async () => {
-      try {
-        setLoading(true);
-        console.log('=== WAGE MANAGEMENT: Fetching employees ===');
-        
-        // Get current user session
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          console.log('No session found');
-          setEmployees([]);
-          return;
-        }
-
-        // Try multiple ways to get company_id (same as useEmployees hook)
-        const companyId = session.user.user_metadata?.company_id || 
-                         session.user.app_metadata?.company_id || 
-                         session.user.id;
-        
-        console.log('Using company_id:', companyId);
-
-        if (!companyId) {
-          console.error('No company ID available');
-          setEmployees([]);
-          return;
-        }
-
-        // Query employees directly
-        const { data, error } = await supabase
-          .from('employees')
-          .select('id, first_name, last_name, email, phone, position, status')
-          .eq('company_id', companyId);
-
-        console.log('Direct employees query result:', { data, error });
-
-        if (error) {
-          throw error;
-        }
-
-        if (data) {
-          console.log(`Successfully loaded ${data.length} employees:`, data);
-          setEmployees(data);
-        }
-      } catch (error: any) {
-        console.error('Error fetching employees:', error);
-        setEmployeesError(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEmployees();
-  }, []);
 
   const fetchWorkingHours = async () => {
     try {
@@ -209,7 +157,7 @@ export default function EmployeeWageManagementSimple() {
       <Card>
         <CardContent className="p-6">
           <div className="text-center text-red-500">
-            Fehler beim Laden der Mitarbeiterdaten: {employeesError.message}
+            Fehler beim Laden der Mitarbeiterdaten: {employeesError.message || 'Unbekannter Fehler'}
           </div>
         </CardContent>
       </Card>
