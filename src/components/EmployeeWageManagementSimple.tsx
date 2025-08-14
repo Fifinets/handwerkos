@@ -78,10 +78,18 @@ export default function EmployeeWageManagementSimple() {
           return;
         }
 
-        // Query employees directly
+        // First try without company_id filter to see if employees exist at all
+        const { data: allEmployees, error: allError } = await supabase
+          .from('employees')
+          .select('id, first_name, last_name, email, phone, position, status, company_id')
+          .limit(10);
+          
+        console.log('All employees in database:', allEmployees, 'error:', allError);
+
+        // Query employees directly with company_id filter
         const { data, error } = await supabase
           .from('employees')
-          .select('id, first_name, last_name, email, phone, position, status')
+          .select('id, first_name, last_name, email, phone, position, status, company_id')
           .eq('company_id', companyId);
 
         console.log('Direct employees query result:', { data, error });
