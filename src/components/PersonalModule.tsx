@@ -5,6 +5,9 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
+import { useEmployees } from "@/hooks/useApi";
+import { useQueryClient } from "@tanstack/react-query";
+import { QUERY_KEYS } from "@/hooks/useApi";
 
 import PersonalStats from "./personal/PersonalStats";
 import EmployeeCard from "./personal/EmployeeCard";
@@ -42,13 +45,16 @@ interface NewEmployee {
 const PersonalModule = () => {
   const { toast: showToast } = useToast();
   const { user, session, inviteEmployee, companyId } = useSupabaseAuth();
+  const queryClient = useQueryClient();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
   const [isAddingEmployee, setIsAddingEmployee] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  
+  // Use the centralized useEmployees hook
+  const { data: employeesData, isLoading: loading, error: employeesError } = useEmployees();
+  const employees = employeesData?.items || [];
 
   const fetchEmployees = useCallback(async () => {
     try {
@@ -182,7 +188,8 @@ const PersonalModule = () => {
       toast.success(`Mitarbeiter ${newEmployee.firstName} ${newEmployee.lastName} wurde erfolgreich eingeladen! 
         Eine Einladungs-E-Mail wurde an ${newEmployee.email} gesendet.`);
 
-      await fetchEmployees();
+      // Invalidate React Query cache to refresh all employee lists
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.employees });
       setIsAddEmployeeOpen(false);
     } catch (error) {
       console.error('Unexpected error:', error);
