@@ -125,7 +125,10 @@ export default function EmployeeWageManagementSimple() {
         .select('id, first_name, last_name, status')
         .eq('company_id', companyId);
       
-      console.log('All employee statuses:', debugData?.map(emp => ({ name: emp.first_name + ' ' + emp.last_name, status: emp.status })));
+      console.log('=== EMPLOYEE STATUS DEBUG ===');
+      debugData?.forEach(emp => {
+        console.log(`Employee: ${emp.first_name} ${emp.last_name}, Status: "${emp.status}" (type: ${typeof emp.status})`);
+      });
 
       const { data, error } = await supabase
         .from('employees')
