@@ -1,9 +1,24 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useEmployees } from '@/hooks/useApi';
 import { supabase } from '@/integrations/supabase/client';
+import { createTestEmployees } from '@/utils/createTestEmployees';
+import { Button } from '@/components/ui/button';
 
 export default function DebugEmployees() {
   const { data: employeesData, isLoading, error } = useEmployees();
+  const [creating, setCreating] = useState(false);
+  
+  const handleCreateTestEmployees = async () => {
+    setCreating(true);
+    try {
+      await createTestEmployees();
+      // Reload the page to refresh data
+      window.location.reload();
+    } catch (err) {
+      console.error('Error creating test employees:', err);
+    }
+    setCreating(false);
+  };
   
   useEffect(() => {
     const debugAuth = async () => {
@@ -67,6 +82,14 @@ export default function DebugEmployees() {
         {'\n'}Items: {employeesData?.items?.length || 0} employees
         {'\n'}Data: {JSON.stringify(employeesData, null, 2)}
       </pre>
+      <Button 
+        onClick={handleCreateTestEmployees}
+        disabled={creating}
+        className="mt-4"
+        variant="outline"
+      >
+        {creating ? 'Creating...' : 'Create Test Employees'}
+      </Button>
     </div>
   );
 }
