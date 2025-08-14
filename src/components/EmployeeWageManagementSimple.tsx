@@ -95,13 +95,35 @@ export default function EmployeeWageManagementSimple() {
     try {
       console.log('Fetching employees...');
       
+      // Get current user session to determine company_id
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('No session found');
+        setLoading(false);
+        return;
+      }
+
+      // Try multiple ways to get company_id
+      const companyId = session.user.user_metadata?.company_id || 
+                       session.user.app_metadata?.company_id || 
+                       session.user.id;
+      
+      console.log('Using company_id:', companyId);
+
+      if (!companyId) {
+        console.error('No company ID available');
+        setLoading(false);
+        return;
+      }
+      
       // Fetch working hours first
       await fetchWorkingHours();
       
       const { data, error } = await supabase
         .from('employees')
         .select('id, first_name, last_name, email, phone, position, status')
-        .eq('status', 'aktiv')
+        .eq('status', 'Aktiv')
+        .eq('company_id', companyId)
         .order('first_name', { ascending: true });
 
       console.log('Employees result:', { data, error });

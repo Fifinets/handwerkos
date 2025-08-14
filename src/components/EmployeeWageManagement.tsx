@@ -68,10 +68,32 @@ export default function EmployeeWageManagement() {
   const fetchEmployees = async () => {
     setLoading(true);
     try {
+      // Get current user session to determine company_id
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('No session found');
+        setLoading(false);
+        return;
+      }
+
+      // Try multiple ways to get company_id
+      const companyId = session.user.user_metadata?.company_id || 
+                       session.user.app_metadata?.company_id || 
+                       session.user.id;
+      
+      console.log('Using company_id:', companyId);
+
+      if (!companyId) {
+        console.error('No company ID available');
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('employees')
         .select('*')
-        .eq('status', 'aktiv')
+        .eq('status', 'Aktiv')
+        .eq('company_id', companyId)
         .order('first_name', { ascending: true });
 
       if (error) throw error;
