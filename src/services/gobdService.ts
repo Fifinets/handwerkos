@@ -546,4 +546,4 @@ export class GoBDService {
   }
 }
 
-export const gobdService = GoBDService;
+export const gobdService = new GoBDService();

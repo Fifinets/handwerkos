@@ -755,4 +755,4 @@ export class FinanceService {
 }
 
 // Export singleton instance
-export const financeService = FinanceService;
+export const financeService = new FinanceService();

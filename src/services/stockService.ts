@@ -692,4 +692,4 @@ export class StockService {
 }
 
 // Export singleton instance
-export const stockService = StockService;
+export const stockService = new StockService();

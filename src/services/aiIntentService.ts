@@ -878,4 +878,4 @@ export class AIIntentService {
   }
 }
 
-export const aiIntentService = AIIntentService;
+export const aiIntentService = new AIIntentService();

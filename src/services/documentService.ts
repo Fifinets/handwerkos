@@ -589,4 +589,4 @@ export class DocumentService {
 }
 
 // Export singleton instance
-export const documentService = DocumentService;
+export const documentService = new DocumentService();

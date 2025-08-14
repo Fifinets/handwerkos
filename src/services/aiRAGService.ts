@@ -775,4 +775,4 @@ export class AIRAGService {
   }
 }
 
-export const aiRAGService = AIRAGService;
+export const aiRAGService = new AIRAGService();

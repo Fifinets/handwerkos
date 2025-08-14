@@ -320,4 +320,4 @@ export class WorkerService {
   }
 }
 
-export const workerService = WorkerService;
+export const workerService = new WorkerService();

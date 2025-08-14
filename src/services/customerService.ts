@@ -296,4 +296,4 @@ export class CustomerService {
 }
 
 // Export singleton instance
-export const customerService = CustomerService;
+export const customerService = new CustomerService();

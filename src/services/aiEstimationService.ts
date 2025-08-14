@@ -1053,4 +1053,4 @@ export async function applyEstimateWithApproval(args: {
   });
 }
 
-export const aiEstimationService = AIEstimationService;
+export const aiEstimationService = new AIEstimationService();

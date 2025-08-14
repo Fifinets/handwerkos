@@ -610,4 +610,4 @@ export class TimesheetService {
 }
 
 // Export singleton instance
-export const timesheetService = TimesheetService;
+export const timesheetService = new TimesheetService();

@@ -722,4 +722,4 @@ export class DATEVService {
   }
 }
 
-export const datevService = DATEVService;
+export const datevService = new DATEVService();

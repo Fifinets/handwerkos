@@ -399,4 +399,4 @@ export class NotificationService {
   }
 }
 
-export const notificationService = NotificationService;
+export const notificationService = new NotificationService();
