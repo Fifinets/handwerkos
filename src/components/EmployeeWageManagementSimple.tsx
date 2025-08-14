@@ -309,16 +309,6 @@ export default function EmployeeWageManagementSimple() {
             </Table>
           )}
 
-          {employees.length > 0 && (
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <div className="text-sm text-gray-600">
-                <strong>Erfolgreich angemeldelt:</strong>
-              </div>
-              <div className="mt-2 text-sm">
-                💼 <strong>{employees.length}</strong> Mitarbeiter geladen
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>
