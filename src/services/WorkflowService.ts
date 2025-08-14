@@ -7,6 +7,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { withApproval } from './approvalService';
 
 export interface WorkflowStep {
   id: string;
@@ -477,8 +478,6 @@ class WorkflowService {
     endDate?: string;
     userId?: string;
   }) {
-    const { withApproval } = await import('./approvalService');
-    
     return await withApproval('aiScheduleApply', {
       reason: 'KI-Planung soll auf den Kalender angewendet werden.',
       metadata: { 

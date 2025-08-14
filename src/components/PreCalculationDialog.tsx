@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calculator, Plus, Trash2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { applyEstimateWithApproval } from "@/services/aiEstimationService";
 
 interface MaterialItem {
   id: string;
@@ -295,9 +296,6 @@ const PreCalculationDialog: React.FC<PreCalculationDialogProps> = ({
 
   const saveCalculation = async () => {
     try {
-      // Import applyEstimateWithApproval für Human-Approval
-      const { applyEstimateWithApproval } = await import('../services/aiEstimationService');
-      
       const calculationData = {
         ...calculation,
         createdAt: new Date().toISOString(),
