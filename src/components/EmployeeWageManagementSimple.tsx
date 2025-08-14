@@ -130,9 +130,18 @@ export default function EmployeeWageManagementSimple() {
         console.log(`Employee: ${emp.first_name} ${emp.last_name}, Status: "${emp.status}" (type: ${typeof emp.status})`);
       });
 
+      // Test query without any filters first
+      console.log('Testing query WITHOUT company_id filter...');
+      const { data: testData, error: testError } = await supabase
+        .from('employees')
+        .select('id, first_name, last_name, email, phone, position, status, company_id')
+        .limit(10);
+      
+      console.log('Test query result:', { testData, testError });
+      
       const { data, error } = await supabase
         .from('employees')
-        .select('id, first_name, last_name, email, phone, position, status')
+        .select('id, first_name, last_name, email, phone, position, status, company_id')
         .eq('company_id', companyId)
         .order('first_name', { ascending: true });
 
