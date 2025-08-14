@@ -119,10 +119,17 @@ export default function EmployeeWageManagementSimple() {
       // Fetch working hours first
       await fetchWorkingHours();
       
+      // First check what status values exist
+      const { data: debugData } = await supabase
+        .from('employees')
+        .select('id, first_name, last_name, status')
+        .eq('company_id', companyId);
+      
+      console.log('All employee statuses:', debugData?.map(emp => ({ name: emp.first_name + ' ' + emp.last_name, status: emp.status })));
+
       const { data, error } = await supabase
         .from('employees')
         .select('id, first_name, last_name, email, phone, position, status')
-        .eq('status', 'Aktiv')
         .eq('company_id', companyId)
         .order('first_name', { ascending: true });
 
