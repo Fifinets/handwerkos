@@ -220,7 +220,7 @@ export const useDeleteCustomer = (options?: UseApiMutationOptions<void, string>)
   const { toast } = useToast();
   
   return useMutation({
-    mutationFn: customerService.deleteCustomer,
+    mutationFn: (id: string) => CustomerService.deleteCustomer(id),
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers });
       queryClient.removeQueries({ queryKey: QUERY_KEYS.customer(id) });
