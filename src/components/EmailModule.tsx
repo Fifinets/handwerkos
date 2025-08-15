@@ -753,12 +753,19 @@ const EmailModule = () => {
 
       console.log('Starting Gmail sync for user:', user.id);
       
-      const { data, error } = await supabase.functions.invoke('sync-gmail-emails', {
+      // Add timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Sync timeout after 30 seconds')), 30000)
+      );
+      
+      const syncPromise = supabase.functions.invoke('sync-gmail-emails', {
         body: {
           manual: true,
           forceFullSync: false
         }
       });
+      
+      const { data, error } = await Promise.race([syncPromise, timeoutPromise]);
       
       console.log('Gmail sync response:', { data, error });
       
