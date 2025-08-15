@@ -143,39 +143,44 @@ export function DocumentModule() {
   );
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-4 space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-4xl font-bold text-gray-900">Dokumente</h1>
-        <div className="flex items-center gap-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Dokumente</h1>
+        <div className="flex items-center gap-4">
           <Button 
             onClick={() => setShowAddQuote(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 text-lg font-medium"
+            className="bg-blue-600 hover:bg-blue-700 rounded-full"
           >
-            <Plus className="h-5 w-5 mr-3" />
+            <Plus className="h-4 w-4 mr-2" />
             Angebot erstellen
           </Button>
           <Button 
             onClick={() => setShowAddInvoice(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 text-lg font-medium"
+            className="bg-blue-600 hover:bg-blue-700 rounded-full"
           >
-            <Plus className="h-5 w-5 mr-3" />
+            <Plus className="h-4 w-4 mr-2" />
             Rechnung erstellen
           </Button>
         </div>
       </div>
 
-      <div className="flex items-center space-x-2">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Dokumente suchen..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8"
-          />
-        </div>
-      </div>
+      {/* Search Bar */}
+      <Card className="shadow-soft rounded-2xl overflow-hidden">
+        <CardContent className="p-4">
+          <div className="flex items-center space-x-2">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Dokumente suchen..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8 rounded-xl"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Tabs defaultValue="quotes" className="space-y-4">
         <TabsList>
@@ -197,8 +202,8 @@ export function DocumentModule() {
           {isLoading ? (
             <div className="space-y-4">
               {Array(3).fill(0).map((_, i) => (
-                <Card key={i}>
-                  <CardContent className="p-6">
+                <Card key={i} className="shadow-soft rounded-2xl">
+                  <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
@@ -221,7 +226,7 @@ export function DocumentModule() {
               ))}
             </div>
           ) : filteredQuotes.length === 0 ? (
-            <Card>
+            <Card className="shadow-soft rounded-2xl">
               <CardContent className="py-8 text-center">
                 <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Keine Angebote gefunden</h3>
@@ -237,15 +242,21 @@ export function DocumentModule() {
           ) : (
             <div className="grid gap-4">
               {filteredQuotes.map((quote) => (
-                <Card key={quote.id} className="hover:shadow-lg transition-shadow">
+                <Card key={quote.id} className="shadow-soft rounded-2xl hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="font-semibold">{quote.quote_number}</h3>
-                          <Badge variant={getStatusBadgeVariant(quote.status)}>
+                          <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs ${
+                            quote.status === 'Entwurf' ? 'bg-gray-100 text-gray-800' :
+                            quote.status === 'Versendet' ? 'bg-blue-100 text-blue-800' :
+                            quote.status === 'Angenommen' ? 'bg-green-100 text-green-800' :
+                            quote.status === 'Abgelehnt' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
                             {quote.status}
-                          </Badge>
+                          </span>
                         </div>
                         <h4 className="text-lg font-medium mb-1">{quote.title}</h4>
                         <p className="text-sm text-muted-foreground mb-2">
@@ -263,22 +274,23 @@ export function DocumentModule() {
                           {formatCurrency(quote.total_amount, quote.currency)}
                         </div>
                         <div className="flex gap-1">
-                          <Button variant="ghost" size="sm" title="Ansehen">
+                          <Button variant="ghost" size="sm" title="Ansehen" className="rounded-xl">
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" title="Bearbeiten">
+                          <Button variant="ghost" size="sm" title="Bearbeiten" className="rounded-xl">
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="rounded-xl"
                             title="Per E-Mail versenden"
                             onClick={() => handleSendEmail('quote', quote.id, quote)}
                             disabled={false}
                           >
                             <Mail className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" title="Herunterladen">
+                          <Button variant="ghost" size="sm" title="Herunterladen" className="rounded-xl">
                             <Download className="h-4 w-4" />
                           </Button>
                           <QuoteActions
@@ -301,8 +313,8 @@ export function DocumentModule() {
           {isLoading ? (
             <div className="space-y-4">
               {Array(3).fill(0).map((_, i) => (
-                <Card key={i}>
-                  <CardContent className="p-6">
+                <Card key={i} className="shadow-soft rounded-2xl">
+                  <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">

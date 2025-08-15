@@ -715,19 +715,19 @@ const TimeTrackingModule: React.FC = () => {
   };
   if (loading) {
     return (
-      <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="p-4 space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <Skeleton className="h-10 w-64" />
-          <div className="flex gap-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-48" />
+          <div className="flex gap-4">
             <Skeleton className="h-10 w-32" />
             <Skeleton className="h-10 w-40" />
           </div>
         </div>
 
         {/* Current Status Card */}
-        <Card className="mb-6">
-          <CardHeader>
+        <Card className="shadow-soft rounded-2xl">
+          <CardHeader className="pb-2">
             <Skeleton className="h-6 w-48" />
           </CardHeader>
           <CardContent>
@@ -751,8 +751,8 @@ const TimeTrackingModule: React.FC = () => {
         </Card>
 
         {/* Time Tracking Log */}
-        <Card>
-          <CardHeader>
+        <Card className="shadow-soft rounded-2xl">
+          <CardHeader className="pb-2">
             <Skeleton className="h-6 w-32" />
           </CardHeader>
           <CardContent>
@@ -760,7 +760,7 @@ const TimeTrackingModule: React.FC = () => {
               <Skeleton className="h-10 w-full" />
               <div className="space-y-3">
                 {Array(3).fill(0).map((_, i) => (
-                  <div key={i} className="border rounded-lg p-4">
+                  <div key={i} className="border rounded-xl p-4">
                     <Skeleton className="h-16 w-full" />
                   </div>
                 ))}
@@ -771,32 +771,80 @@ const TimeTrackingModule: React.FC = () => {
       </div>
     );
   }
-  return <div className="p-6 bg-gray-50 min-h-screen">
+  return <div className="p-4 space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-4xl font-bold text-gray-900">Zeiterfassung</h1>
-        <div className="flex items-center gap-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Zeiterfassung</h1>
+        <div className="flex items-center gap-4">
           {userRole === 'manager' && <Button 
               variant="outline" 
               onClick={() => setWorkingHoursDialog(true)}
-              className="rounded-lg px-6 py-3 text-lg font-medium"
+              className="rounded-full"
             >
-              <Settings className="h-5 w-5 mr-3" />
+              <Settings className="h-4 w-4 mr-2" />
               Arbeitszeiten
             </Button>}
           <Button 
             onClick={() => setNewEntryDialog(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 text-lg font-medium"
+            className="bg-blue-600 hover:bg-blue-700 rounded-full"
           >
-            <Plus className="h-5 w-5 mr-3" />
+            <Plus className="h-4 w-4 mr-2" />
             {userRole === 'manager' ? 'Zeiterfassung starten' : 'Meine Zeiterfassung'}
           </Button>
         </div>
       </div>
 
+      {/* KPI Bar */}
+      <div className="grid grid-cols-4 gap-4">
+        <Card className="shadow-soft rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Heute erfasst</p>
+                <p className="text-2xl font-bold">{formatMinutesToTime(getTotalHours())}</p>
+              </div>
+              <Clock className="h-8 w-8 text-blue-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-soft rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Aktive Mitarbeiter</p>
+                <p className="text-2xl font-bold">{timeEntries.filter(e => e.status === 'aktiv').length}</p>
+              </div>
+              <Users className="h-8 w-8 text-green-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-soft rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Pausierte</p>
+                <p className="text-2xl font-bold">{timeEntries.filter(e => e.status === 'pausiert').length}</p>
+              </div>
+              <Pause className="h-8 w-8 text-yellow-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-soft rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Status</p>
+                <p className="text-2xl font-bold">{isOnline ? 'Online' : 'Offline'}</p>
+              </div>
+              {isOnline ? <Wifi className="h-8 w-8 text-purple-500 opacity-50" /> : <WifiOff className="h-8 w-8 text-red-500 opacity-50" />}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Current Status */}
-      <Card>
-        <CardHeader>
+      <Card className="shadow-soft rounded-2xl">
+        <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5" />
             Aktuelle Zeiterfassung
@@ -828,7 +876,7 @@ const TimeTrackingModule: React.FC = () => {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={pauseTimeTracking} className="flex-1">
+                <Button variant="outline" onClick={pauseTimeTracking} className="flex-1 rounded-xl">
                   {activeEntry.status === 'aktiv' ? <>
                       <Pause className="w-4 h-4 mr-2" />
                       Pausieren
@@ -837,7 +885,7 @@ const TimeTrackingModule: React.FC = () => {
                       Fortsetzen
                     </>}
                 </Button>
-                <Button variant="destructive" onClick={stopTimeTracking} className="flex-1">
+                <Button variant="destructive" onClick={stopTimeTracking} className="flex-1 rounded-xl">
                   <Square className="w-4 h-4 mr-2" />
                   Beenden
                 </Button>
@@ -854,8 +902,8 @@ const TimeTrackingModule: React.FC = () => {
       </Card>
 
       {/* Zeiterfassungs-Log */}
-      <Card>
-        <CardHeader>
+      <Card className="shadow-soft rounded-2xl">
+        <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5" />
             Zeiterfassung

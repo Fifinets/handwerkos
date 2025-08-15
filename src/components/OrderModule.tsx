@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { FileText, Plus, Search, Calendar, User, Euro, AlertTriangle, CheckCircle, Clock, X, ArrowRight, Building2 } from "lucide-react";
+import { FileText, Plus, Search, Calendar, User, Euro, AlertTriangle, CheckCircle, Clock, X, ArrowRight, Building2, TrendingUp, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { workflowService } from "@/services/WorkflowService";
 import { useToast } from "@/hooks/use-toast";
@@ -204,32 +204,85 @@ const OrderModule = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-4 space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-4xl font-bold text-gray-900">Auftragsverwaltung</h1>
-        <div className="flex items-center gap-6">
-          <Button
-            onClick={() => setIsAddDialogOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 text-lg font-medium"
-          >
-            <Plus className="h-5 w-5 mr-3" />
-            Neuer Auftrag
-          </Button>
-        </div>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Auftragsverwaltung</h1>
+        <Button
+          onClick={() => setIsAddDialogOpen(true)}
+          className="bg-blue-600 hover:bg-blue-700 rounded-full"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Neuer Auftrag
+        </Button>
       </div>
 
-      <div className="flex gap-4 items-center">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Aufträge durchsuchen..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+      {/* KPI Bar */}
+      <div className="grid grid-cols-4 gap-4">
+        <Card className="shadow-soft rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Offene Aufträge</p>
+                <p className="text-2xl font-bold">{orders.filter(o => o.status !== 'Abgeschlossen' && o.status !== 'Storniert').length}</p>
+              </div>
+              <Package className="h-8 w-8 text-blue-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-soft rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">In Bearbeitung</p>
+                <p className="text-2xl font-bold">{orders.filter(o => o.status === 'In Bearbeitung').length}</p>
+              </div>
+              <Clock className="h-8 w-8 text-yellow-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-soft rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Abgeschlossen</p>
+                <p className="text-2xl font-bold">{orders.filter(o => o.status === 'Abgeschlossen').length}</p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-green-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-soft rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Gesamtwert</p>
+                <p className="text-2xl font-bold">
+                  {formatCurrency(orders.reduce((sum, o) => sum + (o.total_amount || 0), 0))}
+                </p>
+              </div>
+              <Euro className="h-8 w-8 text-purple-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Search Bar */}
+      <Card className="shadow-soft rounded-2xl overflow-hidden">
+        <CardContent className="p-4">
+          <div className="flex gap-4 items-center">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Aufträge durchsuchen..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 rounded-xl"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {loading ? (
@@ -267,7 +320,7 @@ const OrderModule = () => {
           filteredOrders.map((order) => (
             <Card 
               key={order.id} 
-              className="hover:shadow-lg transition-shadow cursor-pointer"
+              className="shadow-soft rounded-2xl hover:shadow-md transition-shadow cursor-pointer"
               onDoubleClick={() => handleDoubleClickOrder(order)}
             >
               <CardHeader className="pb-3">
@@ -276,9 +329,9 @@ const OrderModule = () => {
                     <div className="flex items-center gap-2 mb-2">
                       {getStatusIcon(order.status)}
                       <CardTitle className="text-lg">{order.order_number}</CardTitle>
-                      <Badge className={getStatusColor(order.status)}>
+                      <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs ${getStatusColor(order.status)}`}>
                         {order.status}
-                      </Badge>
+                      </span>
                     </div>
                     <CardDescription className="font-medium text-gray-900">
                       {order.title}
@@ -287,9 +340,9 @@ const OrderModule = () => {
                 </div>
                 
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge variant="outline" className={getPriorityColor(order.priority)}>
+                  <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs ${getPriorityColor(order.priority)}`}>
                     {order.priority}
-                  </Badge>
+                  </span>
                 </div>
               </CardHeader>
 
@@ -333,7 +386,7 @@ const OrderModule = () => {
                       size="sm"
                       variant="default"
                       onClick={() => handleCreateProject(order.id, order.title)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
                     >
                       <ArrowRight className="h-3 w-3 mr-1" />
                       Projekt erstellen
@@ -343,6 +396,7 @@ const OrderModule = () => {
                   <Button
                     size="sm"
                     variant="outline"
+                    className="rounded-xl"
                     onClick={() => {
                       setSelectedOrder(order);
                       setIsEditDialogOpen(true);

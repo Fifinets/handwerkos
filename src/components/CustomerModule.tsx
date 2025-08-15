@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Plus, Search, Phone, Mail, MapPin, Calendar, FileText, Euro } from "lucide-react";
+import { Users, Plus, Search, Phone, Mail, MapPin, Calendar, FileText, Euro, TrendingUp, Building2, UserCheck } from "lucide-react";
 import { Customer } from "@/types";
 import { useCustomers, useCreateCustomer, useUpdateCustomer } from "@/hooks/useApi";
 import AddCustomerDialog from "./AddCustomerDialog";
@@ -86,19 +86,65 @@ const CustomerModule = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-4 space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-4xl font-bold text-gray-900">Kunden & Aufträge</h1>
-        <div className="flex items-center gap-6">
-          <Button
-            onClick={() => setIsAddCustomerOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 text-lg font-medium"
-          >
-            <Plus className="h-5 w-5 mr-3" />
-            Neuer Kunde
-          </Button>
-        </div>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Kunden & Aufträge</h1>
+        <Button
+          onClick={() => setIsAddCustomerOpen(true)}
+          className="bg-blue-600 hover:bg-blue-700 rounded-full"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Neuer Kunde
+        </Button>
+      </div>
+
+      {/* KPI Bar */}
+      <div className="grid grid-cols-4 gap-4">
+        <Card className="shadow-soft rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Aktive Kunden</p>
+                <p className="text-2xl font-bold">{customers.filter(c => c.status === 'Aktiv').length}</p>
+              </div>
+              <Users className="h-8 w-8 text-blue-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-soft rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Premium Kunden</p>
+                <p className="text-2xl font-bold">{customers.filter(c => c.status === 'Premium').length}</p>
+              </div>
+              <UserCheck className="h-8 w-8 text-green-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-soft rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Neue diesen Monat</p>
+                <p className="text-2xl font-bold">0</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-purple-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-soft rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Gesamt Umsatz</p>
+                <p className="text-2xl font-bold">€0</p>
+              </div>
+              <Euro className="h-8 w-8 text-yellow-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs defaultValue="customers" className="space-y-6">
@@ -108,9 +154,9 @@ const CustomerModule = () => {
           <TabsTrigger value="offers">Angebote</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="customers" className="space-y-6">
+        <TabsContent value="customers" className="space-y-4">
           {/* Search Bar */}
-          <Card>
+          <Card className="shadow-soft rounded-2xl overflow-hidden">
             <CardContent className="p-4">
               <div className="flex items-center gap-4">
                 <div className="relative flex-1">
@@ -119,10 +165,10 @@ const CustomerModule = () => {
                     placeholder="Kunde suchen..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 rounded-xl"
                   />
                 </div>
-                <Button variant="outline">Filter</Button>
+                <Button variant="outline" className="rounded-xl">Filter</Button>
               </div>
             </CardContent>
           </Card>
@@ -173,15 +219,15 @@ const CustomerModule = () => {
                 </Card>
               ) : (
                 filteredCustomers.map((customer) => (
-                  <Card key={customer.id} className="hover:shadow-lg transition-shadow">
-                    <CardContent className="p-6">
+                  <Card key={customer.id} className="shadow-soft rounded-2xl hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-semibold">{customer.company_name}</h3>
-                            <Badge className={getStatusColor(customer.status)}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="text-base font-semibold">{customer.company_name}</h3>
+                            <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs ${getStatusColor(customer.status)}`}>
                               {customer.status}
-                            </Badge>
+                            </span>
                           </div>
                           <p className="text-gray-600 mb-3">{customer.contact_person}</p>
                           
@@ -216,6 +262,7 @@ const CustomerModule = () => {
                             <Button
                               size="sm" 
                               variant="outline"
+                              className="rounded-xl"
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
@@ -226,7 +273,7 @@ const CustomerModule = () => {
                             </Button>
                             <Button
                               size="sm" 
-                              
+                              className="rounded-xl"
                               onClick={() => handleEditCustomer(customer)}
                             >
                               Bearbeiten
@@ -245,15 +292,15 @@ const CustomerModule = () => {
         <TabsContent value="orders" className="space-y-6">
           <div className="grid gap-4">
             {recentOrders.map((order) => (
-              <Card key={order.id} className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
+              <Card key={order.id} className="shadow-soft rounded-2xl hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold">{order.id}</h3>
-                        <Badge className={getStatusColor(order.status)}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-base font-semibold">{order.id}</h3>
+                        <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs ${getStatusColor(order.status)}`}>
                           {order.status}
-                        </Badge>
+                        </span>
                       </div>
                       <p className="text-gray-600 mb-1">{order.customer}</p>
                       <p className="text-sm text-gray-500">{order.project}</p>
@@ -265,7 +312,7 @@ const CustomerModule = () => {
                         {order.date}
                       </p>
                       <div className="flex gap-2 mt-2">
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" className="rounded-xl">
                           <FileText className="h-4 w-4 mr-1" />
                           Details
                         </Button>
@@ -278,9 +325,9 @@ const CustomerModule = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="offers" className="space-y-6">
-          <Card>
-            <CardHeader>
+        <TabsContent value="offers" className="space-y-4">
+          <Card className="shadow-soft rounded-2xl overflow-hidden">
+            <CardHeader className="pb-2">
               <CardTitle>Angebote erstellen</CardTitle>
               <CardDescription>Neue Angebote für Ihre Kunden erstellen</CardDescription>
             </CardHeader>
@@ -304,11 +351,11 @@ const CustomerModule = () => {
                 </div>
               </div>
               <div className="flex gap-2 mt-6">
-                <Button >
+                <Button className="rounded-xl">
                   <FileText className="h-4 w-4 mr-2" />
                   Angebot erstellen
                 </Button>
-                <Button variant="outline">Vorlage laden</Button>
+                <Button variant="outline" className="rounded-xl">Vorlage laden</Button>
               </div>
             </CardContent>
           </Card>

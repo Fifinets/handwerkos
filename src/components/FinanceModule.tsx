@@ -383,101 +383,81 @@ const FinanceModule = () => {
   }
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-4 space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-4xl font-bold text-gray-900">Finanzen & Buchhaltung</h1>
-        <div className="flex items-center gap-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Finanzen & Buchhaltung</h1>
+        <div className="flex items-center gap-4">
           <Button 
             variant="outline"
-            className="rounded-lg px-6 py-3 text-lg font-medium"
+            className="rounded-full"
           >
-            <FileSpreadsheet className="h-5 w-5 mr-3" />
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 text-lg font-medium">
-            <Plus className="h-5 w-5 mr-3" />
+          <Button className="bg-blue-600 hover:bg-blue-700 rounded-full">
+            <Plus className="h-4 w-4 mr-2" />
             Neue Rechnung
           </Button>
         </div>
       </div>
 
-      {/* Enhanced Financial Dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI Bar */}
+      <div className="grid grid-cols-4 gap-4">
         {/* Monatsumsatz */}
-        <Card>
+        <Card className="shadow-soft rounded-2xl">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">💰 Monatsumsatz</p>
+                <p className="text-sm text-muted-foreground">Monatsumsatz</p>
                 <p className="text-2xl font-bold text-green-700">
                   {formatCurrency(stats.monthly_revenue)}
                 </p>
               </div>
-              <div className="flex items-center gap-1">
-                {getTrendIcon(stats.revenue_trend)}
-                <span className={`text-xs ${stats.revenue_trend > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatPercentage(stats.revenue_trend)}
-                </span>
-              </div>
+              <Euro className="h-8 w-8 text-green-500 opacity-50" />
             </div>
           </CardContent>
         </Card>
 
         {/* Monatsausgaben */}
-        <Card>
+        <Card className="shadow-soft rounded-2xl">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">💸 Monatsausgaben</p>
+                <p className="text-sm text-muted-foreground">Monatsausgaben</p>
                 <p className="text-2xl font-bold text-red-700">
                   {formatCurrency(stats.monthly_expenses)}
                 </p>
               </div>
-              <div className="flex items-center gap-1">
-                {getTrendIcon(stats.expense_trend)}
-                <span className={`text-xs ${stats.expense_trend < 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatPercentage(stats.expense_trend)}
-                </span>
-              </div>
+              <TrendingDown className="h-8 w-8 text-red-500 opacity-50" />
             </div>
           </CardContent>
         </Card>
 
         {/* Monatsgewinn */}
-        <Card>
+        <Card className="shadow-soft rounded-2xl">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">📈 Monatsgewinn</p>
+                <p className="text-sm text-muted-foreground">Monatsgewinn</p>
                 <p className="text-2xl font-bold text-blue-700">
                   {formatCurrency(stats.monthly_profit)}
                 </p>
               </div>
-              <div className="flex items-center gap-1">
-                {getTrendIcon(stats.profit_trend)}
-                <span className={`text-xs ${stats.profit_trend > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatPercentage(stats.profit_trend)}
-                </span>
-              </div>
+              <TrendingUp className="h-8 w-8 text-blue-500 opacity-50" />
             </div>
           </CardContent>
         </Card>
 
         {/* Offene Posten */}
-        <Card>
+        <Card className="shadow-soft rounded-2xl">
           <CardContent className="p-4">
             <div>
-              <p className="text-sm text-gray-600">⚠️ Offene Posten</p>
+              <p className="text-sm text-muted-foreground">Offene Posten</p>
               <p className="text-2xl font-bold text-orange-700">
                 {formatCurrency(stats.total_outstanding)}
               </p>
-              <div className="flex items-center gap-1 mt-1">
-                <AlertTriangle className="h-4 w-4 text-red-500" />
-                <span className="text-xs text-red-600">
-                  {stats.overdue_count} überfällig
-                </span>
-              </div>
+              <AlertTriangle className="h-8 w-8 text-orange-500 opacity-50" />
             </div>
           </CardContent>
         </Card>

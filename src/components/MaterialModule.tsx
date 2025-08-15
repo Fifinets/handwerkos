@@ -89,84 +89,84 @@ const MaterialModule = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-4 space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-4xl font-bold text-gray-900">Materialwirtschaft</h1>
-        <div className="flex items-center gap-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Materialwirtschaft</h1>
+        <div className="flex items-center gap-4">
           <Button 
             variant="outline"
-            className="rounded-lg px-6 py-3 text-lg font-medium"
+            className="rounded-full"
           >
-            <Truck className="h-5 w-5 mr-3" />
+            <Truck className="h-4 w-4 mr-2" />
             Bestellung
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 text-lg font-medium">
-            <Plus className="h-5 w-5 mr-3" />
+          <Button className="bg-blue-600 hover:bg-blue-700 rounded-full">
+            <Plus className="h-4 w-4 mr-2" />
             Material hinzufügen
           </Button>
         </div>
       </div>
 
-      {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
+      {/* KPI Bar */}
+      <div className="grid grid-cols-4 gap-4">
+        <Card className="shadow-soft rounded-2xl">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Lagerposten</p>
+                <p className="text-sm text-muted-foreground">Lagerposten</p>
                 {isLoading ? (
                   <Skeleton className="h-8 w-16" />
                 ) : (
                   <p className="text-2xl font-bold">{totalItems}</p>
                 )}
               </div>
-              <Package className="h-8 w-8 text-blue-600" />
+              <Package className="h-8 w-8 text-blue-500 opacity-50" />
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="shadow-soft rounded-2xl">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Lagerwert</p>
+                <p className="text-sm text-muted-foreground">Lagerwert</p>
                 {isLoading ? (
                   <Skeleton className="h-8 w-20" />
                 ) : (
                   <p className="text-2xl font-bold">€{totalValue.toLocaleString('de-DE', { minimumFractionDigits: 0 })}</p>
                 )}
               </div>
-              <TrendingUp className="h-8 w-8 text-green-600" />
+              <TrendingUp className="h-8 w-8 text-green-500 opacity-50" />
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="shadow-soft rounded-2xl">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Niedrige Bestände</p>
+                <p className="text-sm text-muted-foreground">Niedrige Bestände</p>
                 {isLoading ? (
                   <Skeleton className="h-8 w-8" />
                 ) : (
                   <p className="text-2xl font-bold">{lowStockItems}</p>
                 )}
               </div>
-              <AlertTriangle className="h-8 w-8 text-yellow-600" />
+              <AlertTriangle className="h-8 w-8 text-yellow-500 opacity-50" />
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="shadow-soft rounded-2xl">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Offene Bestellungen</p>
+                <p className="text-sm text-muted-foreground">Offene Bestellungen</p>
                 {isLoading ? (
                   <Skeleton className="h-8 w-8" />
                 ) : (
                   <p className="text-2xl font-bold">{openOrders}</p>
                 )}
               </div>
-              <Truck className="h-8 w-8 text-purple-600" />
+              <Truck className="h-8 w-8 text-purple-500 opacity-50" />
             </div>
           </CardContent>
         </Card>
@@ -187,8 +187,8 @@ const MaterialModule = () => {
 
           {isLoading ? (
             Array(4).fill(0).map((_, i) => (
-              <Card key={i} className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
+              <Card key={i} className="shadow-soft rounded-2xl hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
@@ -215,7 +215,7 @@ const MaterialModule = () => {
               </Card>
             ))
           ) : materials.length === 0 ? (
-            <Card>
+            <Card className="shadow-soft rounded-2xl">
               <CardContent className="p-6 text-center">
                 <p className="text-gray-500">Keine Materialien gefunden.</p>
               </CardContent>
@@ -224,15 +224,15 @@ const MaterialModule = () => {
             materials.map((material) => {
               const status = getStatusFromStockLevel(material);
               return (
-                <Card key={material.id} className="hover:shadow-lg transition-shadow">
-                  <CardContent className="p-6 flex flex-col h-full">
+                <Card key={material.id} className="shadow-soft rounded-2xl hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 flex flex-col h-full">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <h4 className="text-lg font-semibold">{material.name}</h4>
-                          <Badge className={getStatusColor(status)}>
+                          <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs ${getStatusColor(status)}`}>
                             {status}
-                          </Badge>
+                          </span>
                         </div>
                         <p className="text-gray-600 mb-2">{material.category}</p>
                         <p className="text-sm text-gray-500">Art.-Nr: {material.sku}</p>
@@ -289,6 +289,7 @@ const MaterialModule = () => {
                       <Button
                         size="sm" 
                         variant="outline"
+                        className="rounded-xl"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -301,13 +302,14 @@ const MaterialModule = () => {
                       <Button
                         size="sm" 
                         variant="outline"
+                        className="rounded-xl"
                         onClick={() => handleEditMaterial(material)}
                       >
                         <Edit className="h-4 w-4 mr-1" />
                         Bearbeiten
                       </Button>
                       {status !== 'Verfügbar' && (
-                        <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+                        <Button size="sm" className="bg-orange-600 hover:bg-orange-700 rounded-xl">
                           <Truck className="h-4 w-4 mr-1" />
                           Nachbestellen
                         </Button>
@@ -321,9 +323,9 @@ const MaterialModule = () => {
         </div>
 
         {/* Recent Orders & Quick Actions */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
+        <div className="space-y-4">
+          <Card className="shadow-soft rounded-2xl">
+            <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2">
                 <Truck className="h-5 w-5" />
                 Letzte Bestellungen
@@ -349,14 +351,14 @@ const MaterialModule = () => {
                   <p className="text-sm text-gray-500 text-center py-4">Keine aktuellen Bestellungen</p>
                 ) : (
                   recentOrders.map((order) => (
-                    <div key={order.id} className="p-3 bg-gray-50 rounded-lg">
+                    <div key={order.id} className="p-3 bg-gray-50 rounded-xl">
                       <div className="flex items-center justify-between mb-2">
                         <p className="font-medium text-sm">{order.transfer_number || order.id}</p>
-                        <Badge className={getStatusColor(order.status)}>
+                        <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs ${getStatusColor(order.status)}`}>
                           {order.status === 'completed' ? 'Geliefert' : 
                            order.status === 'in_transit' ? 'Unterwegs' : 
                            order.status === 'pending' ? 'Bestellt' : order.status}
-                        </Badge>
+                        </span>
                       </div>
                       <p className="text-sm text-gray-600 mb-1">{order.from_location || 'Unbekannter Lieferant'}</p>
                       <div className="flex justify-between items-center">
