@@ -13,7 +13,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { format } from 'date-fns';
+import { format, formatDistance } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -297,6 +297,15 @@ export function EmailModule() {
       setEmails(prev => prev.map(email => 
         emailIds.includes(email.id) ? { ...email, is_read: isRead } : email
       ));
+    }
+  };
+
+  // Helper function for date formatting
+  const formatDateToTime = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'HH:mm');
+    } catch (error) {
+      return '00:00';
     }
   };
 
@@ -1099,21 +1108,74 @@ export function EmailModule() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      <div className="p-6 border-b bg-card">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-pink-600 bg-clip-text text-transparent flex items-center gap-3">
-          <Mail className="h-8 w-8 text-pink-600" />
-          E-Mail Verwaltung
-        </h1>
-        <p className="text-gray-600 mt-2">Zentrale E-Mail-Verwaltung und Kundenkorrespondenz</p>
+    <div className="p-4 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">E-Mail Verwaltung</h1>
+        <Button className="bg-blue-600 hover:bg-blue-700 rounded-full">
+          <Plus className="h-4 w-4 mr-2" />
+          Neue E-Mail
+        </Button>
       </div>
-      {renderToolbar()}
-      
-      <div className="flex-1 flex overflow-hidden">
-        {renderSidebar()}
-        {renderEmailList()}
-        {renderEmailContent()}
+
+      {/* KPI Bar */}
+      <div className="grid grid-cols-4 gap-4">
+        <Card className="shadow-soft rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Ungelesen</p>
+                <p className="text-2xl font-bold">{emails.filter(e => !e.is_read).length}</p>
+              </div>
+              <Mail className="h-8 w-8 text-blue-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-soft rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Markiert</p>
+                <p className="text-2xl font-bold">{emails.filter(e => e.is_starred).length}</p>
+              </div>
+              <Star className="h-8 w-8 text-yellow-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-soft rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Heute</p>
+                <p className="text-2xl font-bold">{emails.filter(e => new Date(e.received_at).toDateString() === new Date().toDateString()).length}</p>
+              </div>
+              <Calendar className="h-8 w-8 text-green-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-soft rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Gesamt</p>
+                <p className="text-2xl font-bold">{emails.length}</p>
+              </div>
+              <Archive className="h-8 w-8 text-purple-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      <Card className="shadow-soft rounded-2xl flex-1">
+        <CardContent className="p-0">
+          {renderToolbar()}
+          <div className="flex overflow-hidden">
+            {renderSidebar()}
+            {renderEmailList()}
+            {renderEmailContent()}
+          </div>
+        </CardContent>
+      </Card>
       
       {renderComposeDialog()}
     </div>
