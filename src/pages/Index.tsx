@@ -17,7 +17,7 @@ import PlannerModule from "@/components/PlannerModule";
 import TimeTrackingModule from "@/components/TimeTrackingModule";
 import { DocumentModule } from "@/components/DocumentModule";
 import { CompanySettingsSimple as CompanySettingsModule } from "@/components/CompanySettingsSimple";
-import { EmailModule } from "@/components/EmailModule";
+import EmailModule from "@/components/EmailModule";
 import { VacationManagement } from "@/components/VacationManagement";
 import DashboardCalendar from "@/components/DashboardCalendar";
 import DashboardStatsWithKpis from "@/components/DashboardStatsWithKpis";
