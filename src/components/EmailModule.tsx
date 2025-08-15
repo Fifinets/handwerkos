@@ -267,7 +267,7 @@ const EmailModule = () => {
   const fetchEmails = useCallback(async () => {
     setLoading(true);
     
-    // Try to fetch real emails from database first
+    // Fetch real emails from database
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -289,7 +289,7 @@ const EmailModule = () => {
             .order('received_at', { ascending: false })
             .limit(50);
 
-          if (!error && realEmails && realEmails.length > 0) {
+          if (!error && realEmails) {
             console.log(`Loaded ${realEmails.length} real emails from database`);
             const processedEmails = realEmails.map(email => ({
               ...email,
@@ -298,15 +298,22 @@ const EmailModule = () => {
             setEmails(processedEmails);
             setLoading(false);
             return;
+          } else {
+            console.error('Error loading emails from database:', error);
           }
         }
       }
     } catch (error) {
-      console.log('No real emails found, showing demo data');
+      console.error('Error fetching emails:', error);
     }
     
-    // Show mock data for demo (until Gmail sync is fully working)
-    console.log('Loading demo emails since Gmail sync has issues');
+    // If no emails in database, show empty state instead of mock data
+    console.log('No emails in database - user needs to sync Gmail first');
+    setEmails([]);
+    setLoading(false);
+    return;
+
+    // Remove mock data completely
     const mockEmails: Email[] = [
       {
         id: '1',
@@ -760,13 +767,17 @@ const EmailModule = () => {
       );
       
       const syncPromise = supabase.functions.invoke('sync-gmail-emails', {
-        body: {
+        body: JSON.stringify({
           manual: true,
           forceFullSync: false
+        }),
+        headers: {
+          'Content-Type': 'application/json'
         }
       });
       
-      const { data, error } = await Promise.race([syncPromise, timeoutPromise]);
+      const result = await Promise.race([syncPromise, timeoutPromise]);
+      const { data, error } = result;
       
       console.log('Gmail sync response:', { data, error });
       
