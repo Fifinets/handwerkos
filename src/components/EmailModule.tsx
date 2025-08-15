@@ -237,30 +237,118 @@ const EmailModule = () => {
   };
 
   const fetchEmails = useCallback(async () => {
-    if (!companyEmail) return;
-    
     setLoading(true);
-    const { data, error } = await supabase
-      .from('emails')
-      .select(`
-        *,
-        email_categories (name, color, icon),
-        customers (company_name, contact_person, phone, website)
-      `)
-      .eq('recipient_email', companyEmail)
-      .order('received_at', { ascending: false })
-      .limit(100);
+    
+    // Mock data für Demo-Zwecke
+    const mockEmails: Email[] = [
+      {
+        id: '1',
+        subject: 'Angebot für Badezimmer-Sanierung benötigt',
+        sender_email: 'kunde@beispiel.de',
+        sender_name: 'Max Mustermann',
+        content: 'Guten Tag,\n\nich würde gerne ein Angebot für die Sanierung meines Badezimmers einholen. Das Bad ist ca. 8qm groß und soll komplett renoviert werden.\n\nBitte kontaktieren Sie mich für weitere Details.\n\nMit freundlichen Grüßen\nMax Mustermann',
+        html_content: '<p>Guten Tag,</p><p>ich würde gerne ein Angebot für die Sanierung meines Badezimmers einholen. Das Bad ist ca. 8qm groß und soll komplett renoviert werden.</p><p>Bitte kontaktieren Sie mich für weitere Details.</p><p>Mit freundlichen Grüßen<br>Max Mustermann</p>',
+        received_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // vor 2 Stunden
+        is_read: false,
+        is_starred: true,
+        is_archived: false,
+        priority: 'high',
+        thread_id: 'thread-1',
+        reply_count: 0,
+        attachments: [],
+        ai_summary: 'Kunde Max Mustermann benötigt ein Angebot für eine komplette Badezimmer-Sanierung (8qm). Hohe Priorität für Follow-up.',
+        ai_confidence: 0.92,
+        ai_category: 'Angebot',
+        email_categories: {
+          name: 'Anfragen',
+          color: '#3b82f6',
+          icon: 'message-square'
+        },
+        customers: {
+          company_name: 'Mustermann GmbH',
+          contact_person: 'Max Mustermann',
+          phone: '+49 123 456789',
+          website: 'www.mustermann.de'
+        }
+      },
+      {
+        id: '2',
+        subject: 'Nachfrage Küchenumbau - Dringend',
+        sender_email: 'mueller@firma.de',
+        sender_name: 'Anna Müller',
+        content: 'Hallo,\n\nwir planen einen kompletten Küchenumbau in unserem Restaurant und benötigen dringend einen Kostenvoranschlag.\n\nTermin wäre bereits nächste Woche möglich.\n\nViele Grüße\nAnna Müller',
+        received_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), // vor 4 Stunden
+        is_read: true,
+        is_starred: false,
+        is_archived: false,
+        priority: 'urgent',
+        thread_id: 'thread-2',
+        reply_count: 1,
+        attachments: [{ name: 'grundriss.pdf', size: '2.3MB' }],
+        ai_summary: 'Restaurant-Küchenumbau, dringend, Termin nächste Woche möglich. Grundriss-PDF angehängt.',
+        ai_confidence: 0.88,
+        ai_category: 'Auftrag',
+        email_categories: {
+          name: 'Bestellungen',
+          color: '#10b981',
+          icon: 'shopping-cart'
+        },
+        customers: {
+          company_name: 'Restaurant Müller',
+          contact_person: 'Anna Müller',
+          phone: '+49 987 654321'
+        }
+      },
+      {
+        id: '3',
+        subject: 'Rechnung #2024-0154 - Zahlungsbestätigung',
+        sender_email: 'buchhaltung@kunde-xyz.de',
+        sender_name: 'Buchhaltung KundeXYZ',
+        content: 'Sehr geehrte Damen und Herren,\n\nhiermit bestätigen wir die Zahlung Ihrer Rechnung #2024-0154 über 3.450,00 EUR.\n\nDie Überweisung wurde heute ausgeführt.\n\nMit freundlichen Grüßen\nBuchhaltung',
+        received_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), // vor 6 Stunden  
+        is_read: true,
+        is_starred: false,
+        is_archived: false,
+        priority: 'normal',
+        thread_id: 'thread-3',
+        reply_count: 0,
+        ai_summary: 'Zahlungsbestätigung für Rechnung #2024-0154 über 3.450,00 EUR erhalten.',
+        ai_confidence: 0.95,
+        ai_category: 'Rechnung',
+        email_categories: {
+          name: 'Rechnungen',
+          color: '#f59e0b',
+          icon: 'receipt'
+        }
+      },
+      {
+        id: '4',
+        subject: 'Newsletter: Neue Werkzeuge im Sortiment',
+        sender_email: 'info@werkzeug-shop.de',
+        sender_name: 'Werkzeug-Shop Newsletter',
+        content: 'Liebe Kunden,\n\nentdecken Sie unsere neuen Werkzeuge für Handwerker...',
+        received_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // vor 1 Tag
+        is_read: false,
+        is_starred: false,
+        is_archived: false,
+        priority: 'low',
+        thread_id: 'thread-4',
+        reply_count: 0,
+        ai_category: 'Newsletter',
+        email_categories: {
+          name: 'Newsletter',
+          color: '#8b5cf6',
+          icon: 'newspaper'
+        }
+      }
+    ];
 
-    if (!error) {
-      // Group emails by thread_id for conversation view
-      const processedEmails = (data || []).map(email => ({
-        ...email,
-        reply_count: (data || []).filter(e => e.thread_id === email.thread_id).length - 1
-      }));
-      setEmails(processedEmails);
-    }
+    // Simuliere API-Aufruf
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    setEmails(mockEmails);
     setLoading(false);
-  }, [companyEmail]);
+  }, []);
 
   const setupRealtimeSubscription = useCallback(() => {
     const channel = supabase
@@ -526,14 +614,32 @@ const EmailModule = () => {
   // Gmail OAuth Integration
   const connectGmail = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('initiate-gmail-oauth');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Fehler",
+          description: "Sie müssen angemeldet sein, um Gmail zu verbinden.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('initiate-gmail-oauth', {
+        body: {
+          user_id: user.id
+        }
+      });
       
-      if (data?.auth_url) {
-        window.open(data.auth_url, '_blank', 'width=500,height=600');
+      if (data?.authUrl) {
+        window.open(data.authUrl, '_blank', 'width=500,height=600');
+        toast({
+          title: "Gmail-Verbindung",
+          description: "Ein neues Fenster wurde geöffnet. Bitte autorisieren Sie den Zugriff auf Gmail."
+        });
       } else {
         toast({
           title: "Fehler",
-          description: "Gmail-Verbindung konnte nicht gestartet werden.",
+          description: error?.message || "Gmail-Verbindung konnte nicht gestartet werden.",
           variant: "destructive"
         });
       }
