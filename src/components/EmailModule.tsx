@@ -300,12 +300,28 @@ export function EmailModule() {
     }
   };
 
-  // Helper function for date formatting
+  // Helper functions for date formatting
   const formatDateToTime = (dateString: string) => {
     try {
       return format(new Date(dateString), 'HH:mm');
     } catch (error) {
       return '00:00';
+    }
+  };
+
+  const formatDateToShort = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'dd.MM.yyyy');
+    } catch (error) {
+      return '01.01.2024';
+    }
+  };
+
+  const formatDateToFull = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'dd.MM.yyyy HH:mm', { locale: de });
+    } catch (error) {
+      return '01.01.2024 00:00';
     }
   };
 
@@ -420,7 +436,7 @@ export function EmailModule() {
             quote_number: `AG-${Date.now().toString().slice(-6)}`,
             customer_id: customerId,
             title: `Angebot bezüglich: ${email.subject}`,
-            description: `Automatisch erstellt aus E-Mail vom ${format(new Date(email.received_at), 'dd.MM.yyyy')}`,
+            description: `Automatisch erstellt aus E-Mail vom ${formatDateToShort(email.received_at)}`,
             quote_date: new Date().toISOString().split('T')[0],
             valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 Tage
             status: 'entwurf',
@@ -513,7 +529,7 @@ export function EmailModule() {
             company_id: profile.company_id,
             status: 'anfrage',
             start_date: new Date().toISOString().split('T')[0],
-            description: `Automatisch erstellt aus E-Mail vom ${format(new Date(email.received_at), 'dd.MM.yyyy HH:mm')}.\n\nInhalt der E-Mail:\n${email.content.replace(/<[^>]*>/g, '')}`,
+            description: `Automatisch erstellt aus E-Mail vom ${formatDateToFull(email.received_at)}.\n\nInhalt der E-Mail:\n${email.content.replace(/<[^>]*>/g, '')}`,
             budget: 0
           })
           .select()
@@ -801,7 +817,7 @@ export function EmailModule() {
                     <div className="flex items-center gap-1">
                       {getPriorityIndicator(email.priority)}
                       <span className="text-xs text-muted-foreground">
-                        {format(new Date(email.received_at), 'HH:mm')}
+                        {formatDateToTime(email.received_at)}
                       </span>
                     </div>
                   </div>
@@ -901,7 +917,7 @@ export function EmailModule() {
                     <p className="font-medium">{selectedEmail.sender_name || selectedEmail.sender_email}</p>
                     <p className="text-sm text-muted-foreground">{selectedEmail.sender_email}</p>
                     <p className="text-xs text-muted-foreground">
-                      {format(new Date(selectedEmail.received_at), 'dd.MM.yyyy HH:mm', { locale: de })}
+                      {formatDateToFull(selectedEmail.received_at)}
                     </p>
                   </div>
                 </div>
