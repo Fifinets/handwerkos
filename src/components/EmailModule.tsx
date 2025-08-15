@@ -239,7 +239,45 @@ const EmailModule = () => {
   const fetchEmails = useCallback(async () => {
     setLoading(true);
     
-    // Mock data für Demo-Zwecke
+    // Try to fetch real emails from database first
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('id', user.id)
+          .single();
+
+        if (profile?.company_id) {
+          const { data: realEmails, error } = await supabase
+            .from('emails')
+            .select(`
+              *,
+              email_categories (name, color, icon),
+              customers (company_name, contact_person, phone, website)
+            `)
+            .eq('company_id', profile.company_id)
+            .order('received_at', { ascending: false })
+            .limit(50);
+
+          if (!error && realEmails && realEmails.length > 0) {
+            console.log(`Loaded ${realEmails.length} real emails from database`);
+            const processedEmails = realEmails.map(email => ({
+              ...email,
+              reply_count: realEmails.filter(e => e.thread_id === email.thread_id).length - 1
+            }));
+            setEmails(processedEmails);
+            setLoading(false);
+            return;
+          }
+        }
+      }
+    } catch (error) {
+      console.log('No real emails found, showing demo data');
+    }
+    
+    // Fallback to mock data if no real emails
     const mockEmails: Email[] = [
       {
         id: '1',
@@ -656,18 +694,40 @@ const EmailModule = () => {
   const syncGmailEmails = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.functions.invoke('sync-gmail-emails');
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Fehler",
+          description: "Sie müssen angemeldet sein, um E-Mails zu synchronisieren.",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+
+      console.log('Starting Gmail sync for user:', user.id);
+      
+      const { data, error } = await supabase.functions.invoke('sync-gmail-emails', {
+        body: {
+          manual: true,
+          forceFullSync: false
+        }
+      });
+      
+      console.log('Gmail sync response:', { data, error });
       
       if (data?.success) {
         await fetchEmails();
         toast({
           title: "Synchronisation erfolgreich",
-          description: `${data.synced_count || 0} neue E-Mails synchronisiert.`
+          description: `${data.synced_count || data.totalSynced || 0} neue E-Mails synchronisiert.`
         });
       } else {
+        console.error('Gmail sync failed:', error);
         toast({
-          title: "Synchronisationsfehler",
-          description: error?.message || "E-Mails konnten nicht synchronisiert werden.",
+          title: "Synchronisationsfehler", 
+          description: error?.message || data?.error || "E-Mails konnten nicht synchronisiert werden.",
           variant: "destructive"
         });
       }
@@ -675,7 +735,7 @@ const EmailModule = () => {
       console.error('Gmail sync error:', error);
       toast({
         title: "Fehler",
-        description: "Synchronisation fehlgeschlagen.",
+        description: `Synchronisation fehlgeschlagen: ${error.message}`,
         variant: "destructive"
       });
     } finally {
