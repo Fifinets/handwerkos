@@ -305,7 +305,8 @@ const EmailModule = () => {
       console.log('No real emails found, showing demo data');
     }
     
-    // Fallback to mock data if no real emails
+    // Show mock data for demo (until Gmail sync is fully working)
+    console.log('Loading demo emails since Gmail sync has issues');
     const mockEmails: Email[] = [
       {
         id: '1',
