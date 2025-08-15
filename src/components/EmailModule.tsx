@@ -126,6 +126,7 @@ const EmailModule = () => {
   const [companyEmail, setCompanyEmail] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
+  const [isGmailConnected, setIsGmailConnected] = useState(false);
 
   // Sichere Datumsformatierung ohne date-fns
   const formatDateToTime = (dateString: string) => {
@@ -183,6 +184,7 @@ const EmailModule = () => {
   useEffect(() => {
     fetchCompanyEmail();
     fetchCategories();
+    checkGmailConnection();
   }, []);
 
   useEffect(() => {
@@ -192,6 +194,32 @@ const EmailModule = () => {
       return cleanup;
     }
   }, [companyEmail]);
+
+  const checkGmailConnection = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: connection } = await supabase
+        .from('user_email_connections')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('provider', 'gmail')
+        .eq('is_active', true)
+        .single();
+
+      if (connection) {
+        setIsGmailConnected(true);
+        console.log('Gmail connection found:', connection);
+      } else {
+        setIsGmailConnected(false);
+        console.log('No active Gmail connection found');
+      }
+    } catch (error) {
+      console.error('Error checking Gmail connection:', error);
+      setIsGmailConnected(false);
+    }
+  };
 
   const fetchCompanyEmail = async () => {
     try {
@@ -674,6 +702,23 @@ const EmailModule = () => {
           title: "Gmail-Verbindung",
           description: "Ein neues Fenster wurde geöffnet. Bitte autorisieren Sie den Zugriff auf Gmail."
         });
+
+        // Check connection status after OAuth (poll every 2 seconds for 30 seconds)
+        let attempts = 0;
+        const checkInterval = setInterval(async () => {
+          attempts++;
+          await checkGmailConnection();
+          
+          if (isGmailConnected || attempts >= 15) {
+            clearInterval(checkInterval);
+            if (isGmailConnected) {
+              toast({
+                title: "Gmail verbunden!",
+                description: "Sie können jetzt E-Mails synchronisieren."
+              });
+            }
+          }
+        }, 2000);
       } else {
         toast({
           title: "Fehler",
@@ -749,11 +794,20 @@ const EmailModule = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">E-Mail Verwaltung</h1>
         <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={connectGmail} className="rounded-full">
+          <Button 
+            variant={isGmailConnected ? "default" : "outline"} 
+            onClick={connectGmail} 
+            className="rounded-full"
+          >
             <Mail className="h-4 w-4 mr-2" />
-            Gmail verbinden
+            {isGmailConnected ? "Gmail verbunden" : "Gmail verbinden"}
           </Button>
-          <Button variant="outline" onClick={syncGmailEmails} disabled={loading} className="rounded-full">
+          <Button 
+            variant="outline" 
+            onClick={syncGmailEmails} 
+            disabled={loading || !isGmailConnected} 
+            className="rounded-full"
+          >
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Synchronisieren
           </Button>
