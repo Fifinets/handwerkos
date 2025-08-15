@@ -122,7 +122,7 @@ const EmailModule = () => {
   const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('inbox');
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [companyEmail, setCompanyEmail] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
@@ -273,7 +273,7 @@ const EmailModule = () => {
   };
 
   const fetchEmails = useCallback(async () => {
-    setLoading(true);
+    // Don't set loading here - only set it when user explicitly clicks sync
     
     // Fetch real emails from database
     try {
@@ -304,7 +304,6 @@ const EmailModule = () => {
               reply_count: realEmails.filter(e => e.thread_id === email.thread_id).length - 1
             }));
             setEmails(processedEmails);
-            setLoading(false);
             return;
           } else {
             console.error('Error loading emails from database:', error);
@@ -318,7 +317,6 @@ const EmailModule = () => {
     // If no emails in database, show empty state instead of mock data
     console.log('No emails in database - user needs to sync Gmail first');
     setEmails([]);
-    setLoading(false);
     return;
 
     // Remove mock data completely
@@ -752,6 +750,82 @@ const EmailModule = () => {
     }
   };
 
+  const analyzeEmailsWithAI = async () => {
+    try {
+      console.log('Starting AI analysis for emails...');
+      
+      // Get unanalyzed emails
+      const unanalyzedEmails = emails.filter(email => !email.ai_category && !email.ai_summary);
+      
+      if (unanalyzedEmails.length === 0) {
+        console.log('No emails need AI analysis');
+        return;
+      }
+      
+      console.log(`Analyzing ${unanalyzedEmails.length} emails with AI...`);
+      
+      for (const email of unanalyzedEmails.slice(0, 5)) { // Analyze max 5 at a time
+        try {
+          const { data, error } = await supabase.functions.invoke('classify-email', {
+            body: JSON.stringify({
+              emailId: email.id,
+              subject: email.subject,
+              content: email.content,
+              senderEmail: email.sender_email,
+              senderName: email.sender_name
+            })
+          });
+          
+          if (data && !error) {
+            console.log(`AI analysis result for email ${email.id}:`, data);
+            
+            // Update email with AI data
+            const updatedEmail = {
+              ...email,
+              ai_category: data.category,
+              ai_summary: data.summary,
+              ai_confidence: data.confidence,
+              priority: data.extractedData?.priority || 'normal'
+            };
+            
+            // Update in state
+            setEmails(prev => prev.map(e => e.id === email.id ? updatedEmail : e));
+            
+            // Update in database
+            await supabase
+              .from('emails')
+              .update({
+                ai_category: data.category,
+                ai_summary: data.summary,
+                ai_confidence: data.confidence,
+                priority: data.extractedData?.priority || 'normal',
+                processing_status: 'completed'
+              })
+              .eq('id', email.id);
+          }
+        } catch (aiError) {
+          console.error(`AI analysis failed for email ${email.id}:`, aiError);
+        }
+      }
+      
+      toast({
+        title: "KI-Analyse abgeschlossen",
+        description: `${unanalyzedEmails.length} E-Mails wurden analysiert.`
+      });
+      
+      // Refresh emails to show AI data
+      await fetchEmails();
+      
+    } catch (error) {
+      console.error('AI analysis error:', error);
+      toast({
+        title: "KI-Analyse Fehler",
+        description: "Die KI-Analyse konnte nicht durchgeführt werden.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const syncGmailEmails = async () => {
     try {
       setLoading(true);
@@ -795,6 +869,9 @@ const EmailModule = () => {
           title: "Synchronisation erfolgreich",
           description: `${data.synced_count || data.totalSynced || 0} neue E-Mails synchronisiert.`
         });
+        
+        // Trigger AI analysis for new emails
+        await analyzeEmailsWithAI();
       } else {
         console.error('Gmail sync failed:', error);
         toast({
@@ -902,9 +979,9 @@ const EmailModule = () => {
       </div>
 
       {/* Main Email Interface */}
-      <Card className="shadow-soft rounded-2xl flex-1 min-h-[600px]">
+      <Card className="shadow-soft rounded-2xl flex-1" style={{ minHeight: 'calc(100vh - 280px)' }}>
         <CardContent className="p-0">
-          <div className="flex h-[600px]">
+          <div className="flex" style={{ height: 'calc(100vh - 280px)' }}>
             {/* Sidebar */}
             <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} border-r bg-muted/30 transition-all duration-200`}>
               <div className="p-4 border-b">
@@ -1012,7 +1089,7 @@ const EmailModule = () => {
                   <Button
                     variant="outline"
                     className="w-full rounded-xl"
-                    onClick={() => toast({title: "KI-Analyse", description: "Analysiere E-Mails..."})}
+                    onClick={analyzeEmailsWithAI}
                   >
                     <Brain className="h-4 w-4 mr-2" />
                     KI-Analyse
@@ -1224,7 +1301,8 @@ const EmailModule = () => {
                 {/* Email Body */}
                 <ScrollArea className="flex-1 p-6">
                   <div 
-                    className="prose prose-sm max-w-none"
+                    className="prose prose-sm max-w-none text-gray-800 dark:text-gray-200"
+                    style={{ fontSize: '14px', lineHeight: '1.6' }}
                     dangerouslySetInnerHTML={{
                       __html: selectedEmail.html_content || selectedEmail.content.replace(/\n/g, '<br>')
                     }}
