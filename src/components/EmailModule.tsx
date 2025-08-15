@@ -13,6 +13,8 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { format } from 'date-fns';
+import { de } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -74,8 +76,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { workflowService } from "@/services/WorkflowService";
-import { format, formatDistance } from "date-fns";
-import { de } from "date-fns/locale";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
