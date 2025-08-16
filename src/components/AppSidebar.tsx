@@ -97,7 +97,7 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
   return (
     <div 
       className={`fixed left-0 top-0 h-full z-50 transition-all duration-500 ease-in-out ${isExpanded ? "w-64" : "w-16"} 
-      bg-gradient-to-b from-blue-600 via-blue-500 to-blue-700 shadow-2xl`}
+      bg-gradient-to-b from-blue-900 via-blue-800 to-blue-950 shadow-2xl`}
       onMouseEnter={() => {
         if (hoverTimeout) clearTimeout(hoverTimeout);
         const timeout = setTimeout(() => setIsHovered(true), 150);
@@ -111,7 +111,7 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
       }}
     >
       {/* Logo at top */}
-      <div className="p-4 border-b border-blue-400/30">
+      <div className="p-4 border-b border-blue-600/30">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
             <span className="text-white font-bold text-sm">H</span>
@@ -213,7 +213,7 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
           </div>
         </div>
 
-        <div className="p-3 border-t border-blue-400/30">
+        <div className="p-3 border-t border-blue-600/30">
           <button
             onClick={handleSignOut}
             className="group w-full flex items-center p-3 rounded-lg text-white/80 hover:text-white hover:bg-red-500/20 transition-all duration-300 relative"
