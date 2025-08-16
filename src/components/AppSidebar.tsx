@@ -114,7 +114,7 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
       <div className="p-4 border-b border-blue-600/30">
         <div className="flex items-center gap-3">
           <img 
-            src="/4.png" 
+            src="/logo.png" 
             alt="Logo" 
             className="h-8 w-8 object-contain"
           />
