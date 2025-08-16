@@ -113,14 +113,11 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
       {/* Logo at top */}
       <div className="p-4 border-b border-blue-600/30">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
-            <span className="text-white font-bold text-sm">H</span>
-          </div>
-          <span className={`font-bold text-white transition-all duration-300 ${
-            isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
-          }`}>
-            HandwerkOS
-          </span>
+          <img 
+            src="/4.png" 
+            alt="Logo" 
+            className="h-8 w-8 object-contain"
+          />
         </div>
       </div>
 
