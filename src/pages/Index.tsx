@@ -107,9 +107,11 @@ const Index = () => {
           <div className="flex items-center justify-between h-full px-8">
             <div className="flex items-center space-x-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg">
-                  <span className="text-white font-bold text-xl">H</span>
-                </div>
+                <img 
+                  src="/handwerkos-logo.svg" 
+                  alt="HandwerkOS Logo" 
+                  className="h-10 w-10 object-contain"
+                />
                 <h1 className="font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent text-3xl">
                   HandwerkOS
                 </h1>
