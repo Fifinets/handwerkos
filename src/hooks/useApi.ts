@@ -22,7 +22,7 @@ import { ApiError } from '@/utils/api';
 import { customerService, CustomerService } from '@/services/customerService';
 import { quoteService } from '@/services/quoteService';
 import { orderService } from '@/services/orderService';
-import { ProjectService } from '@/services/projectService';
+import { ProjectService } from '@/services/ProjectService';
 import { timesheetService } from '@/services/timesheetService';
 import { materialService } from '@/services/materialService';
 import { stockService } from '@/services/stockService';
@@ -559,7 +559,7 @@ export const useProjects = (
 export const useProject = (id: string, options?: UseApiQueryOptions<Project>) => {
   return useQuery({
     queryKey: QUERY_KEYS.project(id),
-    queryFn: () => projectService.getProject(id),
+    queryFn: () => ProjectService.getProject(id),
     enabled: !!id,
     ...options,
   });
@@ -568,7 +568,7 @@ export const useProject = (id: string, options?: UseApiQueryOptions<Project>) =>
 export const useProjectStats = (id: string, options?: UseApiQueryOptions<any>) => {
   return useQuery({
     queryKey: QUERY_KEYS.projectStats(id),
-    queryFn: () => projectService.getProjectStats(id),
+    queryFn: () => ProjectService.getProjectStats(id),
     enabled: !!id,
     ...options,
   });
@@ -577,7 +577,7 @@ export const useProjectStats = (id: string, options?: UseApiQueryOptions<any>) =
 export const useProjectTimeline = (id: string, limit?: number, options?: UseApiQueryOptions<any[]>) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.projectTimeline(id), limit],
-    queryFn: () => projectService.getProjectTimeline(id, limit),
+    queryFn: () => ProjectService.getProjectTimeline(id, limit),
     enabled: !!id,
     ...options,
   });
@@ -588,7 +588,7 @@ export const useCreateProject = (options?: UseApiMutationOptions<Project, Projec
   const { toast } = useToast();
   
   return useMutation({
-    mutationFn: projectService.createProject,
+    mutationFn: ProjectService.createProject,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customerProjects(data.customer_id || '') });
@@ -613,7 +613,7 @@ export const useUpdateProject = (options?: UseApiMutationOptions<Project, { id: 
   const { toast } = useToast();
   
   return useMutation({
-    mutationFn: ({ id, data }) => projectService.updateProject(id, data),
+    mutationFn: ({ id, data }) => ProjectService.updateProject(id, data),
     onSuccess: (data, { id }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.project(id) });
@@ -639,7 +639,7 @@ export const useStartProject = (options?: UseApiMutationOptions<Project, string>
   const { toast } = useToast();
   
   return useMutation({
-    mutationFn: projectService.startProject,
+    mutationFn: ProjectService.startProject,
     onSuccess: (data, id) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.project(id) });
@@ -664,7 +664,7 @@ export const useCompleteProject = (options?: UseApiMutationOptions<Project, stri
   const { toast } = useToast();
   
   return useMutation({
-    mutationFn: projectService.completeProject,
+    mutationFn: ProjectService.completeProject,
     onSuccess: (data, id) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.project(id) });
@@ -689,7 +689,7 @@ export const useBlockProject = (options?: UseApiMutationOptions<Project, { id: s
   const { toast } = useToast();
   
   return useMutation({
-    mutationFn: ({ id, reason }) => projectService.blockProject(id, reason),
+    mutationFn: ({ id, reason }) => ProjectService.blockProject(id, reason),
     onSuccess: (data, { id }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.project(id) });
@@ -712,7 +712,7 @@ export const useBlockProject = (options?: UseApiMutationOptions<Project, { id: s
 export const useSearchProjects = (query: string, limit?: number, options?: UseApiQueryOptions<Project[]>) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.projects, 'search', query, limit],
-    queryFn: () => projectService.searchProjects(query, limit),
+    queryFn: () => ProjectService.searchProjects(query, limit),
     enabled: query.length >= 2,
     ...options,
   });
