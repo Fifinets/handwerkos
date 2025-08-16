@@ -132,7 +132,7 @@ export class ProjectService {
       
       const projectData = {
         ...validatedData,
-        status: 'planned' as const,
+        status: validatedData.status || 'geplant',
         assigned_employees: validatedData.assigned_employees || [],
       };
       
