@@ -23,7 +23,7 @@ import { eventBus } from './eventBus';
 export class ProjectService {
   
   // Get all projects with pagination and filtering
-  static async getProjects(
+  async getProjects(
     pagination?: PaginationQuery,
     filters?: {
       status?: Project['status'];
@@ -36,7 +36,17 @@ export class ProjectService {
       let query = supabase
         .from('projects')
         .select(`
-          *,
+          id,
+          name,
+          description,
+          start_date,
+          end_date,
+          location,
+          status,
+          color,
+          customer_id,
+          created_at,
+          updated_at,
           customers (
             company_name,
             contact_person,
@@ -54,7 +64,8 @@ export class ProjectService {
       }
       
       if (filters?.employee_id) {
-        query = query.contains('assigned_employees', [filters.employee_id]);
+        // TODO: Filter by employee_id using project_assignments table
+        // query = query.contains('assigned_employees', [filters.employee_id]);
       }
       
       if (filters?.search) {
@@ -79,23 +90,27 @@ export class ProjectService {
       
       const { data, count } = await createQuery<Project>(query).executeWithCount();
       
+      // Ensure data is always an array
+      const projects = data || [];
+      const totalCount = count || 0;
+      
       // Debug logging
       console.log('ProjectService.getProjects:', {
         query: query.toString(),
-        data,
-        count,
+        data: projects,
+        count: totalCount,
         pagination,
         filters
       });
       
       return {
-        items: data,
+        items: projects,
         pagination: {
           page: pagination?.page || 1,
-          limit: pagination?.limit || data.length,
-          total_items: count,
-          total_pages: Math.ceil(count / (pagination?.limit || 20)),
-          has_next: pagination ? (pagination.page * pagination.limit < count) : false,
+          limit: pagination?.limit || projects.length || 20,
+          total_items: totalCount,
+          total_pages: Math.ceil(totalCount / (pagination?.limit || 20)),
+          has_next: pagination ? (pagination.page * pagination.limit < totalCount) : false,
           has_prev: pagination ? pagination.page > 1 : false,
         },
       };
@@ -103,12 +118,22 @@ export class ProjectService {
   }
   
   // Get project by ID with detailed information
-  static async getProject(id: string): Promise<Project> {
+  async getProject(id: string): Promise<Project> {
     return apiCall(async () => {
       const query = supabase
         .from('projects')
         .select(`
-          *,
+          id,
+          name,
+          description,
+          start_date,
+          end_date,
+          location,
+          status,
+          color,
+          customer_id,
+          created_at,
+          updated_at,
           customers (
             company_name,
             contact_person,
@@ -125,7 +150,7 @@ export class ProjectService {
   }
   
   // Create new project
-  static async createProject(data: ProjectCreate): Promise<Project> {
+  async createProject(data: ProjectCreate): Promise<Project> {
     return apiCall(async () => {
       // Validate input
       const validatedData = validateInput(ProjectCreateSchema, data);
@@ -133,7 +158,6 @@ export class ProjectService {
       const projectData = {
         ...validatedData,
         status: validatedData.status || 'geplant',
-        assigned_employees: validatedData.assigned_employees || [],
       };
       
       const query = supabase
@@ -155,7 +179,7 @@ export class ProjectService {
   }
   
   // Update existing project
-  static async updateProject(id: string, data: ProjectUpdate): Promise<Project> {
+  async updateProject(id: string, data: ProjectUpdate): Promise<Project> {
     return apiCall(async () => {
       // Get existing project for validation
       const existingProject = await this.getProject(id);
@@ -216,7 +240,7 @@ export class ProjectService {
   }
   
   // Validate status transitions
-  private static async validateStatusTransition(from: Project['status'], to: Project['status']): Promise<void> {
+  private async validateStatusTransition(from: Project['status'], to: Project['status']): Promise<void> {
     const validTransitions: Record<Project['status'], Project['status'][]> = {
       planned: ['active', 'cancelled'],
       active: ['blocked', 'completed', 'cancelled'],
@@ -235,7 +259,7 @@ export class ProjectService {
   }
   
   // Start project (transition from planned to active)
-  static async startProject(id: string): Promise<Project> {
+  async startProject(id: string): Promise<Project> {
     return apiCall(async () => {
       const existingProject = await this.getProject(id);
       
@@ -257,7 +281,7 @@ export class ProjectService {
   }
   
   // Complete project
-  static async completeProject(id: string): Promise<Project> {
+  async completeProject(id: string): Promise<Project> {
     return apiCall(async () => {
       const existingProject = await this.getProject(id);
       
@@ -279,7 +303,7 @@ export class ProjectService {
   }
   
   // Block project (with reason)
-  static async blockProject(id: string, reason?: string): Promise<Project> {
+  async blockProject(id: string, reason?: string): Promise<Project> {
     return apiCall(async () => {
       const existingProject = await this.getProject(id);
       
@@ -303,7 +327,7 @@ export class ProjectService {
   }
   
   // Unblock project (resume from blocked)
-  static async unblockProject(id: string): Promise<Project> {
+  async unblockProject(id: string): Promise<Project> {
     return apiCall(async () => {
       const existingProject = await this.getProject(id);
       
@@ -324,7 +348,7 @@ export class ProjectService {
   }
   
   // Cancel project
-  static async cancelProject(id: string, reason?: string): Promise<Project> {
+  async cancelProject(id: string, reason?: string): Promise<Project> {
     return apiCall(async () => {
       const existingProject = await this.getProject(id);
       
@@ -348,7 +372,7 @@ export class ProjectService {
   }
   
   // Get project statistics
-  static async getProjectStats(id: string): Promise<{
+  async getProjectStats(id: string): Promise<{
     total_hours: number;
     total_material_cost: number;
     total_expenses: number;
@@ -411,14 +435,14 @@ export class ProjectService {
         budget_used: budgetUsed,
         budget_remaining: budgetRemaining,
         days_active: daysActive,
-        team_size: project.assigned_employees?.length || 0,
+        team_size: 0, // TODO: Count from project_assignments table
         completion_percentage: completionPercentage,
       };
     }, `Get project stats ${id}`);
   }
   
   // Get project timeline/activities
-  static async getProjectTimeline(id: string, limit: number = 50): Promise<any[]> {
+  async getProjectTimeline(id: string, limit: number = 50): Promise<any[]> {
     return apiCall(async () => {
       // Get recent timesheets
       const { data: timesheets } = await supabase
@@ -467,12 +491,20 @@ export class ProjectService {
   }
   
   // Assign employee to project
-  static async assignEmployee(id: string, employeeId: string): Promise<Project> {
+  async assignEmployee(id: string, employeeId: string): Promise<Project> {
     return apiCall(async () => {
+      // TODO: Implement using project_assignments table
       const project = await this.getProject(id);
       
-      const currentEmployees = project.assigned_employees || [];
-      if (currentEmployees.includes(employeeId)) {
+      // Check if assignment already exists
+      const { data: existingAssignment } = await supabase
+        .from('project_assignments')
+        .select('id')
+        .eq('project_id', id)
+        .eq('employee_id', employeeId)
+        .single();
+      
+      if (existingAssignment) {
         throw new ApiError(
           API_ERROR_CODES.BUSINESS_RULE_VIOLATION,
           'Mitarbeiter ist bereits dem Projekt zugewiesen.',
@@ -480,26 +512,37 @@ export class ProjectService {
         );
       }
       
-      const updatedEmployees = [...currentEmployees, employeeId];
+      // Create assignment
+      await supabase
+        .from('project_assignments')
+        .insert({
+          project_id: id,
+          employee_id: employeeId,
+          start_date: new Date().toISOString().split('T')[0],
+        });
       
-      return this.updateProject(id, { assigned_employees: updatedEmployees });
+      return project;
     }, `Assign employee to project ${id}`);
   }
   
   // Remove employee from project
-  static async removeEmployee(id: string, employeeId: string): Promise<Project> {
+  async removeEmployee(id: string, employeeId: string): Promise<Project> {
     return apiCall(async () => {
       const project = await this.getProject(id);
       
-      const currentEmployees = project.assigned_employees || [];
-      const updatedEmployees = currentEmployees.filter(emp => emp !== employeeId);
+      // Remove assignment from project_assignments table
+      await supabase
+        .from('project_assignments')
+        .delete()
+        .eq('project_id', id)
+        .eq('employee_id', employeeId);
       
-      return this.updateProject(id, { assigned_employees: updatedEmployees });
+      return project;
     }, `Remove employee from project ${id}`);
   }
   
   // Delete project (with safety checks)
-  static async deleteProject(id: string): Promise<void> {
+  async deleteProject(id: string): Promise<void> {
     return apiCall(async () => {
       const existingProject = await this.getProject(id);
       
@@ -544,7 +587,7 @@ export class ProjectService {
   }
   
   // Search projects
-  static async searchProjects(query: string, limit: number = 10): Promise<Project[]> {
+  async searchProjects(query: string, limit: number = 10): Promise<Project[]> {
     return apiCall(async () => {
       const searchQuery = supabase
         .from('projects')

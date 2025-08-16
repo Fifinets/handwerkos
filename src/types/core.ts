@@ -107,15 +107,15 @@ export const OrderSchema = BaseEntitySchema.merge(OrderCreateSchema).extend({
 
 // Project schemas (extending existing)
 export const ProjectCreateSchema = z.object({
-  order_id: z.string().uuid().optional(),
+  // order_id: z.string().uuid().optional(), // TODO: Add after DB migration
   customer_id: z.string().uuid().optional(),
   name: z.string().min(1, 'Projektname ist erforderlich'),
   description: z.string().optional(),
-  status: z.enum(['planned', 'active', 'blocked', 'completed', 'cancelled']).default('planned'),
+  status: z.enum(['geplant', 'in_bearbeitung', 'abgeschlossen']).default('geplant'),
   budget: z.number().min(0, 'Budget muss positiv sein').optional(),
   start_date: z.string().date().optional(),
   end_date: z.string().date().optional(),
-  progress_percentage: z.number().min(0).max(100).default(0),
+  // progress_percentage: z.number().min(0).max(100).default(0), // TODO: Add after DB migration
 });
 
 export const ProjectUpdateSchema = ProjectCreateSchema.partial();

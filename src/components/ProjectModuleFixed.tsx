@@ -50,19 +50,13 @@ interface StatusCounts {
   in_bearbeitung: number;
   abgeschlossen: number;
 }
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Plus, CheckCircle, Clock, AlertTriangle, Building2, FileText, Edit, Calculator, TrendingUp, Receipt } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  useProjects, 
-  useCustomers, 
-  useCreateProject,
-  useUpdateProject,
-  useDeleteProject
-} from "@/hooks/useApi";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -182,166 +176,25 @@ const formatBudget = (budget: number, description: string) => {
   });
 };
 
-const ProjectModule = () => {
+const ProjectModuleFixed = () => {
   const { toast } = useToast();
   const { companyId } = useSupabaseAuth();
   
-  // React Query hooks
-  const { data: projectsResponse, isLoading: projectsLoading, error: projectsError } = useProjects();
-  const { data: customersResponse, isLoading: customersLoading, error: customersError } = useCustomers();
+  // ===== TEMPORARILY DISABLE HOOKS =====
+  // const { data: projectsResponse, isLoading: projectsLoading, error: projectsError } = useProjects();
+  // const { data: customersResponse, isLoading: customersLoading, error: customersError } = useCustomers();
   
-  // Debug logging for errors
-  if (projectsError) {
-    console.error('Projects error:', projectsError);
-  }
-  if (customersError) {
-    console.error('Customers error:', customersError);
-  }
+  // Mock data for now
+  const projectsResponse = { items: [] };
+  const customersResponse = { items: [] };
+  const projectsLoading = false;
+  const customersLoading = false;
+  const projectsError = null;
+  const customersError = null;
   
-  // Early return if there are critical errors
-  if (projectsError) {
-    return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="text-center">
-          <h3 className="text-lg font-semibold text-red-600 mb-2">Fehler beim Laden der Projekte</h3>
-          <p className="text-sm text-gray-600">Bitte versuchen Sie es später erneut.</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Seite neu laden
-          </button>
-        </div>
-      </div>
-    );
-  }
-  
-  // Local state for employees (using same logic as PersonalModule)
+  // Local state for employees
   const [teamMembers, setTeamMembers] = useState([]);
   const [teamLoading, setTeamLoading] = useState(true);
-  
-  // Fetch employees using PersonalModule logic
-  const fetchEmployees = useCallback(async () => {
-    try {
-      setTeamLoading(true);
-      
-      console.log('ProjectModule: fetchEmployees called with companyId:', companyId);
-      
-      if (!companyId) {
-        console.error('ProjectModule: No company ID available');
-        setTeamLoading(false);
-        return;
-      }
-      
-      // Debug query - get ALL employees for this company
-      const { data: allEmployeesData, error: debugError } = await supabase
-        .from('employees')
-        .select('id, email, status, user_id, company_id')
-        .eq('company_id', companyId);
-      
-      console.log('ProjectModule: DEBUG - All employees for company:', allEmployeesData);
-      
-      // Main employees query
-      const { data: employeesData, error: employeesError } = await supabase
-        .from('employees')
-        .select(`
-          id,
-          user_id,
-          first_name,
-          last_name,
-          email,
-          phone,
-          position,
-          status,
-          qualifications,
-          license
-        `)
-        .eq('company_id', companyId)
-        .eq('status', 'Aktiv') // Only show active employees
-        .order('created_at', { ascending: false });
-
-      console.log('ProjectModule: Employees query result:', employeesData, employeesError);
-
-      if (employeesError) {
-        console.error('ProjectModule: Error fetching employees:', employeesError);
-        setTeamLoading(false);
-        return;
-      }
-
-      // Fetch profile names separately for employees with user_id
-      const userIds = employeesData?.filter(emp => emp.user_id).map(emp => emp.user_id) || [];
-      let profilesData = [];
-      
-      if (userIds.length > 0) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name')
-          .in('id', userIds);
-        
-        if (!error) {
-          profilesData = data || [];
-        }
-      }
-
-      // Map employee data and filter for complete profiles
-      const employeeList = employeesData?.map(employee => {
-        const profile = profilesData.find(p => p.id === employee.user_id);
-        const firstName = profile?.first_name || employee.first_name || '';
-        const lastName = profile?.last_name || employee.last_name || '';
-        
-        return {
-          id: employee.id,
-          first_name: firstName,
-          last_name: lastName,
-          name: `${firstName} ${lastName}`.trim(),
-          email: employee.email,
-          phone: employee.phone,
-          position: employee.position,
-          status: employee.status,
-          qualifications: employee.qualifications || [],
-          license: employee.license,
-          projects: [], // Add for compatibility with AddProjectDialog
-          user_id: employee.user_id // Keep for filtering
-        };
-      })
-      .filter(employee => {
-        // Show employees that have a meaningful name
-        // Accept if first_name OR last_name exists, or if combined name is not empty
-        const hasFirstName = employee.first_name && employee.first_name.trim().length > 0;
-        const hasLastName = employee.last_name && employee.last_name.trim().length > 0;
-        const hasValidName = employee.name && employee.name.trim().length > 0 && employee.name.trim() !== ' ';
-        
-        const shouldInclude = hasFirstName || hasLastName || hasValidName;
-        
-        console.log('ProjectModule: Employee filter check:', {
-          employee: employee.name,
-          hasFirstName,
-          hasLastName, 
-          hasValidName,
-          shouldInclude,
-          user_id: employee.user_id
-        });
-        
-        if (!shouldInclude) {
-          console.log('ProjectModule: Filtering out employee without proper name:', employee);
-        }
-        
-        return shouldInclude;
-      }) || [];
-
-      console.log('ProjectModule: Final employee list:', employeeList);
-      setTeamMembers(employeeList);
-    } catch (error) {
-      console.error('ProjectModule: fetchEmployees error:', error);
-    } finally {
-      setTeamLoading(false);
-    }
-  }, [companyId]);
-
-  // Fetch employees when component mounts or companyId changes
-  useEffect(() => {
-    fetchEmployees();
-  }, [fetchEmployees]);
   
   // Local state for dialogs
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -652,4 +505,4 @@ const ProjectModule = () => {
   );
 };
 
-export default ProjectModule;
+export default ProjectModuleFixed;
