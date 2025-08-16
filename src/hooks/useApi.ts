@@ -22,7 +22,7 @@ import { ApiError } from '@/utils/api';
 import { customerService, CustomerService } from '@/services/customerService';
 import { quoteService } from '@/services/quoteService';
 import { orderService } from '@/services/orderService';
-import { projectService } from '@/services/projectService';
+import { ProjectService } from '@/services/projectService';
 import { timesheetService } from '@/services/timesheetService';
 import { materialService } from '@/services/materialService';
 import { stockService } from '@/services/stockService';
@@ -551,7 +551,7 @@ export const useProjects = (
 ) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.projects, pagination, filters],
-    queryFn: () => projectService.getProjects(pagination, filters),
+    queryFn: () => ProjectService.getProjects(pagination, filters),
     ...options,
   });
 };
