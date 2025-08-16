@@ -187,34 +187,8 @@ const ProjectModule = () => {
   const { companyId } = useSupabaseAuth();
   
   // React Query hooks
-  const { data: projectsResponse, isLoading: projectsLoading, error: projectsError } = useProjects();
-  const { data: customersResponse, isLoading: customersLoading, error: customersError } = useCustomers();
-  
-  // Debug logging for errors
-  if (projectsError) {
-    console.error('Projects error:', projectsError);
-  }
-  if (customersError) {
-    console.error('Customers error:', customersError);
-  }
-  
-  // Early return if there are critical errors
-  if (projectsError) {
-    return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="text-center">
-          <h3 className="text-lg font-semibold text-red-600 mb-2">Fehler beim Laden der Projekte</h3>
-          <p className="text-sm text-gray-600">Bitte versuchen Sie es später erneut.</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Seite neu laden
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const { data: projectsResponse, isLoading: projectsLoading } = useProjects();
+  const { data: customersResponse, isLoading: customersLoading } = useCustomers();
   
   // Local state for employees (using same logic as PersonalModule)
   const [teamMembers, setTeamMembers] = useState([]);
@@ -354,8 +328,8 @@ const ProjectModule = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   
   // Extract data from responses
-  const projects = (projectsResponse?.items || []).filter(p => p && p.id);
-  const customers = (customersResponse?.items || []).filter(c => c && c.id);
+  const projects = projectsResponse?.items || [];
+  const customers = customersResponse?.items || [];
   
   // Debug logging
   console.log('Customers data:', customers);
@@ -408,7 +382,7 @@ const ProjectModule = () => {
   
   const today = new Date().toISOString().split('T')[0];
   const delayedProjects = projects.filter(project => 
-    project && project.id && project.end_date && project.end_date < today && project.status !== 'abgeschlossen'
+    project.end_date && project.end_date < today && project.status !== 'abgeschlossen'
   );
   
   const topCustomers = customers.filter(c => c.status === 'Aktiv').slice(0, 5);
