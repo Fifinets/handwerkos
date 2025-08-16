@@ -187,8 +187,32 @@ const ProjectModule = () => {
   const { companyId } = useSupabaseAuth();
   
   // React Query hooks
-  const { data: projectsResponse, isLoading: projectsLoading } = useProjects();
+  const { data: projectsResponse, isLoading: projectsLoading, error: projectsError } = useProjects();
   const { data: customersResponse, isLoading: customersLoading } = useCustomers();
+  
+  // Debug: Direct database query
+  const [debugProjects, setDebugProjects] = useState([]);
+  const [debugError, setDebugError] = useState(null);
+  
+  useEffect(() => {
+    const fetchDebugProjects = async () => {
+      try {
+        console.log('DEBUG: Fetching projects directly...');
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*');
+        
+        console.log('DEBUG: Direct query result:', { data, error });
+        setDebugProjects(data || []);
+        setDebugError(error);
+      } catch (err) {
+        console.error('DEBUG: Direct query failed:', err);
+        setDebugError(err);
+      }
+    };
+    
+    fetchDebugProjects();
+  }, []);
   
   // Local state for employees (using same logic as PersonalModule)
   const [teamMembers, setTeamMembers] = useState([]);
@@ -363,7 +387,11 @@ const ProjectModule = () => {
     projectsResponse,
     projects,
     projectsLoading,
-    isLoading
+    projectsError,
+    isLoading,
+    debugProjects,
+    debugError,
+    companyId
   });
   
   // Calculate derived data
@@ -470,7 +498,12 @@ const ProjectModule = () => {
                   </div>
                 ))
               ) : projects.filter(p => p.status !== 'abgeschlossen').length === 0 ? (
-                <p className="text-sm text-muted-foreground">Keine Projekte vorhanden</p>
+                <div className="text-sm text-muted-foreground">
+                  <p>Keine Projekte vorhanden</p>
+                  <p className="text-xs mt-2">Debug: {debugProjects.length} Projekte in DB</p>
+                  {debugError && <p className="text-xs text-red-500">Error: {debugError.message}</p>}
+                  {projectsError && <p className="text-xs text-red-500">React Query Error: {projectsError.message}</p>}
+                </div>
               ) : (
                 projects.filter(p => p.status !== 'abgeschlossen').map((project) => (
                   <div 
