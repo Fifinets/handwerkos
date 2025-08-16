@@ -97,7 +97,7 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
   return (
     <div 
       className={`fixed left-0 top-0 h-full z-50 transition-all duration-500 ease-in-out ${isExpanded ? "w-64" : "w-16"} 
-      bg-gradient-to-b from-blue-900 via-blue-800 to-blue-950 shadow-2xl`}
+      bg-gradient-to-br from-slate-900 via-blue-950 to-black shadow-2xl backdrop-blur-xl relative overflow-hidden`}
       onMouseEnter={() => {
         if (hoverTimeout) clearTimeout(hoverTimeout);
         const timeout = setTimeout(() => setIsHovered(true), 150);
@@ -110,10 +110,13 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
         setExpandedGroups([]);
       }}
     >
+      {/* Eleganter Overlay-Effekt */}
+      <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 via-transparent to-blue-500/5 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-400/3 to-transparent pointer-events-none" />
       {/* Logo at top */}
-      <div className="p-4 border-b border-blue-600/30">
+      <div className="relative p-4 border-b border-slate-700/50 backdrop-blur-sm">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-400/20 to-blue-600/20 backdrop-blur-md flex items-center justify-center border border-blue-400/20 shadow-lg shadow-blue-500/20">
             <span className="text-white font-bold text-sm">H</span>
           </div>
           <span className={`font-bold text-white transition-all duration-300 ${
@@ -135,7 +138,7 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
                     <button
                       onClick={() => toggleGroup(item.id)}
                       className={`group w-full flex items-center p-3 rounded-lg transition-all duration-300 relative 
-                      text-white/80 hover:text-white hover:bg-white/10 backdrop-blur-sm`}
+                      text-slate-300/80 hover:text-white hover:bg-gradient-to-r hover:from-blue-500/10 hover:to-transparent backdrop-blur-sm`}
                       title={!isExpanded ? item.name : undefined}
                     >
                       <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
@@ -166,8 +169,8 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
                             onClick={() => onModuleChange(child.id)}
                             className={`group w-full flex items-center p-2.5 rounded-lg transition-all duration-200 text-sm ${
                               activeModule === child.id
-                                ? "bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30"
-                                : "text-white/70 hover:text-white hover:bg-white/10"
+                                ? "bg-gradient-to-r from-blue-500/20 to-blue-600/10 text-white shadow-lg backdrop-blur-md border border-blue-400/30"
+                                : "text-slate-400/80 hover:text-white hover:bg-gradient-to-r hover:from-blue-500/10 hover:to-transparent"
                             }`}
                           >
                             <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
@@ -190,8 +193,8 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
                     onClick={() => onModuleChange(item.id)}
                     className={`group w-full flex items-center p-3 rounded-lg transition-all duration-300 relative ${
                       activeModule === item.id
-                        ? "bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30"
-                        : "text-white/80 hover:text-white hover:bg-white/10"
+                        ? "bg-gradient-to-r from-blue-500/20 to-blue-600/10 text-white shadow-lg backdrop-blur-md border border-blue-400/30"
+                        : "text-slate-300/80 hover:text-white hover:bg-gradient-to-r hover:from-blue-500/10 hover:to-transparent"
                     }`}
                     title={!isExpanded ? item.name : undefined}
                   >
@@ -204,7 +207,7 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
                       {item.name}
                     </span>
                     {activeModule === item.id && (
-                      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white/50 rounded-l-full" />
+                      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-blue-400/50 to-blue-600/50 rounded-l-full shadow-lg shadow-blue-500/50" />
                     )}
                   </button>
                 )}
@@ -213,10 +216,10 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
           </div>
         </div>
 
-        <div className="p-3 border-t border-blue-600/30">
+        <div className="p-3 border-t border-slate-700/50 backdrop-blur-sm">
           <button
             onClick={handleSignOut}
-            className="group w-full flex items-center p-3 rounded-lg text-white/80 hover:text-white hover:bg-red-500/20 transition-all duration-300 relative"
+            className="group w-full flex items-center p-3 rounded-lg text-slate-400/80 hover:text-red-400 hover:bg-gradient-to-r hover:from-red-500/10 hover:to-transparent transition-all duration-300 relative"
             title={!isExpanded ? "Abmelden" : undefined}
           >
             <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
