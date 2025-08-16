@@ -18,7 +18,8 @@ import {
   Mail,
   FileText,
   Target,
-  Plane
+  Plane,
+  TestTube
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -45,6 +46,7 @@ const navigationItems = [
   { id: 'machines', name: 'Maschinen & Geräte', icon: Settings, color: 'text-indigo-500' },
   { id: 'finance', name: 'Finanzen', icon: Calculator, color: 'text-cyan-500' },
   { id: 'planner', name: 'Planer', icon: Calendar, color: 'text-teal-500' },
+  { id: 'test', name: 'Test', icon: TestTube, color: 'text-yellow-600' },
   { id: 'company-settings', name: 'Firmeneinstellungen', icon: Settings, color: 'text-gray-600' }
 ];
 

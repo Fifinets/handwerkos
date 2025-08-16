@@ -145,7 +145,6 @@ const ProjectDetailDialog = ({ isOpen, onClose, project }: ProjectDetailDialogPr
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[98vw] max-h-[98vh] w-full h-full overflow-y-auto">
-        <Tabs defaultValue="work-hours" className="w-full">
         <DialogHeader className="pb-2">
           <DialogTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
@@ -154,16 +153,16 @@ const ProjectDetailDialog = ({ isOpen, onClose, project }: ProjectDetailDialogPr
           <DialogDescription>
             Detaillierte Projektinformationen, Arbeitsstunden und Materialverbrauch
           </DialogDescription>
-          
-          {/* Tabs direkt im Header */}
-          <TabsList className="grid w-full grid-cols-3 mt-3">
+        </DialogHeader>
+
+        <Tabs defaultValue="work-hours" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="work-hours">Arbeitsstunden</TabsTrigger>
             <TabsTrigger value="material-purchases">Materialeinkäufe</TabsTrigger>
             <TabsTrigger value="material-usage">Materialverbrauch</TabsTrigger>
           </TabsList>
-        </DialogHeader>
 
-        <div className="space-y-6">
+          <div className="space-y-6">
           {/* Projekt Übersicht */}
           <Card>
             <CardHeader>
@@ -361,13 +360,15 @@ const ProjectDetailDialog = ({ isOpen, onClose, project }: ProjectDetailDialogPr
                 </CardContent>
               </Card>
             </TabsContent>
-        
-        <div className="flex justify-end pt-4">
-          <Button onClick={onClose}>Schließen</Button>
-        </div>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
+          </div>
+
+          </Tabs>
+          
+          <div className="flex justify-end pt-4">
+            <Button onClick={onClose}>Schließen</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
   );
 };
 
