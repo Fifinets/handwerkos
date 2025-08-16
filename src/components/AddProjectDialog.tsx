@@ -176,7 +176,8 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
       budget: parseFloat(formData.budget.replace(/[^0-9.]/g, '')),
       start_date: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : new Date().toISOString().split('T')[0],
       end_date: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
-      assigned_employees: teamMemberIds
+      // Remove assigned_employees for now - will be handled separately
+      // assigned_employees: teamMemberIds
     };
 
     try {

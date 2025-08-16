@@ -130,10 +130,28 @@ export class ProjectService {
       // Validate input
       const validatedData = validateInput(ProjectCreateSchema, data);
       
+      // Get current user's company_id
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        throw new Error('User not authenticated');
+      }
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', userData.user.id)
+        .single();
+      
+      if (!profile?.company_id) {
+        throw new Error('User company not found');
+      }
+      
       const projectData = {
         ...validatedData,
+        company_id: profile.company_id,
         status: validatedData.status || 'geplant',
-        assigned_employees: validatedData.assigned_employees || [],
+        // Remove assigned_employees for now as it's handled by separate table
+        // assigned_employees: validatedData.assigned_employees || [],
       };
       
       const query = supabase
