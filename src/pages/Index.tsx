@@ -19,7 +19,6 @@ import { DocumentModule } from "@/components/DocumentModule";
 import { CompanySettingsSimple as CompanySettingsModule } from "@/components/CompanySettingsSimple";
 import EmailModule from "@/components/EmailModule";
 import { VacationManagement } from "@/components/VacationManagement";
-import TestModule from "@/components/TestModule";
 import DashboardCalendar from "@/components/DashboardCalendar";
 import DashboardStatsWithKpis from "@/components/DashboardStatsWithKpis";
 import ExecutiveDashboard from "@/components/ExecutiveDashboard";
@@ -93,8 +92,6 @@ const Index = () => {
         return <TimeTrackingModule />;
       case 'vacation':
         return <VacationManagement />;
-      case 'test':
-        return <TestModule />;
       case 'company-settings':
         return <CompanySettingsModule />;
       default:
