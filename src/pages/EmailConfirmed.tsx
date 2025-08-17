@@ -45,9 +45,21 @@ const EmailConfirmed: React.FC = () => {
           }
         }
 
-        // Redirect to manager page after 2 seconds
+        // Check user role and redirect appropriately
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .single();
+
         setTimeout(() => {
-          navigate('/manager');
+          if (roleData?.role === 'manager') {
+            navigate('/manager');
+          } else {
+            // For employees, redirect to login page to sign in properly
+            toast.success('Sie können sich jetzt anmelden!');
+            navigate('/auth');
+          }
         }, 2000);
 
       } catch (error) {
