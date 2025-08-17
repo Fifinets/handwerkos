@@ -89,19 +89,29 @@ const Auth: React.FC = () => {
         return;
       }
 
-      // Also check for automatic email confirmation (no confirmed parameter but user is confirmed)
-      if (!confirmed) {
+      // Check if this is an email confirmation redirect (look for auth tokens in URL)
+      const urlParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      
+      // Check if we have auth tokens indicating email confirmation
+      const accessToken = urlParams.get('access_token') || hashParams.get('access_token');
+      const tokenType = urlParams.get('token_type') || hashParams.get('token_type');
+      
+      if (accessToken && tokenType && !confirmed) {
+        console.log('Email confirmation tokens detected in URL');
+        
         try {
-          const { data: { session } } = await supabase.auth.getSession();
+          // Get the current user (should be confirmed now)
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
           
-          if (session?.user?.email_confirmed_at) {
-            console.log('Checking if this is a newly confirmed employee...');
+          if (user && user.email_confirmed_at) {
+            console.log('User email is confirmed, checking for employee status update...');
             
             // Check if there's an employee with this email that still has 'eingeladen' status
             const { data: employee, error: employeeError } = await supabase
               .from('employees')
-              .select('id, status')
-              .eq('email', session.user.email?.toLowerCase())
+              .select('id, status, email')
+              .eq('email', user.email?.toLowerCase())
               .eq('status', 'eingeladen')
               .single();
               
@@ -116,13 +126,17 @@ const Auth: React.FC = () => {
               if (updateError) {
                 console.error('Error updating employee status:', updateError);
               } else {
-                console.log('Employee status updated to Aktiv automatically');
+                console.log('Employee status updated to Aktiv after email confirmation');
                 toast.success('E-Mail erfolgreich bestätigt! Sie können sich jetzt anmelden.');
+                
+                // Clean URL and redirect to login
+                navigate('/auth', { replace: true });
+                return;
               }
             }
           }
         } catch (error) {
-          console.error('Error checking automatic email confirmation:', error);
+          console.error('Error processing email confirmation tokens:', error);
         }
       }
 
