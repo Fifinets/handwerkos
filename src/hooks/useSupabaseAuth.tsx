@@ -117,7 +117,11 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       const inviteExpiry = new Date();
       inviteExpiry.setDate(inviteExpiry.getDate() + 7); // 7 days expiry
 
-      // Store invitation in database
+      // Store invitation in database (temporarily disabled)
+      console.warn('Employee invitations temporarily disabled - table not available');
+      const inviteError = null; // Temporarily skip this
+      
+      /* TODO: Re-enable when employee_invitations table is created
       const { error: inviteError } = await supabase
         .from('employee_invitations')
         .insert({
@@ -129,6 +133,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
           employee_data: employeeData,
           status: 'pending'
         } as any);
+      */
 
       if (inviteError) {
         console.error('Error creating invitation:', inviteError);
