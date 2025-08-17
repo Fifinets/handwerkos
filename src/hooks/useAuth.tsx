@@ -83,28 +83,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // After successful login, update employee status if needed
     if (!result.error && result.data.user) {
       try {
+        console.log('Checking employee status for:', email);
+        
         // Check if this user is an employee with 'eingeladen' status
-        const { data: employee } = await supabase
+        const { data: employee, error: fetchError } = await supabase
           .from('employees')
           .select('id, status, user_id')
           .eq('email', email.toLowerCase())
           .single();
           
+        console.log('Employee query result:', { employee, fetchError });
+          
         // Update status if employee is still 'eingeladen'
         if (employee && employee.status === 'eingeladen') {
-          await supabase
+          console.log('Updating employee status to Aktiv for:', employee.id);
+          
+          const { data: updateData, error: updateError } = await supabase
             .from('employees')
             .update({ 
               status: 'Aktiv',
               user_id: result.data.user.id 
             })
-            .eq('id', employee.id);
+            .eq('id', employee.id)
+            .select();
             
-          console.log('Employee status updated to Aktiv after login');
+          console.log('Update result:', { updateData, updateError });
+          
+          if (updateError) {
+            console.error('Failed to update employee status:', updateError);
+          } else {
+            console.log('Employee status successfully updated to Aktiv');
+          }
+        } else if (employee) {
+          console.log('Employee already has status:', employee.status);
         }
       } catch (error) {
         // Don't fail login if status update fails
-        console.warn('Could not update employee status:', error);
+        console.error('Error in employee status update:', error);
       }
     }
     
