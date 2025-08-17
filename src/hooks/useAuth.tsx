@@ -46,6 +46,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth
       .getSession()
       .then(({ data }) => {
+        console.log('=== INITIAL SESSION CHECK ===');
+        console.log('Session:', data.session);
+        console.log('User:', data.session?.user);
+        console.log('Email confirmed:', data.session?.user?.email_confirmed_at);
+        
         setSession(data.session);
         setUser(data.session?.user ?? null);
         if (data.session?.user) {
@@ -58,15 +63,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log('Auth state changed:', _event, session);
+      console.log('=== AUTH STATE CHANGE ===');
+      console.log('Event:', _event);
+      console.log('Session:', session);
+      console.log('Email confirmed:', session?.user?.email_confirmed_at);
+      
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
         fetchUserRole(session.user.id);
         
-        // REMOVED: Employee status update causing infinite loops
-        // This should be handled by database triggers
+        // Check if this is an email confirmation event
+        if (_event === 'TOKEN_REFRESHED' || _event === 'SIGNED_IN') {
+          console.log('Potential email confirmation detected');
+        }
       } else {
         setUserRole(null);
       }
