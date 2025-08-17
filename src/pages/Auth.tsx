@@ -159,19 +159,18 @@ const Auth: React.FC = () => {
               .update({ status: 'accepted' })
               .eq('invite_token', invitationData.invite_token);
 
-            // Update employee status to 'Aktiv'
+            // Only link user_id, keep status as 'eingeladen' until email confirmed
             const { error: employeeUpdateError } = await supabase
               .from('employees')
               .update({ 
-                status: 'Aktiv',
                 user_id: authData.user.id 
               })
               .eq('email', invitationData.email.toLowerCase());
               
             if (employeeUpdateError) {
-              console.error('Error updating employee status:', employeeUpdateError);
+              console.error('Error updating employee user_id:', employeeUpdateError);
             } else {
-              console.log('Employee status updated to Aktiv');
+              console.log('Employee user_id linked, waiting for email confirmation');
             }
 
             // Create user role as employee

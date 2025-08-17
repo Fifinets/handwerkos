@@ -94,25 +94,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
         console.log('Employee query result:', { employee, fetchError });
           
-        // Update status if employee is still 'eingeladen'
+        // Update status if employee is still 'eingeladen' AND email is confirmed
         if (employee && employee.status === 'eingeladen') {
-          console.log('Updating employee status to Aktiv for:', employee.id);
+          // Check if email is confirmed
+          const { data: userData } = await supabase.auth.getUser();
           
-          const { data: updateData, error: updateError } = await supabase
-            .from('employees')
-            .update({ 
-              status: 'Aktiv',
-              user_id: result.data.user.id 
-            })
-            .eq('id', employee.id)
-            .select();
+          if (userData?.user?.email_confirmed_at) {
+            console.log('Email confirmed, updating employee status to Aktiv for:', employee.id);
             
-          console.log('Update result:', { updateData, updateError });
-          
-          if (updateError) {
-            console.error('Failed to update employee status:', updateError);
+            const { data: updateData, error: updateError } = await supabase
+              .from('employees')
+              .update({ 
+                status: 'Aktiv',
+                user_id: result.data.user.id 
+              })
+              .eq('id', employee.id)
+              .select();
+              
+            console.log('Update result:', { updateData, updateError });
+            
+            if (updateError) {
+              console.error('Failed to update employee status:', updateError);
+            } else {
+              console.log('Employee status successfully updated to Aktiv');
+            }
           } else {
-            console.log('Employee status successfully updated to Aktiv');
+            console.log('Email not confirmed yet, keeping status as eingeladen');
           }
         } else if (employee) {
           console.log('Employee already has status:', employee.status);
