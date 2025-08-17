@@ -63,24 +63,13 @@ const Auth: React.FC = () => {
         console.log('Processing employee invitation token:', inviteToken);
         
         try {
-          // Validate invitation token with graceful fallback
-          let invitation = null;
-          let inviteError = null;
-          
-          try {
-            const { data, error } = await supabase
-              .from('employee_invitations')
-              .select('*')
-              .eq('invite_token', inviteToken)
-              .eq('status', 'pending')
-              .single();
-            invitation = data;
-            inviteError = error;
-          } catch (error) {
-            console.warn('Employee invitations table not available, skipping validation');
-            invitation = null;
-            inviteError = null;
-          }
+          // Validate invitation token
+          const { data: invitation, error: inviteError } = await supabase
+            .from('employee_invitations')
+            .select('*')
+            .eq('invite_token', inviteToken)
+            .eq('status', 'pending')
+            .single();
 
           if (inviteError || !invitation) {
             console.error('Invalid invitation token:', inviteError);
@@ -164,15 +153,11 @@ const Auth: React.FC = () => {
           }
 
           if (authData.user) {
-            // Mark invitation as accepted with graceful fallback
-            try {
-              await supabase
-                .from('employee_invitations')
-                .update({ status: 'accepted' })
-                .eq('invite_token', invitationData.invite_token);
-            } catch (error) {
-              console.warn('Could not update invitation status - table not available');
-            }
+            // Mark invitation as accepted
+            await supabase
+              .from('employee_invitations')
+              .update({ status: 'accepted' })
+              .eq('invite_token', invitationData.invite_token);
 
             // Create user role as employee
             await supabase

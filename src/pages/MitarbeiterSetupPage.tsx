@@ -37,24 +37,13 @@ const MitarbeiterSetupPage = () => {
       try {
         console.log('Attempting to validate token:', token);
         
-        // Validate invitation token with graceful fallback
-        let invitation = null;
-        let inviteError = null;
-        
-        try {
-          const { data, error } = await supabase
-            .from('employee_invitations')
-            .select('*')
-            .eq('invite_token', token)
-            .eq('status', 'pending')
-            .single();
-          invitation = data;
-          inviteError = error;
-        } catch (error) {
-          console.warn('Employee invitations table not available, skipping validation');
-          invitation = null;
-          inviteError = null;
-        }
+        // Validate invitation token
+        const { data: invitation, error: inviteError } = await supabase
+          .from('employee_invitations')
+          .select('*')
+          .eq('invite_token', token)
+          .eq('status', 'pending')
+          .single();
 
         console.log('Query result:', { invitation, inviteError });
 
@@ -149,15 +138,10 @@ const MitarbeiterSetupPage = () => {
 
       if (authData.user) {
         // Mark invitation as accepted
-        // Mark invitation as accepted with graceful fallback
-        try {
-          await supabase
-            .from('employee_invitations')
-            .update({ status: 'accepted' })
-            .eq('invite_token', invitationData.invite_token);
-        } catch (error) {
-          console.warn('Could not update invitation status - table not available');
-        }
+        await supabase
+          .from('employee_invitations')
+          .update({ status: 'accepted' })
+          .eq('invite_token', invitationData.invite_token);
 
         // Create user role as employee
         await supabase

@@ -117,25 +117,18 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       const inviteExpiry = new Date();
       inviteExpiry.setDate(inviteExpiry.getDate() + 7); // 7 days expiry
 
-      // Store invitation in database with graceful fallback
-      let inviteError = null;
-      try {
-        const { error } = await supabase
-          .from('employee_invitations')
-          .insert({
-            email: email.toLowerCase(),
-            invited_by: user.id,
-            company_id: companyId,
-            invite_token: inviteToken,
-            expires_at: inviteExpiry.toISOString(),
-            employee_data: employeeData,
-            status: 'pending'
-          } as any);
-        inviteError = error;
-      } catch (error) {
-        console.warn('Employee invitations table not available, skipping invitation storage');
-        inviteError = null; // Continue without storing invitation
-      }
+      // Store invitation in database
+      const { error: inviteError } = await supabase
+        .from('employee_invitations')
+        .insert({
+          email: email.toLowerCase(),
+          invited_by: user.id,
+          company_id: companyId,
+          invite_token: inviteToken,
+          expires_at: inviteExpiry.toISOString(),
+          employee_data: employeeData,
+          status: 'pending'
+        } as any);
 
       if (inviteError) {
         console.error('Error creating invitation:', inviteError);
