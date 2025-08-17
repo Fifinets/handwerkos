@@ -143,6 +143,21 @@ const MitarbeiterSetupPage = () => {
           .update({ status: 'accepted' })
           .eq('invite_token', invitationData.invite_token);
 
+        // Update employee status to 'Aktiv'
+        const { error: employeeUpdateError } = await supabase
+          .from('employees')
+          .update({ 
+            status: 'Aktiv',
+            user_id: authData.user.id 
+          })
+          .eq('email', invitationData.email.toLowerCase());
+          
+        if (employeeUpdateError) {
+          console.error('Error updating employee status:', employeeUpdateError);
+        } else {
+          console.log('Employee status updated to Aktiv');
+        }
+
         // Create user role as employee
         await supabase
           .from('user_roles')
