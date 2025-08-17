@@ -57,13 +57,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 2) Listener für zukünftige Auth-Events
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       console.log('Auth state changed:', _event, session);
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
         fetchUserRole(session.user.id);
+        
+        // Update employee status when user signs in or confirms email
+        if (_event === 'SIGNED_IN' || _event === 'USER_UPDATED') {
+          const { data: employee } = await supabase
+            .from('employees')
+            .select('id, status')
+            .eq('email', session.user.email?.toLowerCase())
+            .single();
+            
+          if (employee && employee.status === 'eingeladen') {
+            await supabase
+              .from('employees')
+              .update({ 
+                status: 'Aktiv',
+                user_id: session.user.id 
+              })
+              .eq('id', employee.id);
+          }
+        }
       } else {
         setUserRole(null);
       }

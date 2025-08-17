@@ -80,12 +80,44 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.email);
+      
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
         fetchUserData(session.user.id);
+        
+        // Check if this is a newly confirmed user (email just confirmed)
+        if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
+          console.log('User signed in or updated, checking employee status...');
+          
+          // Update employee status to 'Aktiv' if they exist in employees table
+          const { data: employee, error: empError } = await supabase
+            .from('employees')
+            .select('id, status')
+            .eq('email', session.user.email?.toLowerCase())
+            .single();
+            
+          if (employee && employee.status === 'eingeladen') {
+            console.log('Updating employee status to Aktiv...');
+            
+            const { error: updateError } = await supabase
+              .from('employees')
+              .update({ 
+                status: 'Aktiv',
+                user_id: session.user.id 
+              })
+              .eq('id', employee.id);
+              
+            if (updateError) {
+              console.error('Error updating employee status:', updateError);
+            } else {
+              console.log('Employee status updated to Aktiv');
+            }
+          }
+        }
       } else {
         setUserRole(null);
         setCompanyId(null);
