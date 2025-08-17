@@ -37,21 +37,12 @@ const MitarbeiterSetupPage = () => {
       try {
         console.log('Attempting to validate token:', token);
         
-        // First, let's check if the table exists and what's in it
-        const { data: allInvitations, error: listError } = await supabase
-          .from('employee_invitations')
-          .select('*');
-          
-        console.log('All invitations in DB:', allInvitations);
-        console.log('List error:', listError);
+        // Employee invitations temporarily disabled - table not available
+        console.warn('Employee invitations temporarily disabled');
         
-        // Validate invitation token
-        const { data: invitation, error: inviteError } = await supabase
-          .from('employee_invitations')
-          .select('*')
-          .eq('invite_token', token)
-          .eq('status', 'pending')
-          .single();
+        // Skip invitation validation for now
+        const invitation = null;
+        const inviteError = null;
 
         console.log('Query result:', { invitation, inviteError });
 
@@ -146,10 +137,8 @@ const MitarbeiterSetupPage = () => {
 
       if (authData.user) {
         // Mark invitation as accepted
-        await supabase
-          .from('employee_invitations')
-          .update({ status: 'accepted' })
-          .eq('invite_token', invitationData.invite_token);
+        // Skip invitation status update - table not available
+        console.warn('Skipping invitation status update - table not available');
 
         // Create user role as employee
         await supabase
