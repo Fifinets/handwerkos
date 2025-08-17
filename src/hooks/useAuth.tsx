@@ -78,7 +78,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    // First, try to sign in
     const result = await supabase.auth.signInWithPassword({ email, password });
+    
+    // If email not confirmed error, refresh the session and try again
+    if (result.error?.message?.includes('Email not confirmed')) {
+      console.log('Email not confirmed error, refreshing session...');
+      
+      // Try to refresh the session
+      const { data: session, error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (!refreshError && session?.user) {
+        // Session refreshed, user is actually confirmed
+        console.log('Session refreshed, user is confirmed');
+        
+        // Update employee status now
+        try {
+          const { data: employee } = await supabase
+            .from('employees')
+            .select('id, status')
+            .eq('email', email.toLowerCase())
+            .single();
+            
+          if (employee && employee.status === 'eingeladen') {
+            await supabase
+              .from('employees')
+              .update({ 
+                status: 'Aktiv',
+                user_id: session.user.id 
+              })
+              .eq('id', employee.id);
+              
+            console.log('Employee status updated to Aktiv after email confirmation');
+          }
+        } catch (error) {
+          console.error('Error updating employee status:', error);
+        }
+        
+        // Return success with the refreshed session
+        return { data: session, error: null };
+      }
+    }
     
     // After successful login, update employee status if needed
     if (!result.error && result.data.user) {
@@ -94,32 +134,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
         console.log('Employee query result:', { employee, fetchError });
           
-        // Update status if employee is still 'eingeladen' AND email is confirmed
+        // Update status if employee is still 'eingeladen'
         if (employee && employee.status === 'eingeladen') {
-          // Check if email is confirmed
-          const { data: userData } = await supabase.auth.getUser();
+          console.log('Updating employee status to Aktiv for:', employee.id);
           
-          if (userData?.user?.email_confirmed_at) {
-            console.log('Email confirmed, updating employee status to Aktiv for:', employee.id);
+          const { data: updateData, error: updateError } = await supabase
+            .from('employees')
+            .update({ 
+              status: 'Aktiv',
+              user_id: result.data.user.id 
+            })
+            .eq('id', employee.id)
+            .select();
             
-            const { data: updateData, error: updateError } = await supabase
-              .from('employees')
-              .update({ 
-                status: 'Aktiv',
-                user_id: result.data.user.id 
-              })
-              .eq('id', employee.id)
-              .select();
-              
-            console.log('Update result:', { updateData, updateError });
-            
-            if (updateError) {
-              console.error('Failed to update employee status:', updateError);
-            } else {
-              console.log('Employee status successfully updated to Aktiv');
-            }
+          console.log('Update result:', { updateData, updateError });
+          
+          if (updateError) {
+            console.error('Failed to update employee status:', updateError);
           } else {
-            console.log('Email not confirmed yet, keeping status as eingeladen');
+            console.log('Employee status successfully updated to Aktiv');
           }
         } else if (employee) {
           console.log('Employee already has status:', employee.status);
