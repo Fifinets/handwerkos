@@ -67,20 +67,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Update employee status when user signs in or confirms email
         if (_event === 'SIGNED_IN' || _event === 'USER_UPDATED') {
-          const { data: employee } = await supabase
-            .from('employees')
-            .select('id, status')
-            .eq('email', session.user.email?.toLowerCase())
+          // Check if user already has a role to prevent overwriting managers
+          const { data: existingRole } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id)
             .single();
-            
-          if (employee && employee.status === 'eingeladen') {
-            await supabase
+          
+          // Only update employee status if user has no role or is already an employee
+          if (!existingRole || existingRole.role === 'employee') {
+            const { data: employee } = await supabase
               .from('employees')
-              .update({ 
-                status: 'Aktiv',
-                user_id: session.user.id 
-              })
-              .eq('id', employee.id);
+              .select('id, status, user_id')
+              .eq('email', session.user.email?.toLowerCase())
+              .single();
+              
+            // Only update if employee is still 'eingeladen' and has no user_id
+            if (employee && employee.status === 'eingeladen' && !employee.user_id) {
+              await supabase
+                .from('employees')
+                .update({ 
+                  status: 'Aktiv',
+                  user_id: session.user.id 
+                })
+                .eq('id', employee.id);
+            }
           }
         }
       } else {
