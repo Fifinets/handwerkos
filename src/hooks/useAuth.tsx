@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 2) Listener für zukünftige Auth-Events
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       console.log('Auth state changed:', _event, session);
       setSession(session);
       setUser(session?.user ?? null);
@@ -65,35 +65,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         fetchUserRole(session.user.id);
         
-        // Update employee status when user signs in or confirms email
-        if (_event === 'SIGNED_IN' || _event === 'USER_UPDATED') {
-          // Check if user already has a role to prevent overwriting managers
-          const { data: existingRole } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', session.user.id)
-            .single();
-          
-          // Only update employee status if user has no role or is already an employee
-          if (!existingRole || existingRole.role === 'employee') {
-            const { data: employee } = await supabase
-              .from('employees')
-              .select('id, status, user_id')
-              .eq('email', session.user.email?.toLowerCase())
-              .single();
-              
-            // Only update if employee is still 'eingeladen' and has no user_id
-            if (employee && employee.status === 'eingeladen' && !employee.user_id) {
-              await supabase
-                .from('employees')
-                .update({ 
-                  status: 'Aktiv',
-                  user_id: session.user.id 
-                })
-                .eq('id', employee.id);
-            }
-          }
-        }
+        // REMOVED: Employee status update causing infinite loops
+        // This should be handled by database triggers
       } else {
         setUserRole(null);
       }
@@ -104,8 +77,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const signIn = (email: string, password: string) =>
-    supabase.auth.signInWithPassword({ email, password });
+  const signIn = async (email: string, password: string) => {
+    const result = await supabase.auth.signInWithPassword({ email, password });
+    
+    // After successful login, update employee status if needed
+    if (!result.error && result.data.user) {
+      try {
+        // Check if this user is an employee with 'eingeladen' status
+        const { data: employee } = await supabase
+          .from('employees')
+          .select('id, status, user_id')
+          .eq('email', email.toLowerCase())
+          .single();
+          
+        // Update status if employee is still 'eingeladen'
+        if (employee && employee.status === 'eingeladen') {
+          await supabase
+            .from('employees')
+            .update({ 
+              status: 'Aktiv',
+              user_id: result.data.user.id 
+            })
+            .eq('id', employee.id);
+            
+          console.log('Employee status updated to Aktiv after login');
+        }
+      } catch (error) {
+        // Don't fail login if status update fails
+        console.warn('Could not update employee status:', error);
+      }
+    }
+    
+    return result;
+  };
 
   const signUp = (
     email: string,

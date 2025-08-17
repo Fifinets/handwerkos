@@ -80,7 +80,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state changed:', event, session?.user?.email);
       
       setSession(session);
@@ -89,47 +89,8 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       if (session?.user) {
         fetchUserData(session.user.id);
         
-        // Check if this is a newly confirmed user (email just confirmed)
-        if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
-          console.log('User signed in or updated, checking employee status...');
-          
-          // IMPORTANT: Only update if user doesn't have a role yet (new user)
-          // This prevents managers from being converted to employees
-          const { data: existingRole } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', session.user.id)
-            .single();
-            
-          // Only proceed if user has no role or is already an employee
-          if (!existingRole || existingRole.role === 'employee') {
-            // Update employee status to 'Aktiv' if they exist in employees table
-            const { data: employee, error: empError } = await supabase
-              .from('employees')
-              .select('id, status, user_id')
-              .eq('email', session.user.email?.toLowerCase())
-              .single();
-              
-            // Only update if employee exists, is still 'eingeladen', and has no user_id yet
-            if (employee && employee.status === 'eingeladen' && !employee.user_id) {
-              console.log('Updating employee status to Aktiv...');
-              
-              const { error: updateError } = await supabase
-                .from('employees')
-                .update({ 
-                  status: 'Aktiv',
-                  user_id: session.user.id 
-                })
-                .eq('id', employee.id);
-                
-              if (updateError) {
-                console.error('Error updating employee status:', updateError);
-              } else {
-                console.log('Employee status updated to Aktiv');
-              }
-            }
-          }
-        }
+        // REMOVED: The employee status update logic was causing infinite loops
+        // This should be handled by the database trigger instead
       } else {
         setUserRole(null);
         setCompanyId(null);
