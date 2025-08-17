@@ -363,10 +363,6 @@ const ProjectDetailDialog = ({ isOpen, onClose, project }: ProjectDetailDialogPr
           </div>
 
           </Tabs>
-          
-          <div className="flex justify-end pt-4">
-            <Button onClick={onClose}>Schließen</Button>
-          </div>
         </DialogContent>
       </Dialog>
   );

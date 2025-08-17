@@ -43,13 +43,6 @@ interface TeamMember {
   company_id?: string;
 }
 
-interface StatusCounts {
-  anfrage: number;
-  besichtigung: number;
-  geplant: number;
-  in_bearbeitung: number;
-  abgeschlossen: number;
-}
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Plus, CheckCircle, Clock, AlertTriangle, Building2, FileText, Edit, Calculator, TrendingUp, Receipt } from "lucide-react";
@@ -74,9 +67,10 @@ import OrderModule from "./OrderModule";
 import PreCalculationDialog from "./PreCalculationDialog";
 import ProjectProfitabilityDialog from "./ProjectProfitabilityDialog";
 import ProjectKpiBar from "./projects/ProjectKpiBar";
-import StatusList from "./projects/StatusList";
+import StatusList, { type StatusCounts } from "./projects/StatusList";
 import ProjectRow from "./projects/ProjectRow";
 import EmptyState from "./projects/EmptyState";
+import AutoFixDatabase from "./AutoFixDatabase";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -352,8 +346,15 @@ const ProjectModule = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   
   // Extract data from responses
-  const projects = projectsResponse?.items || [];
+  // Use debugProjects as fallback if the API hook fails
+  const projects = projectsResponse?.items || debugProjects || [];
   const customers = customersResponse?.items || [];
+  
+  // Debug logging
+  console.log('ProjectModule - projectsResponse:', projectsResponse);
+  console.log('ProjectModule - projects:', projects);
+  console.log('ProjectModule - projectsError:', projectsError);
+  console.log('ProjectModule - debugProjects:', debugProjects);
   
   // Debug logging
   console.log('Customers data:', customers);
@@ -432,6 +433,11 @@ const ProjectModule = () => {
     setIsProjectDetailViewOpen(true);
   };
 
+  const handleEditProject = (project: Project) => {
+    setSelectedProject(project);
+    setIsEditDialogOpen(true);
+  };
+
   const handlePreCalculation = (project: Project) => {
     setSelectedProject(project);
     setIsPreCalculationOpen(true);
@@ -452,6 +458,9 @@ const ProjectModule = () => {
 
   return (
     <div className="p-4 space-y-4">
+      {/* Auto-fix database if needed */}
+      <AutoFixDatabase />
+      
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Projekte & Baustellen</h1>
@@ -513,15 +522,14 @@ const ProjectModule = () => {
                   >
                     <ProjectRow
                       id={generateShortId(project.id)}
+                      project_number={project.project_number}
                       name={project.name}
                       status={project.status}
                       budget={extractBudgetFromDescription(project.description) || project.budget || 0}
                       start={project.start_date}
                       end={project.end_date}
-                      progress={project.status === 'abgeschlossen' ? 100 : 
-                               project.status === 'in_bearbeitung' ? 60 : 
-                               project.status === 'geplant' ? 30 : 10}
                       onOpen={() => handleDoubleClickProject(project)}
+                      onEdit={() => handleEditProject(project)}
                     />
                   </div>
                 ))
@@ -547,13 +555,14 @@ const ProjectModule = () => {
                 >
                   <ProjectRow 
                     id={generateShortId(project.id)} 
+                    project_number={project.project_number}
                     name={project.name} 
                     status={project.status} 
                     budget={extractBudgetFromDescription(project.description) || project.budget || 0} 
-                    progress={project.status === 'abgeschlossen' ? 100 : 
-                             project.status === 'in_bearbeitung' ? 60 : 
-                             project.status === 'geplant' ? 30 : 10}
+                    start={project.start_date}
+                    end={project.end_date}
                     onOpen={() => handleDoubleClickProject(project)}
+                    onEdit={() => handleEditProject(project)}
                   />
                 </div>
               ))}

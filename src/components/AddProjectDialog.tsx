@@ -76,6 +76,11 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
   const getAvailabilityStatus = (member: TeamMember, dateRange: DateRange | undefined) => {
     if (!dateRange?.from || !dateRange?.to) return 'unknown';
     
+    // Check if member has projects array
+    if (!member.projects || !Array.isArray(member.projects)) {
+      return 'available'; // If no projects, member is available
+    }
+    
     const startDate = dateRange.from;
     const endDate = dateRange.to;
     
@@ -182,16 +187,60 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
 
     try {
       // Create project in database
-      const createdProject = await createProjectMutation.mutateAsync(projectData);
+      const newProject = await createProjectMutation.mutateAsync(projectData);
       
-      // Call optional callback
-      if (onProjectAdded) {
-        onProjectAdded({
-          id: createdProject.id,
-          name: createdProject.name,
-          status: createdProject.status
+      // Add team members to the project if any were selected
+      if (teamMemberIds.length > 0 && newProject) {
+        console.log('Adding team members to project:', { 
+          projectId: newProject.id, 
+          teamMemberIds, 
+          teamMemberInserts: teamMemberIds.map(id => ({ project_id: newProject.id, employee_id: id }))
         });
+        
+        // Import supabase here to add team members
+        const { supabase } = await import('@/integrations/supabase/client');
+        
+        const teamMemberInserts = teamMemberIds.map(employeeId => ({
+          project_id: newProject.id,
+          employee_id: employeeId,
+          assigned_at: new Date().toISOString()
+        }));
+        
+        const { error: teamError } = await supabase
+          .from('project_team_members')
+          .insert(teamMemberInserts);
+          
+        if (teamError) {
+          console.error('Error adding team members:', teamError);
+          
+          // If table doesn't exist, provide helpful message
+          if (teamError.message?.includes('relation "public.project_team_members" does not exist')) {
+            toast({
+              title: "Setup erforderlich",
+              description: "Die Datenbank-Tabelle für Team-Zuweisungen muss erstellt werden. Bitte wenden Sie sich an den Administrator.",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "Warnung",
+              description: "Projekt wurde erstellt, aber Team-Mitglieder konnten nicht zugewiesen werden: " + teamError.message,
+              variant: "destructive"
+            });
+          }
+        } else {
+          console.log('Team members successfully added to project');
+          toast({
+            title: "Erfolg",
+            description: `Projekt erstellt und ${teamMemberIds.length} Team-Mitglieder zugewiesen.`,
+          });
+        }
       }
+      
+      // Close dialog and show success message
+      toast({
+        title: "Projekt erstellt",
+        description: `${formData.name} wurde erfolgreich erstellt.`,
+      });
       
       // Reset form
       setFormData({

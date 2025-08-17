@@ -159,13 +159,52 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       const totalMaterialCost = materialEntries?.reduce((sum, entry) => sum + (entry.total_cost || 0), 0) || 0;
       
       // Get assigned team members for this project (with fallback)
-      const { data: teamMembers, error: teamError } = await supabase
+      // First try simple query without join
+      const { data: teamMemberIds, error: teamIdsError } = await supabase
         .from('project_team_members')
-        .select('employee_id, employees!inner(first_name, last_name, email)')
+        .select('employee_id')
         .eq('project_id', projectId);
+      
+      console.log('Team member IDs for project:', { teamMemberIds, teamIdsError, projectId });
+      
+      let teamMembers = [];
+      let teamError = teamIdsError;
+      
+      // If we have team member IDs, fetch their details
+      if (teamMemberIds && teamMemberIds.length > 0) {
+        const employeeIds = teamMemberIds.map(tm => tm.employee_id);
+        
+        const { data: employeeDetails, error: employeeError } = await supabase
+          .from('employees')
+          .select('id, first_name, last_name, email')
+          .in('id', employeeIds);
+        
+        console.log('Employee details:', { employeeDetails, employeeError, employeeIds });
+        
+        if (employeeDetails) {
+          teamMembers = teamMemberIds.map(tm => ({
+            employee_id: tm.employee_id,
+            employees: employeeDetails.find(emp => emp.id === tm.employee_id)
+          })).filter(tm => tm.employees); // Only include if employee details found
+        }
+        
+        teamError = employeeError;
+      }
+      
+      console.log('Team members query result:', { teamMembers, teamError, projectId });
+      
+      // Additional debug: Check what's in the project_team_members table
+      const { data: allTeamMembers, error: allTeamError } = await supabase
+        .from('project_team_members')
+        .select('*');
+      console.log('All team members in database:', { allTeamMembers, allTeamError });
       
       if (teamError) {
         console.log('Project team members table might not exist yet:', teamError.message);
+        // If table doesn't exist, show helpful message to user
+        if (teamError.message.includes('relation "public.project_team_members" does not exist')) {
+          console.log('project_team_members table needs to be created. Please apply the migration.');
+        }
       }
       
       // Get project comments count (with fallback)
@@ -208,8 +247,9 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         start_date: projectData.start_date || new Date().toISOString().split('T')[0],
         planned_end_date: projectData.end_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         status: ((projectData.status as ProjectStatus) ?? 'geplant') as ProjectStatus,
-        project_address: projectData.location || 'Nicht angegeben',
+        project_address: projectData.location || projectData.address || 'Nicht angegeben',
         project_description: projectData.description || 'Keine Beschreibung',
+        budget_planned: projectBudget,
         linked_invoices: [],
         linked_offers: [],
         created_at: projectData.created_at || new Date().toISOString(),
@@ -218,55 +258,39 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         assigned_team: teamMembers?.map(tm => tm.employee_id) || [],
         
         customer: customerData ? {
-          company_name: customerData.company_name,
-          contact_person: customerData.contact_person,
-          email: customerData.email,
-          phone: customerData.phone
+          company_name: customerData.company_name || 'Unbekanntes Unternehmen',
+          contact_person: customerData.contact_person || 'Nicht angegeben',
+          email: customerData.email || 'Nicht angegeben',
+          phone: customerData.phone || 'Nicht angegeben'
         } : {
-          company_name: 'Unbekannter Kunde',
-          contact_person: 'Nicht verfügbar',
-          email: 'nicht-verfuegbar@example.com',
-          phone: undefined
+          company_name: 'Kein Kunde zugewiesen',
+          contact_person: 'Nicht angegeben',
+          email: 'Nicht angegeben',
+          phone: 'Nicht angegeben'
         },
 
         stats: {
-          total_hours_logged: totalHours > 0 ? totalHours : 45.5, // Fallback demo data
-          total_material_cost: totalMaterialCost > 0 ? totalMaterialCost : 2850.00, // Fallback demo data
-          total_project_cost: projectBudget || totalProjectCost || 12750.00, // Fallback demo data
-          budget_utilization: budgetUtilization > 0 ? budgetUtilization : 68, // Fallback demo data
+          total_hours_logged: totalHours,
+          total_material_cost: totalMaterialCost,
+          total_project_cost: totalProjectCost,
+          budget_utilization: budgetUtilization,
           days_active: daysActive,
           days_remaining: daysRemaining,
-          team_size: teamMembers?.length || 3, // Fallback demo data
-          documents_count: documents?.length || 8, // Fallback demo data
-          comments_count: comments?.length || 12, // Fallback demo data
+          team_size: teamMembers?.length || 0,
+          documents_count: documents?.length || 0,
+          comments_count: comments?.length || 0,
           last_activity: new Date().toISOString()
         },
 
         recent_activities: [], // Will be populated with real data below
 
-        team_members: teamMembers?.length > 0 ? teamMembers.map(tm => ({
+        team_members: teamMembers?.map(tm => ({
           id: tm.employee_id,
           name: `${tm.employees.first_name} ${tm.employees.last_name}`.trim(),
           role: 'team_member',
           email: tm.employees.email,
           hours_this_week: 0 // TODO: Calculate from time entries
-        })) : [
-          // Fallback demo team members
-          {
-            id: 'demo_1',
-            name: 'Max Mustermann',
-            role: 'projektleiter',
-            email: 'max@example.com',
-            hours_this_week: 32.5
-          },
-          {
-            id: 'demo_2',
-            name: 'Anna Schmidt',
-            role: 'admin',
-            email: 'anna@example.com',
-            hours_this_week: 28.0
-          }
-        ],
+        })) || [],
 
         permissions: getProjectPermissions('admin', true)
       };
@@ -357,30 +381,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       // Sort activities by timestamp (newest first)
       activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       
-      // Update project data with real activities (or fallback demo activities)
-      realProjectData.recent_activities = activities.length > 0 ? activities.slice(0, 10) : [
-        // Fallback demo activities
-        {
-          id: 'demo_activity_1',
-          project_id: projectId,
-          event_type: 'comment',
-          title: 'Neuer Kommentar hinzugefügt',
-          description: 'Materiallieferung für Freitag geplant',
-          user_name: 'Max Mustermann',
-          user_role: 'projektleiter',
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: 'demo_activity_2',
-          project_id: projectId,
-          event_type: 'document',
-          title: 'Dokument hochgeladen',
-          description: 'Bauplan_Final.pdf',
-          user_name: 'Anna Schmidt',
-          user_role: 'admin',
-          timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
-        }
-      ];
+      // Update project data with real activities only
+      realProjectData.recent_activities = activities.slice(0, 10);
       
       setProject(realProjectData);
     } catch (error) {
@@ -537,9 +539,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">Projekt nicht gefunden</h3>
             <p className="text-gray-600">Das angeforderte Projekt konnte nicht geladen werden.</p>
-            <Button onClick={onClose} className="mt-4">
-              Schließen
-            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -569,19 +568,11 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
               </div>
               <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <p className="text-sm text-gray-600">Budget</p>
+                  <p className="text-sm text-gray-600">Aktueller Projektkosten</p>
                   <p className="text-3xl font-bold text-green-600">{formatCurrency(project.stats.total_project_cost)}</p>
-                </div>
-                <div className="flex gap-2">
-                  {permissions.can_edit_basic_data && (
-                    <Button variant="outline" size="sm">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Bearbeiten
-                    </Button>
+                  {project.budget_planned && project.budget_planned > 0 && (
+                    <p className="text-xs text-gray-500">von {formatCurrency(project.budget_planned)} Budget</p>
                   )}
-                  <Button variant="outline" size="sm" onClick={onClose}>
-                    Schließen
-                  </Button>
                 </div>
               </div>
             </div>
@@ -735,18 +726,22 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {project.team_members.map(member => (
-                      <div key={member.id} className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{member.name}</p>
-                          <p className="text-sm text-gray-600">{member.role}</p>
+                    {project.team_members.length === 0 ? (
+                      <p className="text-sm text-gray-500">Noch keine Teammitglieder zugewiesen</p>
+                    ) : (
+                      project.team_members.map(member => (
+                        <div key={member.id} className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{member.name || 'Unbekannt'}</p>
+                            <p className="text-sm text-gray-600">{member.email || 'Keine E-Mail'}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium">{member.hours_this_week || 0}h</p>
+                            <p className="text-xs text-gray-500">diese Woche</p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium">{member.hours_this_week}h</p>
-                          <p className="text-xs text-gray-500">diese Woche</p>
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </CardContent>
                 </Card>
 
@@ -781,17 +776,21 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                     <CardTitle>Letzte Aktivitäten</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {project.recent_activities.map(activity => (
-                      <div key={activity.id} className="border-l-2 border-blue-200 pl-3">
-                        <p className="text-sm font-medium">{activity.title}</p>
-                        <p className="text-xs text-gray-600">{activity.description}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-gray-500">{activity.user_name}</span>
-                          <span className="text-xs text-gray-400">•</span>
-                          <span className="text-xs text-gray-500">{formatDateTime(activity.timestamp)}</span>
+                    {project.recent_activities.length === 0 ? (
+                      <p className="text-sm text-gray-500">Noch keine Aktivitäten für dieses Projekt</p>
+                    ) : (
+                      project.recent_activities.map(activity => (
+                        <div key={activity.id} className="border-l-2 border-blue-200 pl-3">
+                          <p className="text-sm font-medium">{activity.title}</p>
+                          <p className="text-xs text-gray-600">{activity.description}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-gray-500">{activity.user_name}</span>
+                            <span className="text-xs text-gray-400">•</span>
+                            <span className="text-xs text-gray-500">{formatDateTime(activity.timestamp)}</span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </CardContent>
                 </Card>
               </div>
