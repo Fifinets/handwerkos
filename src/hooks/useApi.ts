@@ -22,7 +22,7 @@ import { ApiError } from '@/utils/api';
 import { customerService, CustomerService } from '@/services/customerService';
 import { quoteService } from '@/services/quoteService';
 import { orderService } from '@/services/orderService';
-import { ProjectService } from '@/services/ProjectService';
+import { ProjectService } from '@/services/projectService';
 import { timesheetService } from '@/services/timesheetService';
 import { materialService } from '@/services/materialService';
 import { stockService } from '@/services/stockService';
