@@ -127,7 +127,11 @@ const MitarbeiterSetupPage = () => {
             last_name: lastName,
             company_id: invitationData.company_id
           },
-          emailRedirectTo: window.location.origin + '/auth'
+          emailRedirectTo: window.location.href.includes('lovable.app') 
+            ? 'https://id-preview--a0eb28b7-447b-47a2-80fc-a8181ec925b9.lovable.app/auth'
+            : window.location.href.includes('handwerkos.de')
+            ? 'https://handwerkos.de/auth'
+            : `${window.location.origin}/auth`
         }
       });
 
