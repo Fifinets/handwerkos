@@ -127,7 +127,7 @@ const MitarbeiterSetupPage = () => {
             last_name: lastName,
             company_id: invitationData.company_id
           },
-          emailRedirectTo: window.location.origin + '/auth'  // Skip email confirmation
+          emailRedirectTo: `${window.location.origin}/auth?confirmed=true`
         }
       });
 

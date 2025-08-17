@@ -56,8 +56,33 @@ const Auth: React.FC = () => {
       
       const mode = searchParams.get('mode');
       const inviteToken = searchParams.get('token');
+      const confirmed = searchParams.get('confirmed');
 
-      console.log('Auth check:', { mode, inviteToken });
+      console.log('Auth check:', { mode, inviteToken, confirmed });
+
+      // Handle email confirmation redirect
+      if (confirmed === 'true') {
+        console.log('Email confirmation detected, updating employee status...');
+        
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          if (session?.user) {
+            // Update employee status to 'Aktiv'
+            const { error: updateError } = await supabase
+              .from('employees')
+              .update({ status: 'Aktiv' })
+              .eq('email', session.user.email?.toLowerCase())
+              .eq('user_id', session.user.id);
+              
+            if (!updateError) {
+              toast.success('E-Mail bestätigt! Ihr Account ist jetzt aktiv.');
+            }
+          }
+        } catch (error) {
+          console.error('Error updating employee status after confirmation:', error);
+        }
+      }
 
       if (mode === 'employee-setup' && inviteToken) {
         console.log('Processing employee invitation token:', inviteToken);
