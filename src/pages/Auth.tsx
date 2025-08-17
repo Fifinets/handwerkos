@@ -89,6 +89,43 @@ const Auth: React.FC = () => {
         return;
       }
 
+      // Also check for automatic email confirmation (no confirmed parameter but user is confirmed)
+      if (!confirmed) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          if (session?.user?.email_confirmed_at) {
+            console.log('Checking if this is a newly confirmed employee...');
+            
+            // Check if there's an employee with this email that still has 'eingeladen' status
+            const { data: employee, error: employeeError } = await supabase
+              .from('employees')
+              .select('id, status')
+              .eq('email', session.user.email?.toLowerCase())
+              .eq('status', 'eingeladen')
+              .single();
+              
+            if (employee && !employeeError) {
+              console.log('Found unconfirmed employee, updating status to Aktiv');
+              
+              const { error: updateError } = await supabase
+                .from('employees')
+                .update({ status: 'Aktiv' })
+                .eq('id', employee.id);
+
+              if (updateError) {
+                console.error('Error updating employee status:', updateError);
+              } else {
+                console.log('Employee status updated to Aktiv automatically');
+                toast.success('E-Mail erfolgreich bestätigt! Sie können sich jetzt anmelden.');
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error checking automatic email confirmation:', error);
+        }
+      }
+
       if (mode === 'employee-setup' && inviteToken) {
         console.log('Processing employee invitation token:', inviteToken);
         

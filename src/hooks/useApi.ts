@@ -1501,7 +1501,7 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
             company_id
           `)
           .not('user_id', 'is', null)  // Only employees who have registered
-          .neq('status', 'eingeladen')  // Exclude invited but not registered
+          .eq('status', 'Aktiv')  // Only show employees with confirmed email
           .order('created_at', { ascending: false });
         
         console.log('useEmployees: Raw query (no company filter):', employeesData);
