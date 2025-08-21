@@ -32,7 +32,7 @@ export interface EmailHeaders {
 /**
  * Parse email content and extract HTML/text parts with preprocessing
  */
-export function parseEmailContent(rawContent: string): ParsedEmailContent {
+export function parseEmailContent(rawContent: string): ParsedEmailContent
   // Preprocess content to fix common issues
   const preprocessedContent = preprocessEmailContent(rawContent);
   const headers = parseEmailHeaders(preprocessedContent);

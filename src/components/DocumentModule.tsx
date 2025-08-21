@@ -29,8 +29,7 @@ import {
   useUpdateQuote
 } from '@/hooks/useApi';
 import { useQueryClient } from '@tanstack/react-query';
-// TODO: Re-enable when DocumentTemplateManager is implemented
-// import DocumentTemplateManager from './documents/DocumentTemplateManager';
+import DocumentTemplateManager from './documents/DocumentTemplateManager';
 
 interface Quote {
   id: string;
@@ -405,15 +404,7 @@ export function DocumentModule() {
           )}
         </TabsContent>
         <TabsContent value="templates" className="space-y-4">
-          <Card>
-            <CardContent className="py-8 text-center">
-              <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Vorlagen-Manager</h3>
-              <p className="text-muted-foreground">
-                Die Vorlagen-Funktionalität wird bald verfügbar sein.
-              </p>
-            </CardContent>
-          </Card>
+          <DocumentTemplateManager />
         </TabsContent>
       </Tabs>
 

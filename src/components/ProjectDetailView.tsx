@@ -284,13 +284,34 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
 
         recent_activities: [], // Will be populated with real data below
 
-        team_members: teamMembers?.map(tm => ({
-          id: tm.employee_id,
-          name: `${tm.employees.first_name} ${tm.employees.last_name}`.trim(),
-          role: 'team_member',
-          email: tm.employees.email,
-          hours_this_week: 0 // TODO: Calculate from time entries
-        })) || [],
+        team_members: await Promise.all(teamMembers?.map(async (tm) => {
+          // Calculate hours this week for each team member
+          const startOfWeek = new Date();
+          startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+          startOfWeek.setHours(0, 0, 0, 0);
+          
+          const endOfWeek = new Date(startOfWeek);
+          endOfWeek.setDate(endOfWeek.getDate() + 6);
+          endOfWeek.setHours(23, 59, 59, 999);
+          
+          const { data: weeklyHours } = await supabase
+            .from('time_entries')
+            .select('hours')
+            .eq('project_id', projectId)
+            .eq('employee_id', tm.employee_id)
+            .gte('entry_date', startOfWeek.toISOString())
+            .lte('entry_date', endOfWeek.toISOString());
+          
+          const totalHoursThisWeek = weeklyHours?.reduce((sum, entry) => sum + (entry.hours || 0), 0) || 0;
+          
+          return {
+            id: tm.employee_id,
+            name: `${tm.employees.first_name} ${tm.employees.last_name}`.trim(),
+            role: 'team_member',
+            email: tm.employees.email,
+            hours_this_week: totalHoursThisWeek
+          };
+        }) || []),
 
         permissions: getProjectPermissions('admin', true)
       };
