@@ -599,8 +599,9 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             </div>
             
             {/* Tabs direkt im Header */}
-            <TabsList className="grid w-full grid-cols-5 mb-4">
+            <TabsList className="grid w-full grid-cols-6 mb-4">
               <TabsTrigger value="overview">Übersicht</TabsTrigger>
+              <TabsTrigger value="team">Team</TabsTrigger>
               <TabsTrigger value="time">Zeiten</TabsTrigger>
               <TabsTrigger value="materials">Material</TabsTrigger>
               <TabsTrigger value="documents">Dokumente</TabsTrigger>
@@ -816,6 +817,58 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                 </Card>
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="team" className="space-y-4 min-h-[600px] mt-0">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Projektteam</h3>
+              {permissions.can_manage_team && (
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Mitarbeiter hinzufügen
+                </Button>
+              )}
+            </div>
+            <Card>
+              <CardContent className="p-4">
+                {project.team_members && project.team_members.length > 0 ? (
+                  <div className="space-y-4">
+                    {project.team_members.map((member: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <Users className="h-8 w-8 text-gray-400" />
+                          <div>
+                            <p className="font-medium">{member.first_name} {member.last_name}</p>
+                            <p className="text-sm text-gray-500">{member.position}</p>
+                            {member.email && (
+                              <p className="text-xs text-gray-400">{member.email}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="outline">
+                            {member.hours_per_day ? `${member.hours_per_day}h/Tag` : 'Vollzeit'}
+                          </Badge>
+                          {permissions.can_manage_team && (
+                            <Button variant="outline" size="sm">
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Users className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                    <p className="text-gray-500">Noch keine Teammitglieder zugewiesen</p>
+                    <p className="text-sm text-gray-400 mt-2">
+                      Fügen Sie Mitarbeiter hinzu, um sie diesem Projekt zuzuweisen
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="time" className="space-y-4 min-h-[600px] mt-0">

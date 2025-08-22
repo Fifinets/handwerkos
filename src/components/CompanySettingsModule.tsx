@@ -34,6 +34,17 @@ interface CompanySettings {
   default_working_hours_start: string;
   default_working_hours_end: string;
   default_break_duration: number;
+  // Fixkosten
+  monthly_rent?: number;
+  monthly_insurance?: number;
+  monthly_utilities?: number;
+  monthly_software?: number;
+  monthly_other_costs?: number;
+  // Urlaubseinstellungen
+  default_vacation_days: number;
+  max_vacation_days?: number;
+  vacation_approval_required: boolean;
+  vacation_notice_days: number;
 }
 
 export function CompanySettingsModule() {
@@ -457,6 +468,132 @@ export function CompanySettingsModule() {
                   value={settings.default_break_duration}
                   onChange={(e) => updateSetting("default_break_duration", parseInt(e.target.value))}
                 />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Fixkosten */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Monatliche Fixkosten
+            </CardTitle>
+            <CardDescription>
+              Erfassen Sie Ihre regelmäßigen monatlichen Ausgaben für die Kostenanalyse
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="monthly_rent">Miete / Büromiete (€)</Label>
+                <Input
+                  id="monthly_rent"
+                  type="number"
+                  value={settings.monthly_rent || ""}
+                  onChange={(e) => updateSetting("monthly_rent", parseFloat(e.target.value) || 0)}
+                  placeholder="1500"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="monthly_insurance">Versicherungen (€)</Label>
+                <Input
+                  id="monthly_insurance"
+                  type="number"
+                  value={settings.monthly_insurance || ""}
+                  onChange={(e) => updateSetting("monthly_insurance", parseFloat(e.target.value) || 0)}
+                  placeholder="300"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="monthly_utilities">Nebenkosten (€)</Label>
+                <Input
+                  id="monthly_utilities"
+                  type="number"
+                  value={settings.monthly_utilities || ""}
+                  onChange={(e) => updateSetting("monthly_utilities", parseFloat(e.target.value) || 0)}
+                  placeholder="200"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="monthly_software">Software / Lizenzen (€)</Label>
+                <Input
+                  id="monthly_software"
+                  type="number"
+                  value={settings.monthly_software || ""}
+                  onChange={(e) => updateSetting("monthly_software", parseFloat(e.target.value) || 0)}
+                  placeholder="150"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="monthly_other_costs">Sonstige Kosten (€)</Label>
+                <Input
+                  id="monthly_other_costs"
+                  type="number"
+                  value={settings.monthly_other_costs || ""}
+                  onChange={(e) => updateSetting("monthly_other_costs", parseFloat(e.target.value) || 0)}
+                  placeholder="100"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Urlaubseinstellungen */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Urlaubseinstellungen
+            </CardTitle>
+            <CardDescription>
+              Standard-Urlaubsregelungen für neue Mitarbeiter
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="default_vacation_days">Standard Urlaubstage</Label>
+                <Input
+                  id="default_vacation_days"
+                  type="number"
+                  value={settings.default_vacation_days || 25}
+                  onChange={(e) => updateSetting("default_vacation_days", parseInt(e.target.value) || 25)}
+                  placeholder="25"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="max_vacation_days">Maximum Urlaubstage</Label>
+                <Input
+                  id="max_vacation_days"
+                  type="number"
+                  value={settings.max_vacation_days || ""}
+                  onChange={(e) => updateSetting("max_vacation_days", parseInt(e.target.value) || null)}
+                  placeholder="30"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="vacation_notice_days">Vorlaufzeit (Tage)</Label>
+                <Input
+                  id="vacation_notice_days"
+                  type="number"
+                  value={settings.vacation_notice_days || 14}
+                  onChange={(e) => updateSetting("vacation_notice_days", parseInt(e.target.value) || 14)}
+                  placeholder="14"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="vacation_approval_required">Genehmigung erforderlich</Label>
+                <select 
+                  id="vacation_approval_required"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={settings.vacation_approval_required ? "true" : "false"}
+                  onChange={(e) => updateSetting("vacation_approval_required", e.target.value === "true")}
+                >
+                  <option value="true">Ja</option>
+                  <option value="false">Nein</option>
+                </select>
               </div>
             </div>
           </CardContent>
