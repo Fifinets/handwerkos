@@ -431,41 +431,16 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
 
       if (!profile?.company_id) return;
 
-      console.log('Loading employees for company:', profile.company_id);
-
-      // Get all employees from the company
-      const { data: employees, error: employeesError } = await supabase
+      // Get all employees from the company who are not already in the project
+      const { data: employees } = await supabase
         .from('employees')
-        .select('id, first_name, last_name, email, position, status')
-        .eq('company_id', profile.company_id);
+        .select('id, first_name, last_name, email, position')
+        .eq('company_id', profile.company_id)
+        .eq('status', 'active');
 
-      if (employeesError) {
-        console.error('Error loading employees:', employeesError);
-        return;
-      }
-
-      console.log('Found employees:', employees);
-
-      // Get already assigned team members for this project
-      const { data: assignedMembers, error: assignedError } = await supabase
-        .from('project_team_members')
-        .select('employee_id')
-        .eq('project_id', projectId);
-
-      if (assignedError) {
-        console.error('Error loading assigned members:', assignedError);
-      }
-
-      console.log('Already assigned members:', assignedMembers);
-
-      // Filter out employees who are already in the project and only include active employees
-      const assignedIds = assignedMembers?.map(m => m.employee_id) || [];
-      const available = employees?.filter(emp => 
-        !assignedIds.includes(emp.id) && 
-        (emp.status === 'active' || emp.status === 'Active' || !emp.status) // Handle case sensitivity and missing status
-      ) || [];
-      
-      console.log('Available employees after filtering:', available);
+      // Filter out employees who are already in the project
+      const currentTeamIds = project?.assigned_team || [];
+      const available = employees?.filter(emp => !currentTeamIds.includes(emp.id)) || [];
       
       setAvailableEmployees(available);
     } catch (error) {
@@ -952,19 +927,9 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
               </DialogHeader>
               <div className="space-y-4">
                 {availableEmployees.length === 0 ? (
-                  <div className="space-y-2">
-                    <p className="text-sm text-gray-500">
-                      Keine verfügbaren Mitarbeiter gefunden.
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      Mögliche Gründe:
-                      <ul className="list-disc list-inside mt-1">
-                        <li>Alle Mitarbeiter sind bereits diesem Projekt zugewiesen</li>
-                        <li>Es sind keine aktiven Mitarbeiter in Ihrer Firma vorhanden</li>
-                        <li>Mitarbeiter haben möglicherweise keinen aktiven Status</li>
-                      </ul>
-                    </p>
-                  </div>
+                  <p className="text-sm text-gray-500">
+                    Keine verfügbaren Mitarbeiter gefunden oder alle sind bereits dem Projekt zugewiesen.
+                  </p>
                 ) : (
                   <div className="space-y-2">
                     {availableEmployees.map(employee => (
