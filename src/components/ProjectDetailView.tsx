@@ -90,7 +90,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       const { data: profile } = await supabase
         .from('profiles')
         .select('company_id')
-        .eq('user_id', currentUser.user.id)
+        .eq('id', currentUser.user.id)
         .single();
 
       if (!profile?.company_id) {
@@ -426,7 +426,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       const { data: profile } = await supabase
         .from('profiles')
         .select('company_id')
-        .eq('user_id', currentUser.user.id)
+        .eq('id', currentUser.user.id)
         .single();
 
       if (!profile?.company_id) return;
