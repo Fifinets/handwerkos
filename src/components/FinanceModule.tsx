@@ -465,7 +465,7 @@ const FinanceModule = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 mb-6">
+        <TabsList className="grid w-full grid-cols-6 mb-6">
           <TabsTrigger value="dashboard" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
             Dashboard
@@ -477,6 +477,10 @@ const FinanceModule = () => {
           <TabsTrigger value="expenses" className="flex items-center gap-2">
             <Receipt className="h-4 w-4" />
             Ausgaben
+          </TabsTrigger>
+          <TabsTrigger value="fixkosten" className="flex items-center gap-2">
+            <Calculator className="h-4 w-4" />
+            Fixkosten
           </TabsTrigger>
           <TabsTrigger value="reports" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
@@ -908,6 +912,150 @@ const FinanceModule = () => {
                       <Settings className="h-4 w-4 mr-2" />
                       Steuer-Einstellungen
                     </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Fixkosten Tab */}
+        <TabsContent value="fixkosten" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>💰 Monatliche Fixkosten</CardTitle>
+              <CardDescription>
+                Verwalten Sie Ihre regelmäßigen monatlichen Ausgaben für eine bessere Kostenübersicht
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Fixkosten Eingabe */}
+                <div>
+                  <h4 className="font-semibold mb-4">📊 Kostenkategorien</h4>
+                  <div className="space-y-4">
+                    <div className="p-4 border rounded-lg">
+                      <label className="text-sm font-medium mb-2 block">🏢 Miete / Büromiete</label>
+                      <div className="flex items-center justify-between">
+                        <input 
+                          type="number" 
+                          placeholder="1500" 
+                          className="flex-1 p-2 border rounded mr-2" 
+                        />
+                        <span className="text-sm text-gray-500">€ / Monat</span>
+                      </div>
+                    </div>
+                    
+                    <div className="p-4 border rounded-lg">
+                      <label className="text-sm font-medium mb-2 block">🛡️ Versicherungen</label>
+                      <div className="flex items-center justify-between">
+                        <input 
+                          type="number" 
+                          placeholder="300" 
+                          className="flex-1 p-2 border rounded mr-2" 
+                        />
+                        <span className="text-sm text-gray-500">€ / Monat</span>
+                      </div>
+                    </div>
+                    
+                    <div className="p-4 border rounded-lg">
+                      <label className="text-sm font-medium mb-2 block">⚡ Nebenkosten (Strom, Internet)</label>
+                      <div className="flex items-center justify-between">
+                        <input 
+                          type="number" 
+                          placeholder="200" 
+                          className="flex-1 p-2 border rounded mr-2" 
+                        />
+                        <span className="text-sm text-gray-500">€ / Monat</span>
+                      </div>
+                    </div>
+                    
+                    <div className="p-4 border rounded-lg">
+                      <label className="text-sm font-medium mb-2 block">💻 Software & Lizenzen</label>
+                      <div className="flex items-center justify-between">
+                        <input 
+                          type="number" 
+                          placeholder="150" 
+                          className="flex-1 p-2 border rounded mr-2" 
+                        />
+                        <span className="text-sm text-gray-500">€ / Monat</span>
+                      </div>
+                    </div>
+                    
+                    <div className="p-4 border rounded-lg">
+                      <label className="text-sm font-medium mb-2 block">📦 Sonstige Fixkosten</label>
+                      <div className="flex items-center justify-between">
+                        <input 
+                          type="number" 
+                          placeholder="100" 
+                          className="flex-1 p-2 border rounded mr-2" 
+                        />
+                        <span className="text-sm text-gray-500">€ / Monat</span>
+                      </div>
+                    </div>
+                    
+                    <Button className="w-full">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Fixkosten speichern
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Fixkosten Übersicht */}
+                <div>
+                  <h4 className="font-semibold mb-4">📈 Kostenübersicht</h4>
+                  <div className="space-y-3">
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">Gesamte Fixkosten/Monat</span>
+                        <span className="text-xl font-bold text-blue-600">{formatCurrency(2250)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="p-3 border rounded-lg">
+                      <div className="flex justify-between">
+                        <span>🏢 Miete</span>
+                        <span className="font-medium">{formatCurrency(1500)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="p-3 border rounded-lg">
+                      <div className="flex justify-between">
+                        <span>🛡️ Versicherungen</span>
+                        <span className="font-medium">{formatCurrency(300)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="p-3 border rounded-lg">
+                      <div className="flex justify-between">
+                        <span>⚡ Nebenkosten</span>
+                        <span className="font-medium">{formatCurrency(200)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="p-3 border rounded-lg">
+                      <div className="flex justify-between">
+                        <span>💻 Software</span>
+                        <span className="font-medium">{formatCurrency(150)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="p-3 border rounded-lg">
+                      <div className="flex justify-between">
+                        <span>📦 Sonstiges</span>
+                        <span className="font-medium">{formatCurrency(100)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">💡 Tägliche Fixkosten</span>
+                        <span className="font-bold text-yellow-600">{formatCurrency(75)}</span>
+                      </div>
+                      <p className="text-xs text-yellow-600 mt-1">
+                        Diese Kosten entstehen täglich, auch ohne Projekte
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
