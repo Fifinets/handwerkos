@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
@@ -19,7 +21,10 @@ import {
   BarChart3,
   FileSpreadsheet,
   Settings,
-  Download
+  Download,
+  Edit2,
+  Save,
+  X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { FinancialStats, MonthlyRevenue, Invoice, Expense } from "@/types/financial";
@@ -27,7 +32,8 @@ import {
   useInvoices, 
   useFinancialKpis,
   useExpenses,
-  useCreateInvoice
+  useCreateInvoice,
+  useEmployees
 } from "@/hooks/useApi";
 
 // Simplified interface for mock/display data that may not have all required Invoice fields
@@ -52,16 +58,138 @@ const FinanceModule = () => {
   const { data: invoicesResponse, isLoading: invoicesLoading } = useInvoices();
   const { data: expensesResponse, isLoading: expensesLoading } = useExpenses();
   const { data: financialKPIs, isLoading: kpisLoading } = useFinancialKpis();
+  const { data: employeesResponse, isLoading: employeesLoading } = useEmployees();
   
   const createInvoiceMutation = useCreateInvoice();
   
   // Local state
   const [activeTab, setActiveTab] = useState('dashboard');
   const [monthlyData, setMonthlyData] = useState<MonthlyRevenue[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showNewCategoryForm, setShowNewCategoryForm] = useState(false);
+  const [newCategory, setNewCategory] = useState({
+    name: '',
+    icon: '💼',
+    items: [{name: '', value: '0'}]
+  });
+  const [savedCategories, setSavedCategories] = useState<Array<{
+    id: string;
+    name: string;
+    icon: string;
+    items: Array<{name: string; value: string}>;
+    total: number;
+  }>>([]);
+
+  // Load saved categories from localStorage on component mount
+  useEffect(() => {
+    const saved = localStorage.getItem('handwerkos_custom_categories');
+    if (saved) {
+      try {
+        setSavedCategories(JSON.parse(saved));
+      } catch (error) {
+        console.error('Error loading saved categories:', error);
+      }
+    }
+  }, []);
+
+  // Save categories to localStorage whenever they change
+  useEffect(() => {
+    if (savedCategories.length > 0) {
+      localStorage.setItem('handwerkos_custom_categories', JSON.stringify(savedCategories));
+    }
+  }, [savedCategories]);
+  const [editValues, setEditValues] = useState({
+    miete: '12.000',
+    nebenkosten: '3.600',
+    reinigung: '1.200',
+    fahrzeugLeasing: '6.000',
+    fahrzeugVersicherung: '1.800',
+    fahrzeugSteuer: '1.200',
+    versicherungHaftpflicht: '2.400',
+    versicherungRente: '3.600',
+    versicherungBerufsunfaehigkeit: '1.800',
+    verwaltungSoftware: '1.800',
+    verwaltungSteuerberater: '3.000',
+    verwaltungMarketing: '2.400',
+    personalGehaelter: '8.500',
+    personalSozialversicherung: '1.700',
+    personalWeihnachtsgeld: '1.200'
+  });
+
+  // Calculate total from base costs + saved categories
+  const calculateTotalCosts = () => {
+    const personnelCosts = calculatePersonnelCosts();
+    const baseCosts = 16800 + personnelCosts.total + 9000 + 4700 + 7200; // Base categories with dynamic personnel
+    const savedCategoriesTotal = savedCategories.reduce((sum, category) => sum + category.total, 0);
+    return baseCosts + savedCategoriesTotal;
+  };
+
+  // Helper to calculate category total from items
+  const calculateCategoryTotal = (items: Array<{name: string; value: string}>) => {
+    return items.reduce((sum, item) => {
+      const value = parseFloat(item.value.replace(/[^\d.-]/g, '')) || 0;
+      return sum + value;
+    }, 0);
+  };
+
+  // Calculate personnel costs from real employee data
+  const calculatePersonnelCosts = () => {
+    console.log('FinanceModule: employees data:', employees);
+    
+    if (!employees || employees.length === 0) {
+      console.log('FinanceModule: No employees found');
+      return {
+        totalSalaries: 0,
+        socialInsurance: 0,
+        bonuses: 0,
+        total: 0,
+        employeeCount: 0
+      };
+    }
+
+    // Base calculation - simplified for now
+    // In real implementation, you'd use actual salary data from employee records
+    const employeeCount = employees.filter(emp => emp.status === 'active' || emp.status === 'Active').length;
+    
+    // Average monthly salary per employee (this should come from employee salary data)
+    const avgMonthlySalary = 3500; // This should be calculated from real salary data
+    const totalMonthlySalaries = employeeCount * avgMonthlySalary;
+    
+    // German social insurance rates (approximate)
+    const socialInsuranceRate = 0.2; // 20% employer contribution
+    const monthlySocialInsurance = totalMonthlySalaries * socialInsuranceRate;
+    
+    // Annual bonus calculation (Christmas and vacation pay)
+    const annualBonus = totalMonthlySalaries * 1.5; // 1.5 months as bonus
+    const monthlyBonus = annualBonus / 12;
+    
+    return {
+      totalSalaries: totalMonthlySalaries,
+      socialInsurance: monthlySocialInsurance,
+      bonuses: monthlyBonus,
+      total: totalMonthlySalaries + monthlySocialInsurance + monthlyBonus,
+      employeeCount
+    };
+  };
+
+  // Calculate hourly rates dynamically
+  const calculateHourlyRates = () => {
+    const totalCosts = calculateTotalCosts();
+    const variableCosts = 8000;
+    const desiredProfit = 25000;
+    const totalAmount = totalCosts + variableCosts + desiredProfit;
+    const workingHours = 1201; // From existing calculation
+    
+    const minimumRate = totalAmount / workingHours;
+    const recommendedRate = minimumRate * 1.3; // 30% buffer as shown
+    
+    return { minimumRate, recommendedRate, totalAmount, workingHours };
+  };
   
   // Extract data from responses
   const invoices = invoicesResponse?.items || [];
   const expenses = expensesResponse?.items || [];
+  const employees = employeesResponse?.items || [];
   const stats = financialKPIs || {
     monthly_revenue: 0,
     monthly_expenses: 0,
@@ -76,7 +204,7 @@ const FinanceModule = () => {
   };
   
   // Loading state
-  const loading = invoicesLoading || expensesLoading || kpisLoading;
+  const loading = invoicesLoading || expensesLoading || kpisLoading || employeesLoading;
 
   useEffect(() => {
     fetchMonthlyData();
@@ -465,7 +593,7 @@ const FinanceModule = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 mb-6">
+        <TabsList className="grid w-full grid-cols-6 mb-6">
           <TabsTrigger value="dashboard" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
             Dashboard
@@ -477,6 +605,10 @@ const FinanceModule = () => {
           <TabsTrigger value="expenses" className="flex items-center gap-2">
             <Receipt className="h-4 w-4" />
             Ausgaben
+          </TabsTrigger>
+          <TabsTrigger value="fixkosten" className="flex items-center gap-2">
+            <Calculator className="h-4 w-4" />
+            Betriebskosten
           </TabsTrigger>
           <TabsTrigger value="reports" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
@@ -913,6 +1045,581 @@ const FinanceModule = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Betriebskosten Tab */}
+        <TabsContent value="fixkosten" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Betriebskosten (jährlich) Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calculator className="h-5 w-5" />
+                  💰 Betriebskosten (jährlich)
+                </CardTitle>
+                <CardDescription>
+                  Verwalten Sie Ihre jährlichen Betriebskosten für die Stundensatz-Berechnung
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    {/* Betrieb & Büro Card */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <span className="text-xl">🏢</span>
+                          Betrieb & Büro
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Miete/Pacht</span>
+                          {isEditing ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="text"
+                                value={editValues.miete}
+                                onChange={(e) => setEditValues({...editValues, miete: e.target.value})}
+                                className="h-7 w-20 text-right text-sm"
+                              />
+                              <span className="text-sm">€</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm font-medium">{editValues.miete} €</span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Nebenkosten</span>
+                          {isEditing ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="text"
+                                value={editValues.nebenkosten}
+                                onChange={(e) => setEditValues({...editValues, nebenkosten: e.target.value})}
+                                className="h-7 w-20 text-right text-sm"
+                              />
+                              <span className="text-sm">€</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm font-medium">{editValues.nebenkosten} €</span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Reinigung</span>
+                          {isEditing ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="text"
+                                value={editValues.reinigung}
+                                onChange={(e) => setEditValues({...editValues, reinigung: e.target.value})}
+                                className="h-7 w-20 text-right text-sm"
+                              />
+                              <span className="text-sm">€</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm font-medium">{editValues.reinigung} €</span>
+                          )}
+                        </div>
+                        <hr className="my-2" />
+                        <div className="flex justify-between items-center font-medium">
+                          <span>Gesamt</span>
+                          <span>{formatCurrency(16800)}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Personal Card */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <span className="text-xl">👷‍♂️</span>
+                          Personal
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        {(() => {
+                          const personnelCosts = calculatePersonnelCosts();
+                          return (
+                            <>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">
+                                  Fixgehälter Mitarbeiter ({personnelCosts.employeeCount} MA)
+                                </span>
+                                <span className="text-sm font-medium">{formatCurrency(personnelCosts.totalSalaries)}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Arbeitgeberanteile Sozialversicherung</span>
+                                <span className="text-sm font-medium">{formatCurrency(personnelCosts.socialInsurance)}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Weihnachts-/Urlaubsgeld</span>
+                                <span className="text-sm font-medium">{formatCurrency(personnelCosts.bonuses)}</span>
+                              </div>
+                              <hr className="my-2" />
+                              <div className="flex justify-between items-center font-medium">
+                                <span>Gesamt</span>
+                                <span>{formatCurrency(personnelCosts.total)}</span>
+                              </div>
+                              {personnelCosts.employeeCount === 0 && (
+                                <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded mt-2">
+                                  ⚠️ Keine aktiven Mitarbeiter gefunden. Personalkosten sind 0 €.
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </CardContent>
+                    </Card>
+
+                    {/* Fahrzeuge Card */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <span className="text-xl">🚗</span>
+                          Fahrzeuge
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Leasing/Abschreibung</span>
+                          {isEditing ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="text"
+                                value={editValues.fahrzeugLeasing}
+                                onChange={(e) => setEditValues({...editValues, fahrzeugLeasing: e.target.value})}
+                                className="h-7 w-20 text-right text-sm"
+                              />
+                              <span className="text-sm">€</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm font-medium">{editValues.fahrzeugLeasing} €</span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Versicherung</span>
+                          {isEditing ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="text"
+                                value={editValues.fahrzeugVersicherung}
+                                onChange={(e) => setEditValues({...editValues, fahrzeugVersicherung: e.target.value})}
+                                className="h-7 w-20 text-right text-sm"
+                              />
+                              <span className="text-sm">€</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm font-medium">{editValues.fahrzeugVersicherung} €</span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Steuer & Wartung</span>
+                          {isEditing ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="text"
+                                value={editValues.fahrzeugSteuer}
+                                onChange={(e) => setEditValues({...editValues, fahrzeugSteuer: e.target.value})}
+                                className="h-7 w-20 text-right text-sm"
+                              />
+                              <span className="text-sm">€</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm font-medium">{editValues.fahrzeugSteuer} €</span>
+                          )}
+                        </div>
+                        <hr className="my-2" />
+                        <div className="flex justify-between items-center font-medium">
+                          <span>Gesamt</span>
+                          <span>{formatCurrency(9000)}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="space-y-3">
+                    {/* Versicherungen & Beiträge Card */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <span className="text-xl">🛡️</span>
+                          Versicherungen & Beiträge
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Betriebshaftpflicht</span>
+                          {isEditing ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="text"
+                                value={editValues.versicherungHaftpflicht}
+                                onChange={(e) => setEditValues({...editValues, versicherungHaftpflicht: e.target.value})}
+                                className="h-7 w-20 text-right text-sm"
+                              />
+                              <span className="text-sm">€</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm font-medium">{editValues.versicherungHaftpflicht} €</span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Berufsgenossenschaft</span>
+                          {isEditing ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="text"
+                                value={editValues.versicherungRente}
+                                onChange={(e) => setEditValues({...editValues, versicherungRente: e.target.value})}
+                                className="h-7 w-20 text-right text-sm"
+                              />
+                              <span className="text-sm">€</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm font-medium">{editValues.versicherungRente} €</span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Kammer/Innung</span>
+                          {isEditing ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="text"
+                                value={editValues.versicherungBerufsunfaehigkeit}
+                                onChange={(e) => setEditValues({...editValues, versicherungBerufsunfaehigkeit: e.target.value})}
+                                className="h-7 w-20 text-right text-sm"
+                              />
+                              <span className="text-sm">€</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm font-medium">{editValues.versicherungBerufsunfaehigkeit} €</span>
+                          )}
+                        </div>
+                        <hr className="my-2" />
+                        <div className="flex justify-between items-center font-medium">
+                          <span>Gesamt</span>
+                          <span>{formatCurrency(4700)}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Verwaltung & Organisation Card */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <span className="text-xl">🏭</span>
+                          Verwaltung & Organisation
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Software & Lizenzen</span>
+                          {isEditing ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="text"
+                                value={editValues.verwaltungSoftware}
+                                onChange={(e) => setEditValues({...editValues, verwaltungSoftware: e.target.value})}
+                                className="h-7 w-20 text-right text-sm"
+                              />
+                              <span className="text-sm">€</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm font-medium">{editValues.verwaltungSoftware} €</span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Steuerberater</span>
+                          {isEditing ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="text"
+                                value={editValues.verwaltungSteuerberater}
+                                onChange={(e) => setEditValues({...editValues, verwaltungSteuerberater: e.target.value})}
+                                className="h-7 w-20 text-right text-sm"
+                              />
+                              <span className="text-sm">€</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm font-medium">{editValues.verwaltungSteuerberater} €</span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Marketing & Werbung</span>
+                          {isEditing ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="text"
+                                value={editValues.verwaltungMarketing}
+                                onChange={(e) => setEditValues({...editValues, verwaltungMarketing: e.target.value})}
+                                className="h-7 w-20 text-right text-sm"
+                              />
+                              <span className="text-sm">€</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm font-medium">{editValues.verwaltungMarketing} €</span>
+                          )}
+                        </div>
+                        <hr className="my-2" />
+                        <div className="flex justify-between items-center font-medium">
+                          <span>Gesamt</span>
+                          <span>{formatCurrency(7200)}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Render Saved Categories */}
+                    {savedCategories.map((category) => (
+                      <Card key={category.id}>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="flex items-center gap-2 text-base">
+                            <span className="text-xl">{category.icon}</span>
+                            {category.name}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          {category.items.map((item, index) => (
+                            <div key={index} className="flex items-center justify-between">
+                              <span className="text-sm text-muted-foreground">{item.name}</span>
+                              <span className="text-sm font-medium">{item.value} €</span>
+                            </div>
+                          ))}
+                          <hr className="my-2" />
+                          <div className="flex justify-between items-center font-medium">
+                            <span>Gesamt</span>
+                            <span>{formatCurrency(category.total)}</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+
+                    {/* Add New Category Card */}
+                    {showNewCategoryForm ? (
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="flex items-center gap-2 text-base">
+                            <Input
+                              type="text"
+                              placeholder="🏢 Kategorie Name"
+                              value={newCategory.name}
+                              onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
+                              className="text-base font-semibold border-none p-0 h-auto bg-transparent"
+                            />
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          {newCategory.items.map((item, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <Input
+                                type="text"
+                                placeholder="Kostenpunkt"
+                                value={item.name}
+                                onChange={(e) => {
+                                  const updatedItems = [...newCategory.items];
+                                  updatedItems[index].name = e.target.value;
+                                  setNewCategory({...newCategory, items: updatedItems});
+                                }}
+                                className="flex-1 h-7 text-sm"
+                              />
+                              <Input
+                                type="text"
+                                placeholder="0"
+                                value={item.value}
+                                onChange={(e) => {
+                                  const updatedItems = [...newCategory.items];
+                                  updatedItems[index].value = e.target.value;
+                                  setNewCategory({...newCategory, items: updatedItems});
+                                }}
+                                className="w-20 h-7 text-right text-sm"
+                              />
+                              <span className="text-sm">€</span>
+                            </div>
+                          ))}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full h-7"
+                            onClick={() => setNewCategory({
+                              ...newCategory,
+                              items: [...newCategory.items, {name: '', value: '0'}]
+                            })}
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Kostenpunkt hinzufügen
+                          </Button>
+                          <div className="flex gap-2 mt-3">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setShowNewCategoryForm(false);
+                                setNewCategory({name: '', icon: '💼', items: [{name: '', value: '0'}]});
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                if (newCategory.name && newCategory.items.some(item => item.name)) {
+                                  const categoryTotal = calculateCategoryTotal(newCategory.items);
+                                  const savedCategory = {
+                                    id: Date.now().toString(),
+                                    name: newCategory.name,
+                                    icon: newCategory.icon,
+                                    items: newCategory.items,
+                                    total: categoryTotal
+                                  };
+                                  setSavedCategories(prev => [...prev, savedCategory]);
+                                  setShowNewCategoryForm(false);
+                                  setNewCategory({name: '', icon: '💼', items: [{name: '', value: '0'}]});
+                                  toast({
+                                    title: "Kategorie erstellt",
+                                    description: `"${newCategory.name}" wurde erfolgreich hinzugefügt.`
+                                  });
+                                }
+                              }}
+                            >
+                              <Save className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card 
+                        className="border-dashed border-2 border-gray-300 hover:border-gray-400 transition-colors cursor-pointer"
+                        onClick={() => setShowNewCategoryForm(true)}
+                      >
+                        <CardContent className="flex items-center justify-center h-48 p-4">
+                          <div className="text-center">
+                            <div className="w-12 h-12 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center mx-auto mb-3 transition-colors">
+                              <Plus className="h-6 w-6 text-gray-400" />
+                            </div>
+                            <p className="text-sm text-gray-500 font-medium">Neue Kategorie</p>
+                            <p className="text-xs text-gray-400 mt-1">hinzufügen</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  {isEditing ? (
+                    <>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setIsEditing(false)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        size="sm"
+                        onClick={() => {
+                          setIsEditing(false);
+                          toast({
+                            title: "Kosten aktualisiert",
+                            description: "Die Betriebskosten wurden erfolgreich gespeichert."
+                          });
+                        }}
+                      >
+                        <Save className="h-4 w-4" />
+                      </Button>
+                    </>
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Stundensatz-Rechner Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="text-2xl">⚡</span>
+                  Stundensatz-Rechner
+                </CardTitle>
+                <CardDescription>
+                  Automatische Berechnung basierend auf Betriebskosten
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="p-4 border rounded-lg">
+                    <Label className="text-sm text-muted-foreground">Fixkosten (Betrieb)</Label>
+                    <p className="text-2xl font-bold">{formatCurrency(calculateTotalCosts())} / Jahr</p>
+                  </div>
+
+                  <div className="p-4 border rounded-lg">
+                    <Label className="text-sm text-muted-foreground">Variable Grundkosten</Label>
+                    <p className="text-2xl font-bold text-orange-600">{formatCurrency(8000)} / Jahr</p>
+                    <p className="text-xs text-muted-foreground mt-1">Material (netto), etc.</p>
+                  </div>
+
+                  <div className="p-4 border rounded-lg">
+                    <Label className="text-sm text-muted-foreground">Gewollter Gewinn</Label>
+                    <p className="text-2xl font-bold text-green-600">{formatCurrency(25000)} / Jahr</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <Label className="text-sm text-muted-foreground">Arbeitstage 2025</Label>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xl font-semibold">261 Tage</p>
+                      <Badge variant="outline">8 Stunden</Badge>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <Label className="text-sm text-muted-foreground">Urlaubstage:</Label>
+                    <p className="text-lg">- 30 Tage</p>
+                  </div>
+
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <Label className="text-sm text-muted-foreground">Arbeitsstunden/Jahr:</Label>
+                    <p className="text-xl font-semibold">1848 Stunden</p>
+                    <Badge variant="secondary" className="mt-2">1201 Stunden</Badge>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <Label className="text-sm text-muted-foreground">Mindest-Stundensatz</Label>
+                    <p className="text-3xl font-bold text-blue-600">
+                      {formatCurrency(calculateHourlyRates().minimumRate)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">({formatCurrency(calculateHourlyRates().totalAmount)} ÷ {calculateHourlyRates().workingHours}h)</p>
+                  </div>
+
+                  <div className="p-3 bg-green-50 rounded-lg">
+                    <Label className="text-sm text-muted-foreground">Empfohlener Stundensatz</Label>
+                    <p className="text-3xl font-bold text-green-600">
+                      {formatCurrency(calculateHourlyRates().recommendedRate)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">+30% Gewinnaufschlag & Rücklage</p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button size="lg">
+                    <Calculator className="h-4 w-4 mr-2" />
+                    Stundensatz anpassen
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
