@@ -168,14 +168,26 @@ const FinanceModule = () => {
       const hourlyRate = employee.hourly_rate || 0;
       const monthlySalary = hourlyRate * hoursPerMonth;
       
-      console.log(`Employee ${employee.first_name} ${employee.last_name}:`, {
-        hourly_rate: employee.hourly_rate,
+      console.log(`👷 Employee ${employee.first_name} ${employee.last_name}:`, {
+        status: employee.status,
+        hourly_rate_raw: employee.hourly_rate,
+        hourly_rate_used: hourlyRate,
         hours_per_month: hoursPerMonth,
-        calculated_monthly: monthlySalary.toFixed(2)
+        calculated_monthly: monthlySalary.toFixed(2) + '€'
       });
+      
+      // Warn if no hourly rate is set
+      if (!employee.hourly_rate || employee.hourly_rate === 0) {
+        console.warn(`⚠️ Employee ${employee.first_name} ${employee.last_name} has no hourly rate set!`);
+      }
       
       return total + monthlySalary;
     }, 0);
+    
+    console.log('💰 Total monthly salaries calculation:', {
+      activeEmployeeCount: employeeCount,
+      totalMonthlySalaries: totalMonthlySalaries.toFixed(2) + '€'
+    });
     
     // German social insurance rates (approximate)
     const socialInsuranceRate = 0.2; // 20% employer contribution
@@ -270,7 +282,12 @@ const FinanceModule = () => {
           console.error('Error fetching employees:', error);
           setEmployees([]);
         } else {
-          console.log('Fetched employees:', employeesData);
+          console.log('✅ Fetched employees successfully:', employeesData);
+          console.log('📊 Employee details:', employeesData?.map(emp => ({
+            name: `${emp.first_name} ${emp.last_name}`,
+            status: emp.status,
+            hourly_rate: emp.hourly_rate
+          })));
           setEmployees(employeesData || []);
         }
       } catch (error) {
