@@ -32,9 +32,9 @@ import {
   useInvoices, 
   useFinancialKpis,
   useExpenses,
-  useCreateInvoice,
-  useEmployees
+  useCreateInvoice
 } from "@/hooks/useApi";
+import { supabase } from "@/integrations/supabase/client";
 
 // Simplified interface for mock/display data that may not have all required Invoice fields
 interface InvoiceDisplay {
@@ -58,7 +58,9 @@ const FinanceModule = () => {
   const { data: invoicesResponse, isLoading: invoicesLoading } = useInvoices();
   const { data: expensesResponse, isLoading: expensesLoading } = useExpenses();
   const { data: financialKPIs, isLoading: kpisLoading } = useFinancialKpis();
-  const { data: employeesResponse, isLoading: employeesLoading } = useEmployees();
+  // Employee data state - fetch manually since useEmployees hook doesn't exist
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [employeesLoading, setEmployeesLoading] = useState(true);
   
   const createInvoiceMutation = useCreateInvoice();
   
@@ -134,10 +136,14 @@ const FinanceModule = () => {
 
   // Calculate personnel costs from real employee data
   const calculatePersonnelCosts = () => {
-    console.log('FinanceModule: employees data:', employees);
+    console.log('FinanceModule calculatePersonnelCosts:', {
+      employees,
+      employeeCount: employees?.length || 0,
+      employeesLoading
+    });
     
     if (!employees || employees.length === 0) {
-      console.log('FinanceModule: No employees found');
+      console.log('FinanceModule: No employees found, returning zero costs');
       return {
         totalSalaries: 0,
         socialInsurance: 0,
@@ -189,7 +195,6 @@ const FinanceModule = () => {
   // Extract data from responses
   const invoices = invoicesResponse?.items || [];
   const expenses = expensesResponse?.items || [];
-  const employees = employeesResponse?.items || [];
   const stats = financialKPIs || {
     monthly_revenue: 0,
     monthly_expenses: 0,
@@ -206,7 +211,57 @@ const FinanceModule = () => {
   // Loading state
   const loading = invoicesLoading || expensesLoading || kpisLoading || employeesLoading;
 
+  // Fetch employees data
   useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        setEmployeesLoading(true);
+        
+        // Get current user and company
+        const { data: user } = await supabase.auth.getUser();
+        if (!user?.user) {
+          console.log('No authenticated user');
+          setEmployees([]);
+          setEmployeesLoading(false);
+          return;
+        }
+
+        // Get user's company_id
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('id', user.user.id)
+          .single();
+
+        if (!profile?.company_id) {
+          console.log('No company_id found');
+          setEmployees([]);
+          setEmployeesLoading(false);
+          return;
+        }
+
+        // Fetch employees
+        const { data: employeesData, error } = await supabase
+          .from('employees')
+          .select('*')
+          .eq('company_id', profile.company_id);
+
+        if (error) {
+          console.error('Error fetching employees:', error);
+          setEmployees([]);
+        } else {
+          console.log('Fetched employees:', employeesData);
+          setEmployees(employeesData || []);
+        }
+      } catch (error) {
+        console.error('Error in fetchEmployees:', error);
+        setEmployees([]);
+      } finally {
+        setEmployeesLoading(false);
+      }
+    };
+
+    fetchEmployees();
     fetchMonthlyData();
   }, []);
 
