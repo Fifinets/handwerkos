@@ -4,7 +4,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { 
   apiCall, 
-  createQuery, 
   validateInput,
   ApiError,
   API_ERROR_CODES 
@@ -33,6 +32,9 @@ export class ProjectService {
     }
   ): Promise<PaginationResponse<Project>> {
     return apiCall(async () => {
+      // Get current user to filter by company
+      const { data: userData } = await supabase.auth.getUser();
+      
       let query = supabase
         .from('projects')
         .select(`
@@ -77,25 +79,31 @@ export class ProjectService {
         query = query.order('created_at', { ascending: false });
       }
       
-      const { data, count } = await createQuery<Project>(query).executeWithCount();
+      // Execute query directly without createQuery wrapper for now
+      const { data, error, count } = await query;
+      
+      if (error) {
+        console.error('ProjectService.getProjects error:', error);
+        throw new Error(error.message);
+      }
       
       // Debug logging
       console.log('ProjectService.getProjects:', {
-        query: query.toString(),
         data,
         count,
         pagination,
-        filters
+        filters,
+        error
       });
       
       return {
-        items: data,
+        items: data || [],
         pagination: {
           page: pagination?.page || 1,
-          limit: pagination?.limit || data.length,
-          total_items: count,
-          total_pages: Math.ceil(count / (pagination?.limit || 20)),
-          has_next: pagination ? (pagination.page * pagination.limit < count) : false,
+          limit: pagination?.limit || (data?.length || 0),
+          total_items: count || 0,
+          total_pages: Math.ceil((count || 0) / (pagination?.limit || 20)),
+          has_next: pagination ? (pagination.page * pagination.limit < (count || 0)) : false,
           has_prev: pagination ? pagination.page > 1 : false,
         },
       };
@@ -120,7 +128,14 @@ export class ProjectService {
         `)
         .eq('id', id);
       
-      return createQuery<Project>(query).executeSingle();
+      const { data, error } = await query.single();
+      
+      if (error) {
+        console.error('ProjectService.getProject error:', error);
+        throw new Error(error.message);
+      }
+      
+      return data;
     }, `Get project ${id}`);
   }
   
@@ -130,19 +145,43 @@ export class ProjectService {
       // Validate input
       const validatedData = validateInput(ProjectCreateSchema, data);
       
+      // Get current user's company_id
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        throw new Error('User not authenticated');
+      }
+      
+      // Try to get company_id from profile first
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', userData.user.id)
+        .single();
+      
+      // Use default company if profile doesn't have company_id
+      const companyId = profile?.company_id || '00000000-0000-0000-0000-000000000000';
+      
+      // Remove progress_percentage if it exists in the validated data
+      const { progress_percentage, ...cleanData } = validatedData as any;
+      
       const projectData = {
-        ...validatedData,
-        status: 'planned' as const,
-        assigned_employees: validatedData.assigned_employees || [],
+        ...cleanData,
+        company_id: companyId,
+        status: cleanData.status || 'geplant',
+        // Remove assigned_employees for now as it's handled by separate table
+        // assigned_employees: validatedData.assigned_employees || [],
       };
       
-      const query = supabase
+      const { data: project, error } = await supabase
         .from('projects')
         .insert(projectData)
         .select()
         .single();
       
-      const project = await createQuery<Project>(query).executeSingle();
+      if (error) {
+        console.error('ProjectService.createProject error:', error);
+        throw new Error(error.message);
+      }
       
       // Emit event for audit trail and notifications
       eventBus.emit('PROJECT_CREATED', {
@@ -184,14 +223,17 @@ export class ProjectService {
         }
       }
       
-      const query = supabase
+      const { data: updatedProject, error } = await supabase
         .from('projects')
         .update(validatedData)
         .eq('id', id)
         .select()
         .single();
       
-      const updatedProject = await createQuery<Project>(query).executeSingle();
+      if (error) {
+        console.error('ProjectService.updateProject error:', error);
+        throw new Error(error.message);
+      }
       
       // Emit status change event if status changed
       if (validatedData.status && validatedData.status !== existingProject.status) {
@@ -563,7 +605,14 @@ export class ProjectService {
         .order('name')
         .limit(limit);
       
-      return createQuery<Project>(searchQuery).execute();
+      const { data, error } = await searchQuery;
+      
+      if (error) {
+        console.error('ProjectService.searchProjects error:', error);
+        throw new Error(error.message);
+      }
+      
+      return data || [];
     }, `Search projects: ${query}`);
   }
 }

@@ -4,8 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Mail, Phone, Car, Clock, Calendar, MapPin, Shield } from "lucide-react";
-// TODO: Re-enable when EmployeeFiles is implemented
-// import EmployeeFiles from "./EmployeeFiles";
+import EmployeeFiles from "./EmployeeFiles";
 
 interface Employee {
   id: string;
@@ -114,12 +113,7 @@ const EmployeeDetailsDialog = ({ isOpen, onClose, employee }: EmployeeDetailsDia
         </div>
       </div>
 
-      {/* TODO: Re-enable when EmployeeFiles is implemented */}
-      {/* <EmployeeFiles employeeId={employee.id} /> */}
-      <div className="p-4 border rounded-lg bg-gray-50">
-        <h4 className="font-medium mb-2">Dateien & Dokumente</h4>
-        <p className="text-sm text-gray-500">Diese Funktion wird bald verfügbar sein.</p>
-      </div>
+      <EmployeeFiles employeeId={employee.id} />
     </div>
   </DialogContent>
 </Dialog>

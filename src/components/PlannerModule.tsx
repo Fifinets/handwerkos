@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, addWeeks, addMonths, subWeeks, subMonths, isSameDay, isWithinInterval, eachDayOfInterval } from 'date-fns'
 import { de } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Calendar, Users, Briefcase, Plus, Filter, User, Clock, MapPin, AlertCircle, CheckCircle, XCircle, CalendarIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, Users, Briefcase, Plus, Filter, User, Clock, MapPin, AlertCircle, CheckCircle, XCircle, CalendarIcon, TrendingUp, UserCheck, Building2, Activity, Zap, Eye } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -842,61 +842,151 @@ const PlannerModule: React.FC = () => {
     )
   }
 
+  // Calculate statistics for dashboard
+  const activeProjectsCount = projects.filter(p => p.status.toLowerCase() === 'aktiv').length
+  const totalEmployees = employees.length
+  const activeEmployeesCount = employees.filter(emp => emp.status === 'aktiv').length
+  const currentAbsencesCount = absences.filter(absence => {
+    const today = new Date()
+    const start = new Date(absence.start_date)
+    const end = new Date(absence.end_date)
+    return start <= today && end >= today && absence.status === 'genehmigt'
+  }).length
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-teal-600 bg-clip-text text-transparent flex items-center gap-3">
-            <Calendar className="h-8 w-8 text-teal-600" />
-            Planer</h1>
-          <Badge variant="outline" className="flex items-center space-x-1">
-            <Calendar className="w-4 h-4" />
-            <span>Ressourcenplanung</span>
-          </Badge>
+      {/* Enhanced Header with Statistics */}
+      <div className="space-y-6">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3 mb-2">
+              <Calendar className="h-8 w-8 text-gray-600 dark:text-gray-400" />
+              Ressourcenplaner
+            </h1>
+            <p className="text-muted-foreground">Zentrale Übersicht für Projekte, Mitarbeiter und Kapazitäten</p>
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            <Button onClick={loadAllData} variant="outline" size="sm" className="flex items-center gap-2">
+              <Activity className="w-4 h-4" />
+              <span className="hidden sm:inline">Aktualisieren</span>
+            </Button>
+            <Button variant="default" size="sm" className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Neu erstellen</span>
+            </Button>
+          </div>
         </div>
-        
-        <div className="flex items-center space-x-4">
-          {activeTab === 'overview' && (
-            <>
-              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Alle Abteilungen" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle Abteilungen</SelectItem>
-                  {departments.map(dept => (
-                    <SelectItem key={dept} value={dept!}>{dept}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              <Select value={filterType} onValueChange={(value: any) => setFilterType(value)}>
-                <SelectTrigger className="w-40">
+
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="shadow-soft rounded-xl">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Aktive Projekte</p>
+                  <p className="text-2xl font-bold">{activeProjectsCount}</p>
+                  <p className="text-xs text-muted-foreground">von {projects.length} gesamt</p>
+                </div>
+                <Briefcase className="h-8 w-8 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-soft rounded-xl">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Verfügbare Mitarbeiter</p>
+                  <p className="text-2xl font-bold">{activeEmployeesCount - currentAbsencesCount}</p>
+                  <p className="text-xs text-muted-foreground">von {activeEmployeesCount} aktiv</p>
+                </div>
+                <UserCheck className="h-8 w-8 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-soft rounded-xl">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Kapazitätsauslastung</p>
+                  <p className="text-2xl font-bold">
+                    {totalEmployees > 0 ? Math.round(((activeProjectsCount * 2.5) / totalEmployees) * 100) : 0}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">durchschnittlich</p>
+                </div>
+                <TrendingUp className="h-8 w-8 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-soft rounded-xl">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Laufende Abwesenheiten</p>
+                  <p className="text-2xl font-bold">{currentAbsencesCount}</p>
+                  <p className="text-xs text-muted-foreground">heute aktiv</p>
+                </div>
+                <AlertCircle className="h-8 w-8 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Enhanced Controls */}
+        <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-gradient-to-r from-slate-50 to-gray-100 dark:from-slate-900 dark:to-gray-800 rounded-lg border">
+          <div className="flex items-center space-x-4">
+            {activeTab === 'overview' && (
+              <>
+                <div className="flex items-center space-x-2">
+                  <Building2 className="w-4 h-4 text-muted-foreground" />
+                  <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                    <SelectTrigger className="w-48 bg-background/80 backdrop-blur">
+                      <SelectValue placeholder="Alle Abteilungen" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Alle Abteilungen</SelectItem>
+                      {departments.map(dept => (
+                        <SelectItem key={dept} value={dept!}>{dept}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Filter className="w-4 h-4 text-muted-foreground" />
+                  <Select value={filterType} onValueChange={(value: any) => setFilterType(value)}>
+                    <SelectTrigger className="w-40 bg-background/80 backdrop-blur">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Alle anzeigen</SelectItem>
+                      <SelectItem value="projects">Nur Projekte</SelectItem>
+                      <SelectItem value="absences">Nur Abwesenheiten</SelectItem>
+                      <SelectItem value="events">Nur Termine</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2">
+              <Eye className="w-4 h-4 text-muted-foreground" />
+              <Select value={viewMode} onValueChange={(value: 'week' | 'month') => setViewMode(value)}>
+                <SelectTrigger className="w-32 bg-background/80 backdrop-blur">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Alle anzeigen</SelectItem>
-                  <SelectItem value="projects">Nur Projekte</SelectItem>
-                  <SelectItem value="absences">Nur Abwesenheiten</SelectItem>
-                  <SelectItem value="events">Nur Termine</SelectItem>
+                  <SelectItem value="week">📅 Woche</SelectItem>
+                  <SelectItem value="month">🗓️ Monat</SelectItem>
                 </SelectContent>
               </Select>
-            </>
-          )}
-          
-          <Select value={viewMode} onValueChange={(value: 'week' | 'month') => setViewMode(value)}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="week">Woche</SelectItem>
-              <SelectItem value="month">Monat</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Button onClick={loadAllData} variant="outline" size="sm">
-            Aktualisieren
-          </Button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -904,39 +994,48 @@ const PlannerModule: React.FC = () => {
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview" className="flex items-center space-x-2">
             <Calendar className="w-4 h-4" />
-            <span>Übersicht</span>
+            <span className="hidden sm:inline">Übersicht</span>
           </TabsTrigger>
           <TabsTrigger value="projects" className="flex items-center space-x-2">
             <Briefcase className="w-4 h-4" />
-            <span>Projekte</span>
+            <span className="hidden sm:inline">Projekte</span>
           </TabsTrigger>
           <TabsTrigger value="employees" className="flex items-center space-x-2">
             <Users className="w-4 h-4" />
-            <span>Mitarbeiter</span>
+            <span className="hidden sm:inline">Mitarbeiter</span>
           </TabsTrigger>
           <TabsTrigger value="resources" className="flex items-center space-x-2">
             <MapPin className="w-4 h-4" />
-            <span>Ressourcen</span>
+            <span className="hidden sm:inline">Ressourcen</span>
           </TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="space-y-4">
-          <Card>
+          <Card className="shadow-soft rounded-xl">
             <CardHeader className="pb-4">
-              <div className="flex justify-between items-center">
-                <CardTitle className="flex items-center space-x-2">
-                  <Clock className="w-5 h-5" />
-                  <span>
-                    {viewMode === 'week' 
-                      ? `${format(start, 'dd.MM', { locale: de })} - ${format(end, 'dd.MM.yyyy', { locale: de })}`
-                      : format(currentDate, 'MMMM yyyy', { locale: de })
-                    }
-                  </span>
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                <CardTitle className="flex items-center space-x-3">
+                  <Clock className="w-6 h-6 text-muted-foreground" />
+                  <div>
+                    <span className="text-lg font-bold">
+                      {viewMode === 'week' 
+                        ? `${format(start, 'dd.MM', { locale: de })} - ${format(end, 'dd.MM.yyyy', { locale: de })}`
+                        : format(currentDate, 'MMMM yyyy', { locale: de })
+                      }
+                    </span>
+                    <p className="text-xs text-muted-foreground">Jahresübersicht</p>
+                  </div>
                 </CardTitle>
                 
                 <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm" onClick={navigatePrevious}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={navigatePrevious}
+                    className="bg-background/80 backdrop-blur hover:bg-blue-50 transition-all duration-200"
+                  >
                     <ChevronLeft className="w-4 h-4" />
+                    <span className="hidden sm:inline ml-1">Zurück</span>
                   </Button>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -944,12 +1043,13 @@ const PlannerModule: React.FC = () => {
                         variant="outline"
                         size="sm"
                         className={cn(
-                          "w-[180px] justify-start text-left font-normal",
-                          "hover:bg-muted/50"
+                          "min-w-[140px] sm:w-[180px] justify-start text-left font-normal bg-background/80 backdrop-blur hover:bg-purple-50 transition-all duration-200"
                         )}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {format(currentDate, 'MMMM yyyy', { locale: de })}
+                        <CalendarIcon className="mr-2 h-4 w-4 text-purple-500" />
+                        <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                          {format(currentDate, 'MMM yyyy', { locale: de })}
+                        </span>
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -962,52 +1062,81 @@ const PlannerModule: React.FC = () => {
                       />
                     </PopoverContent>
                   </Popover>
-                  <Button variant="outline" size="sm" onClick={navigateNext}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={navigateNext}
+                    className="bg-background/80 backdrop-blur hover:bg-blue-50 transition-all duration-200"
+                  >
+                    <span className="hidden sm:inline mr-1">Vor</span>
                     <ChevronRight className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
             </CardHeader>
             
-            <CardContent>
-              {renderYearCalendarOverview()}
+            <CardContent className="p-6">
+              {/* Mobile/Tablet optimized view */}
+              <div className="lg:hidden mb-6">
+                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 text-center">
+                  <div className="flex items-center justify-center space-x-2 mb-2">
+                    <Activity className="w-5 h-5 text-orange-600" />
+                    <span className="font-medium text-orange-800 dark:text-orange-200">Mobile Ansicht</span>
+                  </div>
+                  <p className="text-sm text-orange-600 dark:text-orange-300">
+                    Für die vollständige Kalenderansicht verwenden Sie bitte ein größeres Display oder wechseln Sie zu den spezifischen Tabs.
+                  </p>
+                </div>
+              </div>
+
+              {/* Desktop calendar view */}
+              <div className="hidden lg:block">
+                {renderYearCalendarOverview()}
+              </div>
               
               {/* Legend */}
-              <div className="mt-6 space-y-3">
-                <h4 className="font-medium">Legende</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-green-500 rounded"></div>
-                    <span>Urlaub</span>
+              <div className="mt-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold">Legende & Status</h4>
+                  <Badge variant="outline" className="text-xs">
+                    <Activity className="w-3 h-3 mr-1" />
+                    Live-Daten
+                  </Badge>
+                </div>
+                
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
+                    <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                    <span className="text-sm font-medium">Urlaub</span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-red-500 rounded"></div>
-                    <span>Krank</span>
+                  <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
+                    <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+                    <span className="text-sm font-medium">Krank</span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                    <span>Projekte/Fortbildung</span>
+                  <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
+                    <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm font-medium">Projekte</span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-purple-500 rounded"></div>
-                    <span>Elternzeit</span>
+                  <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
+                    <div className="w-4 h-4 bg-purple-500 rounded-full"></div>
+                    <span className="text-sm font-medium">Elternzeit</span>
                   </div>
                 </div>
                 
-                <Separator />
+                <Separator className="bg-gradient-to-r from-transparent via-border to-transparent" />
                 
-                <div className="flex items-center space-x-6 text-xs">
+                <div className="flex flex-wrap items-center justify-center gap-6 text-sm bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
                   <div className="flex items-center space-x-2">
                     <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span>Genehmigt</span>
+                    <span className="text-green-700 dark:text-green-300">✅ Genehmigt</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Clock className="w-4 h-4 text-yellow-500" />
-                    <span>Beantragt</span>
+                    <span className="text-yellow-700 dark:text-yellow-300">⏳ Beantragt</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <XCircle className="w-4 h-4 text-red-500" />
-                    <span>Abgelehnt</span>
+                    <span className="text-red-700 dark:text-red-300">❌ Abgelehnt</span>
                   </div>
                 </div>
               </div>
@@ -1016,12 +1145,17 @@ const PlannerModule: React.FC = () => {
         </TabsContent>
         
         <TabsContent value="projects">
-          <Card>
+          <Card className="shadow-soft rounded-xl">
             <CardHeader className="pb-4">
-              <div className="flex justify-between items-center">
-                <CardTitle className="flex items-center space-x-2">
-                  <Briefcase className="w-5 h-5" />
-                  <span>Projektkalender - {format(currentDate, 'yyyy', { locale: de })}</span>
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                <CardTitle className="flex items-center space-x-3">
+                  <Briefcase className="w-6 h-6 text-muted-foreground" />
+                  <div>
+                    <span className="text-lg font-bold">
+                      Projektkalender - {format(currentDate, 'yyyy', { locale: de })}
+                    </span>
+                    <p className="text-xs text-muted-foreground">Projektzeitleisten und Ressourcenzuteilung</p>
+                  </div>
                 </CardTitle>
                 
                 <div className="flex items-center space-x-2">
@@ -1065,12 +1199,17 @@ const PlannerModule: React.FC = () => {
         </TabsContent>
         
         <TabsContent value="employees">
-          <Card>
+          <Card className="shadow-soft rounded-xl">
             <CardHeader className="pb-4">
-              <div className="flex justify-between items-center">
-                <CardTitle className="flex items-center space-x-2">
-                  <Users className="w-5 h-5" />
-                  <span>Mitarbeiterkalender - {format(currentDate, 'yyyy', { locale: de })}</span>
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                <CardTitle className="flex items-center space-x-3">
+                  <Users className="w-6 h-6 text-muted-foreground" />
+                  <div>
+                    <span className="text-lg font-bold">
+                      Mitarbeiterkalender - {format(currentDate, 'yyyy', { locale: de })}
+                    </span>
+                    <p className="text-xs text-muted-foreground">Verfügbarkeit und Abwesenheiten</p>
+                  </div>
                 </CardTitle>
                 
                 <div className="flex items-center space-x-2">
@@ -1114,12 +1253,44 @@ const PlannerModule: React.FC = () => {
         </TabsContent>
         
         <TabsContent value="resources">
-          <Card>
-            <CardHeader>
-              <CardTitle>Ressourcenplanung</CardTitle>
+          <Card className="shadow-soft rounded-xl">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center space-x-3">
+                <MapPin className="w-6 h-6 text-muted-foreground" />
+                <div>
+                  <span className="text-lg font-bold">Ressourcenplanung</span>
+                  <p className="text-xs text-muted-foreground">Materialien, Werkzeuge und Fahrzeuge</p>
+                </div>
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Ressourcenplanung wird hier implementiert...</p>
+            <CardContent className="p-6">
+              <div className="text-center py-8">
+                <Zap className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">
+                  Ressourcenplanung in Entwicklung
+                </h3>
+                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                  Die erweiterte Ressourcenverwaltung für Materialien, Werkzeuge und Fahrzeuge wird hier implementiert. 
+                  Bald verfügbar mit intelligenter Zuordnung und Verfügbarkeitsprüfung.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                    <h4 className="font-medium text-sm">Materialverwaltung</h4>
+                    <p className="text-xs text-muted-foreground">Lagerbestände & Bestellungen</p>
+                  </div>
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <Activity className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                    <h4 className="font-medium text-sm">Werkzeugplanung</h4>
+                    <p className="text-xs text-muted-foreground">Verfügbarkeit & Wartung</p>
+                  </div>
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <MapPin className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                    <h4 className="font-medium text-sm">Fahrzeugflotte</h4>
+                    <p className="text-xs text-muted-foreground">Einsatzplanung & Tracking</p>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

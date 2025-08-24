@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
+import { useCreateProject } from "@/hooks/useApi";
 
 interface Customer {
   id: string;
@@ -49,13 +50,14 @@ interface TeamMember {
 interface AddProjectDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onProjectAdded: (project: { id: string; name: string; status: string }) => void;
+  onProjectAdded?: (project: { id: string; name: string; status: string }) => void;
   customers: Customer[];
   teamMembers: TeamMember[];
 }
 
 const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMembers }: AddProjectDialogProps) => {
   const { toast } = useToast();
+  const createProjectMutation = useCreateProject();
   
   // Debug logging
   console.log('AddProjectDialog - customers:', customers);
@@ -73,6 +75,11 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
   // Verfügbarkeitsprüfung für Teammitglieder
   const getAvailabilityStatus = (member: TeamMember, dateRange: DateRange | undefined) => {
     if (!dateRange?.from || !dateRange?.to) return 'unknown';
+    
+    // Check if member has projects array
+    if (!member.projects || !Array.isArray(member.projects)) {
+      return 'available'; // If no projects, member is available
+    }
     
     const startDate = dateRange.from;
     const endDate = dateRange.to;
@@ -117,7 +124,7 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validierung
@@ -130,39 +137,126 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
       return;
     }
 
-    // Neues Projekt erstellen
-    const newProject = {
-      id: `P2024-${String(Date.now()).slice(-3)}`,
-      name: formData.name,
-      customer: formData.customer,
-      status: formData.status,
-      progress: 0,
-      startDate: dateRange?.from ? format(dateRange.from, 'dd.MM.yyyy') : new Date().toLocaleDateString('de-DE'),
-      endDate: dateRange?.to ? format(dateRange.to, 'dd.MM.yyyy') : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('de-DE'),
-      budget: formData.budget.startsWith('€') ? formData.budget : `€${formData.budget}`,
-      team: formData.team.length > 0 ? formData.team : ['Nicht zugewiesen'],
-      location: formData.location || 'Nicht angegeben'
+    // Find customer ID
+    const selectedCustomer = customers.find(customer => 
+      (customer.name === formData.customer) || (customer.company_name === formData.customer)
+    );
+    
+    if (!selectedCustomer) {
+      toast({
+        title: "Fehler",
+        description: "Bitte wählen Sie einen gültigen Kunden aus.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Map status to correct format
+    const statusMapping: { [key: string]: 'anfrage' | 'besichtigung' | 'geplant' | 'in_bearbeitung' | 'abgeschlossen' } = {
+      'Planung': 'geplant',
+      'geplant': 'geplant',
+      'anfrage': 'anfrage',
+      'besichtigung': 'besichtigung',
+      'in_bearbeitung': 'in_bearbeitung',
+      'abgeschlossen': 'abgeschlossen'
     };
 
-    onProjectAdded(newProject);
-    
-    // Formular zurücksetzen
-    setFormData({
-      name: '',
-      customer: '',
-      location: '',
-      budget: '',
-      team: [],
-      status: 'Planung'
-    });
-    setDateRange(undefined);
+    // Get team member IDs
+    const teamMemberIds = formData.team
+      .map(memberName => {
+        const member = teamMembers.find(m => 
+          m.name === memberName || 
+          `${m.first_name || ''} ${m.last_name || ''}`.trim() === memberName
+        );
+        return member?.id;
+      })
+      .filter(id => id !== undefined);
 
-    toast({
-      title: "Erfolg",
-      description: "Projekt wurde erfolgreich hinzugefügt."
-    });
+    // Prepare project data for API
+    const projectData = {
+      name: formData.name,
+      customer_id: selectedCustomer.id,
+      description: formData.location ? `Standort: ${formData.location}` : undefined,
+      status: statusMapping[formData.status] || 'geplant',
+      budget: parseFloat(formData.budget.replace(/[^0-9.]/g, '')),
+      start_date: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : new Date().toISOString().split('T')[0],
+      end_date: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
+      // Remove assigned_employees for now - will be handled separately
+      // assigned_employees: teamMemberIds
+    };
 
-    onClose();
+    try {
+      // Create project in database
+      const newProject = await createProjectMutation.mutateAsync(projectData);
+      
+      // Add team members to the project if any were selected
+      if (teamMemberIds.length > 0 && newProject) {
+        console.log('Adding team members to project:', { 
+          projectId: newProject.id, 
+          teamMemberIds, 
+          teamMemberInserts: teamMemberIds.map(id => ({ project_id: newProject.id, employee_id: id }))
+        });
+        
+        // Import supabase here to add team members
+        const { supabase } = await import('@/integrations/supabase/client');
+        
+        const teamMemberInserts = teamMemberIds.map(employeeId => ({
+          project_id: newProject.id,
+          employee_id: employeeId,
+          assigned_at: new Date().toISOString()
+        }));
+        
+        const { error: teamError } = await supabase
+          .from('project_team_members')
+          .insert(teamMemberInserts);
+          
+        if (teamError) {
+          console.error('Error adding team members:', teamError);
+          
+          // If table doesn't exist, provide helpful message
+          if (teamError.message?.includes('relation "public.project_team_members" does not exist')) {
+            toast({
+              title: "Setup erforderlich",
+              description: "Die Datenbank-Tabelle für Team-Zuweisungen muss erstellt werden. Bitte wenden Sie sich an den Administrator.",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "Warnung",
+              description: "Projekt wurde erstellt, aber Team-Mitglieder konnten nicht zugewiesen werden: " + teamError.message,
+              variant: "destructive"
+            });
+          }
+        } else {
+          console.log('Team members successfully added to project');
+          toast({
+            title: "Erfolg",
+            description: `Projekt erstellt und ${teamMemberIds.length} Team-Mitglieder zugewiesen.`,
+          });
+        }
+      }
+      
+      // Close dialog and show success message
+      toast({
+        title: "Projekt erstellt",
+        description: `${formData.name} wurde erfolgreich erstellt.`,
+      });
+      
+      // Reset form
+      setFormData({
+        name: '',
+        customer: '',
+        location: '',
+        budget: '',
+        team: [],
+        status: 'Planung'
+      });
+      setDateRange(undefined);
+      
+      onClose();
+    } catch (error) {
+      console.error('Error creating project:', error);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {

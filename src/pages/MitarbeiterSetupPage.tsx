@@ -37,14 +37,6 @@ const MitarbeiterSetupPage = () => {
       try {
         console.log('Attempting to validate token:', token);
         
-        // First, let's check if the table exists and what's in it
-        const { data: allInvitations, error: listError } = await supabase
-          .from('employee_invitations')
-          .select('*');
-          
-        console.log('All invitations in DB:', allInvitations);
-        console.log('List error:', listError);
-        
         // Validate invitation token
         const { data: invitation, error: inviteError } = await supabase
           .from('employee_invitations')
@@ -134,7 +126,12 @@ const MitarbeiterSetupPage = () => {
             first_name: firstName,
             last_name: lastName,
             company_id: invitationData.company_id
-          }
+          },
+          emailRedirectTo: window.location.href.includes('lovable.app') 
+            ? 'https://id-preview--a0eb28b7-447b-47a2-80fc-a8181ec925b9.lovable.app/auth'
+            : window.location.href.includes('handwerkos.de')
+            ? 'https://handwerkos.de/auth'
+            : `${window.location.origin}/auth`
         }
       });
 
@@ -150,6 +147,20 @@ const MitarbeiterSetupPage = () => {
           .from('employee_invitations')
           .update({ status: 'accepted' })
           .eq('invite_token', invitationData.invite_token);
+
+        // Only link user_id, but keep status as 'eingeladen' until email confirmed
+        const { error: employeeUpdateError } = await supabase
+          .from('employees')
+          .update({ 
+            user_id: authData.user.id 
+          })
+          .eq('email', invitationData.email.toLowerCase());
+          
+        if (employeeUpdateError) {
+          console.error('Error updating employee user_id:', employeeUpdateError);
+        } else {
+          console.log('Employee user_id linked, waiting for email confirmation');
+        }
 
         // Create user role as employee
         await supabase

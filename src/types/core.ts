@@ -109,13 +109,14 @@ export const OrderSchema = BaseEntitySchema.merge(OrderCreateSchema).extend({
 export const ProjectCreateSchema = z.object({
   order_id: z.string().uuid().optional(),
   customer_id: z.string().uuid().optional(),
+  company_id: z.string().uuid().optional(),
   name: z.string().min(1, 'Projektname ist erforderlich'),
   description: z.string().optional(),
-  status: z.enum(['planned', 'active', 'blocked', 'completed', 'cancelled']).default('planned'),
+  status: z.enum(['anfrage', 'besichtigung', 'geplant', 'in_bearbeitung', 'abgeschlossen', 'planned', 'active', 'blocked', 'completed', 'cancelled']).default('geplant'),
   budget: z.number().min(0, 'Budget muss positiv sein').optional(),
-  start_date: z.string().date().optional(),
-  end_date: z.string().date().optional(),
-  progress_percentage: z.number().min(0).max(100).default(0),
+  start_date: z.string().optional(),
+  end_date: z.string().optional(),
+  // Remove progress_percentage as it doesn't exist in the database
 });
 
 export const ProjectUpdateSchema = ProjectCreateSchema.partial();

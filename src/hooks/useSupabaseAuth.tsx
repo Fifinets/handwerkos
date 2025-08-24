@@ -80,12 +80,17 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session?.user?.email);
+      
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
         fetchUserData(session.user.id);
+        
+        // REMOVED: The employee status update logic was causing infinite loops
+        // This should be handled by the database trigger instead
       } else {
         setUserRole(null);
         setCompanyId(null);
