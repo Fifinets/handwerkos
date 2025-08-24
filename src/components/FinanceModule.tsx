@@ -153,13 +153,29 @@ const FinanceModule = () => {
       };
     }
 
-    // Base calculation - simplified for now
-    // In real implementation, you'd use actual salary data from employee records
-    const employeeCount = employees.filter(emp => emp.status === 'active' || emp.status === 'Active').length;
+    // Filter active employees
+    const activeEmployees = employees.filter(emp => 
+      emp.status === 'active' || emp.status === 'Active'
+    );
     
-    // Average monthly salary per employee (this should come from employee salary data)
-    const avgMonthlySalary = 3500; // This should be calculated from real salary data
-    const totalMonthlySalaries = employeeCount * avgMonthlySalary;
+    const employeeCount = activeEmployees.length;
+    
+    // Calculate total monthly salaries from real employee data
+    const totalMonthlySalaries = activeEmployees.reduce((total, employee) => {
+      // Calculate monthly salary from hourly rate
+      // Assume standard German work: 40 hours/week * 4.33 weeks/month = 173.2 hours/month
+      const hoursPerMonth = 173.2;
+      const hourlyRate = employee.hourly_rate || 0;
+      const monthlySalary = hourlyRate * hoursPerMonth;
+      
+      console.log(`Employee ${employee.first_name} ${employee.last_name}:`, {
+        hourly_rate: employee.hourly_rate,
+        hours_per_month: hoursPerMonth,
+        calculated_monthly: monthlySalary.toFixed(2)
+      });
+      
+      return total + monthlySalary;
+    }, 0);
     
     // German social insurance rates (approximate)
     const socialInsuranceRate = 0.2; // 20% employer contribution
@@ -169,13 +185,17 @@ const FinanceModule = () => {
     const annualBonus = totalMonthlySalaries * 1.5; // 1.5 months as bonus
     const monthlyBonus = annualBonus / 12;
     
-    return {
+    const result = {
       totalSalaries: totalMonthlySalaries,
       socialInsurance: monthlySocialInsurance,
       bonuses: monthlyBonus,
       total: totalMonthlySalaries + monthlySocialInsurance + monthlyBonus,
       employeeCount
     };
+    
+    console.log('Personnel costs calculation result:', result);
+    
+    return result;
   };
 
   // Calculate hourly rates dynamically
@@ -240,10 +260,10 @@ const FinanceModule = () => {
           return;
         }
 
-        // Fetch employees
+        // Fetch employees with salary information
         const { data: employeesData, error } = await supabase
           .from('employees')
-          .select('*')
+          .select('id, first_name, last_name, status, hourly_rate')
           .eq('company_id', profile.company_id);
 
         if (error) {
