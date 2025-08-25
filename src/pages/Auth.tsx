@@ -56,89 +56,8 @@ const Auth: React.FC = () => {
       
       const mode = searchParams.get('mode');
       const inviteToken = searchParams.get('token');
-      const confirmed = searchParams.get('confirmed');
-      console.log('Auth check:', { mode, inviteToken, confirmed });
 
-      // Handle email confirmation redirect
-      if (confirmed === 'true') {
-        console.log('Email confirmation detected, updating employee status...');
-        
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          
-          if (session?.user) {
-            // Update employee status to 'Aktiv'
-            const { error: updateError } = await supabase
-              .from('employees')
-              .update({ status: 'Aktiv' })
-              .eq('email', session.user.email?.toLowerCase());
-
-            if (updateError) {
-              console.error('Error updating employee status after confirmation:', updateError);
-            } else {
-              console.log('Employee status updated to Aktiv after email confirmation');
-              toast.success('E-Mail erfolgreich bestätigt! Sie können sich jetzt anmelden.');
-            }
-          }
-        } catch (error) {
-          console.error('Error processing email confirmation:', error);
-        }
-        
-        // Clean up URL and redirect to login
-        navigate('/auth', { replace: true });
-        return;
-      }
-
-      // Check if this is an email confirmation redirect (look for auth tokens in URL)
-      const urlParams = new URLSearchParams(window.location.search);
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      
-      // Check if we have auth tokens indicating email confirmation
-      const accessToken = urlParams.get('access_token') || hashParams.get('access_token');
-      const tokenType = urlParams.get('token_type') || hashParams.get('token_type');
-      
-      if (accessToken && tokenType && !confirmed) {
-        console.log('Email confirmation tokens detected in URL');
-        
-        try {
-          // Get the current user (should be confirmed now)
-          const { data: { user }, error: userError } = await supabase.auth.getUser();
-          
-          if (user && user.email_confirmed_at) {
-            console.log('User email is confirmed, checking for employee status update...');
-            
-            // Check if there's an employee with this email that still has 'eingeladen' status
-            const { data: employee, error: employeeError } = await supabase
-              .from('employees')
-              .select('id, status, email')
-              .eq('email', user.email?.toLowerCase())
-              .eq('status', 'eingeladen')
-              .single();
-              
-            if (employee && !employeeError) {
-              console.log('Found unconfirmed employee, updating status to Aktiv');
-              
-              const { error: updateError } = await supabase
-                .from('employees')
-                .update({ status: 'Aktiv' })
-                .eq('id', employee.id);
-
-              if (updateError) {
-                console.error('Error updating employee status:', updateError);
-              } else {
-                console.log('Employee status updated to Aktiv after email confirmation');
-                toast.success('E-Mail erfolgreich bestätigt! Sie können sich jetzt anmelden.');
-                
-                // Clean URL and redirect to login
-                navigate('/auth', { replace: true });
-                return;
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Error processing email confirmation tokens:', error);
-        }
-      }
+      console.log('Auth check:', { mode, inviteToken });
 
       if (mode === 'employee-setup' && inviteToken) {
         console.log('Processing employee invitation token:', inviteToken);
@@ -239,20 +158,6 @@ const Auth: React.FC = () => {
               .from('employee_invitations')
               .update({ status: 'accepted' })
               .eq('invite_token', invitationData.invite_token);
-
-            // Only link user_id, keep status as 'eingeladen' until email confirmed
-            const { error: employeeUpdateError } = await supabase
-              .from('employees')
-              .update({ 
-                user_id: authData.user.id 
-              })
-              .eq('email', invitationData.email.toLowerCase());
-              
-            if (employeeUpdateError) {
-              console.error('Error updating employee user_id:', employeeUpdateError);
-            } else {
-              console.log('Employee user_id linked, waiting for email confirmation');
-            }
 
             // Create user role as employee
             await supabase

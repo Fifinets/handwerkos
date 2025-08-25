@@ -61,8 +61,7 @@ function preprocessEmailContent(content: string): string {
     .replace(/\r/g, '\n')
     
     // Fix common encoding issues early
-      .replace(/â‚¬/g, '€')
-
+    .replace(/â‚¬/g, '€')
     .replace(/Ã¤/g, 'ä')
     .replace(/Ã¶/g, 'ö')
     .replace(/Ã¼/g, 'ü')

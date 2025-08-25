@@ -2,9 +2,8 @@
   "ExpandedNodes": [
     "",
     "\\src",
-    "\\src\\components",
-    "\\src\\utils"
+    "\\src\\components"
   ],
-  "SelectedNode": "\\src\\utils\\emailMimeParser.ts",
+  "SelectedNode": "\\src\\components\\DashboardCalendar.tsx",
   "PreviewInSolutionExplorer": false
 }

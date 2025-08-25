@@ -842,6 +842,9 @@ const ProjectProfitabilityDialog: React.FC<ProjectProfitabilityDialogProps> = ({
           </TabsContent>
         </Tabs>
 
+        <div className="flex justify-end pt-4 border-t">
+          <Button onClick={onClose}>Schließen</Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

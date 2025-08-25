@@ -3,12 +3,54 @@
   "WorkspaceRootPath": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\utils\\emailMimeParser.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\utils\\emailMimeParser.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\DashboardCalendar.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\components\\DashboardCalendar.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\Downloads\\cebe9d8a-c7f0-4f33-9ff8-bc1954973c32.png||{58961B49-13E0-48C0-9258-13CBC4D40279}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\AddQuoteDialog.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\components\\AddQuoteDialog.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\AddOrderDialog.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\components\\AddOrderDialog.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\AddCustomerDialog.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\components\\AddCustomerDialog.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\AddInvoiceDialog.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\components\\AddInvoiceDialog.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\fix_customers_security_lovable.sql||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:fix_customers_security_lovable.sql||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\index.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\index.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\main.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\main.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\Downloads\\handwerkos_modified_package.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\add_vacation_system_final.sql||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:add_vacation_system_final.sql||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\add_vacation_system_fixed.sql||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:add_vacation_system_fixed.sql||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\add_vacation_system.sql||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:add_vacation_system.sql||{3B902123-F8A7-4915-9F01-361F908088D0}"
     }
   ],
   "DocumentGroupContainers": [
@@ -18,32 +60,167 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 1,
           "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "emailMimeParser.ts",
-              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\utils\\emailMimeParser.ts",
-              "RelativeDocumentMoniker": "src\\utils\\emailMimeParser.ts",
-              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\utils\\emailMimeParser.ts",
-              "RelativeToolTip": "src\\utils\\emailMimeParser.ts",
-              "ViewState": "AgIAAD0AAAAAAAAAAAAIwFcAAAAfAAAAAAAAAA==",
+              "Title": "DashboardCalendar.tsx",
+              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\DashboardCalendar.tsx",
+              "RelativeDocumentMoniker": "src\\components\\DashboardCalendar.tsx",
+              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\DashboardCalendar.tsx",
+              "RelativeToolTip": "src\\components\\DashboardCalendar.tsx",
+              "ViewState": "AgIAABgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-08-07T17:24:48.488Z",
+              "WhenOpened": "2025-08-24T17:42:33.952Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
+              "Title": "cebe9d8a-c7f0-4f33-9ff8-bc1954973c32.png",
+              "DocumentMoniker": "C:\\Users\\filip\\Downloads\\cebe9d8a-c7f0-4f33-9ff8-bc1954973c32.png",
+              "RelativeDocumentMoniker": "..\\..\\..\\..\\Downloads\\cebe9d8a-c7f0-4f33-9ff8-bc1954973c32.png",
+              "ToolTip": "C:\\Users\\filip\\Downloads\\cebe9d8a-c7f0-4f33-9ff8-bc1954973c32.png",
+              "RelativeToolTip": "..\\..\\..\\..\\Downloads\\cebe9d8a-c7f0-4f33-9ff8-bc1954973c32.png",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001533|",
+              "WhenOpened": "2025-08-24T09:08:58.754Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "AddQuoteDialog.tsx",
+              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\AddQuoteDialog.tsx",
+              "RelativeDocumentMoniker": "src\\components\\AddQuoteDialog.tsx",
+              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\AddQuoteDialog.tsx",
+              "RelativeToolTip": "src\\components\\AddQuoteDialog.tsx",
+              "ViewState": "AgIAAFAAAAAAAAAAAAAkwHUAAAAGAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-08-09T14:40:15.425Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "AddOrderDialog.tsx",
+              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\AddOrderDialog.tsx",
+              "RelativeDocumentMoniker": "src\\components\\AddOrderDialog.tsx",
+              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\AddOrderDialog.tsx",
+              "RelativeToolTip": "src\\components\\AddOrderDialog.tsx",
+              "ViewState": "AgIAAB0BAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-08-14T17:42:28.57Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "AddCustomerDialog.tsx",
+              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\AddCustomerDialog.tsx",
+              "RelativeDocumentMoniker": "src\\components\\AddCustomerDialog.tsx",
+              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\AddCustomerDialog.tsx",
+              "RelativeToolTip": "src\\components\\AddCustomerDialog.tsx",
+              "ViewState": "AgIAAAMCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-08-14T17:42:25.611Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "fix_customers_security_lovable.sql",
+              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\fix_customers_security_lovable.sql",
+              "RelativeDocumentMoniker": "fix_customers_security_lovable.sql",
+              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\fix_customers_security_lovable.sql",
+              "RelativeToolTip": "fix_customers_security_lovable.sql",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-08-14T17:42:14.878Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "index.css",
+              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\index.css",
+              "RelativeDocumentMoniker": "src\\index.css",
+              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\index.css",
+              "RelativeToolTip": "src\\index.css",
+              "ViewState": "AgIAAGUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2025-08-14T17:42:10.718Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "main.tsx",
+              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\main.tsx",
+              "RelativeDocumentMoniker": "src\\main.tsx",
+              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\main.tsx",
+              "RelativeToolTip": "src\\main.tsx",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-08-14T17:42:08.244Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "handwerkos_modified_package.json",
+              "DocumentMoniker": "C:\\Users\\filip\\Downloads\\handwerkos_modified_package.json",
+              "RelativeDocumentMoniker": "..\\..\\..\\..\\Downloads\\handwerkos_modified_package.json",
+              "ToolTip": "C:\\Users\\filip\\Downloads\\handwerkos_modified_package.json",
+              "RelativeToolTip": "..\\..\\..\\..\\Downloads\\handwerkos_modified_package.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACEAAAAWAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-08-13T15:10:45.59Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "add_vacation_system_fixed.sql",
+              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\add_vacation_system_fixed.sql",
+              "RelativeDocumentMoniker": "add_vacation_system_fixed.sql",
+              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\add_vacation_system_fixed.sql",
+              "RelativeToolTip": "add_vacation_system_fixed.sql",
+              "ViewState": "AgIAAE0AAAAAAAAAAAAAAJcAAABrAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-08-12T13:17:29.176Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
               "Title": "AddInvoiceDialog.tsx",
               "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\AddInvoiceDialog.tsx",
               "RelativeDocumentMoniker": "src\\components\\AddInvoiceDialog.tsx",
               "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\AddInvoiceDialog.tsx",
               "RelativeToolTip": "src\\components\\AddInvoiceDialog.tsx",
-              "ViewState": "AgIAACkAAAAAAAAAAAAowDEAAAAtAAAAAAAAAA==",
+              "ViewState": "AgIAAEwBAAAAAAAAAAAAADEAAAAtAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
               "WhenOpened": "2025-08-06T16:33:47.664Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "add_vacation_system_final.sql",
+              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\add_vacation_system_final.sql",
+              "RelativeDocumentMoniker": "add_vacation_system_final.sql",
+              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\add_vacation_system_final.sql",
+              "RelativeToolTip": "add_vacation_system_final.sql",
+              "ViewState": "AgIAAGoAAAAAAAAAAAAAAHIAAAA1AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-08-12T13:25:58.051Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "add_vacation_system.sql",
+              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\add_vacation_system.sql",
+              "RelativeDocumentMoniker": "add_vacation_system.sql",
+              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\add_vacation_system.sql",
+              "RelativeToolTip": "add_vacation_system.sql",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAHwAAABrAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-08-12T13:15:36.028Z"
             }
           ]
         }

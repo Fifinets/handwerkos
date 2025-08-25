@@ -51,61 +51,25 @@ const ProjectDetailDialogWithTasks = ({ isOpen, onClose, project }: ProjectDetai
 
   const loadTasks = async (projectId: string) => {
     setLoadingTasks(true);
-    try {
-      const mockTasks: Task[] = [
-        {
-          id: '1',
-          project_id: projectId,
-          name: 'Planung und Vorbereitung',
-          description: 'Detailplanung und Materialbeschaffung',
-          start_date: new Date().toISOString().split('T')[0],
-          end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          status: 'in_bearbeitung'
-        },
-        {
-          id: '2',
-          project_id: projectId,
-          name: 'Ausführung Hauptarbeiten',
-          description: 'Durchführung der geplanten Arbeiten',
-          start_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          status: 'geplant'
-        }
-      ];
-      setTasks(mockTasks);
-    } catch (error) {
-      console.error('Error loading tasks:', error);
-      setTasks([]);
-    } finally {
-      setLoadingTasks(false);
-    }
+    // TODO: Implement when project_tasks table is created
+    setTasks([]);
+    setLoadingTasks(false);
   };
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!project) return;
     if (!taskName.trim()) return;
-    
-    try {
-      const newTask: Task = {
-        id: Date.now().toString(),
-        project_id: project.id,
-        name: taskName,
-        description: taskDescription,
-        start_date: taskStartDate,
-        end_date: taskEndDate,
-        status: taskStatus
-      };
-      
-      setTasks(prevTasks => [...prevTasks, newTask]);
-      
+    // TODO: Implement when project_tasks table is created
+    console.log('Add task functionality not yet implemented');
+    const error = null;
+    if (!error) {
       setTaskName('');
       setTaskDescription('');
       setTaskStartDate('');
       setTaskEndDate('');
       setTaskStatus('geplant');
-    } catch (error) {
-      console.error('Error creating task:', error);
+      loadTasks(project.id);
     }
   };
 

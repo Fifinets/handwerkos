@@ -44,55 +44,15 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
   const [deleteProgress, setDeleteProgress] = useState(0);
   const [deleteTimer, setDeleteTimer] = useState<NodeJS.Timeout | null>(null);
   const [formData, setFormData] = useState({
-    name: '',
-    customer: '',
-    status: 'Planung',
-    progress: 0,
-    startDate: '',
-    endDate: '',
-    budget: '',
-    location: ''
+    name: project?.name || '',
+    customer: project?.customer || '',
+    status: project?.status || 'Planung',
+    progress: project?.progress || 0,
+    startDate: project?.startDate || '',
+    endDate: project?.endDate || '',
+    budget: project?.budget || '',
+    location: project?.location || ''
   });
-
-  // Update form data when project changes
-  useEffect(() => {
-    if (project) {
-      console.log('EditProjectDialog: Updating form with project data:', project);
-      
-      // Map database status to display status
-      const statusMapping = {
-        'anfrage': 'Anfrage',
-        'besichtigung': 'Termin ausmachen', 
-        'geplant': 'Planung',
-        'in_bearbeitung': 'In Arbeit',
-        'abgeschlossen': 'Abgeschlossen'
-      };
-
-      setFormData({
-        name: project.name || '',
-        customer: project.customers?.company_name || project.customer || '',
-        status: statusMapping[project.status] || project.status || 'Planung',
-        progress: project.progress || 0,
-        startDate: project.start_date || project.startDate || '',
-        endDate: project.end_date || project.endDate || '',
-        budget: project.budget?.toString() || '',
-        location: project.location || project.description || ''
-      });
-
-      // Set date range if dates are available
-      const startDate = project.start_date || project.startDate;
-      const endDate = project.end_date || project.endDate;
-      
-      if (startDate && endDate) {
-        setDateRange({
-          from: new Date(startDate),
-          to: new Date(endDate)
-        });
-      } else {
-        setDateRange(undefined);
-      }
-    }
-  }, [project]);
 
   // Load customers
   useEffect(() => {

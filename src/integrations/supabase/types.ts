@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
+  // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -950,42 +950,6 @@ export type Database = {
           },
         ]
       }
-      number_sequences: {
-        Row: {
-          company_id: string | null
-          created_at: string
-          current_value: number | null
-          format: string | null
-          id: string
-          last_reset_year: number | null
-          prefix: string | null
-          sequence_name: string
-          updated_at: string
-        }
-        Insert: {
-          company_id?: string | null
-          created_at?: string
-          current_value?: number | null
-          format?: string | null
-          id?: string
-          last_reset_year?: number | null
-          prefix?: string | null
-          sequence_name: string
-          updated_at?: string
-        }
-        Update: {
-          company_id?: string | null
-          created_at?: string
-          current_value?: number | null
-          format?: string | null
-          id?: string
-          last_reset_year?: number | null
-          prefix?: string | null
-          sequence_name?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       orders: {
         Row: {
           company_id: string | null
@@ -1277,54 +1241,6 @@ export type Database = {
         }
         Relationships: []
       }
-      project_team_members: {
-        Row: {
-          assigned_at: string | null
-          assigned_by: string | null
-          created_at: string | null
-          employee_id: string
-          id: string
-          project_id: string
-          role: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          assigned_at?: string | null
-          assigned_by?: string | null
-          created_at?: string | null
-          employee_id: string
-          id?: string
-          project_id: string
-          role?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          assigned_at?: string | null
-          assigned_by?: string | null
-          created_at?: string | null
-          employee_id?: string
-          id?: string
-          project_id?: string
-          role?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_team_members_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_team_members_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       project_work_hours: {
         Row: {
           created_at: string
@@ -1357,7 +1273,6 @@ export type Database = {
       }
       projects: {
         Row: {
-          budget: number | null
           color: string | null
           company_id: string | null
           created_at: string
@@ -1372,7 +1287,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          budget?: number | null
           color?: string | null
           company_id?: string | null
           created_at?: string
@@ -1387,7 +1301,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          budget?: number | null
           color?: string | null
           company_id?: string | null
           created_at?: string
@@ -1858,21 +1771,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
-      get_next_number: {
-        Args: { comp_id?: string; seq_name: string }
-        Returns: string
-      }
       has_role: {
         Args:
           | {
-              _role: Database["public"]["Enums"]["user_role"]
               _user_id: string
+              _role: Database["public"]["Enums"]["user_role"]
             }
           | { role: string }
         Returns: boolean
       }
       increment_vacation_days_used: {
-        Args: { days_to_add: number; employee_id_param: string }
+        Args: { employee_id_param: string; days_to_add: number }
         Returns: undefined
       }
       sanitize_text_input: {
