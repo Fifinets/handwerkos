@@ -107,9 +107,7 @@ export default function HandwerkerSoftware() {
         {/* Navigation */}
         <nav className="relative z-10 container flex items-center justify-between py-6">
           <Link to="/" className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">H</span>
-            </div>
+            <img src="/favicon-32x32.png" alt="HandwerkOS Logo" className="h-8 w-8" />
             <span className="font-bold text-xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">HandwerkOS</span>
           </Link>
           <div className="flex items-center gap-3">
