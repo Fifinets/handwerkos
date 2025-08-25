@@ -101,27 +101,27 @@ const FinanceModule = () => {
     }
   }, [savedCategories]);
   const [editValues, setEditValues] = useState({
-    miete: '12.000',
-    nebenkosten: '3.600',
-    reinigung: '1.200',
-    fahrzeugLeasing: '6.000',
-    fahrzeugVersicherung: '1.800',
-    fahrzeugSteuer: '1.200',
-    versicherungHaftpflicht: '2.400',
-    versicherungRente: '3.600',
-    versicherungBerufsunfaehigkeit: '1.800',
-    verwaltungSoftware: '1.800',
-    verwaltungSteuerberater: '3.000',
-    verwaltungMarketing: '2.400',
-    personalGehaelter: '8.500',
-    personalSozialversicherung: '1.700',
-    personalWeihnachtsgeld: '1.200'
+    miete: '1.000',
+    nebenkosten: '300',
+    reinigung: '100',
+    fahrzeugLeasing: '500',
+    fahrzeugVersicherung: '150',
+    fahrzeugSteuer: '100',
+    versicherungHaftpflicht: '200',
+    versicherungRente: '300',
+    versicherungBerufsunfaehigkeit: '150',
+    verwaltungSoftware: '150',
+    verwaltungSteuerberater: '250',
+    verwaltungMarketing: '200',
+    personalGehaelter: '708',
+    personalSozialversicherung: '142',
+    personalWeihnachtsgeld: '100'
   });
 
   // Calculate total from base costs + saved categories
   const calculateTotalCosts = () => {
     const personnelCosts = calculatePersonnelCosts();
-    const baseCosts = 16800 + personnelCosts.total + 9000 + 4700 + 7200; // Base categories with dynamic personnel
+    const baseCosts = 1400 + personnelCosts.total + 750 + 392 + 600; // Base categories with dynamic personnel (monthly)
     const savedCategoriesTotal = savedCategories.reduce((sum, category) => sum + category.total, 0);
     return baseCosts + savedCategoriesTotal;
   };
@@ -153,24 +153,37 @@ const FinanceModule = () => {
       };
     }
 
-    // Filter active employees
-    const activeEmployees = employees.filter(emp => 
-      emp.status === 'active' || emp.status === 'Active'
-    );
+    // Get wages from localStorage (where EmployeeWageManagementSimple stores them)
+    const savedWages = localStorage.getItem('employeeWages');
+    const wagesData: Array<{employee_id: string; hourly_wage: number}> = savedWages ? JSON.parse(savedWages) : [];
+    
+    console.log('💾 Loaded wages from localStorage:', wagesData);
+
+    // Filter active employees - check multiple status variations
+    const activeEmployees = employees.filter(emp => {
+      const status = emp.status?.toLowerCase();
+      return status === 'active' || status === 'aktiv' || !emp.status; // Include employees without status
+    });
     
     const employeeCount = activeEmployees.length;
     
     // Calculate total monthly salaries from real employee data
     const totalMonthlySalaries = activeEmployees.reduce((total, employee) => {
       // Calculate monthly salary from hourly rate
-      // Assume standard German work: 40 hours/week * 4.33 weeks/month = 173.2 hours/month
-      const hoursPerMonth = 173.2;
-      const hourlyRate = employee.hourly_rate || 0;
+      // German standard: 40 hours/week * 52 weeks/year / 12 months = 173.33 hours/month
+      // But many work more, so using 176 hours (40h * 4.4 weeks average)
+      const hoursPerMonth = 176;
+      
+      // First try to get wage from localStorage, then fall back to database value
+      const wageEntry = wagesData.find(w => w.employee_id === employee.id);
+      const hourlyRate = wageEntry?.hourly_wage || employee.hourly_rate || 0;
+      
       const monthlySalary = hourlyRate * hoursPerMonth;
       
       console.log(`👷 Employee ${employee.first_name} ${employee.last_name}:`, {
         status: employee.status,
-        hourly_rate_raw: employee.hourly_rate,
+        hourly_rate_from_db: employee.hourly_rate,
+        hourly_rate_from_localStorage: wageEntry?.hourly_wage,
         hourly_rate_used: hourlyRate,
         hours_per_month: hoursPerMonth,
         calculated_monthly: monthlySalary.toFixed(2) + '€'
@@ -189,12 +202,16 @@ const FinanceModule = () => {
       totalMonthlySalaries: totalMonthlySalaries.toFixed(2) + '€'
     });
     
-    // German social insurance rates (approximate)
-    const socialInsuranceRate = 0.2; // 20% employer contribution
+    // German social insurance rates (realistic employer contributions)
+    // Krankenversicherung: ~7.3%, Rentenversicherung: ~9.3%, 
+    // Arbeitslosenversicherung: ~1.2%, Pflegeversicherung: ~1.7%
+    // Total: ~19.5% + potential additions
+    const socialInsuranceRate = 0.21; // 21% employer contribution (realistic)
     const monthlySocialInsurance = totalMonthlySalaries * socialInsuranceRate;
     
-    // Annual bonus calculation (Christmas and vacation pay)
-    const annualBonus = totalMonthlySalaries * 1.5; // 1.5 months as bonus
+    // Annual bonus calculation (13. Monatsgehalt + Urlaubsgeld)
+    // Many companies pay 13th month salary + vacation bonus
+    const annualBonus = totalMonthlySalaries * 2; // 2 months as bonus (13. Gehalt + Urlaubsgeld)
     const monthlyBonus = annualBonus / 12;
     
     const result = {
@@ -210,18 +227,23 @@ const FinanceModule = () => {
     return result;
   };
 
-  // Calculate hourly rates dynamically
+  // Calculate hourly rates dynamically (based on monthly costs)
   const calculateHourlyRates = () => {
-    const totalCosts = calculateTotalCosts();
-    const variableCosts = 8000;
-    const desiredProfit = 25000;
-    const totalAmount = totalCosts + variableCosts + desiredProfit;
-    const workingHours = 1201; // From existing calculation
+    const monthlyFixedCosts = calculateTotalCosts() / 12; // Convert to monthly
+    const monthlyVariableCosts = 8000 / 12; // Monthly variable costs
+    const monthlyDesiredProfit = 25000 / 12; // Monthly profit target
+    const monthlyTotalAmount = monthlyFixedCosts + monthlyVariableCosts + monthlyDesiredProfit;
+    const workingHoursPerMonth = 154; // ~154 hours per month (1848h/year ÷ 12)
     
-    const minimumRate = totalAmount / workingHours;
+    const minimumRate = monthlyTotalAmount / workingHoursPerMonth;
     const recommendedRate = minimumRate * 1.3; // 30% buffer as shown
     
-    return { minimumRate, recommendedRate, totalAmount, workingHours };
+    return { 
+      minimumRate, 
+      recommendedRate, 
+      totalAmount: monthlyTotalAmount, 
+      workingHours: workingHoursPerMonth 
+    };
   };
   
   // Extract data from responses
@@ -275,19 +297,30 @@ const FinanceModule = () => {
         // Fetch employees with salary information
         const { data: employeesData, error } = await supabase
           .from('employees')
-          .select('id, first_name, last_name, status, hourly_rate')
+          .select('id, first_name, last_name, status, hourly_rate, position')
           .eq('company_id', profile.company_id);
 
         if (error) {
-          console.error('Error fetching employees:', error);
+          console.error('❌ Error fetching employees:', error);
           setEmployees([]);
         } else {
           console.log('✅ Fetched employees successfully:', employeesData);
           console.log('📊 Employee details:', employeesData?.map(emp => ({
             name: `${emp.first_name} ${emp.last_name}`,
+            position: emp.position,
             status: emp.status,
-            hourly_rate: emp.hourly_rate
+            hourly_rate: emp.hourly_rate,
+            has_hourly_rate: emp.hourly_rate !== null && emp.hourly_rate > 0
           })));
+          
+          // Log warning if employees have no hourly rate
+          const employeesWithoutRate = employeesData?.filter(emp => !emp.hourly_rate || emp.hourly_rate === 0) || [];
+          if (employeesWithoutRate.length > 0) {
+            console.warn('⚠️ Employees without hourly rate:', employeesWithoutRate.map(emp => 
+              `${emp.first_name} ${emp.last_name}`
+            ));
+          }
+          
           setEmployees(employeesData || []);
         }
       } catch (error) {
@@ -1147,10 +1180,10 @@ const FinanceModule = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Calculator className="h-5 w-5" />
-                  💰 Betriebskosten (jährlich)
+                  💰 Betriebskosten (monatlich)
                 </CardTitle>
                 <CardDescription>
-                  Verwalten Sie Ihre jährlichen Betriebskosten für die Stundensatz-Berechnung
+                  Verwalten Sie Ihre monatlichen Betriebskosten für die Stundensatz-Berechnung
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -1216,7 +1249,7 @@ const FinanceModule = () => {
                         <hr className="my-2" />
                         <div className="flex justify-between items-center font-medium">
                           <span>Gesamt</span>
-                          <span>{formatCurrency(16800)}</span>
+                          <span>{formatCurrency(1400)}</span>
                         </div>
                       </CardContent>
                     </Card>
@@ -1256,6 +1289,13 @@ const FinanceModule = () => {
                               {personnelCosts.employeeCount === 0 && (
                                 <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded mt-2">
                                   ⚠️ Keine aktiven Mitarbeiter gefunden. Personalkosten sind 0 €.
+                                  <br />
+                                  <span className="text-xs">Stellen Sie sicher, dass Mitarbeiter einen Stundenlohn haben und aktiv sind.</span>
+                                </div>
+                              )}
+                              {personnelCosts.employeeCount > 0 && personnelCosts.total === 0 && (
+                                <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded mt-2">
+                                  ⚠️ Mitarbeiter gefunden, aber keine Stundenlöhne eingetragen.
                                 </div>
                               )}
                             </>
@@ -1649,18 +1689,18 @@ const FinanceModule = () => {
                 <div className="space-y-3">
                   <div className="p-4 border rounded-lg">
                     <Label className="text-sm text-muted-foreground">Fixkosten (Betrieb)</Label>
-                    <p className="text-2xl font-bold">{formatCurrency(calculateTotalCosts())} / Jahr</p>
+                    <p className="text-2xl font-bold">{formatCurrency(calculateTotalCosts() / 12)} / Monat</p>
                   </div>
 
                   <div className="p-4 border rounded-lg">
                     <Label className="text-sm text-muted-foreground">Variable Grundkosten</Label>
-                    <p className="text-2xl font-bold text-orange-600">{formatCurrency(8000)} / Jahr</p>
+                    <p className="text-2xl font-bold text-orange-600">{formatCurrency(8000 / 12)} / Monat</p>
                     <p className="text-xs text-muted-foreground mt-1">Material (netto), etc.</p>
                   </div>
 
                   <div className="p-4 border rounded-lg">
                     <Label className="text-sm text-muted-foreground">Gewollter Gewinn</Label>
-                    <p className="text-2xl font-bold text-green-600">{formatCurrency(25000)} / Jahr</p>
+                    <p className="text-2xl font-bold text-green-600">{formatCurrency(25000 / 12)} / Monat</p>
                   </div>
                 </div>
 
@@ -1679,9 +1719,9 @@ const FinanceModule = () => {
                   </div>
 
                   <div className="p-3 bg-gray-50 rounded-lg">
-                    <Label className="text-sm text-muted-foreground">Arbeitsstunden/Jahr:</Label>
-                    <p className="text-xl font-semibold">1848 Stunden</p>
-                    <Badge variant="secondary" className="mt-2">1201 Stunden</Badge>
+                    <Label className="text-sm text-muted-foreground">Arbeitsstunden/Monat:</Label>
+                    <p className="text-xl font-semibold">154 Stunden</p>
+                    <Badge variant="secondary" className="mt-2">100 Stunden (produktiv)</Badge>
                   </div>
                 </div>
 
