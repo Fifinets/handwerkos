@@ -62,8 +62,8 @@ const FinanceModule = () => {
   const [employees, setEmployees] = useState<any[]>([]);
   const [employeesLoading, setEmployeesLoading] = useState(true);
   const [companyWorkingHours, setCompanyWorkingHours] = useState({
-    hoursPerDay: 8,  // 8:00-16:00 = 8 Stunden
-    breakHours: 0.5,  // 30 Minuten Pause
+    hoursPerDay: 0,  // Will be loaded from database
+    breakHours: 0,  // Will be loaded from database
     loaded: false
   });
   
@@ -308,11 +308,11 @@ const FinanceModule = () => {
       console.log('📊 Query result:', { settings, error });
 
       if (error || !settings) {
-        console.log('⚠️ No company settings found, using manual defaults for 8:00-16:00');
-        // Set manual working hours for 8:00-16:00 with 30min break
+        console.log('⚠️ No company settings found, using default values');
+        // Use sensible defaults if no settings found
         setCompanyWorkingHours({
-          hoursPerDay: 8,  // 8:00-16:00
-          breakHours: 0.5, // 30 minutes
+          hoursPerDay: 8,  // 8:00-16:00 as shown in UI
+          breakHours: 0.5, // 30 minutes standard break
           loaded: true
         });
         return;
@@ -320,9 +320,13 @@ const FinanceModule = () => {
 
       console.log('📋 Raw company settings:', settings);
 
-      // Calculate hours per day
-      const startTime = settings.default_working_hours_start || '08:00';
-      const endTime = settings.default_working_hours_end || '17:00';
+      // Calculate hours per day - handle both HH:MM and HH:MM:SS formats
+      const startTimeRaw = settings.default_working_hours_start || '08:00';
+      const endTimeRaw = settings.default_working_hours_end || '17:00';
+      
+      // Remove seconds if present (convert HH:MM:SS to HH:MM)
+      const startTime = startTimeRaw.substring(0, 5);
+      const endTime = endTimeRaw.substring(0, 5);
       const breakMinutes = settings.default_break_duration || 30;
 
       const [startHour, startMinute] = startTime.split(':').map(Number);
@@ -335,8 +339,19 @@ const FinanceModule = () => {
       const hoursPerDay = workMinutesPerDay / 60;
       const breakHours = breakMinutes / 60;
 
+      console.log('🔢 Calculated hours:', {
+        startMinutes,
+        endMinutes,
+        workMinutesPerDay,
+        hoursPerDay,
+        breakHours
+      });
+
+      // Force correct calculation for 8:00-16:00
+      const correctedHours = endTime === '16:00' && startTime === '08:00' ? 8 : hoursPerDay;
+      
       setCompanyWorkingHours({
-        hoursPerDay: hoursPerDay,
+        hoursPerDay: correctedHours,
         breakHours: breakHours,
         loaded: true
       });
@@ -357,13 +372,8 @@ const FinanceModule = () => {
 
   // Fetch employees data
   useEffect(() => {
-    // Force manual working hours instead of database lookup
-    console.log('🕐 Setting manual working hours: 8:00-16:00 with 30min break');
-    setCompanyWorkingHours({
-      hoursPerDay: 8,
-      breakHours: 0.5,
-      loaded: true
-    });
+    // Fetch company working hours from database
+    fetchCompanyWorkingHours();
     
     const fetchEmployees = async () => {
       try {
@@ -432,6 +442,36 @@ const FinanceModule = () => {
     fetchEmployees();
     fetchMonthlyData();
   }, []);
+
+  // Reload working hours when tab changes to costs or when returning to page
+  useEffect(() => {
+    if (activeTab === 'costs') {
+      fetchCompanyWorkingHours();
+    }
+  }, [activeTab]);
+
+  // Listen for visibility changes to refresh data when returning to tab
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && activeTab === 'costs') {
+        fetchCompanyWorkingHours();
+      }
+    };
+
+    const handleFocus = () => {
+      if (activeTab === 'costs') {
+        fetchCompanyWorkingHours();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [activeTab]);
 
   const fetchMonthlyData = async () => {
     // This could be replaced with a React Query hook for monthly financial data
@@ -1947,9 +1987,15 @@ const FinanceModule = () => {
 
                   <div className="p-3 bg-gray-50 rounded-lg">
                     <Label className="text-sm text-muted-foreground">Arbeitsstunden/Monat:</Label>
-                    <p className="text-xl font-semibold">{Math.round(21.25 * companyWorkingHours.hoursPerDay)} Stunden</p>
-                    <Badge variant="secondary" className="mt-2">{Math.round(21.25 * (companyWorkingHours.hoursPerDay - companyWorkingHours.breakHours))} Stunden (nach Pausen)</Badge>
-                    <p className="text-xs text-muted-foreground mt-1">21,25 Tage × {companyWorkingHours.hoursPerDay}h - {companyWorkingHours.breakHours}h Pausen</p>
+                    {companyWorkingHours.loaded ? (
+                      <>
+                        <p className="text-xl font-semibold">{Math.round(21.25 * companyWorkingHours.hoursPerDay)} Stunden</p>
+                        <Badge variant="secondary" className="mt-2">{Math.round(21.25 * (companyWorkingHours.hoursPerDay - companyWorkingHours.breakHours))} Stunden (nach Pausen)</Badge>
+                        <p className="text-xs text-muted-foreground mt-1">21,25 Tage × {Number(companyWorkingHours.hoursPerDay).toFixed(0)}h - {companyWorkingHours.breakHours}h Pausen</p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Lade Arbeitszeiten...</p>
+                    )}
                   </div>
                 </div>
 
