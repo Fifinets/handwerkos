@@ -61,6 +61,11 @@ const FinanceModule = () => {
   // Employee data state - fetch manually since useEmployees hook doesn't exist
   const [employees, setEmployees] = useState<any[]>([]);
   const [employeesLoading, setEmployeesLoading] = useState(true);
+  const [companyWorkingHours, setCompanyWorkingHours] = useState({
+    hoursPerDay: 8,  // 8:00-16:00 = 8 Stunden
+    breakHours: 0.5,  // 30 Minuten Pause
+    loaded: false
+  });
   
   const createInvoiceMutation = useCreateInvoice();
   
@@ -68,6 +73,8 @@ const FinanceModule = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [monthlyData, setMonthlyData] = useState<MonthlyRevenue[]>([]);
   const [isEditing, setIsEditing] = useState(false);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategories, setEditingCategories] = useState<{[key: string]: typeof savedCategories[0]}>({});
   const [showNewCategoryForm, setShowNewCategoryForm] = useState(false);
   const [newCategory, setNewCategory] = useState({
     name: '',
@@ -100,6 +107,12 @@ const FinanceModule = () => {
       localStorage.setItem('handwerkos_custom_categories', JSON.stringify(savedCategories));
     }
   }, [savedCategories]);
+
+  // Debug useEffect for working hours
+  useEffect(() => {
+    console.log('🔄 Working hours state updated:', companyWorkingHours);
+  }, [companyWorkingHours]);
+
   const [editValues, setEditValues] = useState({
     miete: '1.000',
     nebenkosten: '300',
@@ -170,9 +183,10 @@ const FinanceModule = () => {
     // Calculate total monthly salaries from real employee data
     const totalMonthlySalaries = activeEmployees.reduce((total, employee) => {
       // Calculate monthly salary from hourly rate
-      // German standard: 40 hours/week * 52 weeks/year / 12 months = 173.33 hours/month
-      // But many work more, so using 176 hours (40h * 4.4 weeks average)
-      const hoursPerMonth = 176;
+      // Accurate calculation: 21.25 working days/month × company hours/day
+      // This accounts for weekends and holidays
+      const workingDaysPerMonth = 21.25;
+      const hoursPerMonth = workingDaysPerMonth * companyWorkingHours.hoursPerDay;
       
       // First try to get wage from localStorage, then fall back to database value
       const wageEntry = wagesData.find(w => w.employee_id === employee.id);
@@ -233,7 +247,11 @@ const FinanceModule = () => {
     const monthlyVariableCosts = 8000 / 12; // Monthly variable costs
     const monthlyDesiredProfit = 25000 / 12; // Monthly profit target
     const monthlyTotalAmount = monthlyFixedCosts + monthlyVariableCosts + monthlyDesiredProfit;
-    const workingHoursPerMonth = 154; // ~154 hours per month (1848h/year ÷ 12)
+    
+    // Accurate working hours: 21.25 days × productive hours (breaks are unpaid)
+    const workingDaysPerMonth = 21.25;
+    const productiveHoursPerDay = companyWorkingHours.hoursPerDay - companyWorkingHours.breakHours;
+    const workingHoursPerMonth = workingDaysPerMonth * productiveHoursPerDay; // Use productive hours (paid hours only)
     
     const minimumRate = monthlyTotalAmount / workingHoursPerMonth;
     const recommendedRate = minimumRate * 1.3; // 30% buffer as shown
@@ -265,8 +283,88 @@ const FinanceModule = () => {
   // Loading state
   const loading = invoicesLoading || expensesLoading || kpisLoading || employeesLoading;
 
+  // Fetch company working hours
+  const fetchCompanyWorkingHours = async () => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user?.user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.user.id)
+        .single();
+
+      if (!profile?.company_id) return;
+
+      console.log('🔍 Fetching settings for company_id:', profile.company_id);
+      
+      const { data: settings, error } = await supabase
+        .from('company_settings')
+        .select('default_working_hours_start, default_working_hours_end, default_break_duration, company_id')
+        .eq('company_id', profile.company_id)
+        .single();
+        
+      console.log('📊 Query result:', { settings, error });
+
+      if (error || !settings) {
+        console.log('⚠️ No company settings found, using manual defaults for 8:00-16:00');
+        // Set manual working hours for 8:00-16:00 with 30min break
+        setCompanyWorkingHours({
+          hoursPerDay: 8,  // 8:00-16:00
+          breakHours: 0.5, // 30 minutes
+          loaded: true
+        });
+        return;
+      }
+
+      console.log('📋 Raw company settings:', settings);
+
+      // Calculate hours per day
+      const startTime = settings.default_working_hours_start || '08:00';
+      const endTime = settings.default_working_hours_end || '17:00';
+      const breakMinutes = settings.default_break_duration || 30;
+
+      const [startHour, startMinute] = startTime.split(':').map(Number);
+      const [endHour, endMinute] = endTime.split(':').map(Number);
+
+      const startMinutes = startHour * 60 + startMinute;
+      const endMinutes = endHour * 60 + endMinute;
+      
+      const workMinutesPerDay = (endMinutes - startMinutes);
+      const hoursPerDay = workMinutesPerDay / 60;
+      const breakHours = breakMinutes / 60;
+
+      setCompanyWorkingHours({
+        hoursPerDay: hoursPerDay,
+        breakHours: breakHours,
+        loaded: true
+      });
+
+      console.log('🕐 Company working hours loaded:', {
+        startTime,
+        endTime,
+        breakMinutes,
+        hoursPerDay,
+        breakHours,
+        productiveHours: hoursPerDay - breakHours
+      });
+
+    } catch (error) {
+      console.error('Error fetching company working hours:', error);
+    }
+  };
+
   // Fetch employees data
   useEffect(() => {
+    // Force manual working hours instead of database lookup
+    console.log('🕐 Setting manual working hours: 8:00-16:00 with 30min break');
+    setCompanyWorkingHours({
+      hoursPerDay: 8,
+      breakHours: 0.5,
+      loaded: true
+    });
+    
     const fetchEmployees = async () => {
       try {
         setEmployeesLoading(true);
@@ -1502,29 +1600,132 @@ const FinanceModule = () => {
                     </Card>
 
                     {/* Render Saved Categories */}
-                    {savedCategories.map((category) => (
-                      <Card key={category.id}>
-                        <CardHeader className="pb-3">
-                          <CardTitle className="flex items-center gap-2 text-base">
-                            <span className="text-xl">{category.icon}</span>
-                            {category.name}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-2">
-                          {category.items.map((item, index) => (
-                            <div key={index} className="flex items-center justify-between">
-                              <span className="text-sm text-muted-foreground">{item.name}</span>
-                              <span className="text-sm font-medium">{item.value} €</span>
+                    {savedCategories.map((category) => {
+                      const isEditingThisCategory = isEditing || editingCategoryId === category.id;
+                      const editingData = editingCategories[category.id] || category;
+                      
+                      return (
+                        <Card key={category.id}>
+                          <CardHeader className="pb-3">
+                            <CardTitle className="flex items-center justify-between text-base">
+                              <div className="flex items-center gap-2">
+                                {isEditingThisCategory ? (
+                                  <>
+                                    <Input
+                                      type="text"
+                                      value={editingData.icon}
+                                      onChange={(e) => setEditingCategories({
+                                        ...editingCategories,
+                                        [category.id]: {...editingData, icon: e.target.value}
+                                      })}
+                                      className="w-12 h-8 text-center text-xl p-0"
+                                    />
+                                    <Input
+                                      type="text"
+                                      value={editingData.name}
+                                      onChange={(e) => setEditingCategories({
+                                        ...editingCategories,
+                                        [category.id]: {...editingData, name: e.target.value}
+                                      })}
+                                      className="h-8 text-base font-semibold"
+                                    />
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="text-xl">{category.icon}</span>
+                                    <span>{category.name}</span>
+                                  </>
+                                )}
+                              </div>
+                              {!isEditing && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setSavedCategories(prev => prev.filter(c => c.id !== category.id));
+                                  }}
+                                  className="h-7 w-7 p-0 text-red-500 hover:text-red-700"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-2">
+                            {isEditingThisCategory ? (
+                              <>
+                                {editingData.items.map((item, index) => (
+                                  <div key={index} className="flex items-center gap-2">
+                                    <Input
+                                      type="text"
+                                      value={item.name}
+                                      onChange={(e) => {
+                                        const updatedItems = [...editingData.items];
+                                        updatedItems[index].name = e.target.value;
+                                        setEditingCategories({
+                                          ...editingCategories,
+                                          [category.id]: {...editingData, items: updatedItems}
+                                        });
+                                      }}
+                                      className="flex-1 h-7 text-sm"
+                                    />
+                                    <Input
+                                      type="text"
+                                      value={item.value}
+                                      onChange={(e) => {
+                                        const updatedItems = [...editingData.items];
+                                        updatedItems[index].value = e.target.value;
+                                        setEditingCategories({
+                                          ...editingCategories,
+                                          [category.id]: {...editingData, items: updatedItems}
+                                        });
+                                      }}
+                                      className="w-20 h-7 text-right text-sm"
+                                    />
+                                    <span className="text-sm">€</span>
+                                  </div>
+                                ))}
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full h-7 mt-2"
+                                  onClick={() => {
+                                    const updatedItems = [...editingData.items, {name: '', value: '0'}];
+                                    setEditingCategories({
+                                      ...editingCategories,
+                                      [category.id]: {...editingData, items: updatedItems}
+                                    });
+                                  }}
+                                >
+                                  <Plus className="h-3 w-3 mr-1" />
+                                  Zeile hinzufügen
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                {category.items.map((item, index) => (
+                                  <div key={index} className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">{item.name}</span>
+                                    <span className="text-sm font-medium">{item.value} €</span>
+                                  </div>
+                                ))}
+                              </>
+                            )}
+                            <hr className="my-2" />
+                            <div className="flex justify-between items-center font-medium">
+                              <span>Gesamt</span>
+                              <span>
+                                {formatCurrency(
+                                  isEditingThisCategory 
+                                    ? calculateCategoryTotal(editingData.items)
+                                    : category.total
+                                )}
+                              </span>
                             </div>
-                          ))}
-                          <hr className="my-2" />
-                          <div className="flex justify-between items-center font-medium">
-                            <span>Gesamt</span>
-                            <span>{formatCurrency(category.total)}</span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
 
                     {/* Add New Category Card */}
                     {showNewCategoryForm ? (
@@ -1644,14 +1845,32 @@ const FinanceModule = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => setIsEditing(false)}
+                        onClick={() => {
+                          setIsEditing(false);
+                          setEditingCategoryId(null);
+                          setEditingCategories({});
+                        }}
                       >
                         <X className="h-4 w-4" />
                       </Button>
                       <Button 
                         size="sm"
                         onClick={() => {
+                          // Save all custom categories
+                          Object.keys(editingCategories).forEach(categoryId => {
+                            const editingData = editingCategories[categoryId];
+                            const updatedCategory = {
+                              ...editingData,
+                              total: calculateCategoryTotal(editingData.items)
+                            };
+                            setSavedCategories(prev => 
+                              prev.map(c => c.id === categoryId ? updatedCategory : c)
+                            );
+                          });
+                          
                           setIsEditing(false);
+                          setEditingCategoryId(null);
+                          setEditingCategories({});
                           toast({
                             title: "Kosten aktualisiert",
                             description: "Die Betriebskosten wurden erfolgreich gespeichert."
@@ -1665,7 +1884,15 @@ const FinanceModule = () => {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => setIsEditing(true)}
+                      onClick={() => {
+                        setIsEditing(true);
+                        // Initialize editing data for all saved categories
+                        const editData = {};
+                        savedCategories.forEach(cat => {
+                          editData[cat.id] = cat;
+                        });
+                        setEditingCategories(editData);
+                      }}
                     >
                       <Edit2 className="h-4 w-4" />
                     </Button>
@@ -1720,8 +1947,9 @@ const FinanceModule = () => {
 
                   <div className="p-3 bg-gray-50 rounded-lg">
                     <Label className="text-sm text-muted-foreground">Arbeitsstunden/Monat:</Label>
-                    <p className="text-xl font-semibold">154 Stunden</p>
-                    <Badge variant="secondary" className="mt-2">100 Stunden (produktiv)</Badge>
+                    <p className="text-xl font-semibold">{Math.round(21.25 * companyWorkingHours.hoursPerDay)} Stunden</p>
+                    <Badge variant="secondary" className="mt-2">{Math.round(21.25 * (companyWorkingHours.hoursPerDay - companyWorkingHours.breakHours))} Stunden (nach Pausen)</Badge>
+                    <p className="text-xs text-muted-foreground mt-1">21,25 Tage × {companyWorkingHours.hoursPerDay}h - {companyWorkingHours.breakHours}h Pausen</p>
                   </div>
                 </div>
 
