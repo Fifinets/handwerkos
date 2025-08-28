@@ -286,16 +286,26 @@ const FinanceModule = () => {
   // Fetch company working hours
   const fetchCompanyWorkingHours = async () => {
     try {
+      console.log('⏰ Starting to fetch company working hours...', new Date().toISOString());
+      
       const { data: user } = await supabase.auth.getUser();
-      if (!user?.user) return;
+      if (!user?.user) {
+        console.log('❌ No authenticated user');
+        return;
+      }
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('company_id')
         .eq('id', user.user.id)
         .single();
 
-      if (!profile?.company_id) return;
+      console.log('👤 Profile query result:', { profile, profileError });
+
+      if (!profile?.company_id) {
+        console.log('❌ No company_id found in profile');
+        return;
+      }
 
       console.log('🔍 Fetching settings for company_id:', profile.company_id);
       
@@ -308,10 +318,42 @@ const FinanceModule = () => {
       console.log('📊 Query result:', { settings, error });
 
       if (error || !settings) {
-        console.log('⚠️ No company settings found, using default values');
-        // Use sensible defaults if no settings found
+        console.log('⚠️ No company settings found, checking if we need to create them');
+        
+        // Try to create default settings for this company
+        const { data: newSettings, error: createError } = await supabase
+          .from('company_settings')
+          .insert({
+            company_id: profile.company_id,
+            company_name: 'Meine Firma',
+            default_working_hours_start: '08:00:00',
+            default_working_hours_end: '17:00:00',
+            default_break_duration: 30,
+            default_tax_rate: 19.00,
+            default_currency: 'EUR',
+            quote_validity_days: 30,
+            invoice_prefix: 'R',
+            quote_prefix: 'Q',
+            order_prefix: 'A'
+          })
+          .select()
+          .single();
+          
+        if (createError) {
+          console.log('⚠️ Could not create settings, using default values. Error:', createError);
+          // Use sensible defaults if no settings found
+          setCompanyWorkingHours({
+            hoursPerDay: 8,  // 8:00-16:00 as shown in UI
+            breakHours: 0.5, // 30 minutes standard break
+            loaded: true
+          });
+          return;
+        }
+        
+        console.log('✅ Created default company settings:', newSettings);
+        // Use the newly created settings
         setCompanyWorkingHours({
-          hoursPerDay: 8,  // 8:00-16:00 as shown in UI
+          hoursPerDay: 9,  // 8:00-17:00 = 9 hours
           breakHours: 0.5, // 30 minutes standard break
           loaded: true
         });
@@ -347,11 +389,9 @@ const FinanceModule = () => {
         breakHours
       });
 
-      // Force correct calculation for 8:00-16:00
-      const correctedHours = endTime === '16:00' && startTime === '08:00' ? 8 : hoursPerDay;
-      
+      // Use the actual calculated hours without any hardcoded corrections
       setCompanyWorkingHours({
-        hoursPerDay: correctedHours,
+        hoursPerDay: hoursPerDay,
         breakHours: breakHours,
         loaded: true
       });
@@ -366,13 +406,20 @@ const FinanceModule = () => {
       });
 
     } catch (error) {
-      console.error('Error fetching company working hours:', error);
+      console.error('❌ ERROR fetching company working hours:', error);
+      // Set default values on error
+      console.log('⚠️ Using fallback values due to error');
+      setCompanyWorkingHours({
+        hoursPerDay: 8,
+        breakHours: 0.5,
+        loaded: true
+      });
     }
   };
 
   // Fetch employees data
   useEffect(() => {
-    // Fetch company working hours from database
+    // Fetch company working hours from database - always load fresh data on mount
     fetchCompanyWorkingHours();
     
     const fetchEmployees = async () => {
@@ -443,23 +490,37 @@ const FinanceModule = () => {
     fetchMonthlyData();
   }, []);
 
-  // Reload working hours when tab changes to costs or when returning to page
+  // Reload working hours when tab changes to fixkosten or when returning to page
   useEffect(() => {
-    if (activeTab === 'costs') {
+    console.log('🎯 Tab changed to:', activeTab);
+    if (activeTab === 'fixkosten') {
+      console.log('📍 Tab is fixkosten, fetching working hours...');
+      // Load immediately when switching to fixkosten tab
       fetchCompanyWorkingHours();
+      
+      // Set up interval to refresh every 5 seconds while on fixkosten tab
+      const interval = setInterval(() => {
+        console.log('🔄 Refreshing working hours (interval)...');
+        fetchCompanyWorkingHours();
+      }, 5000);
+      
+      return () => {
+        console.log('🛑 Clearing interval for working hours refresh');
+        clearInterval(interval);
+      };
     }
   }, [activeTab]);
 
   // Listen for visibility changes to refresh data when returning to tab
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && activeTab === 'costs') {
+      if (document.visibilityState === 'visible' && activeTab === 'fixkosten') {
         fetchCompanyWorkingHours();
       }
     };
 
     const handleFocus = () => {
-      if (activeTab === 'costs') {
+      if (activeTab === 'fixkosten') {
         fetchCompanyWorkingHours();
       }
     };
@@ -1991,7 +2052,7 @@ const FinanceModule = () => {
                       <>
                         <p className="text-xl font-semibold">{Math.round(21.25 * companyWorkingHours.hoursPerDay)} Stunden</p>
                         <Badge variant="secondary" className="mt-2">{Math.round(21.25 * (companyWorkingHours.hoursPerDay - companyWorkingHours.breakHours))} Stunden (nach Pausen)</Badge>
-                        <p className="text-xs text-muted-foreground mt-1">21,25 Tage × {Number(companyWorkingHours.hoursPerDay).toFixed(0)}h - {companyWorkingHours.breakHours}h Pausen</p>
+                        <p className="text-xs text-muted-foreground mt-1">21,25 Tage × {Number(companyWorkingHours.hoursPerDay).toFixed(1)}h - {Number(companyWorkingHours.breakHours * 60).toFixed(0)} Min. Pausen</p>
                       </>
                     ) : (
                       <p className="text-sm text-muted-foreground">Lade Arbeitszeiten...</p>
