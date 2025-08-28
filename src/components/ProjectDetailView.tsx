@@ -569,19 +569,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
               </div>
               <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <p className="text-sm text-gray-600">Budget</p>
-                  <p className="text-3xl font-bold text-green-600">{formatCurrency(project.stats.total_project_cost)}</p>
-                </div>
-                <div className="flex gap-2">
-                  {permissions.can_edit_basic_data && (
-                    <Button variant="outline" size="sm">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Bearbeiten
-                    </Button>
-                  )}
-                  <Button variant="outline" size="sm" onClick={onClose}>
-                    Schließen
-                  </Button>
+                  <p className="text-sm text-gray-600">Budget / Genutzt</p>
+                  <p className="text-3xl font-bold text-green-600">{formatCurrency(project.budget || 0)} / {formatCurrency(project.stats.total_project_cost || 0)}</p>
                 </div>
               </div>
             </div>
@@ -736,16 +725,19 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {project.team_members.map(member => (
-                      <div key={member.id} className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{member.name}</p>
-                          <p className="text-sm text-gray-600">{member.role}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium">{member.hours_this_week}h</p>
-                          <p className="text-xs text-gray-500">diese Woche</p>
-                        </div>
-                      </div>
+                      <Card key={member.id} className="shadow-soft rounded-2xl overflow-hidden">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium">{member.name}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-medium">{member.hours_this_week}h</p>
+                              <p className="text-xs text-gray-500">diese Woche</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
                     ))}
                   </CardContent>
                 </Card>

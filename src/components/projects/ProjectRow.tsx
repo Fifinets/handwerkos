@@ -65,11 +65,6 @@ export default function ProjectRow(p: Props) {
         </div>
       )}
 
-      <div className="flex gap-2 pt-1">
-        <Button variant="outline" size="sm" onClick={p.onOpen} className="rounded-xl shadow-softer">🔎 Öffnen</Button>
-        <Button variant="outline" size="sm" className="rounded-xl shadow-softer">⏱️ Zeit</Button>
-        <Button variant="outline" size="sm" className="rounded-xl shadow-softer">📎 Dateien</Button>
-      </div>
     </div>
   );
 }
