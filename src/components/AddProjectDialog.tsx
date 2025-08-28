@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
+import { useCreateProject } from "@/hooks/useApi";
 
 interface Customer {
   id: string;
@@ -56,6 +57,7 @@ interface AddProjectDialogProps {
 
 const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMembers }: AddProjectDialogProps) => {
   const { toast } = useToast();
+  const createProject = useCreateProject();
   
   // Debug logging
   console.log('AddProjectDialog - customers:', customers);
@@ -66,7 +68,7 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
     location: '',
     budget: '',
     team: [] as string[],
-    status: 'Planung'
+    status: 'geplant'
   });
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
@@ -153,7 +155,7 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
       location: '',
       budget: '',
       team: [],
-      status: 'Planung'
+      status: 'geplant'
     });
     setDateRange(undefined);
 
@@ -330,11 +332,11 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Anfrage">Anfrage</SelectItem>
-                <SelectItem value="Besichtigung">Besichtigung</SelectItem>
-                <SelectItem value="Planung">Planung</SelectItem>
-                <SelectItem value="In Bearbeitung">In Bearbeitung</SelectItem>
-                <SelectItem value="Abgeschlossen">Abgeschlossen</SelectItem>
+                <SelectItem value="anfrage">Anfrage</SelectItem>
+                <SelectItem value="besichtigung">Besichtigung</SelectItem>
+                <SelectItem value="geplant">Planung</SelectItem>
+                <SelectItem value="in_bearbeitung">In Bearbeitung</SelectItem>
+                <SelectItem value="abgeschlossen">Abgeschlossen</SelectItem>
               </SelectContent>
             </Select>
           </div>
