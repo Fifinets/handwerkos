@@ -34,6 +34,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { OCRUploadZone } from './OCRUploadZone';
 import { OCRInvoiceValidator } from './OCRInvoiceValidator';
 import { OCRResult } from '@/services/ocrService';
+import { SupplierInvoiceList } from './SupplierInvoiceList';
 // TODO: Re-enable when DocumentTemplateManager is implemented
 // import DocumentTemplateManager from './documents/DocumentTemplateManager';
 
@@ -325,99 +326,112 @@ export function DocumentModule() {
         </TabsContent>
 
         <TabsContent value="invoices" className="space-y-4">
-          {isLoading ? (
-            <div className="space-y-4">
-              {Array(3).fill(0).map((_, i) => (
-                <Card key={i} className="shadow-soft rounded-2xl">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <Skeleton className="h-5 w-32" />
-                          <Skeleton className="h-6 w-20" />
+          <Tabs defaultValue="customer" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="customer">Kundenrechnungen ({invoices.length})</TabsTrigger>
+              <TabsTrigger value="supplier">Lieferantenrechnungen</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="customer" className="space-y-4">
+              {isLoading ? (
+                <div className="space-y-4">
+                  {Array(3).fill(0).map((_, i) => (
+                    <Card key={i} className="shadow-soft rounded-2xl">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <Skeleton className="h-5 w-32" />
+                              <Skeleton className="h-6 w-20" />
+                            </div>
+                            <Skeleton className="h-4 w-48 mb-2" />
+                            <Skeleton className="h-4 w-24" />
+                          </div>
+                          <div className="text-right">
+                            <Skeleton className="h-6 w-20 mb-2" />
+                            <div className="flex gap-2">
+                              <Skeleton className="h-8 w-16" />
+                              <Skeleton className="h-8 w-16" />
+                            </div>
+                          </div>
                         </div>
-                        <Skeleton className="h-4 w-48 mb-2" />
-                        <Skeleton className="h-4 w-24" />
-                      </div>
-                      <div className="text-right">
-                        <Skeleton className="h-6 w-20 mb-2" />
-                        <div className="flex gap-2">
-                          <Skeleton className="h-8 w-16" />
-                          <Skeleton className="h-8 w-16" />
-                        </div>
-                      </div>
-                    </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : filteredInvoices.length === 0 ? (
+                <Card>
+                  <CardContent className="py-8 text-center">
+                    <Receipt className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Keine Kundenrechnungen gefunden</h3>
+                    <p className="text-muted-foreground mb-4">
+                      {searchTerm ? 'Keine Kundenrechnungen entsprechen Ihren Suchkriterien.' : 'Erstellen Sie Ihre erste Kundenrechnung.'}
+                    </p>
+                    <Button onClick={() => setShowAddInvoice(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Kundenrechnung erstellen
+                    </Button>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-          ) : filteredInvoices.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center">
-                <Receipt className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Keine Rechnungen gefunden</h3>
-                <p className="text-muted-foreground mb-4">
-                  {searchTerm ? 'Keine Rechnungen entsprechen Ihren Suchkriterien.' : 'Erstellen Sie Ihre erste Rechnung.'}
-                </p>
-                <Button onClick={() => setShowAddInvoice(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Rechnung erstellen
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4">
-              {filteredInvoices.map((invoice) => (
-                <Card key={invoice.id} className="hover:shadow-lg transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold">{invoice.invoice_number}</h3>
-                          <Badge variant={getStatusBadgeVariant(invoice.status)}>
-                            {invoice.status}
-                          </Badge>
+              ) : (
+                <div className="grid gap-4">
+                  {filteredInvoices.map((invoice) => (
+                    <Card key={invoice.id} className="hover:shadow-lg transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="font-semibold">{invoice.invoice_number}</h3>
+                              <Badge variant={getStatusBadgeVariant(invoice.status)}>
+                                {invoice.status}
+                              </Badge>
+                            </div>
+                            <h4 className="text-lg font-medium mb-1">{invoice.title}</h4>
+                            <p className="text-sm text-muted-foreground mb-2">
+                              {invoice.customer.company_name} • {invoice.customer.contact_person}
+                            </p>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <span>Erstellt: {formatDate(invoice.invoice_date)}</span>
+                              <span>Fällig: {formatDate(invoice.due_date)}</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xl font-bold mb-2">
+                              {formatCurrency(invoice.total_amount, invoice.currency)}
+                            </div>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="sm" title="Ansehen">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" title="Bearbeiten">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost" 
+                                size="sm" 
+                                title="Per E-Mail versenden"
+                                onClick={() => handleSendEmail('invoice', invoice.id, invoice)}
+                                disabled={false}
+                              >
+                                <Mail className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" title="Herunterladen">
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                        <h4 className="text-lg font-medium mb-1">{invoice.title}</h4>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {invoice.customer.company_name} • {invoice.customer.contact_person}
-                        </p>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>Erstellt: {formatDate(invoice.invoice_date)}</span>
-                          <span>Fällig: {formatDate(invoice.due_date)}</span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xl font-bold mb-2">
-                          {formatCurrency(invoice.total_amount, invoice.currency)}
-                        </div>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="sm" title="Ansehen">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" title="Bearbeiten">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost" 
-                            size="sm" 
-                            title="Per E-Mail versenden"
-                            onClick={() => handleSendEmail('invoice', invoice.id, invoice)}
-                            disabled={false}
-                          >
-                            <Mail className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" title="Herunterladen">
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="supplier" className="space-y-4">
+              <SupplierInvoiceList />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         <TabsContent value="ocr" className="space-y-4">
