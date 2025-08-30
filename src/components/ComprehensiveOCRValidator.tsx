@@ -51,6 +51,7 @@ export function ComprehensiveOCRValidator({
   const [showRawText, setShowRawText] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
 
   useEffect(() => {
     setValidatedData(ocrResult.structured_data);
@@ -61,30 +62,47 @@ export function ComprehensiveOCRValidator({
     }
   }, [ocrResult]);
 
-  const handleValidate = () => {
-    // Validiere Pflichtfelder
-    const errors = [];
-    if (!validatedData.invoiceNumber) errors.push('Rechnungsnummer fehlt');
-    if (!validatedData.invoiceDate) errors.push('Rechnungsdatum fehlt');
-    if (!validatedData.supplierName) errors.push('Lieferantenname fehlt');
-    if (!validatedData.totalAmount || validatedData.totalAmount <= 0) errors.push('Gesamtbetrag fehlt');
-    if (!validatedData.serviceDescription) errors.push('Leistungsbeschreibung fehlt');
+  const handleValidate = async () => {
+    if (isValidating) return;
+    
+    setIsValidating(true);
+    
+    try {
+      // Validiere Pflichtfelder
+      const errors = [];
+      if (!validatedData.invoiceNumber) errors.push('Rechnungsnummer fehlt');
+      if (!validatedData.invoiceDate) errors.push('Rechnungsdatum fehlt');
+      if (!validatedData.supplierName) errors.push('Lieferantenname fehlt');
+      if (!validatedData.totalAmount || validatedData.totalAmount <= 0) errors.push('Gesamtbetrag fehlt');
+      if (!validatedData.serviceDescription) errors.push('Leistungsbeschreibung fehlt');
 
-    if (errors.length > 0) {
+      if (errors.length > 0) {
+        toast({
+          title: 'Validierungsfehler',
+          description: `Pflichtfelder fehlen: ${errors.join(', ')}`,
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Simuliere kurze Verarbeitung
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      toast({
+        title: 'Rechnung validiert',
+        description: 'Die Rechnungsdaten wurden erfolgreich validiert.',
+      });
+      
+      onValidated?.(validatedData);
+    } catch (error) {
       toast({
         title: 'Validierungsfehler',
-        description: `Pflichtfelder fehlen: ${errors.join(', ')}`,
+        description: 'Ein Fehler ist bei der Validierung aufgetreten.',
         variant: 'destructive'
       });
-      return;
+    } finally {
+      setIsValidating(false);
     }
-
-    toast({
-      title: 'Rechnung validiert',
-      description: 'Die Rechnungsdaten wurden erfolgreich validiert.',
-    });
-    
-    onValidated?.(validatedData);
   };
 
   const handleInputChange = (field: keyof InvoiceData, value: any) => {
@@ -725,11 +743,11 @@ export function ComprehensiveOCRValidator({
                 
                 <Button 
                   onClick={handleValidate}
-                  disabled={validateMutation.isPending}
+                  disabled={isValidating}
                   className="px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   size="sm"
                 >
-                  {validateMutation.isPending ? (
+                  {isValidating ? (
                     <>
                       <div className="animate-spin h-3.5 w-3.5 mr-1.5 border-2 border-white border-t-transparent rounded-full"></div>
                       Verarbeitung...
