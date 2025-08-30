@@ -125,6 +125,109 @@ export function ComprehensiveOCRValidator({
     }));
   };
 
+  // Auto-calculation handlers for amounts
+  const handleAmountChange = (field: 'netAmount' | 'vatAmount' | 'totalAmount', value: number) => {
+    const roundTo2 = (num: number) => Math.round(num * 100) / 100;
+    
+    setValidatedData(prev => {
+      const newData = { ...prev };
+      const net = field === 'netAmount' ? value : (prev.netAmount || 0);
+      const vat = field === 'vatAmount' ? value : (prev.vatAmount || 0);
+      const total = field === 'totalAmount' ? value : (prev.totalAmount || 0);
+
+      if (field === 'netAmount') {
+        newData.netAmount = value;
+        // If VAT amount exists, recalculate total
+        if (vat > 0) {
+          newData.totalAmount = roundTo2(value + vat);
+        }
+      } else if (field === 'vatAmount') {
+        newData.vatAmount = value;
+        // If net amount exists, recalculate total
+        if (net > 0) {
+          newData.totalAmount = roundTo2(net + value);
+        }
+      } else if (field === 'totalAmount') {
+        newData.totalAmount = value;
+        // If net amount exists, calculate VAT
+        if (net > 0) {
+          newData.vatAmount = roundTo2(value - net);
+        } else if (vat > 0) {
+          // If VAT exists, calculate net
+          newData.netAmount = roundTo2(value - vat);
+        }
+      }
+
+      return newData;
+    });
+  };
+
+  // Tax rates management
+  const addTaxRate = (rate: number = 19) => {
+    setValidatedData(prev => ({
+      ...prev,
+      taxRates: [...(prev.taxRates || []), rate],
+      netAmounts: { ...(prev.netAmounts || {}), [rate.toString()]: 0 },
+      taxAmounts: { ...(prev.taxAmounts || {}), [rate.toString()]: 0 }
+    }));
+  };
+
+  const removeTaxRate = (index: number) => {
+    setValidatedData(prev => {
+      const newTaxRates = [...(prev.taxRates || [])];
+      const removedRate = newTaxRates[index];
+      newTaxRates.splice(index, 1);
+      
+      const newNetAmounts = { ...(prev.netAmounts || {}) };
+      const newTaxAmounts = { ...(prev.taxAmounts || {}) };
+      
+      delete newNetAmounts[removedRate.toString()];
+      delete newTaxAmounts[removedRate.toString()];
+      
+      return {
+        ...prev,
+        taxRates: newTaxRates,
+        netAmounts: newNetAmounts,
+        taxAmounts: newTaxAmounts
+      };
+    });
+  };
+
+  const updateTaxRate = (index: number, field: 'rate' | 'netAmount' | 'taxAmount', value: number) => {
+    setValidatedData(prev => {
+      const newTaxRates = [...(prev.taxRates || [])];
+      const newNetAmounts = { ...(prev.netAmounts || {}) };
+      const newTaxAmounts = { ...(prev.taxAmounts || {}) };
+      
+      const oldRate = newTaxRates[index];
+      
+      if (field === 'rate') {
+        // Update rate
+        newTaxRates[index] = value;
+        
+        // Move amounts to new rate key
+        if (oldRate !== value) {
+          newNetAmounts[value.toString()] = newNetAmounts[oldRate.toString()] || 0;
+          newTaxAmounts[value.toString()] = newTaxAmounts[oldRate.toString()] || 0;
+          
+          delete newNetAmounts[oldRate.toString()];
+          delete newTaxAmounts[oldRate.toString()];
+        }
+      } else if (field === 'netAmount') {
+        newNetAmounts[oldRate.toString()] = Math.round(value * 100) / 100;
+      } else if (field === 'taxAmount') {
+        newTaxAmounts[oldRate.toString()] = Math.round(value * 100) / 100;
+      }
+      
+      return {
+        ...prev,
+        taxRates: newTaxRates,
+        netAmounts: newNetAmounts,
+        taxAmounts: newTaxAmounts
+      };
+    });
+  };
+
   const getConfidenceColor = (score: number) => {
     if (score >= 0.8) return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
     if (score >= 0.6) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
@@ -446,8 +549,8 @@ export function ComprehensiveOCRValidator({
                         id="totalAmount"
                         type="number"
                         step="0.01"
-                        value={validatedData.totalAmount || ''}
-                        onChange={(e) => handleInputChange('totalAmount', parseFloat(e.target.value) || 0)}
+                        value={validatedData.totalAmount ? validatedData.totalAmount.toFixed(2) : ''}
+                        onChange={(e) => handleAmountChange('totalAmount', parseFloat(e.target.value) || 0)}
                         className={!validatedData.totalAmount ? 'border-red-500' : ''}
                       />
                     </div>
@@ -460,8 +563,8 @@ export function ComprehensiveOCRValidator({
                         id="netAmount"
                         type="number"
                         step="0.01"
-                        value={validatedData.netAmount || ''}
-                        onChange={(e) => handleInputChange('netAmount', parseFloat(e.target.value) || 0)}
+                        value={validatedData.netAmount ? validatedData.netAmount.toFixed(2) : ''}
+                        onChange={(e) => handleAmountChange('netAmount', parseFloat(e.target.value) || 0)}
                       />
                     </div>
 
@@ -473,30 +576,86 @@ export function ComprehensiveOCRValidator({
                         id="vatAmount"
                         type="number"
                         step="0.01"
-                        value={validatedData.vatAmount || ''}
-                        onChange={(e) => handleInputChange('vatAmount', parseFloat(e.target.value) || 0)}
+                        value={validatedData.vatAmount ? validatedData.vatAmount.toFixed(2) : ''}
+                        onChange={(e) => handleAmountChange('vatAmount', parseFloat(e.target.value) || 0)}
                       />
                     </div>
                   </div>
 
-                  {/* MwSt-Sätze */}
-                  {validatedData.taxRates && validatedData.taxRates.length > 0 && (
-                    <div className="space-y-2">
-                      <Label>Erkannte MwSt-Sätze</Label>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {validatedData.taxRates.map((rate, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 border rounded">
-                            <span>{rate}% MwSt</span>
-                            <div className="text-sm text-gray-500">
-                              Netto: {formatCurrency(validatedData.netAmounts?.[rate.toString()] || 0)} 
-                              {' • '}
-                              Steuer: {formatCurrency(validatedData.taxAmounts?.[rate.toString()] || 0)}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                  {/* Steuer-Sätze Tabelle */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label>Steuer-Sätze</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addTaxRate(19)}
+                        className="h-8"
+                      >
+                        + Steuer hinzufügen
+                      </Button>
                     </div>
-                  )}
+                    
+                    <div className="border rounded-lg">
+                      <div className="grid grid-cols-4 gap-2 p-3 bg-gray-50 dark:bg-gray-800 font-medium text-sm">
+                        <div>Satz (%)</div>
+                        <div>Nettobasis (€)</div>
+                        <div>Steuerbetrag (€)</div>
+                        <div className="text-right">Aktionen</div>
+                      </div>
+                      
+                      {(validatedData.taxRates || []).map((rate, index) => (
+                        <div key={index} className="grid grid-cols-4 gap-2 p-3 border-t">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={rate}
+                            onChange={(e) => updateTaxRate(index, 'rate', parseFloat(e.target.value) || 0)}
+                            className="h-8"
+                          />
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={validatedData.netAmounts?.[rate.toString()]?.toFixed(2) || ''}
+                            onChange={(e) => updateTaxRate(index, 'netAmount', parseFloat(e.target.value) || 0)}
+                            className="h-8"
+                          />
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={validatedData.taxAmounts?.[rate.toString()]?.toFixed(2) || ''}
+                            onChange={(e) => updateTaxRate(index, 'taxAmount', parseFloat(e.target.value) || 0)}
+                            className="h-8"
+                          />
+                          <div className="text-right">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeTaxRate(index)}
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {(!validatedData.taxRates || validatedData.taxRates.length === 0) && (
+                        <div className="p-4 text-center text-gray-500 text-sm">
+                          Keine Steuersätze erfasst. Klicken Sie auf "+ Steuer hinzufügen" um zu beginnen.
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Summe der Steuern */}
+                    <div className="flex justify-end text-sm text-gray-600">
+                      Summe MwSt: {formatCurrency(
+                        Object.values(validatedData.taxAmounts || {}).reduce((sum, amount) => sum + amount, 0)
+                      )}
+                    </div>
+                  </div>
 
                   {/* Spezielle Steuerhinweise */}
                   <div className="space-y-3">
