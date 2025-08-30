@@ -228,6 +228,63 @@ export function ComprehensiveOCRValidator({
     });
   };
 
+  // Positions management
+  const addPosition = () => {
+    setValidatedData(prev => ({
+      ...prev,
+      positions: [
+        ...(prev.positions || []),
+        {
+          position: (prev.positions?.length || 0) + 1,
+          description: '',
+          quantity: 1,
+          unit: 'Stk',
+          unitPrice: 0,
+          totalPrice: 0,
+          vatRate: 19
+        }
+      ]
+    }));
+  };
+
+  const removePosition = (index: number) => {
+    setValidatedData(prev => {
+      const newPositions = [...(prev.positions || [])];
+      newPositions.splice(index, 1);
+      
+      // Renumber positions
+      newPositions.forEach((pos, i) => {
+        pos.position = i + 1;
+      });
+      
+      return {
+        ...prev,
+        positions: newPositions
+      };
+    });
+  };
+
+  const updatePosition = (index: number, field: keyof InvoicePosition, value: any) => {
+    setValidatedData(prev => {
+      const newPositions = [...(prev.positions || [])];
+      const position = { ...newPositions[index] };
+      
+      position[field] = value;
+      
+      // Auto-calculate total price when quantity or unitPrice changes
+      if (field === 'quantity' || field === 'unitPrice') {
+        position.totalPrice = Math.round(position.quantity * position.unitPrice * 100) / 100;
+      }
+      
+      newPositions[index] = position;
+      
+      return {
+        ...prev,
+        positions: newPositions
+      };
+    });
+  };
+
   const getConfidenceColor = (score: number) => {
     if (score >= 0.8) return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
     if (score >= 0.6) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
@@ -329,10 +386,11 @@ export function ComprehensiveOCRValidator({
             <CardContent className="p-0">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <div className="p-6 pb-0">
-                  <TabsList className="grid w-full grid-cols-5">
+                  <TabsList className="grid w-full grid-cols-6">
                     <TabsTrigger value="basic">Basis</TabsTrigger>
                     <TabsTrigger value="supplier">Lieferant</TabsTrigger>
                     <TabsTrigger value="amounts">Beträge</TabsTrigger>
+                    <TabsTrigger value="positions">Positionen</TabsTrigger>
                     <TabsTrigger value="references">Referenzen</TabsTrigger>
                     <TabsTrigger value="additional">Erweitert</TabsTrigger>
                   </TabsList>
@@ -694,6 +752,130 @@ export function ComprehensiveOCRValidator({
                         </Label>
                       </div>
                     </div>
+                  </div>
+                </TabsContent>
+
+                {/* Positionen */}
+                <TabsContent value="positions" className="p-6 space-y-4">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-base font-semibold">Rechnungspositionen</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addPosition()}
+                        className="h-8"
+                      >
+                        + Position hinzufügen
+                      </Button>
+                    </div>
+
+                    <div className="border rounded-lg">
+                      <div className="grid grid-cols-7 gap-2 p-3 bg-gray-50 dark:bg-gray-800 font-medium text-sm">
+                        <div>Pos.</div>
+                        <div>Beschreibung</div>
+                        <div>Menge</div>
+                        <div>Einheit</div>
+                        <div>EP (€)</div>
+                        <div>MwSt %</div>
+                        <div className="text-right">Aktionen</div>
+                      </div>
+
+                      {(validatedData.positions || []).map((position, index) => (
+                        <div key={index} className="grid grid-cols-7 gap-2 p-3 border-t">
+                          <Input
+                            type="number"
+                            value={position.position || index + 1}
+                            onChange={(e) => updatePosition(index, 'position', parseInt(e.target.value) || index + 1)}
+                            className="h-8"
+                          />
+                          <Input
+                            type="text"
+                            value={position.description}
+                            onChange={(e) => updatePosition(index, 'description', e.target.value)}
+                            className="h-8"
+                            placeholder="Beschreibung..."
+                          />
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={position.quantity}
+                            onChange={(e) => updatePosition(index, 'quantity', parseFloat(e.target.value) || 0)}
+                            className="h-8"
+                          />
+                          <Input
+                            type="text"
+                            value={position.unit || 'Stk'}
+                            onChange={(e) => updatePosition(index, 'unit', e.target.value)}
+                            className="h-8"
+                          />
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={position.unitPrice?.toFixed(2) || ''}
+                            onChange={(e) => updatePosition(index, 'unitPrice', parseFloat(e.target.value) || 0)}
+                            className="h-8"
+                          />
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={position.vatRate || 19}
+                            onChange={(e) => updatePosition(index, 'vatRate', parseFloat(e.target.value) || 19)}
+                            className="h-8"
+                          />
+                          <div className="text-right">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removePosition(index)}
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {(!validatedData.positions || validatedData.positions.length === 0) && (
+                        <div className="p-4 text-center text-gray-500 text-sm">
+                          Keine Positionen erfasst. Klicken Sie auf "+ Position hinzufügen" um zu beginnen.
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Positions Summary */}
+                    {validatedData.positions && validatedData.positions.length > 0 && (
+                      <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-2">
+                        <div className="font-medium">Positionssummen:</div>
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div>
+                            Netto gesamt: {formatCurrency(
+                              validatedData.positions.reduce((sum, pos) => sum + (pos.quantity * pos.unitPrice), 0)
+                            )}
+                          </div>
+                          <div>
+                            MwSt gesamt: {formatCurrency(
+                              validatedData.positions.reduce((sum, pos) => {
+                                const net = pos.quantity * pos.unitPrice;
+                                const vatRate = (pos.vatRate || 19) / 100;
+                                return sum + (net * vatRate);
+                              }, 0)
+                            )}
+                          </div>
+                          <div className="font-medium">
+                            Brutto gesamt: {formatCurrency(
+                              validatedData.positions.reduce((sum, pos) => {
+                                const net = pos.quantity * pos.unitPrice;
+                                const vatRate = (pos.vatRate || 19) / 100;
+                                return sum + net + (net * vatRate);
+                              }, 0)
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
 
