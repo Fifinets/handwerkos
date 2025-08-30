@@ -52,6 +52,7 @@ export function ComprehensiveOCRValidator({
   const [activeTab, setActiveTab] = useState('basic');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   useEffect(() => {
     setValidatedData(ocrResult.structured_data);
@@ -61,6 +62,18 @@ export function ComprehensiveOCRValidator({
       setImageUrl(ocrResult.original_file_path);
     }
   }, [ocrResult]);
+
+  // ESC key handler for modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isImageModalOpen) {
+        setIsImageModalOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isImageModalOpen]);
 
   const handleValidate = async () => {
     if (isValidating) return;
@@ -175,7 +188,7 @@ export function ComprehensiveOCRValidator({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => window.open(imageUrl, '_blank')}
+                    onClick={() => setIsImageModalOpen(true)}
                   >
                     <Eye className="h-4 w-4 mr-2" />
                     Vollbild
@@ -194,7 +207,7 @@ export function ComprehensiveOCRValidator({
                       objectFit: 'contain',
                       backgroundColor: '#f8f9fa'
                     }}
-                    onClick={() => window.open(imageUrl, '_blank')}
+                    onClick={() => setIsImageModalOpen(true)}
                     title="Klicken für Vollbildansicht"
                   />
                   {/* Zoom-Hinweis */}
@@ -758,6 +771,33 @@ export function ComprehensiveOCRValidator({
             </pre>
           </CardContent>
         </Card>
+      )}
+
+      {/* Image Modal / Lightbox */}
+      {isImageModalOpen && imageUrl && (
+        <div 
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setIsImageModalOpen(false)}
+        >
+          <div className="relative max-w-7xl max-h-full w-full h-full flex items-center justify-center">
+            {/* Close Button */}
+            <button
+              onClick={() => setIsImageModalOpen(false)}
+              className="absolute top-4 right-4 z-10 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
+              title="Schließen (ESC)"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            
+            {/* Image */}
+            <img
+              src={imageUrl}
+              alt="Vergrößerte Rechnung"
+              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
