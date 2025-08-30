@@ -313,6 +313,98 @@ export function ComprehensiveOCRValidator({
     });
   };
 
+  // Validation functions
+  const validateVatId = (vatId: string): boolean => {
+    if (!vatId) return true; // Optional field
+    
+    // German VAT ID format: DE + 9 digits
+    const germanVatPattern = /^DE\d{9}$/;
+    
+    // EU VAT ID patterns (basic validation)
+    const euVatPatterns = {
+      AT: /^AT[UB]\d{8}$/,
+      BE: /^BE[01]\d{9}$/,
+      BG: /^BG\d{9,10}$/,
+      CY: /^CY\d{8}[A-Z]$/,
+      CZ: /^CZ\d{8,10}$/,
+      DE: /^DE\d{9}$/,
+      DK: /^DK\d{8}$/,
+      EE: /^EE\d{9}$/,
+      EL: /^EL\d{9}$/,
+      ES: /^ES[A-Z]\d{7}[A-Z]|\d{8}[A-Z]$/,
+      FI: /^FI\d{8}$/,
+      FR: /^FR[A-Z0-9]{2}\d{9}$/,
+      GB: /^GB\d{9}|\d{12}|(GD|HA)\d{3}$/,
+      HR: /^HR\d{11}$/,
+      HU: /^HU\d{8}$/,
+      IE: /^IE\d[A-Z0-9]\d{5}[A-Z]$/,
+      IT: /^IT\d{11}$/,
+      LT: /^LT\d{9}|\d{12}$/,
+      LU: /^LU\d{8}$/,
+      LV: /^LV\d{11}$/,
+      MT: /^MT\d{8}$/,
+      NL: /^NL\d{9}B\d{2}$/,
+      PL: /^PL\d{10}$/,
+      PT: /^PT\d{9}$/,
+      RO: /^RO\d{2,10}$/,
+      SE: /^SE\d{12}$/,
+      SI: /^SI\d{8}$/,
+      SK: /^SK\d{10}$/
+    };
+    
+    const countryCode = vatId.substring(0, 2).toUpperCase();
+    const pattern = euVatPatterns[countryCode as keyof typeof euVatPatterns];
+    
+    return pattern ? pattern.test(vatId.toUpperCase()) : false;
+  };
+
+  const validateIban = (iban: string): boolean => {
+    if (!iban) return true; // Optional field
+    
+    // Remove spaces and convert to uppercase
+    const cleanIban = iban.replace(/\s/g, '').toUpperCase();
+    
+    // Check length (15-34 characters)
+    if (cleanIban.length < 15 || cleanIban.length > 34) return false;
+    
+    // Check country code (first 2 characters must be letters)
+    if (!/^[A-Z]{2}/.test(cleanIban)) return false;
+    
+    // Check check digits (characters 3-4 must be digits)
+    if (!/^\d{2}/.test(cleanIban.substring(2, 4))) return false;
+    
+    // Basic IBAN checksum validation (mod-97)
+    const reorderedIban = cleanIban.substring(4) + cleanIban.substring(0, 4);
+    let numericString = '';
+    
+    for (let i = 0; i < reorderedIban.length; i++) {
+      const char = reorderedIban[i];
+      if (char >= 'A' && char <= 'Z') {
+        numericString += (char.charCodeAt(0) - 55).toString();
+      } else {
+        numericString += char;
+      }
+    }
+    
+    // Perform mod-97 validation
+    let remainder = 0;
+    for (let i = 0; i < numericString.length; i++) {
+      remainder = (remainder * 10 + parseInt(numericString[i])) % 97;
+    }
+    
+    return remainder === 1;
+  };
+
+  const getValidationMessage = (field: string, value: string) => {
+    if (field === 'supplierVatId' && value && !validateVatId(value)) {
+      return 'Ungültige USt-IdNr. Format (z.B. DE123456789 für Deutschland)';
+    }
+    if (field === 'supplierIban' && value && !validateIban(value)) {
+      return 'Ungültige IBAN. Prüfen Sie Format und Prüfziffer.';
+    }
+    return null;
+  };
+
   const getConfidenceColor = (score: number) => {
     if (score >= 0.8) return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
     if (score >= 0.6) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
@@ -557,7 +649,17 @@ export function ComprehensiveOCRValidator({
                         value={validatedData.supplierVatId || ''}
                         onChange={(e) => handleInputChange('supplierVatId', e.target.value)}
                         placeholder="DE123456789"
+                        className={
+                          validatedData.supplierVatId && !validateVatId(validatedData.supplierVatId) 
+                            ? 'border-red-500' 
+                            : ''
+                        }
                       />
+                      {validatedData.supplierVatId && !validateVatId(validatedData.supplierVatId) && (
+                        <p className="text-sm text-red-600">
+                          {getValidationMessage('supplierVatId', validatedData.supplierVatId)}
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-2">
@@ -606,7 +708,17 @@ export function ComprehensiveOCRValidator({
                         value={validatedData.supplierIban || ''}
                         onChange={(e) => handleInputChange('supplierIban', e.target.value)}
                         placeholder="DE89 3704 0044 0532 0130 00"
+                        className={
+                          validatedData.supplierIban && !validateIban(validatedData.supplierIban) 
+                            ? 'border-red-500' 
+                            : ''
+                        }
                       />
+                      {validatedData.supplierIban && !validateIban(validatedData.supplierIban) && (
+                        <p className="text-sm text-red-600">
+                          {getValidationMessage('supplierIban', validatedData.supplierIban)}
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-2">
