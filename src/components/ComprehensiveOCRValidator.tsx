@@ -151,9 +151,6 @@ export function ComprehensiveOCRValidator({
             </div>
             
             <div className="flex gap-2">
-              <Badge variant="outline" className={getConfidenceColor(ocrResult.confidence_scores?.overall || 0)}>
-                {Math.round((ocrResult.confidence_scores?.overall || 0) * 100)}% Vertrauen
-              </Badge>
               <Button
                 variant="outline"
                 size="sm"
@@ -726,7 +723,7 @@ export function ComprehensiveOCRValidator({
                 <Button 
                   onClick={handleValidate}
                   disabled={isValidating}
-                  className="px-8 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  className="px-8 py-2 bg-green-600 hover:bg-green-700 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isValidating ? (
                     <>
