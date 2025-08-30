@@ -36,6 +36,7 @@ export function SupplierInvoiceList() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedInvoice, setSelectedInvoice] = useState<SupplierInvoice | null>(null);
 
   useEffect(() => {
     loadInvoices();
@@ -223,7 +224,7 @@ export function SupplierInvoiceList() {
       ) : (
         <div className="grid gap-4">
           {filteredInvoices.map((invoice) => (
-            <Card key={invoice.id} className="hover:shadow-md transition-shadow">
+            <Card key={invoice.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedInvoice(invoice)}>
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="space-y-3 flex-1">
@@ -339,6 +340,155 @@ export function SupplierInvoiceList() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Invoice Detail Modal */}
+      {selectedInvoice && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setSelectedInvoice(null)}>
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <Receipt className="h-6 w-6" />
+                Rechnungsdetails
+              </h2>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setSelectedInvoice(null)}
+                className="hover:bg-gray-100"
+              >
+                <XCircle className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Header Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Rechnungsinformationen</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Rechnungsnummer:</span>
+                      <span className="font-medium">{selectedInvoice.invoice_number}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Lieferant:</span>
+                      <span className="font-medium">{selectedInvoice.supplier_name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Rechnungsdatum:</span>
+                      <span>{formatDate(selectedInvoice.invoice_date)}</span>
+                    </div>
+                    {selectedInvoice.due_date && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Fälligkeitsdatum:</span>
+                        <span>{formatDate(selectedInvoice.due_date)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Status:</span>
+                      {getStatusBadge(selectedInvoice.status)}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Beträge</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Gesamtbetrag:</span>
+                      <span className="font-bold text-lg text-primary">{formatCurrency(selectedInvoice.total_amount)}</span>
+                    </div>
+                    {selectedInvoice.vat_amount && selectedInvoice.vat_amount > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">MwSt-Betrag:</span>
+                        <span>{formatCurrency(selectedInvoice.vat_amount)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              {selectedInvoice.description && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Beschreibung</h3>
+                  <p className="text-sm text-muted-foreground bg-gray-50 p-3 rounded-lg">
+                    {selectedInvoice.description}
+                  </p>
+                </div>
+              )}
+
+              {/* IBAN */}
+              {selectedInvoice.iban && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Zahlungsinformationen</h3>
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">IBAN: </span>
+                    <span className="font-mono bg-gray-50 px-2 py-1 rounded">{selectedInvoice.iban}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* OCR Info */}
+              {selectedInvoice.ocr_result_id && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-blue-800">
+                    <FileCheck className="h-4 w-4" />
+                    <span className="text-sm font-medium">Diese Rechnung wurde über OCR erfasst</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t">
+                {selectedInvoice.status === 'pending' && (
+                  <>
+                    <Button
+                      onClick={() => {
+                        updateInvoiceStatus(selectedInvoice.id, 'approved');
+                        setSelectedInvoice(null);
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Genehmigen
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        updateInvoiceStatus(selectedInvoice.id, 'cancelled');
+                        setSelectedInvoice(null);
+                      }}
+                      className="border-red-600 text-red-600 hover:bg-red-50"
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Stornieren
+                    </Button>
+                  </>
+                )}
+                {selectedInvoice.status === 'approved' && (
+                  <Button
+                    onClick={() => {
+                      updateInvoiceStatus(selectedInvoice.id, 'paid');
+                      setSelectedInvoice(null);
+                    }}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Als bezahlt markieren
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedInvoice(null)}
+                >
+                  Schließen
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
