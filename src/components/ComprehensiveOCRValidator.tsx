@@ -419,6 +419,26 @@ export function ComprehensiveOCRValidator({
     });
   };
 
+  // Format number for input fields (no rounding, preserve precision)
+  const formatInputAmount = (amount: number | undefined): string => {
+    if (amount === undefined || amount === null || amount === 0) return '';
+    
+    // Convert to string without any rounding
+    const str = amount.toString();
+    
+    // Handle decimal places - preserve original precision, max 6 decimals for display
+    const parts = str.split('.');
+    if (parts.length === 1) {
+      return str; // No decimals
+    } else {
+      const decimals = parts[1].substring(0, 6); // Limit display to 6 decimals
+      // Remove trailing zeros but keep at least 2 decimals for currency
+      const trimmed = decimals.replace(/0+$/, '');
+      const finalDecimals = trimmed.length < 2 ? trimmed.padEnd(2, '0') : trimmed;
+      return `${parts[0]}.${finalDecimals}`;
+    }
+  };
+
   const extractedFieldsCount = Object.entries(validatedData).filter(([key, value]) => 
     value !== undefined && value !== '' && value !== 0 && 
     !(Array.isArray(value) && value.length === 0) &&
@@ -747,7 +767,7 @@ export function ComprehensiveOCRValidator({
                         id="totalAmount"
                         type="number"
                         step="0.01"
-                        value={validatedData.totalAmount ? validatedData.totalAmount.toFixed(2) : ''}
+                        value={formatInputAmount(validatedData.totalAmount)}
                         onChange={(e) => handleAmountChange('totalAmount', parseFloat(e.target.value) || 0)}
                         className={!validatedData.totalAmount ? 'border-red-500' : ''}
                       />
@@ -761,7 +781,7 @@ export function ComprehensiveOCRValidator({
                         id="netAmount"
                         type="number"
                         step="0.01"
-                        value={validatedData.netAmount ? validatedData.netAmount.toFixed(2) : ''}
+                        value={formatInputAmount(validatedData.netAmount)}
                         onChange={(e) => handleAmountChange('netAmount', parseFloat(e.target.value) || 0)}
                       />
                     </div>
@@ -774,7 +794,7 @@ export function ComprehensiveOCRValidator({
                         id="vatAmount"
                         type="number"
                         step="0.01"
-                        value={validatedData.vatAmount ? validatedData.vatAmount.toFixed(2) : ''}
+                        value={formatInputAmount(validatedData.vatAmount)}
                         onChange={(e) => handleAmountChange('vatAmount', parseFloat(e.target.value) || 0)}
                       />
                     </div>
@@ -815,14 +835,14 @@ export function ComprehensiveOCRValidator({
                           <Input
                             type="number"
                             step="0.01"
-                            value={validatedData.netAmounts?.[rate.toString()]?.toFixed(2) || ''}
+                            value={formatInputAmount(validatedData.netAmounts?.[rate.toString()])}
                             onChange={(e) => updateTaxRate(index, 'netAmount', parseFloat(e.target.value) || 0)}
                             className="h-8"
                           />
                           <Input
                             type="number"
                             step="0.01"
-                            value={validatedData.taxAmounts?.[rate.toString()]?.toFixed(2) || ''}
+                            value={formatInputAmount(validatedData.taxAmounts?.[rate.toString()])}
                             onChange={(e) => updateTaxRate(index, 'taxAmount', parseFloat(e.target.value) || 0)}
                             className="h-8"
                           />
@@ -953,7 +973,7 @@ export function ComprehensiveOCRValidator({
                           <Input
                             type="number"
                             step="0.01"
-                            value={position.unitPrice?.toFixed(2) || ''}
+                            value={formatInputAmount(position.unitPrice)}
                             onChange={(e) => updatePosition(index, 'unitPrice', parseFloat(e.target.value) || 0)}
                             className="h-8"
                           />
