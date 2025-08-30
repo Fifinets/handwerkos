@@ -285,6 +285,34 @@ export function ComprehensiveOCRValidator({
     });
   };
 
+  // Payment terms handler with due date auto-calculation
+  const handlePaymentTermsChange = (paymentTerms: string) => {
+    setValidatedData(prev => {
+      const newData = { ...prev, paymentTerms };
+      
+      // Parse payment terms and suggest due date
+      const invoiceDate = prev.invoiceDate;
+      if (invoiceDate && paymentTerms) {
+        const baseDate = new Date(invoiceDate);
+        let daysToAdd = 30; // Default 30 days
+        
+        // Parse common German payment terms
+        const dayMatch = paymentTerms.match(/(\d+)\s*tage?/i);
+        if (dayMatch) {
+          daysToAdd = parseInt(dayMatch[1]);
+        }
+        
+        // Calculate due date
+        const dueDate = new Date(baseDate);
+        dueDate.setDate(dueDate.getDate() + daysToAdd);
+        
+        newData.dueDate = dueDate.toISOString().split('T')[0];
+      }
+      
+      return newData;
+    });
+  };
+
   const getConfidenceColor = (score: number) => {
     if (score >= 0.8) return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
     if (score >= 0.6) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
@@ -881,6 +909,51 @@ export function ComprehensiveOCRValidator({
 
                 {/* Referenzen */}
                 <TabsContent value="references" className="p-6 space-y-4">
+                  {/* Zahlungsbedingungen */}
+                  <div className="space-y-3">
+                    <Label className="text-base font-semibold">Zahlungsbedingungen</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="paymentTerms">
+                          Zahlungsziel (z.B. "14 Tage, 2% Skonto")
+                        </Label>
+                        <Input
+                          id="paymentTerms"
+                          value={validatedData.paymentTerms || ''}
+                          onChange={(e) => handlePaymentTermsChange(e.target.value)}
+                          placeholder="z.B. 14 Tage netto"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="dueDate">
+                          Fälligkeitsdatum *
+                        </Label>
+                        <Input
+                          id="dueDate"
+                          type="date"
+                          value={validatedData.dueDate || ''}
+                          onChange={(e) => handleInputChange('dueDate', e.target.value)}
+                          className={!validatedData.dueDate ? 'border-yellow-500' : ''}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="paymentReference">
+                          Zahlungsreferenz/Verwendungszweck
+                        </Label>
+                        <Input
+                          id="paymentReference"
+                          value={validatedData.paymentReference || ''}
+                          onChange={(e) => handleInputChange('paymentReference', e.target.value)}
+                          placeholder="Verwendungszweck..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="orderNumber">
