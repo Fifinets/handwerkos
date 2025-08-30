@@ -33,6 +33,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { OCRUploadZone } from './OCRUploadZone';
 import { OCRInvoiceValidator } from './OCRInvoiceValidator';
+import { ComprehensiveOCRValidator } from './ComprehensiveOCRValidator';
 import { OCRResult } from '@/services/ocrService';
 import { SupplierInvoiceList } from './SupplierInvoiceList';
 // TODO: Re-enable when DocumentTemplateManager is implemented
@@ -436,14 +437,16 @@ export function DocumentModule() {
 
         <TabsContent value="ocr" className="space-y-4">
           {activeOCRResult ? (
-            <OCRInvoiceValidator
+            <ComprehensiveOCRValidator
               ocrResult={activeOCRResult}
-              onValidated={() => {
+              onValidated={(validatedData) => {
                 setActiveOCRResult(null);
                 toast({
-                  title: 'Rechnung erstellt',
-                  description: 'Die Rechnung wurde erfolgreich aus OCR-Daten erstellt.',
+                  title: 'Rechnung validiert',
+                  description: 'Die Rechnungsdaten wurden erfolgreich validiert und können übernommen werden.',
                 });
+                // Hier können Sie die validierten Daten weiterverarbeiten
+                console.log('Validated invoice data:', validatedData);
               }}
               onRejected={() => {
                 setActiveOCRResult(null);

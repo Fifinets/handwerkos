@@ -4,6 +4,7 @@ import { apiCall, createQuery, getCurrentUserProfile, ApiError, API_ERROR_CODES 
 import { AuditLogService } from './auditLogService';
 import { eventBus } from './eventBus';
 import { extractInvoiceWithAI, isOpenAIConfigured } from './openaiService';
+import { EnhancedInvoiceExtractor } from './enhancedInvoiceExtractor';
 
 export interface InvoicePosition {
   position?: number;
@@ -17,46 +18,83 @@ export interface InvoicePosition {
 }
 
 export interface InvoiceData {
-  // Rechnungskopf
-  invoiceNumber: string;
-  date: string; // Legacy - für Kompatibilität
-  invoiceDate?: string;
-  deliveryDate?: string;
+  // === MUSS-FELDER ===
   
-  // Lieferant
-  supplierName: string;
-  supplierAddress?: string;
-  supplierTaxNumber?: string;
-  supplierVatId?: string;
-  
-  // Empfänger
-  customerName?: string;
-  customerNumber?: string;
-  customerAddress?: string;
-  
-  // Positionen
+  // Beleg/Allgemein
+  invoiceNumber: string;                    // Rechnungsnummer (eindeutig)
+  invoiceDate: string;                     // Ausstellungsdatum (Rechnungsdatum)
+  serviceDate?: string;                    // Leistungs-/Lieferdatum
+  servicePeriodStart?: string;             // Leistungszeitraum Start
+  servicePeriodEnd?: string;               // Leistungszeitraum Ende
+  currency: string;                        // Währung (meist "EUR")
+
+  // Aussteller (Lieferant) - MUSS
+  supplierName: string;                    // Name/Firma
+  supplierAddress: string;                 // Vollständige Anschrift
+  supplierVatId?: string;                  // USt-IdNr.
+  supplierTaxNumber?: string;              // Steuernummer
+  supplierIban?: string;                   // Bankverbindung IBAN
+  supplierBic?: string;                    // BIC (optional)
+
+  // Empfänger (eigenes Unternehmen) - MUSS
+  customerName?: string;                   // Name/Firma
+  customerAddress?: string;                // Anschrift
+
+  // Summen/Steuern - MUSS
+  netAmounts: {[taxRate: string]: number}; // Nettobetrag je Steuersatz
+  taxRates: number[];                      // Steuersatz(e) (19%, 7%, 0%)
+  taxAmounts: {[taxRate: string]: number}; // Steuerbetrag je Steuersatz
+  totalAmount: number;                     // Bruttobetrag gesamt
+
+  // Zahlung - MUSS
+  dueDate?: string;                        // Zahlungsziel/Fälligkeit
+  paymentReference?: string;               // Zahlungsreferenz/Verwendungszweck
+
+  // Bezug/Leistung - MUSS
+  serviceDescription: string;              // Kurzbeschreibung der Leistung/Lieferung
+
+  // === SOLLTE-FELDER ===
+
+  // Erweiterte Lieferantendaten
+  supplierEmail?: string;
+  supplierPhone?: string;
+  supplierAdditionalIbans?: string[];      // Weitere IBANs
+  supplierPaymentTermsDefault?: string;    // Standard-Zahlungsbedingungen
+
+  // Detaillierte Positionsdaten
   positions?: InvoicePosition[];
-  
-  // Beträge
-  netAmount?: number;
-  vatRate?: number;
-  vatAmount?: number;
-  totalAmount: number;
-  
-  // Zahlung
-  dueDate?: string;
-  paymentTerms?: string;
+
+  // Erweiterte Steuerinfos
+  hasReverseCharge?: boolean;              // Reverse-Charge-Hinweis
+  isIntraCommunitySupply?: boolean;        // Innergemeinschaftliche Lieferung
+  isExport?: boolean;                      // Ausfuhr
+
+  // Referenzen & Kontext
+  orderNumber?: string;                    // Bestell-/Auftragsnummer
+  projectReference?: string;               // Projekt-Referenz
+  deliveryNoteNumber?: string;             // Lieferscheinnummer
+  contactPerson?: string;                  // Ansprechpartner
+  serviceLocation?: string;                // Liefer-/Leistungsort
+
+  // Zahlungsabgleich
+  paymentStatus?: 'unpaid' | 'partly_paid' | 'paid' | 'overdue';
+  paymentEntries?: Array<{
+    date: string;
+    amount: number;
+    reference?: string;
+    bankTransactionId?: string;
+  }>;
+
+  // Legacy-Felder für Kompatibilität
+  date?: string;                           // Legacy - wird zu invoiceDate
+  netAmount?: number;                      // Legacy - wird zu Summe der netAmounts
+  vatRate?: number;                        // Legacy - wird zu taxRates[0]
+  vatAmount?: number;                      // Legacy - wird zu Summe der taxAmounts
+  paymentTerms?: string;                   // Legacy - wird zu paymentReference
   discountTerms?: string;
-  iban?: string;
-  bic?: string;
-  
-  // Referenzen
-  orderNumber?: string;
-  deliveryNoteNumber?: string;
-  projectNumber?: string;
-  
-  // Sonstiges
-  description?: string;
+  iban?: string;                          // Legacy - wird zu supplierIban
+  bic?: string;                           // Legacy - wird zu supplierBic
+  description?: string;                   // Legacy - wird zu serviceDescription
   notes?: string;
 }
 
@@ -195,37 +233,33 @@ export class OCRService {
           confidenceScores = this.calculateConfidenceScores(cleanedText, structuredData);
         }
       } else {
-        console.log('OpenAI nicht konfiguriert, verwende Regex-Extraktion');
-        // 3. Strukturierte Daten extrahieren mit Regex aus bereinigtem Text
-        structuredData = this.extractInvoiceData(cleanedText);
+        console.log('OpenAI nicht konfiguriert, verwende erweiterte Regex-Extraktion');
+        // 3. Strukturierte Daten extrahieren mit erweitertem Extraktor
+        structuredData = EnhancedInvoiceExtractor.extractInvoiceData(cleanedText);
         confidenceScores = this.calculateConfidenceScores(cleanedText, structuredData);
       }
 
-      // 4. OCR Ergebnis in Datenbank speichern
-      if (!currentUser?.id) {
-        throw new ApiError(
-          'User nicht authentifiziert',
-          API_ERROR_CODES.UNAUTHORIZED,
-          'OCR requires authenticated user'
-        );
-      }
-
-      const ocrData = {
+      // 4. OCR Ergebnis lokal erstellen (Fallback ohne Datenbank)
+      const result: OCRResult = {
+        id: `ocr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         original_file_path: uploadPath,
         extracted_text: extractedText,
         structured_data: structuredData,
         confidence_scores: confidenceScores,
         status: 'pending' as const,
-        created_by: currentUser.id,
+        created_at: new Date().toISOString(),
+        created_by: currentUser?.id || 'unknown'
       };
 
-      const query = supabase
-        .from('ocr_results')
-        .insert(ocrData)
-        .select()
-        .single();
-
-      const result = await createQuery<OCRResult>(query).executeSingle();
+      // Speichere temporär im localStorage für Demo-Zwecke
+      try {
+        const existingResults = JSON.parse(localStorage.getItem('ocr_results') || '[]');
+        existingResults.push(result);
+        localStorage.setItem('ocr_results', JSON.stringify(existingResults));
+        console.log('OCR result saved locally:', result.id);
+      } catch (storageError) {
+        console.warn('LocalStorage failed, continuing without storage:', storageError);
+      }
 
       // 5. Audit Log (temporär deaktiviert zum Debuggen)
       console.log('OCR result created successfully:', result.id);
@@ -340,29 +374,28 @@ export class OCRService {
     status?: 'pending' | 'validated' | 'rejected'
   ): Promise<OCRResult[]> {
     return apiCall(async () => {
-      const currentUser = await getCurrentUserProfile();
-      
-      let query = supabase
-        .from('ocr_results')
-        .select('*')
-        .eq('created_by', currentUser.id)
-        .order('created_at', { ascending: false });
-
-      if (status) {
-        query = query.eq('status', status);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        throw new ApiError(
-          'OCR-Ergebnisse konnten nicht geladen werden',
-          API_ERROR_CODES.SERVER_ERROR,
-          error.message
+      try {
+        // Lese aus localStorage (Fallback ohne Datenbank)
+        const storedResults = JSON.parse(localStorage.getItem('ocr_results') || '[]') as OCRResult[];
+        
+        let filteredResults = storedResults;
+        
+        // Filtere nach Status falls angegeben
+        if (status) {
+          filteredResults = storedResults.filter(result => result.status === status);
+        }
+        
+        // Sortiere nach Erstellungsdatum (neueste zuerst)
+        filteredResults.sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
+        
+        console.log(`Retrieved ${filteredResults.length} OCR results from localStorage`);
+        return filteredResults;
+      } catch (error) {
+        console.warn('Failed to read from localStorage, returning empty array:', error);
+        return [];
       }
-
-      return data || [];
     }, 'Get OCR results');
   }
 
