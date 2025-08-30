@@ -19,7 +19,8 @@ import {
   Edit,
   Plus,
   Download,
-  MessageSquare
+  MessageSquare,
+  X
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -208,7 +209,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         start_date: projectData.start_date || new Date().toISOString().split('T')[0],
         planned_end_date: projectData.end_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         status: ((projectData.status as ProjectStatus) ?? 'geplant') as ProjectStatus,
-        project_address: projectData.location || 'Nicht angegeben',
+        project_address: projectData.address || projectData.location || projectData.project_address || customerData?.address || 'Nicht angegeben',
         project_description: projectData.description || 'Keine Beschreibung',
         linked_invoices: [],
         linked_offers: [],
@@ -411,15 +412,77 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       // Get all employees from the company who are not already in the project
       const { data: employees } = await supabase
         .from('employees')
-        .select('id, first_name, last_name, email, position')
+        .select('id, first_name, last_name, email, position, status')
         .eq('company_id', profile.company_id)
         .eq('status', 'active');
 
       // Filter out employees who are already in the project
-      const currentTeamIds = project?.assigned_team || [];
-      const available = employees?.filter(emp => !currentTeamIds.includes(emp.id)) || [];
+      const currentTeamIds = project?.team_members?.map(tm => tm.id) || [];
+      let availableWithStatus = [];
       
-      setAvailableEmployees(available);
+      const today = new Date().toISOString().split('T')[0];
+      
+      for (const emp of employees || []) {
+        // Skip if already in this project
+        if (currentTeamIds.includes(emp.id)) continue;
+        
+        // Check if employee is on vacation or sick
+        const { data: vacationData } = await supabase
+          .from('vacation_requests')
+          .select('*')
+          .eq('employee_id', emp.id)
+          .in('status', ['approved', 'pending'])
+          .lte('start_date', today)
+          .gte('end_date', today);
+          
+        if (vacationData && vacationData.length > 0) {
+          // Employee is on vacation or sick
+          availableWithStatus.push({
+            ...emp,
+            availability_status: 'unavailable',
+            reason: vacationData[0].request_type === 'vacation' ? 'Im Urlaub' : 'Krankgemeldet'
+          });
+          continue;
+        }
+        
+        // Check if employee is in other projects with overlapping dates
+        const { data: otherProjects } = await supabase
+          .from('project_team_members')
+          .select('project_id, projects!inner(start_date, end_date, name, status)')
+          .eq('employee_id', emp.id)
+          .neq('project_id', projectId)
+          .in('projects.status', ['in_bearbeitung', 'geplant']);
+          
+        // Check for date overlaps with current project
+        const hasConflict = otherProjects?.some(op => {
+          const otherStart = op.projects.start_date;
+          const otherEnd = op.projects.end_date;
+          const currentStart = project?.start_date;
+          const currentEnd = project?.end_date;
+          
+          // If dates are missing, assume no conflict
+          if (!otherStart || !otherEnd || !currentStart || !currentEnd) return false;
+          
+          // Check if dates overlap
+          return (otherStart <= currentEnd && otherEnd >= currentStart);
+        });
+        
+        if (hasConflict) {
+          availableWithStatus.push({
+            ...emp,
+            availability_status: 'busy',
+            reason: `In ${otherProjects?.length} anderen Projekten`
+          });
+        } else {
+          availableWithStatus.push({
+            ...emp,
+            availability_status: 'available',
+            reason: 'Verfügbar'
+          });
+        }
+      }
+      
+      setAvailableEmployees(availableWithStatus);
     } catch (error) {
       console.error('Error loading available employees:', error);
     }
@@ -427,7 +490,30 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
 
   const handleAddTeamMember = async (employeeId: string) => {
     try {
-      // Add team member to project_team_members table
+      // Find the employee details from available employees
+      const employee = availableEmployees.find(emp => emp.id === employeeId);
+      if (!employee) return;
+
+      // Optimistic update - add to UI immediately
+      const newTeamMember = {
+        id: employeeId,
+        name: `${employee.first_name} ${employee.last_name}`.trim(),
+        role: employee.position || 'team_member',
+        email: employee.email,
+        hours_this_week: 0
+      };
+
+      // Update project state optimistically
+      setProject(prev => prev ? {
+        ...prev,
+        team_members: [...(prev.team_members || []), newTeamMember]
+      } : null);
+
+      // Remove from available employees
+      setAvailableEmployees(prev => prev.filter(emp => emp.id !== employeeId));
+      setIsAddTeamMemberOpen(false);
+
+      // Add team member to database in background
       const { error } = await supabase
         .from('project_team_members')
         .insert({
@@ -437,7 +523,14 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         });
 
       if (error) {
+        // Rollback on error
         console.error('Error adding team member:', error);
+        setProject(prev => prev ? {
+          ...prev,
+          team_members: prev.team_members.filter(tm => tm.id !== employeeId)
+        } : null);
+        setAvailableEmployees(prev => [...prev, employee]);
+        
         toast({
           title: "Fehler",
           description: "Team-Mitglied konnte nicht hinzugefügt werden",
@@ -450,14 +543,59 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         title: "Erfolg",
         description: "Team-Mitglied wurde erfolgreich hinzugefügt"
       });
-
-      // Refresh project data to show new team member
-      await fetchProjectData();
-      setIsAddTeamMemberOpen(false);
     } catch (error) {
       console.error('Error adding team member:', error);
       toast({
         title: "Fehler", 
+        description: "Ein unerwarteter Fehler ist aufgetreten",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleRemoveTeamMember = async (employeeId: string) => {
+    try {
+      // Find the team member to remove
+      const memberToRemove = project?.team_members.find(tm => tm.id === employeeId);
+      if (!memberToRemove) return;
+
+      // Optimistic update - remove from UI immediately
+      setProject(prev => prev ? {
+        ...prev,
+        team_members: prev.team_members.filter(tm => tm.id !== employeeId)
+      } : null);
+
+      // Remove from database in background
+      const { error } = await supabase
+        .from('project_team_members')
+        .delete()
+        .eq('project_id', projectId)
+        .eq('employee_id', employeeId);
+
+      if (error) {
+        // Rollback on error
+        console.error('Error removing team member:', error);
+        setProject(prev => prev ? {
+          ...prev,
+          team_members: [...prev.team_members, memberToRemove]
+        } : null);
+        
+        toast({
+          title: "Fehler",
+          description: "Team-Mitglied konnte nicht entfernt werden",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Erfolg",
+        description: "Team-Mitglied wurde erfolgreich entfernt"
+      });
+    } catch (error) {
+      console.error('Error removing team member:', error);
+      toast({
+        title: "Fehler",
         description: "Ein unerwarteter Fehler ist aufgetreten",
         variant: "destructive"
       });
@@ -731,9 +869,21 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                             <div>
                               <p className="font-medium">{member.name}</p>
                             </div>
-                            <div className="text-right">
-                              <p className="text-sm font-medium">{member.hours_this_week}h</p>
-                              <p className="text-xs text-gray-500">diese Woche</p>
+                            <div className="flex items-center gap-3">
+                              <div className="text-right">
+                                <p className="text-sm font-medium">{member.hours_this_week}h</p>
+                                <p className="text-xs text-gray-500">diese Woche</p>
+                              </div>
+                              {permissions.can_manage_team && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleRemoveTeamMember(member.id)}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </CardContent>
@@ -749,6 +899,30 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                       <CardTitle>Status ändern</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
+                      {/* Previous status button */}
+                      {statusConfig.previousStates && statusConfig.previousStates.length > 0 && (
+                        <>
+                          {statusConfig.previousStates.map(prevStatus => {
+                            const prevConfig = getStatusConfig(prevStatus);
+                            return (
+                              <Button
+                                key={prevStatus}
+                                variant="outline"
+                                size="sm"
+                                className="w-full justify-start text-gray-600"
+                                onClick={() => handleStatusChange(prevStatus)}
+                              >
+                                <span className="mr-2">←</span> Zurück zu {prevConfig.label}
+                              </Button>
+                            );
+                          })}
+                          {statusConfig.nextStates.length > 0 && (
+                            <div className="border-t my-2" />
+                          )}
+                        </>
+                      )}
+                      
+                      {/* Next status buttons */}
                       {statusConfig.nextStates.map(nextStatus => {
                         const nextConfig = getStatusConfig(nextStatus);
                         return (
@@ -909,16 +1083,33 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                         key={employee.id}
                         className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
                       >
-                        <div>
-                          <p className="font-medium">{employee.first_name} {employee.last_name}</p>
-                          <p className="text-sm text-gray-500">{employee.position}</p>
-                          <p className="text-xs text-gray-400">{employee.email}</p>
+                        <div className="flex items-center gap-3">
+                          <div className="flex-shrink-0">
+                            <div className={`w-3 h-3 rounded-full ${
+                              employee.availability_status === 'available' ? 'bg-green-500' : 
+                              employee.availability_status === 'busy' ? 'bg-yellow-500' : 
+                              'bg-red-500'
+                            }`} title={employee.reason} />
+                          </div>
+                          <div>
+                            <p className="font-medium">{employee.first_name} {employee.last_name}</p>
+                            <p className="text-sm text-gray-500">
+                              {employee.position}
+                              <span className={`ml-2 text-xs ${
+                                employee.availability_status === 'available' ? 'text-green-600' :
+                                employee.availability_status === 'busy' ? 'text-yellow-600' :
+                                'text-red-600'
+                              }`}>
+                                • {employee.reason}
+                              </span>
+                            </p>
+                          </div>
                         </div>
                         <Button 
                           size="sm"
                           onClick={() => handleAddTeamMember(employee.id)}
                         >
-                          Hinzufügen
+                          <Plus className="h-4 w-4" />
                         </Button>
                       </div>
                     ))}

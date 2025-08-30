@@ -46,10 +46,24 @@ export function CompanySettingsModule() {
     queryKey: ["company-settings"],
     queryFn: async () => {
       console.log('Fetching company settings...');
+      
+      // First get the user's company_id
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) throw new Error("No user found");
+      
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", userData.user.id)
+        .single();
+      
+      if (!profile?.company_id) throw new Error("No company_id found");
+      
+      // Then fetch settings for this company
       const { data, error } = await supabase
         .from("company_settings")
         .select("*")
-        .eq("is_active", true)
+        .eq("company_id", profile.company_id)
         .limit(1)
         .single();
 
@@ -77,10 +91,18 @@ export function CompanySettingsModule() {
         throw new Error("No settings ID");
       }
 
-      console.log('Updating company_settings table with ID:', settings.id);
+      // Make sure we're updating with the complete settings object
+      const settingsToUpdate = {
+        ...updatedSettings,
+        default_working_hours_start: updatedSettings.default_working_hours_start || settings.default_working_hours_start,
+        default_working_hours_end: updatedSettings.default_working_hours_end || settings.default_working_hours_end,
+        default_break_duration: updatedSettings.default_break_duration ?? settings.default_break_duration
+      };
+
+      console.log('Updating company_settings with:', settingsToUpdate);
       const { data, error } = await supabase
         .from("company_settings")
-        .update(updatedSettings)
+        .update(settingsToUpdate)
         .eq("id", settings.id)
         .select();
 
@@ -188,7 +210,7 @@ export function CompanySettingsModule() {
               quote_prefix: "Q", 
               order_prefix: "A",
               default_working_hours_start: "08:00",
-              default_working_hours_end: "17:00",
+              default_working_hours_end: "16:00",
               default_break_duration: 30,
               invoice_terms: "30 Tage netto"
             };
@@ -436,8 +458,8 @@ export function CompanySettingsModule() {
                 <Input
                   id="default_working_hours_start"
                   type="time"
-                  value={settings.default_working_hours_start}
-                  onChange={(e) => updateSetting("default_working_hours_start", e.target.value)}
+                  value={settings.default_working_hours_start ? settings.default_working_hours_start.substring(0, 5) : ''}
+                  onChange={(e) => updateSetting("default_working_hours_start", e.target.value + ':00')}
                 />
               </div>
               <div className="space-y-2">
@@ -445,8 +467,8 @@ export function CompanySettingsModule() {
                 <Input
                   id="default_working_hours_end"
                   type="time"
-                  value={settings.default_working_hours_end}
-                  onChange={(e) => updateSetting("default_working_hours_end", e.target.value)}
+                  value={settings.default_working_hours_end ? settings.default_working_hours_end.substring(0, 5) : ''}
+                  onChange={(e) => updateSetting("default_working_hours_end", e.target.value + ':00')}
                 />
               </div>
               <div className="space-y-2">

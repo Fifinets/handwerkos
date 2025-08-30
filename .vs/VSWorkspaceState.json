@@ -1,9 +1,10 @@
 {
   "ExpandedNodes": [
     "",
+    "\\public",
     "\\src",
     "\\src\\components"
   ],
-  "SelectedNode": "\\src\\components\\DashboardCalendar.tsx",
+  "SelectedNode": "\\vite.config.ts",
   "PreviewInSolutionExplorer": false
 }

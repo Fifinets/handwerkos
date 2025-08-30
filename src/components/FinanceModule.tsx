@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { FinancialStats, MonthlyRevenue, Invoice, Expense } from "@/types/financial";
+import { SupplierInvoiceList } from "./SupplierInvoiceList";
 import { 
   useInvoices, 
   useFinancialKpis,
@@ -1041,16 +1042,31 @@ const FinanceModule = () => {
 
         {/* Invoices Tab */}
         <TabsContent value="invoices" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Invoice List */}
-            <div className="lg:col-span-2 space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">📄 Aktuelle Rechnungen</h3>
-                <Button size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Neue Rechnung
-                </Button>
-              </div>
+          {/* Sub-Tabs für verschiedene Rechnungstypen */}
+          <Tabs defaultValue="customer-invoices" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="customer-invoices" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Kundenrechnungen (Ausgang)
+              </TabsTrigger>
+              <TabsTrigger value="supplier-invoices" className="flex items-center gap-2">
+                <Receipt className="h-4 w-4" />
+                Lieferantenrechnungen (Eingang)
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Kundenrechnungen */}
+            <TabsContent value="customer-invoices" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Invoice List */}
+                <div className="lg:col-span-2 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-semibold">📄 Aktuelle Kundenrechnungen</h3>
+                    <Button size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Neue Rechnung
+                    </Button>
+                  </div>
 
               {invoices.length === 0 ? (
                 <Card>
@@ -1200,6 +1216,13 @@ const FinanceModule = () => {
               </Card>
             </div>
           </div>
+            </TabsContent>
+
+            {/* Lieferantenrechnungen */}
+            <TabsContent value="supplier-invoices" className="space-y-6">
+              <SupplierInvoiceList />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         {/* Expenses Tab */}

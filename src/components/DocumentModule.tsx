@@ -14,7 +14,8 @@ import {
   Eye,
   Edit,
   Download,
-  Mail
+  Mail,
+  Scan
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AddQuoteDialog } from './AddQuoteDialog';
@@ -26,9 +27,13 @@ import {
   useDocuments,
   useCreateQuote,
   useCreateInvoice,
-  useUpdateQuote
+  useUpdateQuote,
+  usePendingOCRResults
 } from '@/hooks/useApi';
 import { useQueryClient } from '@tanstack/react-query';
+import { OCRUploadZone } from './OCRUploadZone';
+import { OCRInvoiceValidator } from './OCRInvoiceValidator';
+import { OCRResult } from '@/services/ocrService';
 // TODO: Re-enable when DocumentTemplateManager is implemented
 // import DocumentTemplateManager from './documents/DocumentTemplateManager';
 
@@ -68,12 +73,14 @@ export function DocumentModule() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddQuote, setShowAddQuote] = useState(false);
   const [showAddInvoice, setShowAddInvoice] = useState(false);
+  const [activeOCRResult, setActiveOCRResult] = useState<OCRResult | null>(null);
   const { toast } = useToast();
 
   // React Query hooks
   const { data: quotesResponse, isLoading: quotesLoading } = useQuotes();
   const { data: invoicesResponse, isLoading: invoicesLoading } = useInvoices();
   const { data: documentsResponse, isLoading: documentsLoading } = useDocuments();
+  const { data: pendingOCRResults, isLoading: ocrLoading } = usePendingOCRResults();
   
   const queryClient = useQueryClient();
   const createQuoteMutation = useCreateQuote();
@@ -191,6 +198,14 @@ export function DocumentModule() {
           <TabsTrigger value="invoices" className="flex items-center gap-2">
             <Receipt className="h-4 w-4" />
             Rechnungen ({invoices.length})
+          </TabsTrigger>
+          <TabsTrigger value="ocr" className="flex items-center gap-2">
+            <Scan className="h-4 w-4" />
+            OCR-Import {pendingOCRResults && pendingOCRResults.length > 0 && (
+              <Badge variant="destructive" className="ml-1 px-1.5 py-0.5 text-xs">
+                {pendingOCRResults.length}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="templates" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
@@ -404,6 +419,117 @@ export function DocumentModule() {
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="ocr" className="space-y-4">
+          {activeOCRResult ? (
+            <OCRInvoiceValidator
+              ocrResult={activeOCRResult}
+              onValidated={() => {
+                setActiveOCRResult(null);
+                toast({
+                  title: 'Rechnung erstellt',
+                  description: 'Die Rechnung wurde erfolgreich aus OCR-Daten erstellt.',
+                });
+              }}
+              onRejected={() => {
+                setActiveOCRResult(null);
+                toast({
+                  title: 'OCR-Ergebnis abgelehnt',
+                  description: 'Das OCR-Ergebnis wurde abgelehnt.',
+                });
+              }}
+              onCancel={() => setActiveOCRResult(null)}
+            />
+          ) : (
+            <div className="space-y-6">
+              {/* OCR Upload Zone */}
+              <OCRUploadZone
+                onOCRComplete={(result) => {
+                  setActiveOCRResult(result);
+                }}
+                onError={(error) => {
+                  toast({
+                    title: 'OCR-Fehler',
+                    description: error,
+                    variant: 'destructive',
+                  });
+                }}
+              />
+
+              {/* Pending OCR Results */}
+              {pendingOCRResults && pendingOCRResults.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Scan className="h-5 w-5" />
+                      Ausstehende Validierungen ({pendingOCRResults.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {pendingOCRResults.map((result) => (
+                        <Card key={result.id} className="border-orange-200 bg-orange-50">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <h4 className="font-medium">
+                                    {result.structured_data.supplierName}
+                                  </h4>
+                                  <Badge variant="outline" className="bg-orange-100 text-orange-800">
+                                    Ausstehend
+                                  </Badge>
+                                  <Badge variant="outline">
+                                    {Math.round(result.confidence_scores.overall * 100)}% Konfidenz
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                  <span>Rechnung: {result.structured_data.invoiceNumber}</span>
+                                  <span>Betrag: {result.structured_data.totalAmount.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}</span>
+                                  <span>Datum: {new Date(result.structured_data.date).toLocaleDateString('de-DE')}</span>
+                                  <span>Verarbeitet: {new Date(result.created_at).toLocaleString('de-DE')}</span>
+                                </div>
+                              </div>
+                              <Button
+                                onClick={() => setActiveOCRResult(result)}
+                                size="sm"
+                              >
+                                Validieren
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* OCR Info */}
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <Scan className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-blue-900 mb-2">
+                        Automatische Rechnungserfassung mit OCR
+                      </h3>
+                      <ul className="text-sm text-blue-800 space-y-1">
+                        <li>• Laden Sie Bilder oder PDFs von Lieferantenrechnungen hoch</li>
+                        <li>• OCR erkennt automatisch Rechnungsnummer, Betrag, Lieferant und Datum</li>
+                        <li>• Validieren Sie die erkannten Daten vor der Übernahme</li>
+                        <li>• Rechnungen werden automatisch in Ihrem System angelegt</li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </TabsContent>
+
         <TabsContent value="templates" className="space-y-4">
           <Card>
             <CardContent className="py-8 text-center">

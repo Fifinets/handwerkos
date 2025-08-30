@@ -190,17 +190,32 @@ export function VacationManagement() {
   };
 
   const handleApproveRequest = async (requestId: string, approve: boolean) => {
+    // Sofort UI aktualisieren - BEVOR der API Call
+    const originalRequests = [...requests];
+    
+    // Entferne den Request sofort aus der UI
+    setRequests(prevRequests => 
+      prevRequests.filter(req => req.id !== requestId)
+    );
+
     try {
+      // Direkte Ablehnung ohne Begründung
+      const updateData: any = {
+        status: approve ? 'approved' : 'rejected',
+        approved_by: user?.id,
+        approved_at: new Date().toISOString()
+      };
+
       const { error } = await supabase
         .from('vacation_requests')
-        .update({
-          status: approve ? 'approved' : 'rejected',
-          approved_by: user?.id,
-          approved_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', requestId);
 
-      if (error) throw error;
+      if (error) {
+        // Bei Fehler: Stelle die ursprüngliche Liste wieder her
+        setRequests(originalRequests);
+        throw error;
+      }
 
       // If approved, update employee vacation days used
       if (approve) {
@@ -217,12 +232,16 @@ export function VacationManagement() {
         }
       }
 
+      // Erfolg! Der Request wurde bereits aus der UI entfernt
       toast({
         title: approve ? "Antrag genehmigt" : "Antrag abgelehnt",
-        description: `Der Urlaubsantrag wurde ${approve ? 'genehmigt' : 'abgelehnt'}`,
+        description: `Der Urlaubsantrag wurde erfolgreich ${approve ? 'genehmigt' : 'abgelehnt'}`,
       });
 
-      loadVacationData(); // Reload data
+      // Optional: Lade Daten nach einer Sekunde neu für Synchronisation
+      setTimeout(() => {
+        loadVacationData();
+      }, 1000);
     } catch (error: any) {
       console.error('Error updating vacation request:', error);
       toast({
@@ -395,7 +414,12 @@ export function VacationManagement() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleApproveRequest(request.id, false)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          // Direkte Ablehnung ohne Dialog oder Begründung
+                          handleApproveRequest(request.id, false);
+                        }}
                         className="border-red-600 text-red-600 hover:bg-red-50"
                       >
                         <XCircle className="h-4 w-4 mr-1" />
