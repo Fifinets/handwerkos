@@ -149,27 +149,51 @@ export function ComprehensiveOCRValidator({
         </CardHeader>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Bild-Vorschau */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Bild-Vorschau - Deutlich größer */}
         {imageUrl && (
-          <div className="lg:col-span-1">
-            <Card>
+          <div className="xl:col-span-1">
+            <Card className="h-fit sticky top-6">
               <CardHeader>
-                <CardTitle className="text-sm">Original-Dokument</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Original-Dokument</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(imageUrl, '_blank')}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Vollbild
+                  </Button>
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <img 
-                  src={imageUrl} 
-                  alt="Invoice" 
-                  className="w-full h-auto rounded-lg border max-h-96 object-contain"
-                />
+              <CardContent className="p-0">
+                <div className="relative">
+                  <img 
+                    src={imageUrl} 
+                    alt="Invoice" 
+                    className="w-full h-auto rounded-b-lg cursor-zoom-in hover:shadow-lg transition-shadow"
+                    style={{ 
+                      maxHeight: 'calc(100vh - 200px)', 
+                      minHeight: '600px',
+                      objectFit: 'contain',
+                      backgroundColor: '#f8f9fa'
+                    }}
+                    onClick={() => window.open(imageUrl, '_blank')}
+                    title="Klicken für Vollbildansicht"
+                  />
+                  {/* Zoom-Hinweis */}
+                  <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
+                    Klicken zum Vergrößern
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
         )}
 
         {/* Haupt-Validierungs-Interface */}
-        <div className={imageUrl ? 'lg:col-span-2' : 'lg:col-span-3'}>
+        <div className={imageUrl ? 'xl:col-span-1' : 'xl:col-span-2'}>
           <Card>
             <CardContent className="p-0">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -651,30 +675,77 @@ export function ComprehensiveOCRValidator({
         </Card>
       )}
 
-      {/* Action Buttons */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-500">
-              {extractedFieldsCount} von 30+ möglichen Feldern erfasst
+      {/* Action Buttons - Elegante Floating Action Bar */}
+      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
+        <Card className="shadow-2xl border border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              {/* Status Information */}
+              <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400 min-w-max">
+                <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 px-3 py-1.5 rounded-full">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="font-medium text-green-700 dark:text-green-400">
+                    {extractedFieldsCount} von 30+ Feldern erfasst
+                  </span>
+                </div>
+                <Badge 
+                  variant="outline" 
+                  className={`${
+                    (ocrResult.confidence_scores?.overall || 0) >= 0.8 
+                      ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800'
+                      : (ocrResult.confidence_scores?.overall || 0) >= 0.6 
+                        ? 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800'
+                        : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800'
+                  }`}
+                >
+                  {Math.round((ocrResult.confidence_scores?.overall || 0) * 100)}% Vertrauen
+                </Badge>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={onCancel}
+                  className="px-5 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 border-gray-300 dark:border-gray-600 transition-all duration-200"
+                  size="sm"
+                >
+                  Abbrechen
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={onRejected} 
+                  className="px-5 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 border-red-200 hover:border-red-300 dark:border-red-800 dark:hover:border-red-700 transition-all duration-200"
+                  size="sm"
+                >
+                  <X className="h-3.5 w-3.5 mr-1.5" />
+                  Ablehnen
+                </Button>
+                
+                <Button 
+                  onClick={handleValidate}
+                  disabled={validateMutation.isPending}
+                  className="px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  size="sm"
+                >
+                  {validateMutation.isPending ? (
+                    <>
+                      <div className="animate-spin h-3.5 w-3.5 mr-1.5 border-2 border-white border-t-transparent rounded-full"></div>
+                      Verarbeitung...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-3.5 w-3.5 mr-1.5" />
+                      Validieren & Übernehmen
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
-            
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={onCancel}>
-                Abbrechen
-              </Button>
-              <Button variant="outline" onClick={onRejected} className="text-red-600 hover:text-red-700">
-                <X className="h-4 w-4 mr-2" />
-                Ablehnen
-              </Button>
-              <Button onClick={handleValidate} className="bg-green-600 hover:bg-green-700">
-                <Check className="h-4 w-4 mr-2" />
-                Validieren & Übernehmen
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
