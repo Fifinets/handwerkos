@@ -35,7 +35,6 @@ import {
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import MobileOnboarding from "./MobileOnboarding";
 import { VacationRequestDialog } from "../VacationRequestDialog";
 
 interface Project {
@@ -158,13 +157,8 @@ const MobileEmployeeApp: React.FC = () => {
     // Load vacation balance
     loadVacationBalance();
 
-    // Check if first visit
-    const hasSeenOnboarding = localStorage.getItem('handwerkos-onboarding-completed');
-    if (!hasSeenOnboarding) {
-      setShowOnboarding(true);
-    } else {
-      setIsFirstVisit(false);
-    }
+    // Onboarding removed - not needed
+    setIsFirstVisit(false);
 
     // Check for active time entry in localStorage
     const storedActiveEntry = localStorage.getItem('activeTimeEntry');
@@ -868,17 +862,7 @@ const MobileEmployeeApp: React.FC = () => {
     }
   };
 
-  const completeOnboarding = () => {
-    localStorage.setItem('handwerkos-onboarding-completed', 'true');
-    setShowOnboarding(false);
-    setIsFirstVisit(false);
-  };
-
-  const skipOnboarding = () => {
-    localStorage.setItem('handwerkos-onboarding-completed', 'true');
-    setShowOnboarding(false);
-    setIsFirstVisit(false);
-  };
+  // Onboarding functions removed - not needed
 
   const getActiveTime = () => {
     if (!activeTimeEntry) return '00:00:00';
@@ -894,14 +878,14 @@ const MobileEmployeeApp: React.FC = () => {
 
   // Render functions for different views
   const renderHomeView = () => (
-    <div className="space-y-4">
+    <div className="space-y-2 w-full overflow-hidden">
       {/* Status Bar */}
       <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-        <CardContent className="p-4">
-          <div className="flex justify-between items-center mb-4">
+        <CardContent className="p-3">
+          <div className="flex justify-between items-center mb-2">
             <div>
-              <h3 className="font-semibold">Willkommen zurück!</h3>
-              <p className="text-blue-100 text-sm">{user?.email}</p>
+              <h3 className="font-semibold text-sm">Willkommen zurück!</h3>
+              <p className="text-blue-100 text-xs">{user?.email}</p>
             </div>
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">
@@ -935,7 +919,7 @@ const MobileEmployeeApp: React.FC = () => {
       {/* Active Time Tracking */}
       {activeTimeEntry && (
         <Card className="border-2 border-green-400 bg-green-50">
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             <div className="flex justify-between items-center mb-2">
               <h3 className="font-semibold text-green-800">Timer läuft</h3>
               <div className="text-2xl font-mono font-bold text-green-600">
@@ -971,7 +955,7 @@ const MobileEmployeeApp: React.FC = () => {
 
       {/* Quick Actions */}
       <Card>
-        <CardHeader>
+        <CardHeader className="p-3">
           <CardTitle className="flex items-center gap-2">
             <span>Schnellaktionen</span>
             {notifications > 0 && (
@@ -981,9 +965,9 @@ const MobileEmployeeApp: React.FC = () => {
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-3">
+        <CardContent className="grid grid-cols-2 gap-2 p-3">
           <Button
-            className="h-20 flex flex-col gap-2"
+            className="min-h-[60px] p-2 flex flex-col justify-center gap-1 text-sm"
             onClick={() => setCurrentView('time')}
           >
             <Clock className="h-6 w-6" />
@@ -992,7 +976,7 @@ const MobileEmployeeApp: React.FC = () => {
           
           <Button
             variant="outline"
-            className="h-20 flex flex-col gap-2"
+            className="min-h-[60px] p-2 flex flex-col justify-center gap-1 text-sm"
             onClick={() => {
               setActiveProjectId(assignedProjects[0]?.id || '');
               startCamera();
@@ -1004,7 +988,7 @@ const MobileEmployeeApp: React.FC = () => {
           
           <Button
             variant="outline"
-            className="h-20 flex flex-col gap-2"
+            className="min-h-[60px] p-2 flex flex-col justify-center gap-1 text-sm"
             onClick={() => setCurrentView('projects')}
           >
             <List className="h-6 w-6" />
@@ -1013,7 +997,7 @@ const MobileEmployeeApp: React.FC = () => {
           
           <Button
             variant="outline"
-            className="h-20 flex flex-col gap-2"
+            className="min-h-[60px] p-2 flex flex-col justify-center gap-1 text-sm"
             onClick={() => setShowVacationDialog(true)}
           >
             <Calendar className="h-6 w-6" />
@@ -1026,21 +1010,21 @@ const MobileEmployeeApp: React.FC = () => {
       </Card>
 
       {/* Quick Material Entry */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
+      <Card className="overflow-hidden">
+        <CardHeader className="p-3">
+          <CardTitle className="flex items-center gap-1 text-sm">
+            <Package className="h-4 w-4" />
             Schnell-Material
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2 p-3">
           <select
             value={quickMaterialEntry.projectId}
             onChange={(e) => setQuickMaterialEntry(prev => ({
               ...prev,
               projectId: e.target.value
             }))}
-            className="w-full p-2 border rounded-md text-sm"
+            className="w-full p-1.5 border rounded text-xs"
           >
             <option value="">Projekt wählen...</option>
             {assignedProjects.map(project => (
@@ -1050,42 +1034,41 @@ const MobileEmployeeApp: React.FC = () => {
             ))}
           </select>
           
-          <div className="grid grid-cols-2 gap-2">
+          <input
+            type="text"
+            placeholder="Material..."
+            value={quickMaterialEntry.material}
+            onChange={(e) => setQuickMaterialEntry(prev => ({
+              ...prev,
+              material: e.target.value
+            }))}
+            className="w-full p-1.5 border rounded text-xs"
+          />
+          
+          <div className="flex gap-0.5">
             <input
-              type="text"
-              placeholder="Material..."
-              value={quickMaterialEntry.material}
+              type="number"
+              placeholder="Menge"
+              value={quickMaterialEntry.quantity}
               onChange={(e) => setQuickMaterialEntry(prev => ({
                 ...prev,
-                material: e.target.value
+                quantity: e.target.value
               }))}
-              className="p-2 border rounded-md text-sm"
+              className="flex-1 min-w-0 p-1.5 border rounded text-xs"
             />
-            <div className="flex gap-1">
-              <input
-                type="number"
-                placeholder="Menge"
-                value={quickMaterialEntry.quantity}
-                onChange={(e) => setQuickMaterialEntry(prev => ({
-                  ...prev,
-                  quantity: e.target.value
-                }))}
-                className="p-2 border rounded-md text-sm flex-1"
-              />
-              <select
-                value={quickMaterialEntry.unit}
-                onChange={(e) => setQuickMaterialEntry(prev => ({
-                  ...prev,
-                  unit: e.target.value
-                }))}
-                className="p-2 border rounded-md text-sm w-20"
-              >
-                <option value="Stück">Stk</option>
-                <option value="Meter">m</option>
-                <option value="kg">kg</option>
-                <option value="Liter">L</option>
-              </select>
-            </div>
+            <select
+              value={quickMaterialEntry.unit}
+              onChange={(e) => setQuickMaterialEntry(prev => ({
+                ...prev,
+                unit: e.target.value
+              }))}
+              className="p-1.5 border rounded text-xs w-12"
+            >
+              <option value="Stück">Stk</option>
+              <option value="Meter">m</option>
+              <option value="kg">kg</option>
+              <option value="Liter">L</option>
+            </select>
           </div>
           
           <Button
@@ -1102,9 +1085,9 @@ const MobileEmployeeApp: React.FC = () => {
   );
 
   const renderProjectsView = () => (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Meine Projekte</h3>
+        <h3 className="text-base font-semibold">Meine Projekte</h3>
         <Badge variant="outline">
           {assignedProjects.length} aktiv
         </Badge>
@@ -1112,7 +1095,7 @@ const MobileEmployeeApp: React.FC = () => {
 
       {assignedProjects.map(project => (
         <Card key={project.id} className="relative">
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             <div className="flex justify-between items-start mb-2">
               <div>
                 <h4 className="font-semibold text-sm">{project.name}</h4>
@@ -1190,7 +1173,7 @@ const MobileEmployeeApp: React.FC = () => {
   );
 
   const renderTimeView = () => (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <h3 className="text-lg font-semibold">Zeiterfassung</h3>
       
       {activeTimeEntry ? (
@@ -1224,7 +1207,7 @@ const MobileEmployeeApp: React.FC = () => {
         </Card>
       ) : (
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             <h4 className="font-medium mb-3">Projekt auswählen:</h4>
             <div className="space-y-2">
               {assignedProjects.map(project => (
@@ -1246,19 +1229,19 @@ const MobileEmployeeApp: React.FC = () => {
   );
 
   const renderActivityView = () => (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <h3 className="text-lg font-semibold">Meine Aktivitäten</h3>
       
       {/* Recent Photos */}
       {capturedPhotos.length > 0 && (
         <Card>
-          <CardHeader>
+          <CardHeader className="p-3">
             <CardTitle className="flex items-center gap-2">
               <ImageIcon className="h-5 w-5" />
               Fotos ({capturedPhotos.length})
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-2 p-3">
             {capturedPhotos.slice(0, 3).map(photo => (
               <div key={photo.id} className="flex justify-between items-center text-sm">
                 <span className="truncate">
@@ -1276,13 +1259,13 @@ const MobileEmployeeApp: React.FC = () => {
       {/* Recent Receipts */}
       {projectReceipts.length > 0 && (
         <Card>
-          <CardHeader>
+          <CardHeader className="p-3">
             <CardTitle className="flex items-center gap-2">
               <Receipt className="h-5 w-5" />
               Rechnungen ({projectReceipts.length})
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-2 p-3">
             {projectReceipts.slice(0, 3).map(receipt => (
               <div key={receipt.id} className="flex justify-between items-center text-sm">
                 <div>
@@ -1305,13 +1288,13 @@ const MobileEmployeeApp: React.FC = () => {
       {/* Recent Comments */}
       {projectComments.length > 0 && (
         <Card>
-          <CardHeader>
+          <CardHeader className="p-3">
             <CardTitle className="flex items-center gap-2">
               <MessageSquare className="h-5 w-5" />
               Notizen ({projectComments.length})
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-2 p-3">
             {projectComments.slice(0, 3).map(comment => (
               <div key={comment.id} className="text-sm">
                 <div className="flex justify-between items-center mb-1">
@@ -1332,7 +1315,7 @@ const MobileEmployeeApp: React.FC = () => {
       {/* Offline Data */}
       {!isOnline && (
         <Card className="border-orange-400 bg-orange-50">
-          <CardHeader>
+          <CardHeader className="p-3">
             <CardTitle className="text-orange-700">Offline Daten</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
@@ -1373,9 +1356,9 @@ const MobileEmployeeApp: React.FC = () => {
   );
 
   const renderVacationView = () => (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Urlaub</h3>
+        <h3 className="text-base font-semibold">Urlaub</h3>
         <Button onClick={() => setShowVacationDialog(true)} size="sm">
           <Plus className="h-4 w-4 mr-2" />
           Antrag
@@ -1384,7 +1367,7 @@ const MobileEmployeeApp: React.FC = () => {
       
       {/* Vacation Balance */}
       <Card>
-        <CardHeader>
+        <CardHeader className="p-3">
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
             Mein Urlaubskonto
@@ -1415,7 +1398,7 @@ const MobileEmployeeApp: React.FC = () => {
 
       {/* Info Card */}
       <Card>
-        <CardContent className="p-4">
+        <CardContent className="p-3">
           <h4 className="font-medium mb-2">Hinweise</h4>
           <ul className="text-sm text-gray-600 space-y-1">
             <li>• Anträge werden vom Manager geprüft</li>
@@ -1428,11 +1411,11 @@ const MobileEmployeeApp: React.FC = () => {
   );
 
   const renderProfileView = () => (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <h3 className="text-lg font-semibold">Profil</h3>
       
       <Card>
-        <CardContent className="p-4">
+        <CardContent className="p-3">
           <div className="text-center mb-4">
             <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
               <User className="h-8 w-8 text-white" />
@@ -1466,7 +1449,7 @@ const MobileEmployeeApp: React.FC = () => {
 
       {!isOnline && (
         <Card className="border-orange-400 bg-orange-50">
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             <div className="flex items-center gap-2 text-orange-700">
               <WifiOff className="h-4 w-4" />
               <span className="font-medium">Offline-Modus</span>
@@ -1480,20 +1463,12 @@ const MobileEmployeeApp: React.FC = () => {
     </div>
   );
 
-  // Show onboarding for first-time users
-  if (showOnboarding && isFirstVisit) {
-    return (
-      <MobileOnboarding 
-        onComplete={completeOnboarding}
-        onSkip={skipOnboarding}
-      />
-    );
-  }
+  // Onboarding removed - not needed
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col max-w-md mx-auto">
+    <div className="h-screen bg-gray-50 flex flex-col max-w-md mx-auto relative overflow-hidden">
       {/* Main Content */}
-      <div className="flex-1 p-4 pb-20">
+      <div className="flex-1 px-3 py-3 pb-16 overflow-y-auto overflow-x-hidden">
         {currentView === 'home' && renderHomeView()}
         {currentView === 'projects' && renderProjectsView()}
         {currentView === 'time' && renderTimeView()}
@@ -1503,7 +1478,7 @@ const MobileEmployeeApp: React.FC = () => {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white border-t shadow-lg">
+      <div className="absolute bottom-0 left-0 right-0 bg-white border-t shadow-lg">
         <div className="grid grid-cols-5 gap-1 p-2">
           {[
             { id: 'home', icon: Home, label: 'Start' },
@@ -1517,7 +1492,7 @@ const MobileEmployeeApp: React.FC = () => {
               variant={currentView === item.id ? "default" : "ghost"}
               size="sm"
               onClick={() => setCurrentView(item.id as any)}
-              className="flex flex-col gap-1 h-16 p-2"
+              className="flex flex-col gap-0.5 h-14 p-1"
             >
               <item.icon className="h-5 w-5" />
               <span className="text-xs">{item.label}</span>
@@ -1570,7 +1545,7 @@ const MobileEmployeeApp: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Rechnung hochladen</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-2">
             <div>
               <label className="block text-sm font-medium mb-2">
                 Datei auswählen
@@ -1635,7 +1610,7 @@ const MobileEmployeeApp: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Notiz hinzufügen</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-2">
             <div>
               <label className="block text-sm font-medium mb-2">
                 Kommentar

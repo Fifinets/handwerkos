@@ -13,6 +13,7 @@ import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
 import MitarbeiterSetupPage from "./pages/MitarbeiterSetupPage";
 import HandwerkerSoftware from "./pages/HandwerkerSoftware";
+import MobileApp from "./pages/MobileApp";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { eventBus } from "./services/eventBus";
@@ -122,7 +123,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<HandwerkerSoftware />} />
+              <Route path="/" element={<MobileApp />} />
               <Route path="/login" element={<Auth />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/manager" element={<Index />} />
