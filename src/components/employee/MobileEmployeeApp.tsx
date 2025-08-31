@@ -379,21 +379,55 @@ const MobileEmployeeApp: React.FC = () => {
   // Camera and photo functions
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
-      });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
+      // First check if mediaDevices is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera API not available');
       }
+
+      // Request camera permission with better constraints
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        },
+        audio: false
+      });
+      
       setShowCamera(true);
-    } catch (error) {
+      
+      // Wait for the next tick to ensure video element is rendered
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(err => {
+            console.error('Error playing video:', err);
+          });
+        }
+      }, 100);
+      
+    } catch (error: any) {
       console.error('Error accessing camera:', error);
+      
+      let errorMessage = "Kamera konnte nicht gestartet werden";
+      
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        errorMessage = "Kamera-Zugriff wurde verweigert. Bitte erlauben Sie den Kamera-Zugriff in den Browser-Einstellungen.";
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        errorMessage = "Keine Kamera gefunden. Bitte stellen Sie sicher, dass eine Kamera angeschlossen ist.";
+      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        errorMessage = "Kamera wird bereits von einer anderen Anwendung verwendet.";
+      } else if (!navigator.mediaDevices) {
+        errorMessage = "Ihr Browser unterstützt keine Kamera-Funktionen. Bitte verwenden Sie einen modernen Browser.";
+      }
+      
       toast({
         title: "Kamera Fehler",
-        description: "Kamera konnte nicht gestartet werden",
+        description: errorMessage,
         variant: "destructive"
       });
+      
+      setShowCamera(false);
     }
   };
 
@@ -959,7 +993,10 @@ const MobileEmployeeApp: React.FC = () => {
           <Button
             variant="outline"
             className="h-20 flex flex-col gap-2"
-            onClick={startCamera}
+            onClick={() => {
+              setActiveProjectId(assignedProjects[0]?.id || '');
+              startCamera();
+            }}
           >
             <Camera className="h-6 w-6" />
             <span className="text-sm">Foto machen</span>
@@ -1506,6 +1543,7 @@ const MobileEmployeeApp: React.FC = () => {
             className="w-full h-full object-cover"
             autoPlay
             playsInline
+            muted
           />
           <canvas ref={canvasRef} className="hidden" />
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4">

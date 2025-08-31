@@ -2,9 +2,7 @@
   "ExpandedNodes": [
     "",
     "\\public",
-    "\\src",
-    "\\src\\components"
+    "\\src"
   ],
-  "SelectedNode": "\\vite.config.ts",
   "PreviewInSolutionExplorer": false
 }

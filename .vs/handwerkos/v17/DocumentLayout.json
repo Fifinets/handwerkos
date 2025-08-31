@@ -3,6 +3,50 @@
   "WorkspaceRootPath": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120002_import_pipeline_rpc.sql||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:supabase\\migrations\\20250830120002_import_pipeline_rpc.sql||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120003_validation_functions_final.sql||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:supabase\\migrations\\20250830120003_validation_functions_final.sql||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120001_validation_functions_working.sql||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:supabase\\migrations\\20250830120001_validation_functions_working.sql||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120001_test_function_creation.sql||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:supabase\\migrations\\20250830120001_test_function_creation.sql||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120001_validation_functions_simple.sql||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:supabase\\migrations\\20250830120001_validation_functions_simple.sql||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120001_validation_functions_clean.sql||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:supabase\\migrations\\20250830120001_validation_functions_clean.sql||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120001_validation_functions_final_fix.sql||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:supabase\\migrations\\20250830120001_validation_functions_final_fix.sql||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120001_validation_functions_fixed.sql||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:supabase\\migrations\\20250830120001_validation_functions_fixed.sql||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120001_validation_functions.sql||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:supabase\\migrations\\20250830120001_validation_functions.sql||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120000_enhanced_ocr_invoice_system_fixed.sql||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:supabase\\migrations\\20250830120000_enhanced_ocr_invoice_system_fixed.sql||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120000_enhanced_ocr_invoice_system.sql||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:supabase\\migrations\\20250830120000_enhanced_ocr_invoice_system.sql||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\DashboardCalendar.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\components\\DashboardCalendar.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     },
@@ -69,19 +113,162 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "20250830120002_import_pipeline_rpc.sql",
+              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120002_import_pipeline_rpc.sql",
+              "RelativeDocumentMoniker": "supabase\\migrations\\20250830120002_import_pipeline_rpc.sql",
+              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120002_import_pipeline_rpc.sql",
+              "RelativeToolTip": "supabase\\migrations\\20250830120002_import_pipeline_rpc.sql",
+              "ViewState": "AgIAABcCAAAAAAAAAAAAAEMCAAAEAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-08-30T17:11:35.981Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "20250830120003_validation_functions_final.sql",
+              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120003_validation_functions_final.sql",
+              "RelativeDocumentMoniker": "supabase\\migrations\\20250830120003_validation_functions_final.sql",
+              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120003_validation_functions_final.sql",
+              "RelativeToolTip": "supabase\\migrations\\20250830120003_validation_functions_final.sql",
+              "ViewState": "AgIAAJwAAAAAAAAAAAAAAOYAAAByAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-08-30T17:10:33.045Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "20250830120001_validation_functions_working.sql",
+              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120001_validation_functions_working.sql",
+              "RelativeDocumentMoniker": "supabase\\migrations\\20250830120001_validation_functions_working.sql",
+              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120001_validation_functions_working.sql",
+              "RelativeToolTip": "supabase\\migrations\\20250830120001_validation_functions_working.sql",
+              "ViewState": "AgIAACEBAAAAAAAAAAAAAGsBAABiAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-08-30T17:08:10.412Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "20250830120001_test_function_creation.sql",
+              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120001_test_function_creation.sql",
+              "RelativeDocumentMoniker": "supabase\\migrations\\20250830120001_test_function_creation.sql",
+              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120001_test_function_creation.sql",
+              "RelativeToolTip": "supabase\\migrations\\20250830120001_test_function_creation.sql",
+              "ViewState": "AgIAAAUAAAAAAAAAAAAAAE8AAAAvAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-08-30T17:05:28.341Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "20250830120001_validation_functions_simple.sql",
+              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120001_validation_functions_simple.sql",
+              "RelativeDocumentMoniker": "supabase\\migrations\\20250830120001_validation_functions_simple.sql",
+              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120001_validation_functions_simple.sql",
+              "RelativeToolTip": "supabase\\migrations\\20250830120001_validation_functions_simple.sql",
+              "ViewState": "AgIAAGYAAAAAAAAAAAAAALAAAABnAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-08-30T17:03:48.252Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "20250830120001_validation_functions_clean.sql",
+              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120001_validation_functions_clean.sql",
+              "RelativeDocumentMoniker": "supabase\\migrations\\20250830120001_validation_functions_clean.sql",
+              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120001_validation_functions_clean.sql",
+              "RelativeToolTip": "supabase\\migrations\\20250830120001_validation_functions_clean.sql",
+              "ViewState": "AgIAAL8BAAAAAAAAAAAAANkBAABIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-08-30T17:02:17.513Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "20250830120001_validation_functions_final_fix.sql",
+              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120001_validation_functions_final_fix.sql",
+              "RelativeDocumentMoniker": "supabase\\migrations\\20250830120001_validation_functions_final_fix.sql",
+              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120001_validation_functions_final_fix.sql",
+              "RelativeToolTip": "supabase\\migrations\\20250830120001_validation_functions_final_fix.sql",
+              "ViewState": "AgIAAI8BAAAAAAAAAAAAAJ8BAAAyAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-08-30T16:59:24.181Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "20250830120001_validation_functions_fixed.sql",
+              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120001_validation_functions_fixed.sql",
+              "RelativeDocumentMoniker": "supabase\\migrations\\20250830120001_validation_functions_fixed.sql",
+              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120001_validation_functions_fixed.sql",
+              "RelativeToolTip": "supabase\\migrations\\20250830120001_validation_functions_fixed.sql",
+              "ViewState": "AgIAAJcBAAAAAAAAAAAAAKIBAAAeAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-08-30T16:54:03.27Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "20250830120001_validation_functions.sql",
+              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120001_validation_functions.sql",
+              "RelativeDocumentMoniker": "supabase\\migrations\\20250830120001_validation_functions.sql",
+              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120001_validation_functions.sql",
+              "RelativeToolTip": "supabase\\migrations\\20250830120001_validation_functions.sql",
+              "ViewState": "AgIAAMEBAAAAAAAAAAAAANMBAABnAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-08-30T16:50:31.437Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "20250830120000_enhanced_ocr_invoice_system_fixed.sql",
+              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120000_enhanced_ocr_invoice_system_fixed.sql",
+              "RelativeDocumentMoniker": "supabase\\migrations\\20250830120000_enhanced_ocr_invoice_system_fixed.sql",
+              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120000_enhanced_ocr_invoice_system_fixed.sql",
+              "RelativeToolTip": "supabase\\migrations\\20250830120000_enhanced_ocr_invoice_system_fixed.sql",
+              "ViewState": "AgIAAC4BAAAAAAAAAAAAAHgBAABZAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-08-30T16:50:03.154Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "20250830120000_enhanced_ocr_invoice_system.sql",
+              "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120000_enhanced_ocr_invoice_system.sql",
+              "RelativeDocumentMoniker": "supabase\\migrations\\20250830120000_enhanced_ocr_invoice_system.sql",
+              "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120000_enhanced_ocr_invoice_system.sql",
+              "RelativeToolTip": "supabase\\migrations\\20250830120000_enhanced_ocr_invoice_system.sql",
+              "ViewState": "AgIAANkAAAAAAAAAAAAAAPQAAAAXAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-08-30T16:46:25.954Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
               "Title": "DashboardCalendar.tsx",
               "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\DashboardCalendar.tsx",
               "RelativeDocumentMoniker": "src\\components\\DashboardCalendar.tsx",
               "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\DashboardCalendar.tsx",
               "RelativeToolTip": "src\\components\\DashboardCalendar.tsx",
-              "ViewState": "AgIAAJkAAAAAAAAAAAAAAB8AAAAEAAAAAAAAAA==",
+              "ViewState": "AgIAAJwAAAAAAAAAAAAAAB8AAAAEAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
               "WhenOpened": "2025-08-24T17:42:33.952Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 12,
               "Title": "cebe9d8a-c7f0-4f33-9ff8-bc1954973c32.png",
               "DocumentMoniker": "C:\\Users\\filip\\Downloads\\cebe9d8a-c7f0-4f33-9ff8-bc1954973c32.png",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\Downloads\\cebe9d8a-c7f0-4f33-9ff8-bc1954973c32.png",
@@ -92,7 +279,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 13,
               "Title": "AddQuoteDialog.tsx",
               "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\AddQuoteDialog.tsx",
               "RelativeDocumentMoniker": "src\\components\\AddQuoteDialog.tsx",
@@ -104,7 +291,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 14,
               "Title": "AddOrderDialog.tsx",
               "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\AddOrderDialog.tsx",
               "RelativeDocumentMoniker": "src\\components\\AddOrderDialog.tsx",
@@ -116,7 +303,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 15,
               "Title": "AddCustomerDialog.tsx",
               "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\AddCustomerDialog.tsx",
               "RelativeDocumentMoniker": "src\\components\\AddCustomerDialog.tsx",
@@ -128,7 +315,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 17,
               "Title": "fix_customers_security_lovable.sql",
               "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\fix_customers_security_lovable.sql",
               "RelativeDocumentMoniker": "fix_customers_security_lovable.sql",
@@ -140,7 +327,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 18,
               "Title": "index.css",
               "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\index.css",
               "RelativeDocumentMoniker": "src\\index.css",
@@ -152,7 +339,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 19,
               "Title": "main.tsx",
               "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\main.tsx",
               "RelativeDocumentMoniker": "src\\main.tsx",
@@ -164,7 +351,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 20,
               "Title": "handwerkos_modified_package.json",
               "DocumentMoniker": "C:\\Users\\filip\\Downloads\\handwerkos_modified_package.json",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\Downloads\\handwerkos_modified_package.json",
@@ -176,7 +363,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 22,
               "Title": "add_vacation_system_fixed.sql",
               "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\add_vacation_system_fixed.sql",
               "RelativeDocumentMoniker": "add_vacation_system_fixed.sql",
@@ -188,7 +375,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 16,
               "Title": "AddInvoiceDialog.tsx",
               "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\src\\components\\AddInvoiceDialog.tsx",
               "RelativeDocumentMoniker": "src\\components\\AddInvoiceDialog.tsx",
@@ -200,7 +387,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 21,
               "Title": "add_vacation_system_final.sql",
               "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\add_vacation_system_final.sql",
               "RelativeDocumentMoniker": "add_vacation_system_final.sql",
@@ -212,7 +399,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 23,
               "Title": "add_vacation_system.sql",
               "DocumentMoniker": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\add_vacation_system.sql",
               "RelativeDocumentMoniker": "add_vacation_system.sql",
