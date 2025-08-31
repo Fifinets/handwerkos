@@ -26,8 +26,8 @@ const config: CapacitorConfig = {
     },
     StatusBar: {
       style: 'LIGHT_CONTENT',
-      backgroundColor: '#f9fafb',
-      overlay: false
+      backgroundColor: '#00000000',
+      overlay: true
     }
   },
   ios: {

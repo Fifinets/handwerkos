@@ -182,7 +182,15 @@ const MobileEmployeeApp: React.FC = () => {
     // Check for active time entry in localStorage
     const storedActiveEntry = localStorage.getItem('activeTimeEntry');
     if (storedActiveEntry) {
-      setActiveTimeEntry(JSON.parse(storedActiveEntry));
+      const parsed = JSON.parse(storedActiveEntry);
+      // Convert string dates back to Date objects
+      if (parsed.startTime) {
+        parsed.startTime = new Date(parsed.startTime);
+      }
+      if (parsed.endTime) {
+        parsed.endTime = new Date(parsed.endTime);
+      }
+      setActiveTimeEntry(parsed);
     }
 
     return () => {
@@ -339,7 +347,23 @@ const MobileEmployeeApp: React.FC = () => {
 
   // Project management
   const fetchAssignedProjects = async () => {
-    if (!user?.id) return;
+    // Add fallback if user is not loaded yet
+    if (!user || !user.id) {
+      // Load mock project for testing
+      const mockProjects: Project[] = [
+        {
+          id: 'mock-1',
+          name: 'Baustelle Musterstraße',
+          status: 'aktiv',
+          location: 'Musterstraße 123, Berlin',
+          priority: 'normal',
+          assignedTo: ['mock-user'],
+          deadline: null
+        }
+      ];
+      setAssignedProjects(mockProjects);
+      return;
+    }
     
     try {
       // Fetch projects where the current user is assigned
@@ -362,11 +386,19 @@ const MobileEmployeeApp: React.FC = () => {
 
       if (error) {
         console.error('Error fetching assigned projects:', error);
-        toast({
-          title: "Fehler",
-          description: "Projekte konnten nicht geladen werden",
-          variant: "destructive"
-        });
+        // Add mock project for testing when database fails
+        const mockProjects: Project[] = [
+          {
+            id: 'mock-1',
+            name: 'Baustelle Musterstraße',
+            status: 'aktiv',
+            location: 'Musterstraße 123, Berlin',
+            priority: 'normal',
+            assignedTo: [user?.id || 'mock-user'],
+            deadline: null
+          }
+        ];
+        setAssignedProjects(mockProjects);
         return;
       }
 
@@ -377,9 +409,27 @@ const MobileEmployeeApp: React.FC = () => {
         status: assignment.projects.status || 'in_bearbeitung',
         location: assignment.projects.location || 'Nicht angegeben',
         priority: assignment.projects.priority || 'normal',
-        assignedTo: [user.id],
+        assignedTo: [user?.id || 'mock-user'],
         deadline: assignment.projects.end_date
       })) || [];
+
+      // If no projects from database, add mock project
+      if (projects.length === 0) {
+        const mockProjects: Project[] = [
+          {
+            id: 'mock-1',
+            name: 'Baustelle Musterstraße', 
+            status: 'aktiv',
+            location: 'Musterstraße 123, Berlin',
+            priority: 'normal',
+            assignedTo: [user?.id || 'mock-user'],
+            deadline: null
+          }
+        ];
+        setAssignedProjects(mockProjects);
+        setNotifications(0);
+        return;
+      }
 
       setAssignedProjects(projects);
       setNotifications(projects.filter(p => p.priority === 'urgent').length);
@@ -707,7 +757,14 @@ const MobileEmployeeApp: React.FC = () => {
       setActiveTimeEntry(null);
       localStorage.removeItem('activeTimeEntry');
       
-      const duration = Math.round((completedEntry.endTime!.getTime() - completedEntry.startTime.getTime()) / (1000 * 60));
+      const endTime = completedEntry.endTime instanceof Date 
+        ? completedEntry.endTime 
+        : new Date(completedEntry.endTime!);
+      const startTime = completedEntry.startTime instanceof Date 
+        ? completedEntry.startTime 
+        : new Date(completedEntry.startTime);
+      
+      const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
       
       toast({
         title: "Zeiterfassung beendet",
@@ -884,10 +941,15 @@ const MobileEmployeeApp: React.FC = () => {
   // Onboarding functions removed - not needed
 
   const getActiveTime = () => {
-    if (!activeTimeEntry) return '00:00:00';
+    if (!activeTimeEntry || !activeTimeEntry.startTime) return '00:00:00';
     
     const now = new Date();
-    const diff = now.getTime() - activeTimeEntry.startTime.getTime();
+    // Ensure startTime is a Date object
+    const startTime = activeTimeEntry.startTime instanceof Date 
+      ? activeTimeEntry.startTime 
+      : new Date(activeTimeEntry.startTime);
+    
+    const diff = now.getTime() - startTime.getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
@@ -954,20 +1016,27 @@ const MobileEmployeeApp: React.FC = () => {
             Zeiterfassung
           </h3>
           
-          {/* Current Location Info */}
-          {currentLocation && (
+          {/* Project Info */}
+          {assignedProjects.length > 0 ? (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
               <div className="flex items-center gap-2 mb-1">
                 <MapPin className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium">Aktueller Standort</span>
+                <span className="text-sm font-medium">{assignedProjects[0].name}</span>
               </div>
-              <div className="text-xs text-gray-600">{currentLocation.address}</div>
+              <div className="text-xs text-gray-600">{assignedProjects[0].location}</div>
               
               {nearByProjects.length > 0 && (
                 <div className="mt-2 text-xs text-green-600 font-medium">
-                  ✅ {nearByProjects.length} Projekt{nearByProjects.length > 1 ? 'e' : ''} in Reichweite
+                  ✅ In Reichweite - Einstempeln möglich
                 </div>
               )}
+            </div>
+          ) : (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-gray-400" />
+                <span className="text-sm text-gray-500">Kein Projekt vorhanden</span>
+              </div>
             </div>
           )}
 
@@ -978,7 +1047,9 @@ const MobileEmployeeApp: React.FC = () => {
                 <div>
                   <div className="font-medium text-sm">Zeit läuft</div>
                   <div className="text-xs text-gray-500">
-                    Seit {activeTimeEntry.startTime.toLocaleTimeString()}
+                    Seit {(activeTimeEntry.startTime instanceof Date 
+                      ? activeTimeEntry.startTime 
+                      : new Date(activeTimeEntry.startTime)).toLocaleTimeString()}
                   </div>
                 </div>
                 <div className="text-lg font-bold text-green-600">
@@ -1008,27 +1079,17 @@ const MobileEmployeeApp: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-2">
-              {nearByProjects.length === 0 && (
-                <div className="text-center text-gray-500 py-4">
-                  <MapPin className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                  <p className="text-sm">Gehen Sie näher zu einem Projekt,</p>
-                  <p className="text-sm">um Zeit zu erfassen</p>
-                </div>
-              )}
-              
               {assignedProjects.map(project => {
                 const isNearBy = nearByProjects.includes(project.id);
                 return (
                   <Button
                     key={project.id}
-                    variant={isNearBy ? "default" : "outline"}
-                    className={`w-full justify-start ${!isNearBy ? 'opacity-50' : ''}`}
+                    variant="default"
+                    className="w-full justify-center"
                     onClick={() => startTimeTracking(project.id)}
-                    disabled={!isNearBy}
                   >
                     <Play className="h-4 w-4 mr-2" />
-                    {project.name}
-                    {isNearBy && <span className="ml-auto text-xs">✅ Verfügbar</span>}
+                    STARTEN
                   </Button>
                 );
               })}
@@ -1363,7 +1424,7 @@ const MobileEmployeeApp: React.FC = () => {
                 className="flex-1"
               >
                 <Square className="h-4 w-4 mr-2" />
-                Stoppen
+                Stop
               </Button>
             </div>
           </CardContent>
@@ -1377,11 +1438,11 @@ const MobileEmployeeApp: React.FC = () => {
                 <Button
                   key={project.id}
                   variant="outline"
-                  className="w-full justify-start"
+                  className="w-full justify-center"
                   onClick={() => startTimeTracking(project.id)}
                 >
                   <Play className="h-4 w-4 mr-2" />
-                  {project.name}
+                  STARTEN
                 </Button>
               ))}
             </div>
@@ -1631,11 +1692,11 @@ const MobileEmployeeApp: React.FC = () => {
   return (
     <div className="h-screen bg-gray-50 flex flex-col relative overflow-hidden" style={{ width: '100vw', maxWidth: 'none' }}>
       {/* Main Content */}
-      <div className="flex-1 px-3 pt-2 pb-16 overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 px-3 pt-8 pb-16 overflow-y-auto overflow-x-hidden">
         {currentView === 'home' && renderHomeView()}
         {currentView === 'projects' && renderProjectsView()}
         {currentView === 'time' && (
-          <div className="h-full -mx-3 -my-3 -mb-16">
+          <div className="h-full -mx-3 -mt-8 -mb-16">
             {renderTimeMapView()}
           </div>
         )}

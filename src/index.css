@@ -144,6 +144,10 @@ All colors MUST be HSL.
     overflow: hidden;
     margin: 0;
     padding: 0;
+    /* Use full screen including status bar area */
+    position: fixed;
+    top: 0;
+    left: 0;
   }
   
   .mobile-container {
