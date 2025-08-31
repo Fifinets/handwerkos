@@ -2,8 +2,8 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.handwerkos.employee',
-  appName: 'HandwerkOS Employee',
+  appId: 'com.handwerkos.app',
+  appName: 'HandwerkOS',
   webDir: 'dist',
   server: {
     androidScheme: 'https',
