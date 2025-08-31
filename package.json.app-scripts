@@ -1,0 +1,12 @@
+{
+  "scripts-to-add": {
+    "build:app": "npm run build && npx cap sync",
+    "android": "npx cap open android",
+    "ios": "npx cap open ios",
+    "android:run": "npx cap run android",
+    "ios:run": "npx cap run ios",
+    "android:build": "npm run build && npx cap sync android && cd android && ./gradlew assembleDebug",
+    "android:live": "npx cap run android --livereload --external",
+    "app:init": "npx cap add android && npx cap add ios"
+  }
+}

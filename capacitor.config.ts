@@ -2,13 +2,14 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.handwerkos.employee',
-  appName: 'HandwerkOS Employee',
+  appId: 'com.handwerkos.app',
+  appName: 'HandwerkOS',
   webDir: 'dist',
-  server: {
-    url: 'https://ihre-domain.de/employee',
-    cleartext: true
-  },
+  // Entferne server config für lokale App
+  // server: {
+  //   url: 'https://ihre-domain.de',
+  //   cleartext: true
+  // },
   plugins: {
     SplashScreen: {
       launchShowDuration: 200,
