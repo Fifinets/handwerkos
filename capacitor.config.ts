@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   appName: 'HandwerkOS Employee',
   webDir: 'dist',
   server: {
-    url: 'https://ihre-domain.de/employee',
+    androidScheme: 'https',
     cleartext: true
   },
   plugins: {
