@@ -1,0 +1,86 @@
+[
+    {
+        "merged": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-debug-39:\\mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-main-41:\\mipmap-xhdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "com.handwerkos.employee.app-debug-39:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "com.handwerkos.employee.app-main-41:/mipmap-xhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-debug-39:\\mipmap-hdpi_ic_launcher_round.png.flat",
+        "source": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-main-41:\\mipmap-hdpi\\ic_launcher_round.png"
+    },
+    {
+        "merged": "com.handwerkos.employee.app-debug-39:/mipmap-hdpi_ic_launcher_round.png.flat",
+        "source": "com.handwerkos.employee.app-main-41:/mipmap-hdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.handwerkos.employee.app-debug-39:/mipmap-xxxhdpi_ic_launcher_round.png.flat",
+        "source": "com.handwerkos.employee.app-main-41:/mipmap-xxxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-debug-39:\\mipmap-xxhdpi_ic_launcher_round.png.flat",
+        "source": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-main-41:\\mipmap-xxhdpi\\ic_launcher_round.png"
+    },
+    {
+        "merged": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-debug-39:\\mipmap-xxxhdpi_ic_launcher_round.png.flat",
+        "source": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-main-41:\\mipmap-xxxhdpi\\ic_launcher_round.png"
+    },
+    {
+        "merged": "com.handwerkos.employee.app-debug-39:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "com.handwerkos.employee.app-main-41:/mipmap-mdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.handwerkos.employee.app-debug-39:/mipmap-xhdpi_ic_launcher_round.png.flat",
+        "source": "com.handwerkos.employee.app-main-41:/mipmap-xhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.handwerkos.employee.app-debug-39:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "com.handwerkos.employee.app-main-41:/mipmap-hdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.handwerkos.employee.app-debug-39:/mipmap-xxhdpi_ic_launcher_round.png.flat",
+        "source": "com.handwerkos.employee.app-main-41:/mipmap-xxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-debug-39:\\mipmap-mdpi_ic_launcher_round.png.flat",
+        "source": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-main-41:\\mipmap-mdpi\\ic_launcher_round.png"
+    },
+    {
+        "merged": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-debug-39:\\mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-main-41:\\mipmap-xxxhdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "com.handwerkos.employee.app-debug-39:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "com.handwerkos.employee.app-main-41:/mipmap-xxxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-debug-39:\\mipmap-mdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-main-41:\\mipmap-mdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-debug-39:\\xml_config.xml.flat",
+        "source": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-main-41:\\xml\\config.xml"
+    },
+    {
+        "merged": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-debug-39:\\mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-main-41:\\mipmap-xxhdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-debug-39:\\mipmap-hdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-main-41:\\mipmap-hdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "com.handwerkos.employee.app-debug-39:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "com.handwerkos.employee.app-main-41:/mipmap-xxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-debug-39:\\mipmap-xhdpi_ic_launcher_round.png.flat",
+        "source": "C:\\Users\\filip\\.gradle\\daemon\\8.13\\com.handwerkos.employee.app-main-41:\\mipmap-xhdpi\\ic_launcher_round.png"
+    },
+    {
+        "merged": "com.handwerkos.employee.app-debug-39:/mipmap-mdpi_ic_launcher_round.png.flat",
+        "source": "com.handwerkos.employee.app-main-41:/mipmap-mdpi/ic_launcher_round.png"
+    }
+]

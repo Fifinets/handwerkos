@@ -239,37 +239,33 @@ const MapView: React.FC<MapViewProps> = ({
         zoom={18} 
         style={{ height: '100%', width: '100%' }}
         zoomControl={true}
+        attributionControl={false}
       >
-        {/* Dark theme map style */}
+        {/* CartoDB Positron - Clean gray style */}
+        <TileLayer
+          attribution=''  
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          key="carto-gray"
+        />
+        
+        {/* Alternative clean map styles - uncomment to use:
+        
+        // Minimal without labels (ultra clean)
         <TileLayer
           attribution='© CartoDB'
-          url="https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png"
+          url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
         />
         
-        {/* Alternative map styles - uncomment to use:
-        
-        // Dark theme
+        // Voyager style (clean and modern)
         <TileLayer
           attribution='© CartoDB'
-          url="https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png"
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
         
-        // Satellite view
+        // Dark clean theme
         <TileLayer
-          attribution='© Esri'
-          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-        />
-        
-        // Terrain view
-        <TileLayer
-          attribution='© OpenTopoMap'
-          url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
-        />
-        
-        // Standard OpenStreetMap
-        <TileLayer
-          attribution='© OpenStreetMap contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='© CartoDB'
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         />
         
         */}

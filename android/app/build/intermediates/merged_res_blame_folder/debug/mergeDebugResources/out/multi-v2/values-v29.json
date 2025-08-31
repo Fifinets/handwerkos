@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.handwerkos.employee.app-mergeDebugResources-37:/values-v29/values-v29.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\filip\\.gradle\\caches\\8.13\\transforms\\496281d0ebeeb8ff23c43702fbb45cb4\\transformed\\core-splashscreen-1.0.1\\res\\values-v29\\values-v29.xml",
+                    "from": {
+                        "startLines": "2,7",
+                        "startColumns": "4,4",
+                        "startOffsets": "55,374",
+                        "endLines": "6,8",
+                        "endColumns": "12,12",
+                        "endOffsets": "369,464"
+                    }
+                }
+            ]
+        }
+    ]
+}
