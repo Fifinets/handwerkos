@@ -9,6 +9,7 @@ import {
   Clock, 
   Package, 
   MapPin, 
+  Map,
   Camera, 
   CheckCircle,
   Play,
@@ -23,6 +24,7 @@ import {
   List,
   User,
   Bell,
+  Settings,
   Settings as SettingsIcon,
   Upload,
   MessageSquare,
@@ -36,6 +38,8 @@ import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { VacationRequestDialog } from "../VacationRequestDialog";
+import MapView from "../MapView";
+import { StatusBar, Style } from '@capacitor/status-bar';
 
 interface Project {
   id: string;
@@ -88,7 +92,7 @@ const MobileEmployeeApp: React.FC = () => {
   const { toast } = useToast();
   
   // State Management
-  const [currentView, setCurrentView] = useState<'home' | 'projects' | 'time' | 'activity' | 'profile' | 'vacation'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'projects' | 'time' | 'profile'>('home');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, address: string} | null>(null);
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
@@ -116,6 +120,7 @@ const MobileEmployeeApp: React.FC = () => {
   const [isFirstVisit, setIsFirstVisit] = useState(true);
   const [showVacationDialog, setShowVacationDialog] = useState(false);
   const [vacationBalance, setVacationBalance] = useState({ available: 0, total: 0 });
+  const [nearByProjects, setNearByProjects] = useState<string[]>([]);
 
   // Quick Actions State
   const [quickMaterialEntry, setQuickMaterialEntry] = useState({
@@ -126,6 +131,20 @@ const MobileEmployeeApp: React.FC = () => {
   });
 
   // Effects
+  // Configure status bar for fullscreen display
+  useEffect(() => {
+    const configureStatusBar = async () => {
+      try {
+        await StatusBar.setStyle({ style: Style.Light });
+        await StatusBar.setBackgroundColor({ color: '#f9fafb' });
+        await StatusBar.show();
+      } catch (error) {
+        console.log('StatusBar not available in web');
+      }
+    };
+    configureStatusBar();
+  }, []);
+
   useEffect(() => {
     // Network status monitoring
     const handleOnline = () => {
@@ -876,7 +895,151 @@ const MobileEmployeeApp: React.FC = () => {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  // Render functions for different views
+  // Map-First Render Functions (Apple Find My Style)  
+  const renderMapView = () => {
+    // Convert assigned projects to map points with coordinates
+    const projectSites = assignedProjects.map(project => ({
+      id: project.id,
+      name: project.name,
+      lat: 52.520008 + Math.random() * 0.01, // Mock coordinates around Berlin
+      lng: 13.404954 + Math.random() * 0.01, // In real app, get from project.coordinates
+      address: project.location
+    }));
+
+    return (
+      <div className="flex flex-col h-full">
+        {/* Map Container */}
+        <div className="flex-1">
+          <MapView 
+            constructionSites={projectSites}
+            onLocationUpdate={(userLocation, nearByProjects) => {
+              setCurrentLocation(userLocation);
+              setNearByProjects(nearByProjects.map(site => site.id));
+            }}
+            className="h-full" 
+          />
+        </div>
+      </div>
+    );
+  };
+
+  // Map-based Time Tracking View (only tab with map access)
+  const renderTimeMapView = () => {
+    // Convert assigned projects to map points with coordinates  
+    const projectSites = assignedProjects.map(project => ({
+      id: project.id,
+      name: project.name,
+      lat: 52.520008 + Math.random() * 0.01, // Mock coordinates around Berlin
+      lng: 13.404954 + Math.random() * 0.01, // In real app, get from project.coordinates
+      address: project.location
+    }));
+
+    return (
+      <div className="flex flex-col h-full">
+        <div className="flex-1">
+          <MapView 
+            constructionSites={projectSites}
+            onLocationUpdate={(userLocation, nearByProjects) => {
+              setCurrentLocation(userLocation);
+              setNearByProjects(nearByProjects.map(site => site.id));
+            }}
+            className="h-full" 
+          />
+        </div>
+        
+        {/* Time Tracking Bottom Sheet */}
+        <div className="bg-white border-t rounded-t-xl p-4 max-h-60 overflow-y-auto">
+          <h3 className="font-semibold mb-3 flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Zeiterfassung
+          </h3>
+          
+          {/* Current Location Info */}
+          {currentLocation && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <div className="flex items-center gap-2 mb-1">
+                <MapPin className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium">Aktueller Standort</span>
+              </div>
+              <div className="text-xs text-gray-600">{currentLocation.address}</div>
+              
+              {nearByProjects.length > 0 && (
+                <div className="mt-2 text-xs text-green-600 font-medium">
+                  ✅ {nearByProjects.length} Projekt{nearByProjects.length > 1 ? 'e' : ''} in Reichweite
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Active Time Entry */}
+          {activeTimeEntry ? (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium text-sm">Zeit läuft</div>
+                  <div className="text-xs text-gray-500">
+                    Seit {activeTimeEntry.startTime.toLocaleTimeString()}
+                  </div>
+                </div>
+                <div className="text-lg font-bold text-green-600">
+                  {getActiveTime()}
+                </div>
+              </div>
+              <div className="flex gap-2 mt-3">
+                <Button 
+                  onClick={pauseTimeTracking}
+                  variant="outline" 
+                  size="sm"
+                  className="flex-1"
+                >
+                  <Pause className="h-4 w-4 mr-1" />
+                  Pause
+                </Button>
+                <Button 
+                  onClick={stopTimeTracking}
+                  variant="destructive" 
+                  size="sm"
+                  className="flex-1"
+                >
+                  <Square className="h-4 w-4 mr-1" />
+                  Stop
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {nearByProjects.length === 0 && (
+                <div className="text-center text-gray-500 py-4">
+                  <MapPin className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                  <p className="text-sm">Gehen Sie näher zu einem Projekt,</p>
+                  <p className="text-sm">um Zeit zu erfassen</p>
+                </div>
+              )}
+              
+              {assignedProjects.map(project => {
+                const isNearBy = nearByProjects.includes(project.id);
+                return (
+                  <Button
+                    key={project.id}
+                    variant={isNearBy ? "default" : "outline"}
+                    className={`w-full justify-start ${!isNearBy ? 'opacity-50' : ''}`}
+                    onClick={() => startTimeTracking(project.id)}
+                    disabled={!isNearBy}
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    {project.name}
+                    {isNearBy && <span className="ml-auto text-xs">✅ Verfügbar</span>}
+                  </Button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Legacy render functions (keeping for now)
   const renderHomeView = () => (
     <div className="space-y-2 w-full overflow-hidden">
       {/* Status Bar */}
@@ -1466,25 +1629,26 @@ const MobileEmployeeApp: React.FC = () => {
   // Onboarding removed - not needed
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col max-w-md mx-auto relative overflow-hidden">
+    <div className="h-screen bg-gray-50 flex flex-col relative overflow-hidden" style={{ width: '100vw', maxWidth: 'none' }}>
       {/* Main Content */}
-      <div className="flex-1 px-3 py-3 pb-16 overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 px-3 pt-2 pb-16 overflow-y-auto overflow-x-hidden">
         {currentView === 'home' && renderHomeView()}
         {currentView === 'projects' && renderProjectsView()}
-        {currentView === 'time' && renderTimeView()}
-        {currentView === 'vacation' && renderVacationView()}
-        {currentView === 'activity' && renderActivityView()}
+        {currentView === 'time' && (
+          <div className="h-full -mx-3 -my-3 -mb-16">
+            {renderTimeMapView()}
+          </div>
+        )}
         {currentView === 'profile' && renderProfileView()}
       </div>
 
       {/* Bottom Navigation */}
       <div className="absolute bottom-0 left-0 right-0 bg-white border-t shadow-lg">
-        <div className="grid grid-cols-5 gap-1 p-2">
+        <div className="grid grid-cols-4 gap-1 p-2">
           {[
             { id: 'home', icon: Home, label: 'Start' },
             { id: 'projects', icon: List, label: 'Projekte' },
             { id: 'time', icon: Clock, label: 'Zeit' },
-            { id: 'vacation', icon: Calendar, label: 'Urlaub' },
             { id: 'profile', icon: User, label: 'Profil' }
           ].map((item) => (
             <Button

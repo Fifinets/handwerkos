@@ -8,7 +8,12 @@
       "Bash(rm:*)",
       "Bash(npm run build:*)",
       "Bash(git reset:*)",
-      "Bash(git revert:*)"
+      "Bash(git revert:*)",
+      "Bash(npm install:*)",
+      "Bash(npx cap init:*)",
+      "Bash(npx cap add:*)",
+      "Bash(npx cap sync:*)",
+      "Bash(npx cap open:*)"
     ],
     "deny": []
   }
