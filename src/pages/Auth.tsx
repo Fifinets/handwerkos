@@ -185,12 +185,30 @@ const Auth: React.FC = () => {
 
       // B) Ganz normaler Login
       if (isLogin) {
-        const { error } = await signIn(email, password);
+        const { error, data } = await signIn(email, password);
         if (error) {
           toast.error(error.message);
         } else {
-          // Remove success toast - just navigate silently
-          navigate('/manager');
+          // Rolle abrufen und entsprechend weiterleiten
+          if (data?.user) {
+            const { data: roleData } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', data.user.id)
+              .single();
+            
+            const userRole = roleData?.role || 'employee';
+            
+            // Rollenbasierte Weiterleitung
+            if (userRole === 'manager') {
+              navigate('/manager');
+            } else {
+              navigate('/employee');
+            }
+          } else {
+            // Fallback
+            navigate('/manager');
+          }
         }
         return;
       }

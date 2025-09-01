@@ -6,6 +6,7 @@ import { User, Lock, Eye, EyeOff, Wrench } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const MobileAuth: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -25,9 +26,33 @@ const MobileAuth: React.FC = () => {
 
     setLoading(true);
     try {
-      await signIn(email, password);
-      toast.success('Erfolgreich angemeldet');
-      navigate('/');
+      const result = await signIn(email, password);
+      
+      // Hole die aktuelle Session nach dem Login
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        // Rolle abrufen
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        const userRole = roleData?.role || 'employee';
+        
+        toast.success('Erfolgreich angemeldet');
+        
+        // Rollenbasierte Weiterleitung
+        if (userRole === 'manager') {
+          navigate('/manager');
+        } else {
+          navigate('/employee');
+        }
+      } else {
+        // Fallback
+        navigate('/');
+      }
     } catch (error: any) {
       toast.error('Anmeldung fehlgeschlagen: ' + (error?.message || 'Unbekannter Fehler'));
     } finally {
