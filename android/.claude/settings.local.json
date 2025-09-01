@@ -42,7 +42,15 @@
       "Bash(npm install:*)",
       "Read(C:\\Users\\filip\\StudioProjects\\handwerkos/**)",
       "Read(C:\\Users\\filip\\StudioProjects\\handwerkos\\src/**)",
-      "Read(C:\\Users\\filip\\StudioProjects\\handwerkos\\src\\components/**)"
+      "Read(C:\\Users\\filip\\StudioProjects\\handwerkos\\src\\components/**)",
+      "Bash(git fetch:*)",
+      "Read(C:\\Users\\filip\\StudioProjects\\handwerkos/**)",
+      "Read(C:\\Users\\filip\\StudioProjects\\handwerkos\\src\\pages/**)",
+      "Read(C:\\Users\\filip\\StudioProjects\\handwerkos\\src\\pages/**)",
+      "Read(C:\\Users\\filip\\StudioProjects\\handwerkos\\src\\pages/**)",
+      "Bash(JAVA_HOME=\"C:\\Program Files\\Android\\Studio\\jbr\" ./gradlew installDebug)",
+      "Read(C:\\Users\\filip\\StudioProjects\\handwerkos\\src\\components\\employee/**)",
+      "Read(C:\\Users\\filip\\StudioProjects\\handwerkos\\src/**)"
     ],
     "deny": [],
     "ask": []

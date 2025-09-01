@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /auth
+Disallow: /manager
+Disallow: /employee
+Disallow: /mitarbeiter-setup
+
+Sitemap: https://handwerkos.de/sitemap.xml

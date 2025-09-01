@@ -1,0 +1,45 @@
+{
+	"appId": "com.handwerkos.app",
+	"appName": "HandwerkOS",
+	"webDir": "dist",
+	"server": {
+		"androidScheme": "https",
+		"cleartext": true
+	},
+	"plugins": {
+		"SplashScreen": {
+			"launchShowDuration": 200,
+			"backgroundColor": "#3b82f6",
+			"showSpinner": false,
+			"androidScaleType": "CENTER_CROP",
+			"splashFullScreen": true,
+			"splashImmersive": true
+		},
+		"Geolocation": {
+			"permissions": [
+				"location"
+			]
+		},
+		"Camera": {
+			"permissions": [
+				"camera",
+				"photos"
+			]
+		},
+		"StatusBar": {
+			"style": "LIGHT_CONTENT",
+			"backgroundColor": "#00000000",
+			"overlay": true
+		}
+	},
+	"ios": {
+		"contentInset": "automatic",
+		"allowsLinkPreview": false
+	},
+	"packageClassList": [
+		"CAPCameraPlugin",
+		"GeolocationPlugin",
+		"SplashScreenPlugin",
+		"StatusBarPlugin"
+	]
+}
