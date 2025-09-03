@@ -135,8 +135,8 @@ const MobileEmployeeApp: React.FC = () => {
   useEffect(() => {
     const configureStatusBar = async () => {
       try {
-        await StatusBar.setStyle({ style: Style.Light });
-        await StatusBar.setBackgroundColor({ color: '#f9fafb' });
+        await StatusBar.setStyle({ style: Style.Dark });
+        await StatusBar.setOverlaysWebView({ overlay: false });
         await StatusBar.show();
       } catch (error) {
         console.log('StatusBar not available in web');
@@ -1690,13 +1690,13 @@ const MobileEmployeeApp: React.FC = () => {
   // Onboarding removed - not needed
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col relative overflow-hidden" style={{ width: '100vw', maxWidth: 'none' }}>
+    <div className="h-full bg-gray-50 flex flex-col relative overflow-hidden" style={{ width: '100vw', maxWidth: 'none', paddingTop: '44px' }}>
       {/* Main Content */}
-      <div className="flex-1 px-3 pt-8 pb-16 overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 px-3 pt-2 pb-16 overflow-y-auto overflow-x-hidden">
         {currentView === 'home' && renderHomeView()}
         {currentView === 'projects' && renderProjectsView()}
         {currentView === 'time' && (
-          <div className="h-full -mx-3 -mt-8 -mb-16">
+          <div className="h-full -mx-3 -mb-16" style={{ marginTop: '-52px' }}>
             {renderTimeMapView()}
           </div>
         )}
@@ -1704,7 +1704,7 @@ const MobileEmployeeApp: React.FC = () => {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="absolute bottom-0 left-0 right-0 bg-white border-t shadow-lg">
+      <div className="absolute left-0 right-0 bg-white border-t shadow-lg" style={{ bottom: '20px', paddingBottom: '8px' }}>
         <div className="grid grid-cols-4 gap-1 p-2">
           {[
             { id: 'home', icon: Home, label: 'Start' },

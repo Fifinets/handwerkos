@@ -6,52 +6,65 @@ import { supabase } from '@/integrations/supabase/client';
 
 const MobileApp = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [checkingRole, setCheckingRole] = useState(true);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     // Check authentication status and role
     const checkAuthAndRole = async () => {
-      console.log('Checking auth and role...');
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
-      
-      if (session?.user) {
-        console.log('User found:', session.user.id);
-        // Rolle abrufen
-        const { data: roleData, error } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .maybeSingle(); // Verwende maybeSingle statt single
+      try {
+        console.log('Checking auth and role...');
+        const { data: { session } } = await supabase.auth.getSession();
+        setIsAuthenticated(!!session);
         
-        console.log('Role data:', roleData, 'Error:', error);
-        
-        // Wenn keine Rolle gefunden, erstelle einen Default-Eintrag
-        let userRole = 'employee';
-        
-        if (roleData?.role) {
-          userRole = roleData.role;
-        } else {
-          // Kein Eintrag in user_roles gefunden - behandle als Employee
-          console.log('No role found for user, treating as employee');
-          userRole = 'employee';
+        if (session?.user) {
+          console.log('User found:', session.user.id);
+          // Rolle abrufen
+          const { data: roleData, error } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .maybeSingle(); // Verwende maybeSingle statt single
+          
+          console.log('Role data:', roleData, 'Error:', error);
+          
+          // Wenn keine Rolle gefunden, erstelle einen Default-Eintrag
+          let userRole = 'employee';
+          
+          if (roleData?.role) {
+            userRole = roleData.role;
+          } else {
+            // Kein Eintrag in user_roles gefunden - behandle als Employee
+            console.log('No role found for user, treating as employee');
+            userRole = 'employee';
+          }
+          
+          console.log('User role:', userRole);
+          
+          // Manager zu /manager weiterleiten
+          if (userRole === 'manager') {
+            console.log('Redirecting manager to /manager');
+            navigate('/manager');
+            return; // Wichtig: Return hier, damit wir nicht weitermachen
+          }
         }
-        
-        console.log('User role:', userRole);
-        
-        // Manager zu /manager weiterleiten
-        if (userRole === 'manager') {
-          console.log('Redirecting manager to /manager');
-          navigate('/manager');
-          return; // Wichtig: Return hier, damit wir nicht weitermachen
-        }
+      } catch (error) {
+        console.error('Error checking auth and role:', error);
+      } finally {
+        setLoading(false);
       }
-      
-      setCheckingRole(false);
     };
 
-    checkAuthAndRole();
+    // Timeout als Fallback
+    const timeout = setTimeout(() => {
+      console.log('Auth check timeout - proceeding without auth');
+      setIsAuthenticated(false);
+      setLoading(false);
+    }, 5000);
+
+    checkAuthAndRole().then(() => {
+      clearTimeout(timeout);
+    });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -77,9 +90,9 @@ const MobileApp = () => {
   }, [navigate]);
 
   // Show loading while checking auth and role
-  if (isAuthenticated === null || (isAuthenticated && checkingRole)) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-blue-50 flex items-center justify-center">
+      <div className="h-full bg-blue-50 flex items-center justify-center" style={{ paddingTop: '44px', paddingBottom: '20px' }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Lade...</p>

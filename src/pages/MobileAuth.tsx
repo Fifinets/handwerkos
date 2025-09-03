@@ -61,14 +61,14 @@ const MobileAuth: React.FC = () => {
   };
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+    <div className="h-full bg-white flex flex-col justify-center" style={{ paddingTop: '44px', paddingBottom: '20px' }}>
       {/* Header */}
-      <div className="bg-white px-3 pt-8 pb-4 text-center border-b border-gray-200">
-        <div className="flex justify-center items-center">
+      <div className="text-center mb-8">
+        <div className="flex justify-center items-center mb-2">
           <img 
             src="/favicon-32x32.png" 
             alt="HandwerkOS Logo" 
-            className="h-10 w-10 mr-4"
+            className="h-6 w-6 mr-2"
             style={{ 
               imageRendering: '-webkit-optimize-contrast'
             }}
@@ -78,15 +78,15 @@ const MobileAuth: React.FC = () => {
               e.currentTarget.nextElementSibling?.classList.remove('hidden');
             }}
           />
-          <div className="bg-gray-100 p-3 rounded-full mr-4 hidden">
-            <Wrench className="h-8 w-8 text-blue-600" />
+          <div className="bg-gray-100 p-1 rounded-full mr-2 hidden">
+            <Wrench className="h-4 w-4 text-blue-600" />
           </div>
-          <h1 className="text-xl font-bold text-gray-900">HandwerkOS</h1>
+          <h1 className="text-lg font-bold text-gray-900">HandwerkOS</h1>
         </div>
       </div>
 
       {/* Login Form */}
-      <div className="flex-1 px-3 py-4 bg-white">
+      <div className="px-6">
         <div className="max-w-sm mx-auto">
           <form onSubmit={handleLogin} className="space-y-3">
             {/* Email Field */}
@@ -138,7 +138,7 @@ const MobileAuth: React.FC = () => {
             {/* Login Button */}
             <Button
               type="submit"
-              className="w-full h-10 text-sm bg-blue-500 hover:bg-blue-600 text-white font-medium shadow-sm"
+              className="w-full h-10 text-sm bg-blue-500 hover:bg-blue-600 text-white font-medium shadow-sm mt-4"
               disabled={loading}
             >
               {loading ? 'Anmelden...' : 'Anmelden'}
@@ -146,9 +146,9 @@ const MobileAuth: React.FC = () => {
           </form>
 
           {/* Help Text */}
-          <div className="mt-8 text-center text-sm text-gray-700">
+          <div className="mt-4 text-center text-xs text-gray-600">
             <p>Probleme beim Anmelden?</p>
-            <p className="mt-1">Wenden Sie sich an Ihren Administrator</p>
+            <p>Wenden Sie sich an Ihren Administrator</p>
           </div>
         </div>
       </div>
