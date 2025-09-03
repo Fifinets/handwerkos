@@ -123,7 +123,9 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<MobileApp />} />
+              <Route path="/" element={<HandwerkerSoftware />} />
+              <Route path="/handwerkersoftware" element={<HandwerkerSoftware />} />
+              <Route path="/mobile" element={<MobileApp />} />
               <Route path="/login" element={<Auth />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/manager" element={<Index />} />
@@ -131,7 +133,6 @@ const App = () => (
               <Route path="/auth/callback" element={<GmailCallback />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/mitarbeiter-setup" element={<MitarbeiterSetupPage />} />
-              <Route path="/handwerkersoftware" element={<HandwerkerSoftware />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
