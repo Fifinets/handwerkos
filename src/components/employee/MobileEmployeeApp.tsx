@@ -40,6 +40,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { VacationRequestDialog } from "../VacationRequestDialog";
 import MapView from "../MapView";
 import { StatusBar, Style } from '@capacitor/status-bar';
+import EnhancedMobileTimeTracker from './EnhancedMobileTimeTracker';
+import MobileDeliverySignature from '../MobileDeliverySignature';
 
 interface Project {
   id: string;
@@ -92,7 +94,7 @@ const MobileEmployeeApp: React.FC = () => {
   const { toast } = useToast();
   
   // State Management
-  const [currentView, setCurrentView] = useState<'home' | 'projects' | 'time' | 'profile'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'projects' | 'time' | 'signature' | 'profile'>('home');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, address: string} | null>(null);
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
@@ -1697,7 +1699,12 @@ const MobileEmployeeApp: React.FC = () => {
         {currentView === 'projects' && renderProjectsView()}
         {currentView === 'time' && (
           <div className="h-full -mx-3 -mb-16" style={{ marginTop: '-52px' }}>
-            {renderTimeMapView()}
+            <EnhancedMobileTimeTracker />
+          </div>
+        )}
+        {currentView === 'signature' && (
+          <div className="h-full overflow-y-auto">
+            <MobileDeliverySignature className="pb-4" />
           </div>
         )}
         {currentView === 'profile' && renderProfileView()}
@@ -1705,11 +1712,12 @@ const MobileEmployeeApp: React.FC = () => {
 
       {/* Bottom Navigation */}
       <div className="absolute left-0 right-0 bg-white border-t shadow-lg" style={{ bottom: '20px', paddingBottom: '8px' }}>
-        <div className="grid grid-cols-4 gap-1 p-2">
+        <div className="grid grid-cols-5 gap-1 p-2">
           {[
             { id: 'home', icon: Home, label: 'Start' },
             { id: 'projects', icon: List, label: 'Projekte' },
             { id: 'time', icon: Clock, label: 'Zeit' },
+            { id: 'signature', icon: PenTool, label: 'Signatur' },
             { id: 'profile', icon: User, label: 'Profil' }
           ].map((item) => (
             <Button
@@ -1717,9 +1725,9 @@ const MobileEmployeeApp: React.FC = () => {
               variant={currentView === item.id ? "default" : "ghost"}
               size="sm"
               onClick={() => setCurrentView(item.id as any)}
-              className="flex flex-col gap-0.5 h-14 p-1"
+              className="flex flex-col gap-0.5 h-14 p-1 relative"
             >
-              <item.icon className="h-5 w-5" />
+              <item.icon className="h-4 w-4" />
               <span className="text-xs">{item.label}</span>
               {item.id === 'projects' && notifications > 0 && (
                 <Badge

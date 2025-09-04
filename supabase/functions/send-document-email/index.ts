@@ -9,12 +9,13 @@ const corsHeaders = {
 };
 
 interface SendDocumentEmailRequest {
-  documentType: 'quote' | 'invoice';
+  documentType: 'quote' | 'invoice' | 'delivery_note';
   documentId: string;
   recipientEmail: string;
   recipientName: string;
   subject?: string;
   message?: string;
+  attachPdf?: boolean;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -44,7 +45,8 @@ const handler = async (req: Request): Promise<Response> => {
       recipientEmail,
       recipientName,
       subject,
-      message 
+      message,
+      attachPdf = false
     }: SendDocumentEmailRequest = await req.json();
 
     console.log(`Sending ${documentType} email for document ${documentId} to ${recipientEmail}`);
@@ -56,16 +58,46 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Get document data based on type
     let documentData;
-    let tableName = documentType === 'quote' ? 'quotes' : 'invoices';
-    let numberField = documentType === 'quote' ? 'quote_number' : 'invoice_number';
+    let tableName: string;
+    let numberField: string;
+    let selectQuery: string;
     
-    const { data, error } = await supabase
-      .from(tableName)
-      .select(`
+    if (documentType === 'delivery_note') {
+      tableName = 'delivery_notes';
+      numberField = 'number';
+      selectQuery = `
+        *,
+        project:projects(
+          name,
+          customer:customers(name, email, phone)
+        ),
+        items:delivery_note_items(
+          *,
+          time_segment:time_segments(
+            started_at,
+            ended_at,
+            duration_minutes_computed,
+            segment_type
+          ),
+          material:materials(
+            name,
+            unit
+          )
+        )
+      `;
+    } else {
+      tableName = documentType === 'quote' ? 'quotes' : 'invoices';
+      numberField = documentType === 'quote' ? 'quote_number' : 'invoice_number';
+      selectQuery = `
         *,
         customer:customers(company_name, contact_person, email),
         document_items(*)
-      `)
+      `;
+    }
+    
+    const { data, error } = await supabase
+      .from(tableName)
+      .select(selectQuery)
       .eq('id', documentId)
       .single();
 
@@ -76,9 +108,46 @@ const handler = async (req: Request): Promise<Response> => {
 
     documentData = data;
 
+    // Generate PDF attachment if needed
+    let pdfAttachment = null;
+    if (attachPdf && documentType === 'delivery_note') {
+      try {
+        const pdfResponse = await fetch(`${supabaseUrl}/functions/v1/generate-delivery-note-pdf`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ deliveryNoteId: documentId })
+        });
+        
+        if (pdfResponse.ok) {
+          const pdfBuffer = await pdfResponse.arrayBuffer();
+          const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
+          
+          pdfAttachment = {
+            filename: `${documentData[numberField].replace(/\//g, '-')}.pdf`,
+            content: pdfBase64
+          };
+        }
+      } catch (error) {
+        console.warn('PDF generation failed:', error);
+        // Continue without PDF attachment
+      }
+    }
+
     // Generate email content
-    const documentTitle = documentType === 'quote' ? 'Angebot' : 'Rechnung';
-    const defaultSubject = `${documentTitle} ${documentData[numberField]} - ${documentData.title}`;
+    let documentTitle: string;
+    let defaultSubject: string;
+    
+    if (documentType === 'delivery_note') {
+      documentTitle = 'Lieferschein';
+      defaultSubject = `${documentTitle} ${documentData[numberField]} - ${documentData.project?.name || 'Projekt'}`;
+    } else {
+      documentTitle = documentType === 'quote' ? 'Angebot' : 'Rechnung';
+      defaultSubject = `${documentTitle} ${documentData[numberField]} - ${documentData.title}`;
+    }
+    
     const emailSubject = subject || defaultSubject;
 
     const formatCurrency = (amount: number, currency: string = 'EUR') => {
@@ -93,16 +162,60 @@ const handler = async (req: Request): Promise<Response> => {
     };
 
     // Create items table for email
-    const itemsTable = documentData.document_items
-      .map((item: any) => `
-        <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${item.description}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.unit}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.unit_price)}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.total_price)}</td>
-        </tr>
-      `).join('');
+    let itemsTable = '';
+    
+    if (documentType === 'delivery_note') {
+      // Delivery note items (time + materials)
+      itemsTable = (documentData.items || [])
+        .map((item: any) => {
+          if (item.item_type === 'time') {
+            const hours = (item.quantity || 0).toFixed(2);
+            let timeDetail = '';
+            if (item.time_segment) {
+              const start = new Date(item.time_segment.started_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+              const end = item.time_segment.ended_at 
+                ? new Date(item.time_segment.ended_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+                : 'laufend';
+              timeDetail = `<small style="color: #6b7280;">(${start} - ${end})</small>`;
+            }
+            return `
+              <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">
+                  ${item.description}<br>
+                  ${timeDetail}
+                </td>
+                <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${hours}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">Std</td>
+                <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${item.unit_price ? formatCurrency(item.unit_price) : '-'}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${item.unit_price ? formatCurrency(item.quantity * item.unit_price) : '-'}</td>
+              </tr>
+            `;
+          } else {
+            // Material item
+            return `
+              <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${item.description || item.material?.name}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.unit || item.material?.unit || 'Stk'}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${item.unit_price ? formatCurrency(item.unit_price) : '-'}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${item.unit_price ? formatCurrency(item.quantity * item.unit_price) : '-'}</td>
+              </tr>
+            `;
+          }
+        }).join('');
+    } else {
+      // Quote/Invoice items
+      itemsTable = documentData.document_items
+        .map((item: any) => `
+          <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${item.description}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.unit}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.unit_price)}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.total_price)}</td>
+          </tr>
+        `).join('');
+    }
 
     const emailHtml = `
       <!DOCTYPE html>
@@ -120,30 +233,46 @@ const handler = async (req: Request): Promise<Response> => {
 
         <div style="margin-bottom: 20px;">
           <p>Sehr geehrte Damen und Herren,</p>
-          ${message ? `<p>${message}</p>` : `
-            <p>anbei erhalten Sie ${documentType === 'quote' ? 'unser Angebot' : 'unsere Rechnung'} wie besprochen.</p>
-          `}
+          ${message ? `<p>${message}</p>` : 
+            documentType === 'delivery_note' 
+              ? `<p>anbei erhalten Sie den Lieferschein für das Projekt <strong>${documentData.project?.name}</strong>.</p>`
+              : `<p>anbei erhalten Sie ${documentType === 'quote' ? 'unser Angebot' : 'unsere Rechnung'} wie besprochen.</p>`
+          }
         </div>
 
         <div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-          <h2 style="color: #1f2937; margin-top: 0;">${documentData.title}</h2>
+          <h2 style="color: #1f2937; margin-top: 0;">
+            ${documentType === 'delivery_note' ? documentData.project?.name || 'Projekt' : documentData.title}
+          </h2>
           
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
             <div>
               <h3 style="color: #374151; margin-bottom: 10px;">Kundeninformationen</h3>
-              <p style="margin: 0;"><strong>${documentData.customer.company_name}</strong></p>
-              <p style="margin: 5px 0;">${documentData.customer.contact_person}</p>
+              ${documentType === 'delivery_note' ? `
+                <p style="margin: 0;"><strong>${documentData.project?.customer?.name}</strong></p>
+                ${documentData.project?.customer?.phone ? `<p style="margin: 5px 0;">Tel: ${documentData.project.customer.phone}</p>` : ''}
+              ` : `
+                <p style="margin: 0;"><strong>${documentData.customer.company_name}</strong></p>
+                <p style="margin: 5px 0;">${documentData.customer.contact_person}</p>
+              `}
             </div>
             <div>
               <h3 style="color: #374151; margin-bottom: 10px;">${documentTitle}sdaten</h3>
               <p style="margin: 0;"><strong>Nummer:</strong> ${documentData[numberField]}</p>
-              <p style="margin: 5px 0;"><strong>Datum:</strong> ${formatDate(documentData[documentType === 'quote' ? 'quote_date' : 'invoice_date'])}</p>
+              <p style="margin: 5px 0;"><strong>Datum:</strong> ${formatDate(
+                documentType === 'delivery_note' ? documentData.delivery_date :
+                documentType === 'quote' ? documentData.quote_date : documentData.invoice_date
+              )}</p>
               ${documentType === 'quote' && documentData.valid_until ? 
                 `<p style="margin: 5px 0;"><strong>Gültig bis:</strong> ${formatDate(documentData.valid_until)}</p>` : 
                 ''
               }
               ${documentType === 'invoice' ? 
                 `<p style="margin: 5px 0;"><strong>Fällig am:</strong> ${formatDate(documentData.due_date)}</p>` : 
+                ''
+              }
+              ${documentType === 'delivery_note' ? 
+                `<p style="margin: 5px 0;"><strong>Status:</strong> ${documentData.status === 'signed' ? '✅ Signiert' : '📝 ' + documentData.status}</p>` : 
                 ''
               }
             </div>
@@ -166,11 +295,38 @@ const handler = async (req: Request): Promise<Response> => {
             </tbody>
           </table>
 
-          <div style="text-align: right; border-top: 2px solid #d1d5db; padding-top: 10px;">
-            <p style="margin: 5px 0;"><strong>Nettosumme: ${formatCurrency(documentData.net_amount)}</strong></p>
-            <p style="margin: 5px 0;">MwSt. (${documentData.tax_rate}%): ${formatCurrency(documentData.tax_amount)}</p>
-            <p style="margin: 5px 0; font-size: 18px;"><strong>Gesamtsumme: ${formatCurrency(documentData.total_amount)}</strong></p>
-          </div>
+          ${documentType === 'delivery_note' ? `
+            <div style="border-top: 2px solid #d1d5db; padding-top: 15px;">
+              ${documentData.total_work_minutes > 0 ? `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                  <div>
+                    <h4 style="color: #374151; margin-bottom: 10px;">Arbeitszeiten</h4>
+                    <p style="margin: 0;"><strong>Arbeitszeit:</strong> ${Math.floor(documentData.total_work_minutes / 60)}h ${documentData.total_work_minutes % 60}min</p>
+                    ${documentData.total_break_minutes > 0 ? 
+                      `<p style="margin: 5px 0;"><strong>Pausenzeit:</strong> ${Math.floor(documentData.total_break_minutes / 60)}h ${documentData.total_break_minutes % 60}min</p>` : 
+                      ''
+                    }
+                  </div>
+                  <div style="text-align: right;">
+                    ${documentData.signed_at ? `
+                      <h4 style="color: #374151; margin-bottom: 10px;">Signatur</h4>
+                      <p style="margin: 0; color: #059669;"><strong>✅ Signiert</strong></p>
+                      <p style="margin: 5px 0; font-size: 14px;">am ${formatDate(documentData.signed_at)}</p>
+                      ${documentData.signed_by_name ? `<p style="margin: 5px 0; font-size: 14px;">von ${documentData.signed_by_name}</p>` : ''}
+                    ` : `
+                      <p style="color: #6b7280;">📝 Noch nicht signiert</p>
+                    `}
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          ` : `
+            <div style="text-align: right; border-top: 2px solid #d1d5db; padding-top: 10px;">
+              <p style="margin: 5px 0;"><strong>Nettosumme: ${formatCurrency(documentData.net_amount)}</strong></p>
+              <p style="margin: 5px 0;">MwSt. (${documentData.tax_rate}%): ${formatCurrency(documentData.tax_amount)}</p>
+              <p style="margin: 5px 0; font-size: 18px;"><strong>Gesamtsumme: ${formatCurrency(documentData.total_amount)}</strong></p>
+            </div>
+          `}
 
           ${documentData.notes ? `
             <div style="margin-top: 20px; padding: 15px; background-color: #f9fafb; border-radius: 6px;">
@@ -188,21 +344,53 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    const emailResponse = await resend.emails.send({
+    const emailPayload: any = {
       from: "HandwerkOS <noreply@no-replyhandwerkos.de>",
       to: [recipientEmail],
       subject: emailSubject,
       html: emailHtml,
-    });
+    };
+
+    // Add PDF attachment if available
+    if (pdfAttachment) {
+      emailPayload.attachments = [pdfAttachment];
+    }
+
+    const emailResponse = await resend.emails.send(emailPayload);
 
     console.log("Email sent successfully:", emailResponse);
 
-    // Update document status to 'Versendet'
-    const updateField = documentType === 'quote' ? 'status' : 'status';
-    await supabase
-      .from(tableName)
-      .update({ [updateField]: 'Versendet' })
-      .eq('id', documentId);
+    // Update document status
+    if (documentType === 'delivery_note') {
+      // Update delivery note to 'sent' if it was draft
+      if (documentData.status === 'draft') {
+        await supabase
+          .from('delivery_notes')
+          .update({ 
+            status: 'sent',
+            sent_at: new Date().toISOString()
+          })
+          .eq('id', documentId);
+      }
+      
+      // Log email send event
+      await supabase
+        .from('email_logs')
+        .insert({
+          delivery_note_id: documentId,
+          recipient: recipientEmail,
+          subject: emailSubject,
+          status: 'sent',
+          sent_at: new Date().toISOString()
+        });
+    } else {
+      // Update quote/invoice status
+      const updateField = documentType === 'quote' ? 'status' : 'status';
+      await supabase
+        .from(tableName)
+        .update({ [updateField]: 'Versendet' })
+        .eq('id', documentId);
+    }
 
     return new Response(JSON.stringify({ 
       success: true, 
