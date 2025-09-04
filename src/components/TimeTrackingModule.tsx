@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, differenceInMinutes, startOfDay, endOfDay } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { formatMinutesToTime } from '@/utils/timeUtils';
 import { Play, Pause, Square, Clock, Calendar, User, MapPin, Filter, Plus, Settings, Users, Wifi, WifiOff, Edit } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

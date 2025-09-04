@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Network } from '@capacitor/network';
+import { Network } from './capacitorMocks';
 
 export interface NetworkStatus {
   connected: boolean;

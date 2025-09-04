@@ -32,7 +32,8 @@ import {
   Receipt,
   Plus,
   X,
-  Calendar
+  Calendar,
+  PenTool
 } from "lucide-react";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { useToast } from "@/hooks/use-toast";

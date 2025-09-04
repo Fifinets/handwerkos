@@ -1,5 +1,4 @@
-import { Capacitor } from '@capacitor/core';
-import { Storage } from '@capacitor/storage';
+import { Capacitor, Storage } from './capacitorMocks';
 
 export interface OfflineAction {
   id: string;

@@ -1,6 +1,23 @@
-import { PushNotifications, Token, PushNotificationSchema, ActionPerformed } from '@capacitor/push-notifications'
-import { Capacitor } from '@capacitor/core'
-import { LocalNotifications } from '@capacitor/local-notifications'
+import { 
+  Capacitor,
+  PushNotifications, 
+  LocalNotifications 
+} from './capacitorMocks'
+
+// Mock types for web compatibility
+interface Token {
+  value: string;
+}
+
+interface PushNotificationSchema {
+  title?: string;
+  body?: string;
+  data?: any;
+}
+
+interface ActionPerformed {
+  notification: PushNotificationSchema;
+}
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 
