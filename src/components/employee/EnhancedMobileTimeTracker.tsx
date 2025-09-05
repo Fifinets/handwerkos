@@ -27,7 +27,7 @@ import {
   Smartphone,
   PenTool
 } from "lucide-react"
-import { useTimeTracking } from "@/hooks/useTimeTracking"
+import { useMobileTimeTracking } from "@/hooks/useMobileTimeTracking"
 import { useDeliveryNotes } from "@/hooks/useDeliveryNotes"
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth"
 import { supabase } from "@/integrations/supabase/client"
@@ -60,13 +60,14 @@ interface Project {
 const EnhancedMobileTimeTracker: React.FC = () => {
   const { user } = useSupabaseAuth()
   const { 
-    activeTime, 
+    activeTime,
+    segments,
     isLoading, 
     startTracking, 
-    stopTracking, 
-    switchProject,
-    fetchTimeSegments 
-  } = useTimeTracking()
+    stopTracking,
+    pauseTracking,
+    refreshData 
+  } = useMobileTimeTracking()
   
   const {
     deliveryNotes,
@@ -150,10 +151,10 @@ const EnhancedMobileTimeTracker: React.FC = () => {
   useEffect(() => {
     if (networkStatus.connected) {
       loadProjects()
-      fetchTimeSegments()
+      refreshData()
       fetchDeliveryNotes()
     }
-  }, [networkStatus.connected, fetchTimeSegments, fetchDeliveryNotes])
+  }, [networkStatus.connected, refreshData, fetchDeliveryNotes])
   
   // Get current location
   const getCurrentLocation = async () => {
@@ -356,7 +357,12 @@ const EnhancedMobileTimeTracker: React.FC = () => {
       return
     }
     
-    await switchProject(selectedProject, segmentType, description || undefined, notes || undefined)
+    // Stop current tracking if active, then start new
+    if (activeTime.active) {
+      await stopTracking(notes)
+    }
+    const project = projects.find(p => p.id === selectedProject)
+    await startTracking(selectedProject, segmentType, description, project?.name)
     setDescription('')
     setNotes('')
     setShowProjectSheet(false)
@@ -409,71 +415,6 @@ const EnhancedMobileTimeTracker: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 pb-20">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 pt-12 pb-6 rounded-b-3xl shadow-lg">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-xl font-bold">HandwerkOS Mobile</h1>
-            <p className="text-blue-100 text-sm">
-              {currentTime.toLocaleDateString('de-DE', { 
-                weekday: 'long', 
-                day: 'numeric', 
-                month: 'long' 
-              })}
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {/* Network Status */}
-            {networkStatus.connected ? (
-              <Wifi className="h-5 w-5 text-green-300" />
-            ) : (
-              <WifiOff className="h-5 w-5 text-red-300" />
-            )}
-            
-            {/* Offline Queue Badge */}
-            {pendingActionsCount > 0 && (
-              <Badge variant="secondary" className="bg-yellow-500 text-white text-xs">
-                {pendingActionsCount}
-              </Badge>
-            )}
-          </div>
-        </div>
-        
-        {/* Active Time Display */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-          {activeTime.active ? (
-            <div className="text-center">
-              <div className="text-3xl font-mono font-bold mb-2">
-                {formatDuration(getLiveDuration())}
-              </div>
-              <div className="flex items-center justify-center gap-2 text-blue-100 mb-2">
-                <div className="h-2 w-2 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-sm">Aktiv seit {new Date(activeTime.segment!.started_at).toLocaleTimeString('de-DE')}</span>
-              </div>
-              
-              {activeTime.segment && (
-                <div className="space-y-1">
-                  <div className="font-medium">{activeTime.segment.project_name || 'Kein Projekt'}</div>
-                  {activeTime.segment.customer_name && (
-                    <div className="text-sm text-blue-200">{activeTime.segment.customer_name}</div>
-                  )}
-                  <Badge variant="secondary" className="bg-white/20 text-white">
-                    {getSegmentConfig(activeTime.segment.segment_type).label}
-                  </Badge>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center">
-              <div className="text-2xl font-bold mb-2">Bereit</div>
-              <div className="text-blue-100 text-sm">
-                Zeiterfassung bereit zum Start
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
       
       {/* Main Content */}
       <div className="p-4 space-y-4">

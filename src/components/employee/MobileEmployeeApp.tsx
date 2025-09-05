@@ -1106,42 +1106,6 @@ const MobileEmployeeApp: React.FC = () => {
   // Legacy render functions (keeping for now)
   const renderHomeView = () => (
     <div className="space-y-2 w-full overflow-hidden">
-      {/* Status Bar */}
-      <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-        <CardContent className="p-3">
-          <div className="flex justify-between items-center mb-2">
-            <div>
-              <h3 className="font-semibold text-sm">Willkommen zurück!</h3>
-              <p className="text-blue-100 text-xs">{user?.email}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">
-                <Signal className="h-4 w-4" />
-                <span className="text-xs">4G</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Battery className="h-4 w-4" />
-                <span className="text-xs">{batteryLevel}%</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2 mb-2">
-            {isOnline ? (
-              <><Wifi className="h-4 w-4" /><span className="text-sm">Online</span></>
-            ) : (
-              <><WifiOff className="h-4 w-4" /><span className="text-sm">Offline</span></>
-            )}
-          </div>
-          
-          {currentLocation && (
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="h-4 w-4" />
-              <span className="truncate">{currentLocation.address}</span>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Active Time Tracking */}
       {activeTimeEntry && (
@@ -1695,7 +1659,7 @@ const MobileEmployeeApp: React.FC = () => {
   return (
     <div className="h-full bg-gray-50 flex flex-col relative overflow-hidden" style={{ width: '100vw', maxWidth: 'none', paddingTop: '44px' }}>
       {/* Main Content */}
-      <div className="flex-1 px-3 pt-2 pb-16 overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 px-3 pt-2 pb-20 overflow-y-auto overflow-x-hidden">
         {currentView === 'home' && renderHomeView()}
         {currentView === 'projects' && renderProjectsView()}
         {currentView === 'time' && (
@@ -1712,7 +1676,7 @@ const MobileEmployeeApp: React.FC = () => {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="absolute left-0 right-0 bg-white border-t shadow-lg" style={{ bottom: '20px', paddingBottom: '8px' }}>
+      <div className="absolute left-0 right-0 bottom-0 bg-white border-t shadow-lg pb-safe">
         <div className="grid grid-cols-5 gap-1 p-2">
           {[
             { id: 'home', icon: Home, label: 'Start' },

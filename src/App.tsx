@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import MitarbeiterSetupPage from "./pages/MitarbeiterSetupPage";
 import HandwerkerSoftware from "./pages/HandwerkerSoftware";
 import MobileApp from "./pages/MobileApp";
+import MobileOnlyApp from "./pages/MobileOnlyApp";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { eventBus } from "./services/eventBus";
@@ -123,7 +124,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<HandwerkerSoftware />} />
+              <Route path="/" element={<MobileOnlyApp />} />
               <Route path="/handwerkersoftware" element={<HandwerkerSoftware />} />
               <Route path="/mobile" element={<MobileApp />} />
               <Route path="/login" element={<Auth />} />
