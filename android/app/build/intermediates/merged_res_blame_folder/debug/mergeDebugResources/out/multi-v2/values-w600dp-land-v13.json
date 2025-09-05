@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.handwerkos.employee.app-mergeDebugResources-37:/values-w600dp-land-v13/values-w600dp-land-v13.xml",
+            "outputFile": "com.handwerkos.app-mergeDebugResources-37:/values-w600dp-land-v13/values-w600dp-land-v13.xml",
             "map": [
                 {
                     "source": "C:\\Users\\filip\\.gradle\\caches\\8.13\\transforms\\c053cfc74dc45251ad0ff1ead813fb47\\transformed\\material-1.12.0\\res\\values-w600dp-land-v13\\values-w600dp-land-v13.xml",

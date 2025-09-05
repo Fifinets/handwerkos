@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.handwerkos.employee.app-mergeDebugResources-37:/values-v31/values-v31.xml",
+            "outputFile": "com.handwerkos.app-mergeDebugResources-37:/values-v31/values-v31.xml",
             "map": [
                 {
                     "source": "C:\\Users\\filip\\.gradle\\caches\\8.13\\transforms\\496281d0ebeeb8ff23c43702fbb45cb4\\transformed\\core-splashscreen-1.0.1\\res\\values-v31\\values-v31.xml",

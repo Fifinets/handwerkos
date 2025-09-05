@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.handwerkos.employee.app-mergeDebugResources-37:/values-pt-rBR/values-pt-rBR.xml",
+            "outputFile": "com.handwerkos.app-mergeDebugResources-37:/values-pt-rBR/values-pt-rBR.xml",
             "map": [
                 {
                     "source": "C:\\Users\\filip\\.gradle\\caches\\8.13\\transforms\\5787f33ce08c5d8780b1de35ba8dcedc\\transformed\\play-services-base-18.5.0\\res\\values-pt-rBR\\values.xml",

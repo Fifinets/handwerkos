@@ -21,7 +21,7 @@ import {
   Battery,
   Signal,
   Home,
-  List,
+  FileText,
   User,
   Bell,
   Settings,
@@ -95,7 +95,7 @@ const MobileEmployeeApp: React.FC = () => {
   const { toast } = useToast();
   
   // State Management
-  const [currentView, setCurrentView] = useState<'home' | 'projects' | 'time' | 'signature' | 'profile'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'docs' | 'time' | 'signature' | 'profile'>('home');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, address: string} | null>(null);
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
@@ -1180,10 +1180,10 @@ const MobileEmployeeApp: React.FC = () => {
           <Button
             variant="outline"
             className="min-h-[60px] p-2 flex flex-col justify-center gap-1 text-sm"
-            onClick={() => setCurrentView('projects')}
+            onClick={() => setCurrentView('docs')}
           >
-            <List className="h-6 w-6" />
-            <span className="text-sm">Projekte</span>
+            <FileText className="h-6 w-6" />
+            <span className="text-sm">Dokumentation</span>
           </Button>
           
           <Button
@@ -1275,91 +1275,100 @@ const MobileEmployeeApp: React.FC = () => {
     </div>
   );
 
-  const renderProjectsView = () => (
-    <div className="space-y-2">
-      <div className="flex justify-between items-center">
-        <h3 className="text-base font-semibold">Meine Projekte</h3>
-        <Badge variant="outline">
-          {assignedProjects.length} aktiv
-        </Badge>
-      </div>
-
-      {assignedProjects.map(project => (
-        <Card key={project.id} className="relative">
-          <CardContent className="p-3">
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <h4 className="font-semibold text-sm">{project.name}</h4>
-                <p className="text-gray-600 text-xs flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  {project.location}
-                </p>
-              </div>
-              <Badge
-                className={`${getPriorityColor(project.priority)} text-white text-xs`}
-              >
-                {getPriorityLabel(project.priority)}
-              </Badge>
-            </div>
-            
-            {project.deadline && (
-              <p className="text-xs text-orange-600 mb-3">
-                Fällig: {new Date(project.deadline).toLocaleDateString('de-DE')}
-              </p>
-            )}
-            
-            <div className="flex gap-1 mb-2">
-              <Button
-                size="sm"
-                onClick={() => startTimeTracking(project.id)}
-                disabled={!!activeTimeEntry}
-                className="flex-1"
-              >
-                <Play className="h-3 w-3 mr-1" />
-                Zeit starten
-              </Button>
-            </div>
-            <div className="flex gap-1">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setActiveProjectId(project.id);
-                  startCamera();
-                }}
-                className="flex-1"
-              >
-                <Camera className="h-3 w-3 mr-1" />
-                Foto
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setActiveProjectId(project.id);
-                  setShowReceiptDialog(true);
-                }}
-                className="flex-1"
-              >
-                <Receipt className="h-3 w-3 mr-1" />
-                Rechnung
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setActiveProjectId(project.id);
-                  setShowCommentDialog(true);
-                }}
-                className="flex-1"
-              >
-                <MessageSquare className="h-3 w-3 mr-1" />
-                Notiz
-              </Button>
-            </div>
+  const renderDocumentationView = () => (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold mb-4">📚 Dokumentation</h3>
+      
+      <div className="space-y-3">
+        {/* App Anleitung */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              📱 App Bedienung
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm space-y-2">
+            <div><strong>Start-Tab:</strong> Übersicht und Schnellzugriff</div>
+            <div><strong>Zeit-Tab:</strong> Zeiterfassung starten/stoppen</div>
+            <div><strong>Signatur-Tab:</strong> Lieferscheine digital unterschreiben</div>
+            <div><strong>Profil-Tab:</strong> Persönliche Einstellungen</div>
           </CardContent>
         </Card>
-      ))}
+
+        {/* Zeiterfassung */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              ⏱️ Zeiterfassung
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm space-y-2">
+            <div><strong>Starten:</strong> Projekt auswählen → "Start" drücken</div>
+            <div><strong>Pausieren:</strong> "Pause" für Unterbrechungen</div>
+            <div><strong>Beenden:</strong> "Stop" → Notizen hinzufügen</div>
+            <div><strong>Arten:</strong> Arbeitszeit, Pause, Fahrtzeit</div>
+          </CardContent>
+        </Card>
+
+        {/* Signatur-Funktionen */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              ✍️ Digitale Signaturen
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm space-y-2">
+            <div><strong>Lieferschein:</strong> Wareneingänge bestätigen</div>
+            <div><strong>Auftragsabschluss:</strong> Arbeiten abzeichnen</div>
+            <div><strong>Qualitätskontrolle:</strong> Prüfungen dokumentieren</div>
+            <div><strong>Speicherung:</strong> Automatisch in der Cloud</div>
+          </CardContent>
+        </Card>
+
+        {/* Offline Funktionen */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              📶 Offline Modus
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm space-y-2">
+            <div><strong>Zeiterfassung:</strong> Funktioniert ohne Internet</div>
+            <div><strong>Signaturen:</strong> Werden lokal gespeichert</div>
+            <div><strong>Synchronisation:</strong> Automatisch bei Verbindung</div>
+            <div><strong>Status:</strong> Symbol zeigt Verbindung an</div>
+          </CardContent>
+        </Card>
+
+        {/* Tipps & Tricks */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              💡 Tipps & Tricks
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm space-y-2">
+            <div><strong>Batterie sparen:</strong> App läuft im Hintergrund</div>
+            <div><strong>Genauigkeit:</strong> GPS für Standortverfolgung</div>
+            <div><strong>Daten:</strong> Arbeitet auch im mobilen Netz</div>
+            <div><strong>Updates:</strong> App automatisch aktualisieren</div>
+          </CardContent>
+        </Card>
+
+        {/* Support */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              🆘 Support
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm space-y-2">
+            <div><strong>Probleme:</strong> IT-Abteilung kontaktieren</div>
+            <div><strong>Schulung:</strong> Bei Fragen an Vorgesetzte wenden</div>
+            <div><strong>Version:</strong> HandwerkOS Mobile v1.0</div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 
@@ -1534,7 +1543,7 @@ const MobileEmployeeApp: React.FC = () => {
         <Card>
           <CardContent className="p-8 text-center">
             <div className="text-gray-400 mb-4">
-              <List className="h-12 w-12 mx-auto" />
+              <Package className="h-12 w-12 mx-auto" />
             </div>
             <h4 className="font-medium text-gray-700 mb-2">Keine Aktivitäten</h4>
             <p className="text-gray-500 text-sm">
@@ -1661,7 +1670,7 @@ const MobileEmployeeApp: React.FC = () => {
       {/* Main Content */}
       <div className="flex-1 px-3 pt-2 pb-20 overflow-y-auto overflow-x-hidden">
         {currentView === 'home' && renderHomeView()}
-        {currentView === 'projects' && renderProjectsView()}
+        {currentView === 'docs' && renderDocumentationView()}
         {currentView === 'time' && (
           <div className="h-full -mx-3 -mb-16" style={{ marginTop: '-52px' }}>
             <EnhancedMobileTimeTracker />
@@ -1680,7 +1689,7 @@ const MobileEmployeeApp: React.FC = () => {
         <div className="grid grid-cols-5 gap-1 p-2">
           {[
             { id: 'home', icon: Home, label: 'Start' },
-            { id: 'projects', icon: List, label: 'Projekte' },
+            { id: 'docs', icon: FileText, label: 'Dokumentation' },
             { id: 'time', icon: Clock, label: 'Zeit' },
             { id: 'signature', icon: PenTool, label: 'Signatur' },
             { id: 'profile', icon: User, label: 'Profil' }
@@ -1694,14 +1703,6 @@ const MobileEmployeeApp: React.FC = () => {
             >
               <item.icon className="h-4 w-4" />
               <span className="text-xs">{item.label}</span>
-              {item.id === 'projects' && notifications > 0 && (
-                <Badge
-                  variant="destructive"
-                  className="absolute -top-1 -right-1 rounded-full w-4 h-4 p-0 text-xs"
-                >
-                  {notifications}
-                </Badge>
-              )}
             </Button>
           ))}
         </div>
