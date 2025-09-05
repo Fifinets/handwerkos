@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
+import { isAndroid, useAndroidTimeTracking } from '@/utils/androidPlugins'
 
 interface TimeSegment {
   id: string
@@ -41,10 +42,40 @@ export const useTimeTracking = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [segments, setSegments] = useState<TimeSegment[]>([])
 
-  // Fallback function with error handling
+  // Get Android-specific hooks if on Android platform
+  const androidTimeTracking = isAndroid() ? useAndroidTimeTracking() : null
+
+  // Fallback function with error handling (enhanced with Android support)
   const fetchActiveTime = useCallback(async () => {
     try {
       setIsLoading(true)
+      
+      // Use Android plugin if available
+      if (isAndroid() && androidTimeTracking) {
+        try {
+          const result = await androidTimeTracking.getActiveSession()
+          if (result.active && result.session) {
+            setActiveTime({
+              active: true,
+              segment: {
+                id: 'android-session',
+                project_id: result.session.projectId,
+                project_name: result.session.projectName,
+                customer_name: null,
+                segment_type: 'work',
+                started_at: new Date(result.session.startTime).toISOString(),
+                current_duration_minutes: result.session.durationMinutes,
+                description: result.session.description
+              }
+            })
+          } else {
+            setActiveTime({ active: false })
+          }
+          return
+        } catch (androidError) {
+          console.warn('Android time tracking failed, falling back to web:', androidError)
+        }
+      }
       
       try {
         const { data, error } = await supabase.rpc('rpc_get_active_time_tracking')
@@ -69,7 +100,7 @@ export const useTimeTracking = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [androidTimeTracking])
 
   // Fetch time segments with fallback
   const fetchTimeSegments = useCallback(async () => {
@@ -128,7 +159,7 @@ export const useTimeTracking = () => {
     }
   }, [])
 
-  // Start tracking with fallback
+  // Start tracking with fallback (enhanced with Android support)
   const startTracking = useCallback(async (
     projectId: string, 
     segmentType: 'work' | 'break' | 'drive' = 'work', 
@@ -136,6 +167,20 @@ export const useTimeTracking = () => {
   ) => {
     try {
       setIsLoading(true)
+      
+      // Use Android plugin if available
+      if (isAndroid() && androidTimeTracking) {
+        try {
+          const result = await androidTimeTracking.startTracking(projectId, 'Demo Projekt', description)
+          if (result.success) {
+            toast.success('Zeiterfassung gestartet (Android)')
+            await fetchActiveTime()
+            return
+          }
+        } catch (androidError) {
+          console.warn('Android start tracking failed, falling back to web:', androidError)
+        }
+      }
       
       try {
         const { data, error } = await supabase.rpc('rpc_start_time_tracking', {
@@ -178,12 +223,27 @@ export const useTimeTracking = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [fetchActiveTime])
+  }, [fetchActiveTime, androidTimeTracking])
 
-  // Stop tracking with fallback
+  // Stop tracking with fallback (enhanced with Android support)
   const stopTracking = useCallback(async (notes?: string) => {
     try {
       setIsLoading(true)
+      
+      // Use Android plugin if available
+      if (isAndroid() && androidTimeTracking) {
+        try {
+          const result = await androidTimeTracking.stopTracking(notes)
+          if (result.success) {
+            toast.success(`Zeiterfassung beendet (${result.durationMinutes} min, Android)`)
+            setActiveTime({ active: false })
+            await fetchTimeSegments()
+            return
+          }
+        } catch (androidError) {
+          console.warn('Android stop tracking failed, falling back to web:', androidError)
+        }
+      }
       
       try {
         const { data, error } = await supabase.rpc('rpc_stop_time_tracking', {
@@ -213,7 +273,7 @@ export const useTimeTracking = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [fetchTimeSegments])
+  }, [fetchTimeSegments, androidTimeTracking])
 
   // Switch project with fallback
   const switchProject = useCallback(async (
