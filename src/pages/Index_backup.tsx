@@ -15,7 +15,6 @@ import MachineModule from "@/components/MachineModule";
 import FinanceModule from "@/components/FinanceModule";
 import PlannerModule from "@/components/PlannerModule";
 import TimeTrackingModule from "@/components/TimeTrackingModule";
-import TimeApprovalModule from "@/components/TimeApprovalModule";
 import { DocumentModule } from "@/components/DocumentModule";
 import { InvoiceValidationModule } from "@/components/InvoiceValidationModule";
 import { CompanySettingsSimple as CompanySettingsModule } from "@/components/CompanySettingsSimple";
@@ -94,8 +93,6 @@ const Index = () => {
         return <PlannerModule />;
       case 'timetracking':
         return <TimeTrackingModule />;
-      case 'time-approval':
-        return <TimeApprovalModule />;
       case 'vacation':
         return <VacationManagement />;
       case 'company-settings':
