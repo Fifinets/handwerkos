@@ -124,8 +124,8 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<MobileOnlyApp />} />
-              <Route path="/handwerkersoftware" element={<HandwerkerSoftware />} />
+              <Route path="/" element={<HandwerkerSoftware />} />
+              <Route path="/app" element={<MobileOnlyApp />} />
               <Route path="/mobile" element={<MobileApp />} />
               <Route path="/login" element={<Auth />} />
               <Route path="/auth" element={<Auth />} />

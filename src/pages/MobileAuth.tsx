@@ -150,6 +150,32 @@ const MobileAuth: React.FC = () => {
             <p>Probleme beim Anmelden?</p>
             <p>Wenden Sie sich an Ihren Administrator</p>
           </div>
+
+          {/* Development Navigation */}
+          <div className="mt-6 space-y-2 border-t pt-4">
+            <p className="text-xs text-gray-500 text-center mb-2">Für Tests/Demo:</p>
+            <Button
+              onClick={() => navigate('/handwerkersoftware')}
+              variant="outline"
+              className="w-full text-xs h-8"
+            >
+              📄 Marketing Landing Page
+            </Button>
+            <Button
+              onClick={() => navigate('/manager')}
+              variant="outline" 
+              className="w-full text-xs h-8"
+            >
+              👔 Manager Dashboard
+            </Button>
+            <Button
+              onClick={() => navigate('/employee')}
+              variant="outline"
+              className="w-full text-xs h-8"
+            >
+              👷 Mitarbeiter App
+            </Button>
+          </div>
         </div>
       </div>
     </div>
