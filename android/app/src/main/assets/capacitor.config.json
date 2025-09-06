@@ -4,8 +4,7 @@
 	"webDir": "dist",
 	"server": {
 		"androidScheme": "https",
-		"cleartext": true,
-		"url": "http://localhost:8080/app"
+		"cleartext": true
 	},
 	"plugins": {
 		"SplashScreen": {
