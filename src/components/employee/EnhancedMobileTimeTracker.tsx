@@ -41,6 +41,7 @@ import {
   Haptics,
   ImpactStyle
 } from '@/utils/capacitorMocks'
+import { Capacitor } from '@capacitor/core'
 import SignatureCapture from '../SignatureCapture'
 import { offlineQueue } from '@/utils/offlineQueue'
 import { useNetworkStatus } from '@/utils/networkStatus'
@@ -88,6 +89,7 @@ const EnhancedMobileTimeTracker: React.FC = () => {
   const [showProjectSheet, setShowProjectSheet] = useState(false)
   const [showSignatureDialog, setShowSignatureDialog] = useState(false)
   const [selectedDeliveryNote, setSelectedDeliveryNote] = useState<any>(null)
+  const [safeAreaInsets, setSafeAreaInsets] = useState({ top: 0, bottom: 0 })
   
   // Live timer
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -99,6 +101,13 @@ const EnhancedMobileTimeTracker: React.FC = () => {
         // Configure status bar
         await StatusBar.setStyle({ style: StatusBarStyle.Light })
         await StatusBar.setBackgroundColor({ color: '#1f2937' })
+        
+        // Get safe area insets using CSS environment variables
+        if (Capacitor.isNativePlatform()) {
+          const top = parseInt(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-top)') || '44')
+          const bottom = parseInt(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-bottom)') || '34')
+          setSafeAreaInsets({ top: isNaN(top) ? 44 : top, bottom: isNaN(bottom) ? 34 : bottom })
+        }
         
         // Keep screen awake during active tracking
         if (activeTime.active) {
@@ -414,7 +423,13 @@ const EnhancedMobileTimeTracker: React.FC = () => {
   ) || []
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 pb-20">
+    <div 
+      className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900" 
+      style={{
+        paddingTop: `${Math.max(safeAreaInsets.top, 0)}px`,
+        paddingBottom: `${Math.max(safeAreaInsets.bottom + 80, 100)}px` // 80px for bottom nav + safe area
+      }}
+    >
       
       {/* Main Content */}
       <div className="p-4 space-y-4">

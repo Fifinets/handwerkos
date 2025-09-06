@@ -15,10 +15,13 @@ import MitarbeiterSetupPage from "./pages/MitarbeiterSetupPage";
 import HandwerkerSoftware from "./pages/HandwerkerSoftware";
 import MobileApp from "./pages/MobileApp";
 import MobileOnlyApp from "./pages/MobileOnlyApp";
+import MobileAuth from "./pages/MobileAuth";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { eventBus } from "./services/eventBus";
+import { Capacitor } from '@capacitor/core';
 import "./styles/animations.css";
+import "./styles/safearea.css";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -124,9 +127,13 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<HandwerkerSoftware />} />
+              <Route path="/" element={
+                Capacitor.isNativePlatform() ? <MobileAuth /> : <HandwerkerSoftware />
+              } />
               <Route path="/app" element={<MobileOnlyApp />} />
               <Route path="/mobile" element={<MobileApp />} />
+              <Route path="/mobile-auth" element={<MobileAuth />} />
+              <Route path="/handwerkersoftware" element={<HandwerkerSoftware />} />
               <Route path="/login" element={<Auth />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/manager" element={<Index />} />

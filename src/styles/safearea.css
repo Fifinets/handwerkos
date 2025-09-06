@@ -1,0 +1,70 @@
+/**
+ * Safe Area Insets CSS
+ * Provides consistent safe area support across different devices
+ */
+
+:root {
+  /* Default safe area values */
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+}
+
+/* Mobile specific overrides for devices without proper safe area support */
+@media screen and (max-width: 768px) and (orientation: portrait) {
+  :root {
+    --safe-area-inset-top: env(safe-area-inset-top, 44px);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 34px);
+  }
+}
+
+/* Utility classes for safe areas */
+.pt-safe {
+  padding-top: var(--safe-area-inset-top);
+}
+
+.pb-safe {
+  padding-bottom: var(--safe-area-inset-bottom);
+}
+
+.pl-safe {
+  padding-left: var(--safe-area-inset-left);
+}
+
+.pr-safe {
+  padding-right: var(--safe-area-inset-right);
+}
+
+.mt-safe {
+  margin-top: var(--safe-area-inset-top);
+}
+
+.mb-safe {
+  margin-bottom: var(--safe-area-inset-bottom);
+}
+
+.ml-safe {
+  margin-left: var(--safe-area-inset-left);
+}
+
+.mr-safe {
+  margin-right: var(--safe-area-inset-right);
+}
+
+/* Combined padding for full safe area */
+.p-safe {
+  padding-top: var(--safe-area-inset-top);
+  padding-bottom: var(--safe-area-inset-bottom);
+  padding-left: var(--safe-area-inset-left);
+  padding-right: var(--safe-area-inset-right);
+}
+
+/* Height calculations with safe areas */
+.h-screen-safe {
+  height: calc(100vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+}
+
+.min-h-screen-safe {
+  min-height: calc(100vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+}

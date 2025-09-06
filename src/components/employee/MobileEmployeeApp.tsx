@@ -41,6 +41,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { VacationRequestDialog } from "../VacationRequestDialog";
 import MapView from "../MapView";
 import { StatusBar, Style } from '@capacitor/status-bar';
+import { Capacitor } from '@capacitor/core';
 import { TodayScreen } from '../mobile/TodayScreen';
 import MobileDeliverySignature from '../MobileDeliverySignature';
 
@@ -124,6 +125,7 @@ const MobileEmployeeApp: React.FC = () => {
   const [showVacationDialog, setShowVacationDialog] = useState(false);
   const [vacationBalance, setVacationBalance] = useState({ available: 0, total: 0 });
   const [nearByProjects, setNearByProjects] = useState<string[]>([]);
+  const [safeAreaInsets, setSafeAreaInsets] = useState({ top: 0, bottom: 0 });
 
   // Quick Actions State
   const [quickMaterialEntry, setQuickMaterialEntry] = useState({
@@ -134,15 +136,27 @@ const MobileEmployeeApp: React.FC = () => {
   });
 
   // Effects
-  // Configure status bar for fullscreen display
+  // Configure status bar and safe areas for fullscreen display
   useEffect(() => {
     const configureStatusBar = async () => {
       try {
         await StatusBar.setStyle({ style: Style.Dark });
         await StatusBar.setOverlaysWebView({ overlay: false });
         await StatusBar.show();
+        
+        // Get safe area insets using CSS environment variables
+        if (Capacitor.isNativePlatform()) {
+          // Use CSS env() variables for safe areas
+          const top = parseInt(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-top)') || '44');
+          const bottom = parseInt(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-bottom)') || '34');
+          setSafeAreaInsets({ top: isNaN(top) ? 44 : top, bottom: isNaN(bottom) ? 34 : bottom });
+        }
       } catch (error) {
-        console.log('StatusBar not available in web');
+        console.log('StatusBar or SafeArea not available:', error);
+        // Fallback safe area values
+        if (Capacitor.isNativePlatform()) {
+          setSafeAreaInsets({ top: 44, bottom: 34 });
+        }
       }
     };
     configureStatusBar();
@@ -1666,7 +1680,15 @@ const MobileEmployeeApp: React.FC = () => {
   // Onboarding removed - not needed
 
   return (
-    <div className="h-full bg-gray-50 flex flex-col relative overflow-hidden" style={{ width: '100vw', maxWidth: 'none', paddingTop: '44px' }}>
+    <div 
+      className="h-full bg-gray-50 flex flex-col relative overflow-hidden" 
+      style={{ 
+        width: '100vw', 
+        maxWidth: 'none', 
+        paddingTop: `${Math.max(safeAreaInsets.top, 44)}px`,
+        paddingBottom: `${Math.max(safeAreaInsets.bottom, 0)}px`
+      }}
+    >
       {/* Main Content */}
       <div className="flex-1 px-3 pt-2 pb-20 overflow-y-auto overflow-x-hidden">
         {currentView === 'home' && renderHomeView()}
@@ -1685,7 +1707,10 @@ const MobileEmployeeApp: React.FC = () => {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="absolute left-0 right-0 bottom-0 bg-white border-t shadow-lg pb-safe">
+      <div 
+        className="absolute left-0 right-0 bottom-0 bg-white border-t shadow-lg" 
+        style={{ paddingBottom: `${Math.max(safeAreaInsets.bottom, 8)}px` }}
+      >
         <div className="grid grid-cols-5 gap-1 p-2">
           {[
             { id: 'home', icon: Home, label: 'Start' },

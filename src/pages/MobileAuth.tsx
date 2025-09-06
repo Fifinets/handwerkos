@@ -7,15 +7,30 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { Capacitor } from '@capacitor/core';
 
 const MobileAuth: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [safeAreaInsets, setSafeAreaInsets] = useState({ top: 0, bottom: 0 });
   
   const { signIn } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const getSafeAreaInsets = async () => {
+      if (Capacitor.isNativePlatform()) {
+        // Use CSS env() variables for safe areas
+        const top = parseInt(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-top)') || '44');
+        const bottom = parseInt(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-bottom)') || '34');
+        setSafeAreaInsets({ top: isNaN(top) ? 44 : top, bottom: isNaN(bottom) ? 34 : bottom });
+      }
+    };
+    
+    getSafeAreaInsets();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +76,13 @@ const MobileAuth: React.FC = () => {
   };
 
   return (
-    <div className="h-full bg-white flex flex-col justify-center" style={{ paddingTop: '44px', paddingBottom: '20px' }}>
+    <div 
+      className="h-full bg-white flex flex-col justify-center" 
+      style={{ 
+        paddingTop: `${Math.max(safeAreaInsets.top, 44)}px`, 
+        paddingBottom: `${Math.max(safeAreaInsets.bottom, 20)}px` 
+      }}
+    >
       {/* Header */}
       <div className="text-center mb-8">
         <div className="flex justify-center items-center mb-2">
@@ -151,31 +172,6 @@ const MobileAuth: React.FC = () => {
             <p>Wenden Sie sich an Ihren Administrator</p>
           </div>
 
-          {/* Development Navigation */}
-          <div className="mt-6 space-y-2 border-t pt-4">
-            <p className="text-xs text-gray-500 text-center mb-2">Für Tests/Demo:</p>
-            <Button
-              onClick={() => navigate('/handwerkersoftware')}
-              variant="outline"
-              className="w-full text-xs h-8"
-            >
-              📄 Marketing Landing Page
-            </Button>
-            <Button
-              onClick={() => navigate('/manager')}
-              variant="outline" 
-              className="w-full text-xs h-8"
-            >
-              👔 Manager Dashboard
-            </Button>
-            <Button
-              onClick={() => navigate('/employee')}
-              variant="outline"
-              className="w-full text-xs h-8"
-            >
-              👷 Mitarbeiter App
-            </Button>
-          </div>
         </div>
       </div>
     </div>
