@@ -41,7 +41,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { VacationRequestDialog } from "../VacationRequestDialog";
 import MapView from "../MapView";
 import { StatusBar, Style } from '@capacitor/status-bar';
-import EnhancedMobileTimeTracker from './EnhancedMobileTimeTracker';
+import { TodayScreen } from '../mobile/TodayScreen';
 import MobileDeliverySignature from '../MobileDeliverySignature';
 
 interface Project {
@@ -1673,7 +1673,7 @@ const MobileEmployeeApp: React.FC = () => {
         {currentView === 'docs' && renderDocumentationView()}
         {currentView === 'time' && (
           <div className="h-full -mx-3 -mb-16" style={{ marginTop: '-52px' }}>
-            <EnhancedMobileTimeTracker />
+            <TodayScreen />
           </div>
         )}
         {currentView === 'signature' && (
