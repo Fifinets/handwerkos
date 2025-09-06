@@ -327,6 +327,11 @@ export const isAndroid = () => {
   return window.Capacitor && window.Capacitor.getPlatform() === 'android'
 }
 
+// Export singleton instances for direct use
+export const androidTimeTracking = AndroidTimeTrackingService.getInstance()
+export const androidDeliveryNotes = AndroidDeliveryNotesService.getInstance()
+export const androidOfflineSync = AndroidOfflineSyncService.getInstance()
+
 // Integration with existing hooks
 export const useAndroidTimeTracking = () => {
   const timeTrackingService = AndroidTimeTrackingService.getInstance()

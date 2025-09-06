@@ -4,7 +4,7 @@
     "type": "MERGED_MANIFESTS",
     "kind": "Directory"
   },
-  "applicationId": "com.handwerkos.employee",
+  "applicationId": "com.handwerkos.app",
   "variantName": "debug",
   "elements": [
     {

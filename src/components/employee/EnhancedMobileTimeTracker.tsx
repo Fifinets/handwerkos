@@ -27,7 +27,7 @@ import {
   Smartphone,
   PenTool
 } from "lucide-react"
-import { useTimeTracking } from "@/hooks/useTimeTracking"
+import { useMobileTimeTracking } from "@/hooks/useMobileTimeTracking"
 import { useDeliveryNotes } from "@/hooks/useDeliveryNotes"
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth"
 import { supabase } from "@/integrations/supabase/client"
@@ -60,13 +60,14 @@ interface Project {
 const EnhancedMobileTimeTracker: React.FC = () => {
   const { user } = useSupabaseAuth()
   const { 
-    activeTime, 
+    activeTime,
+    segments,
     isLoading, 
     startTracking, 
-    stopTracking, 
-    switchProject,
-    fetchTimeSegments 
-  } = useTimeTracking()
+    stopTracking,
+    pauseTracking,
+    refreshData 
+  } = useMobileTimeTracking()
   
   const {
     deliveryNotes,
@@ -150,10 +151,10 @@ const EnhancedMobileTimeTracker: React.FC = () => {
   useEffect(() => {
     if (networkStatus.connected) {
       loadProjects()
-      fetchTimeSegments()
+      refreshData()
       fetchDeliveryNotes()
     }
-  }, [networkStatus.connected, fetchTimeSegments, fetchDeliveryNotes])
+  }, [networkStatus.connected, refreshData, fetchDeliveryNotes])
   
   // Get current location
   const getCurrentLocation = async () => {
@@ -356,7 +357,12 @@ const EnhancedMobileTimeTracker: React.FC = () => {
       return
     }
     
-    await switchProject(selectedProject, segmentType, description || undefined, notes || undefined)
+    // Stop current tracking if active, then start new
+    if (activeTime.active) {
+      await stopTracking(notes)
+    }
+    const project = projects.find(p => p.id === selectedProject)
+    await startTracking(selectedProject, segmentType, description, project?.name)
     setDescription('')
     setNotes('')
     setShowProjectSheet(false)
@@ -409,90 +415,25 @@ const EnhancedMobileTimeTracker: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 pb-20">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 pt-12 pb-6 rounded-b-3xl shadow-lg">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-xl font-bold">HandwerkOS Mobile</h1>
-            <p className="text-blue-100 text-sm">
-              {currentTime.toLocaleDateString('de-DE', { 
-                weekday: 'long', 
-                day: 'numeric', 
-                month: 'long' 
-              })}
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {/* Network Status */}
-            {networkStatus.connected ? (
-              <Wifi className="h-5 w-5 text-green-300" />
-            ) : (
-              <WifiOff className="h-5 w-5 text-red-300" />
-            )}
-            
-            {/* Offline Queue Badge */}
-            {pendingActionsCount > 0 && (
-              <Badge variant="secondary" className="bg-yellow-500 text-white text-xs">
-                {pendingActionsCount}
-              </Badge>
-            )}
-          </div>
-        </div>
-        
-        {/* Active Time Display */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-          {activeTime.active ? (
-            <div className="text-center">
-              <div className="text-3xl font-mono font-bold mb-2">
-                {formatDuration(getLiveDuration())}
-              </div>
-              <div className="flex items-center justify-center gap-2 text-blue-100 mb-2">
-                <div className="h-2 w-2 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-sm">Aktiv seit {new Date(activeTime.segment!.started_at).toLocaleTimeString('de-DE')}</span>
-              </div>
-              
-              {activeTime.segment && (
-                <div className="space-y-1">
-                  <div className="font-medium">{activeTime.segment.project_name || 'Kein Projekt'}</div>
-                  {activeTime.segment.customer_name && (
-                    <div className="text-sm text-blue-200">{activeTime.segment.customer_name}</div>
-                  )}
-                  <Badge variant="secondary" className="bg-white/20 text-white">
-                    {getSegmentConfig(activeTime.segment.segment_type).label}
-                  </Badge>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center">
-              <div className="text-2xl font-bold mb-2">Bereit</div>
-              <div className="text-blue-100 text-sm">
-                Zeiterfassung bereit zum Start
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
       
       {/* Main Content */}
       <div className="p-4 space-y-4">
         {/* Time Tracking Controls */}
         <Card className="border-0 shadow-lg">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <Timer className="h-5 w-5" />
               {activeTime.active ? 'Laufende Zeiterfassung' : 'Zeiterfassung starten'}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             {!activeTime.active ? (
               <>
                 {/* Project Selection */}
-                <div className="space-y-2">
-                  <Label>Projekt auswählen</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Projekt auswählen</Label>
                   <Select value={selectedProject} onValueChange={setSelectedProject}>
-                    <SelectTrigger className="h-12 text-base">
+                    <SelectTrigger className="h-10 text-base">
                       <SelectValue placeholder="Projekt wählen..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -513,10 +454,10 @@ const EnhancedMobileTimeTracker: React.FC = () => {
                 </div>
                 
                 {/* Segment Type */}
-                <div className="space-y-2">
-                  <Label>Typ der Erfassung</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Typ der Erfassung</Label>
                   <Select value={segmentType} onValueChange={(value: any) => setSegmentType(value)}>
-                    <SelectTrigger className="h-12 text-base">
+                    <SelectTrigger className="h-10 text-base">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -543,14 +484,14 @@ const EnhancedMobileTimeTracker: React.FC = () => {
                 </div>
                 
                 {/* Description */}
-                <div className="space-y-2">
-                  <Label>Beschreibung (optional)</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Beschreibung (optional)</Label>
                   <Textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Was werden Sie arbeiten?"
                     rows={2}
-                    className="text-base resize-none"
+                    className="text-sm resize-none"
                   />
                 </div>
                 
@@ -559,23 +500,23 @@ const EnhancedMobileTimeTracker: React.FC = () => {
                   onClick={handleStart}
                   disabled={!selectedProject || isLoading}
                   size="lg"
-                  className="w-full h-14 text-lg bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+                  className="w-full h-12 text-base bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
                 >
-                  <Play className="h-6 w-6 mr-2" />
+                  <Play className="h-5 w-5 mr-2" />
                   Zeiterfassung starten
                 </Button>
               </>
             ) : (
               <>
                 {/* Notes for active session */}
-                <div className="space-y-2">
-                  <Label>Notizen hinzufügen</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Notizen hinzufügen</Label>
                   <Textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="Notizen für diese Arbeitszeit..."
                     rows={2}
-                    className="text-base resize-none"
+                    className="text-sm resize-none"
                   />
                 </div>
                 
@@ -586,9 +527,9 @@ const EnhancedMobileTimeTracker: React.FC = () => {
                     disabled={isLoading}
                     size="lg"
                     variant="destructive"
-                    className="w-full h-14 text-lg"
+                    className="w-full h-12 text-base"
                   >
-                    <Square className="h-6 w-6 mr-2" />
+                    <Square className="h-5 w-5 mr-2" />
                     Zeiterfassung beenden
                   </Button>
                   
@@ -597,9 +538,9 @@ const EnhancedMobileTimeTracker: React.FC = () => {
                       <Button 
                         variant="outline"
                         size="lg"
-                        className="w-full h-12 text-base border-2"
+                        className="w-full h-10 text-sm border-2"
                       >
-                        <RotateCcw className="h-5 w-5 mr-2" />
+                        <RotateCcw className="h-4 w-4 mr-2" />
                         Projekt wechseln
                       </Button>
                     </SheetTrigger>
@@ -678,24 +619,24 @@ const EnhancedMobileTimeTracker: React.FC = () => {
         {/* Unsigned Delivery Notes */}
         {unsignedDeliveryNotes.length > 0 && (
           <Card className="border-0 shadow-lg border-orange-200 bg-orange-50 dark:bg-orange-950">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-orange-900 dark:text-orange-100">
-                <PenTool className="h-5 w-5" />
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-orange-900 dark:text-orange-100 text-base">
+                <PenTool className="h-4 w-4" />
                 Zu signierende Lieferscheine ({unsignedDeliveryNotes.length})
               </CardTitle>
-              <CardDescription className="text-orange-700 dark:text-orange-300">
+              <CardDescription className="text-orange-700 dark:text-orange-300 text-sm">
                 Diese Lieferscheine warten auf Ihre Unterschrift
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2">
               {unsignedDeliveryNotes.slice(0, 3).map((note) => (
                 <div 
                   key={note.id}
-                  className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border"
+                  className="flex items-center justify-between p-2.5 bg-white dark:bg-gray-800 rounded-lg border"
                 >
-                  <div className="space-y-1">
-                    <div className="font-medium">{note.number}</div>
-                    <div className="text-sm text-muted-foreground">
+                  <div className="space-y-0.5">
+                    <div className="font-medium text-sm">{note.number}</div>
+                    <div className="text-xs text-muted-foreground">
                       {note.project?.name} • {note.project?.customer.name}
                     </div>
                   </div>
@@ -705,9 +646,9 @@ const EnhancedMobileTimeTracker: React.FC = () => {
                       setSelectedDeliveryNote(note)
                       setShowSignatureDialog(true)
                     }}
-                    className="bg-orange-600 hover:bg-orange-700"
+                    className="bg-orange-600 hover:bg-orange-700 h-8 text-xs px-3"
                   >
-                    <PenTool className="h-4 w-4 mr-1" />
+                    <PenTool className="h-3 w-3 mr-1" />
                     Signieren
                   </Button>
                 </div>
@@ -719,10 +660,10 @@ const EnhancedMobileTimeTracker: React.FC = () => {
         {/* Status Cards */}
         <div className="grid grid-cols-2 gap-4">
           <Card className="border-0 shadow-md">
-            <CardContent className="p-4 text-center">
+            <CardContent className="p-3 text-center">
               <div className={`inline-flex items-center gap-2 ${networkStatus.connected ? 'text-green-600' : 'text-red-600'}`}>
-                {networkStatus.connected ? <Wifi className="h-5 w-5" /> : <WifiOff className="h-5 w-5" />}
-                <span className="font-medium">{networkStatus.connected ? 'Online' : 'Offline'}</span>
+                {networkStatus.connected ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
+                <span className="font-medium text-sm">{networkStatus.connected ? 'Online' : 'Offline'}</span>
               </div>
               {pendingActionsCount > 0 && (
                 <div className="text-xs text-muted-foreground mt-1">
@@ -733,10 +674,10 @@ const EnhancedMobileTimeTracker: React.FC = () => {
           </Card>
           
           <Card className="border-0 shadow-md">
-            <CardContent className="p-4 text-center">
+            <CardContent className="p-3 text-center">
               <div className={`inline-flex items-center gap-2 ${currentLocation ? 'text-blue-600' : 'text-gray-400'}`}>
-                <MapPin className="h-5 w-5" />
-                <span className="font-medium">Standort</span>
+                <MapPin className="h-4 w-4" />
+                <span className="font-medium text-sm">Standort</span>
               </div>
               <div className="text-xs text-muted-foreground mt-1">
                 {currentLocation ? 'Verfügbar' : 'Nicht verfügbar'}
@@ -748,18 +689,18 @@ const EnhancedMobileTimeTracker: React.FC = () => {
         {/* Offline Warning */}
         {!networkStatus.connected && (
           <Card className="border-orange-200 bg-orange-50 dark:bg-orange-950">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+            <CardContent className="p-3">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
                 <div className="space-y-1">
-                  <div className="font-medium text-orange-900 dark:text-orange-100">
+                  <div className="font-medium text-orange-900 dark:text-orange-100 text-sm">
                     Offline-Modus aktiv
                   </div>
-                  <div className="text-sm text-orange-700 dark:text-orange-300">
+                  <div className="text-xs text-orange-700 dark:text-orange-300">
                     Alle Aktionen werden gespeichert und synchronisiert, sobald eine Internetverbindung verfügbar ist.
                   </div>
                   {pendingActionsCount > 0 && (
-                    <div className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                    <div className="text-xs font-medium text-orange-800 dark:text-orange-200">
                       {pendingActionsCount} Aktion(en) warten auf Synchronisation
                     </div>
                   )}
@@ -772,10 +713,10 @@ const EnhancedMobileTimeTracker: React.FC = () => {
         {/* Success indicator */}
         {networkStatus.connected && pendingActionsCount === 0 && activeTime.active && (
           <Card className="border-green-200 bg-green-50 dark:bg-green-950">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-                <div className="font-medium text-green-900 dark:text-green-100">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2.5">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <div className="font-medium text-green-900 dark:text-green-100 text-sm">
                   Zeiterfassung läuft und wird live synchronisiert
                 </div>
               </div>

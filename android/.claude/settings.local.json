@@ -50,7 +50,11 @@
       "Read(C:\\Users\\filip\\StudioProjects\\handwerkos\\src\\pages/**)",
       "Bash(JAVA_HOME=\"C:\\Program Files\\Android\\Studio\\jbr\" ./gradlew installDebug)",
       "Read(C:\\Users\\filip\\StudioProjects\\handwerkos\\src\\components\\employee/**)",
-      "Read(C:\\Users\\filip\\StudioProjects\\handwerkos\\src/**)"
+      "Read(C:\\Users\\filip\\StudioProjects\\handwerkos\\src/**)",
+      "Bash(.gradlew clean)",
+      "Bash(JAVA_HOME=\"C:\\Program Files\\Android\\Android Studio\\jbr\" ./gradlew clean)",
+      "Read(//c/Users/filip/StudioProjects/handwerkos/node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/**)",
+      "Read(//c/Users/filip/StudioProjects/handwerkos/**)"
     ],
     "deny": [],
     "ask": []

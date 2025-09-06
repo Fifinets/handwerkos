@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.handwerkos.employee.app-mergeDebugResources-37:/values-lt/values-lt.xml",
+            "outputFile": "com.handwerkos.app-mergeDebugResources-37:/values-lt/values-lt.xml",
             "map": [
                 {
                     "source": "C:\\Users\\filip\\.gradle\\caches\\8.13\\transforms\\17fba9dcaf761e1a8533c7e60ded5662\\transformed\\appcompat-1.6.1\\res\\values-lt\\values-lt.xml",

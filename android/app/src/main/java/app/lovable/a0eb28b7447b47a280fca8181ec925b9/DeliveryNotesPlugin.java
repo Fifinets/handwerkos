@@ -161,8 +161,8 @@ public class DeliveryNotesPlugin extends Plugin {
     @PluginMethod
     public void createSignatureBitmap(PluginCall call) {
         JSArray pathsArray = call.getArray("paths");
-        int width = call.getInt("width", 400);
-        int height = call.getInt("height", 200);
+        int width = call.getInt("width") != null ? call.getInt("width") : 400;
+        int height = call.getInt("height") != null ? call.getInt("height") : 200;
         
         if (pathsArray == null) {
             call.reject("Pfad-Daten sind erforderlich");
@@ -184,16 +184,16 @@ public class DeliveryNotesPlugin extends Plugin {
             
             // Draw signature paths
             for (int i = 0; i < pathsArray.length(); i++) {
-                JSObject pathObj = pathsArray.getJSONObject(i);
-                JSArray points = pathObj.getJSArray("points");
+                JSObject pathObj = new JSObject(pathsArray.getJSONObject(i).toString());
+                JSArray points = new JSArray(pathObj.getJSONArray("points").toString());
                 
                 if (points != null && points.length() > 1) {
                     Path path = new Path();
-                    JSObject firstPoint = points.getJSONObject(0);
+                    JSObject firstPoint = new JSObject(points.getJSONObject(0).toString());
                     path.moveTo((float) firstPoint.getDouble("x"), (float) firstPoint.getDouble("y"));
                     
                     for (int j = 1; j < points.length(); j++) {
-                        JSObject point = points.getJSONObject(j);
+                        JSObject point = new JSObject(points.getJSONObject(j).toString());
                         path.lineTo((float) point.getDouble("x"), (float) point.getDouble("y"));
                     }
                     
@@ -220,11 +220,11 @@ public class DeliveryNotesPlugin extends Plugin {
     private String convertSignatureToBitmap(JSObject signatureData) {
         try {
             // Extract signature path data
-            JSArray paths = signatureData.getJSArray("paths");
+            JSArray paths = new JSArray(signatureData.getJSONArray("paths").toString());
             if (paths == null) return null;
             
-            int width = signatureData.getInt("width", 400);
-            int height = signatureData.getInt("height", 200);
+            int width = signatureData.getInteger("width") != null ? signatureData.getInteger("width") : 400;
+            int height = signatureData.getInteger("height") != null ? signatureData.getInteger("height") : 200;
             
             Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(bitmap);
@@ -240,16 +240,16 @@ public class DeliveryNotesPlugin extends Plugin {
             
             // Draw signature paths
             for (int i = 0; i < paths.length(); i++) {
-                JSObject pathObj = paths.getJSONObject(i);
-                JSArray points = pathObj.getJSArray("points");
+                JSObject pathObj = new JSObject(paths.getJSONObject(i).toString());
+                JSArray points = new JSArray(pathObj.getJSONArray("points").toString());
                 
                 if (points != null && points.length() > 1) {
                     Path path = new Path();
-                    JSObject firstPoint = points.getJSONObject(0);
+                    JSObject firstPoint = new JSObject(points.getJSONObject(0).toString());
                     path.moveTo((float) firstPoint.getDouble("x"), (float) firstPoint.getDouble("y"));
                     
                     for (int j = 1; j < points.length(); j++) {
-                        JSObject point = points.getJSONObject(j);
+                        JSObject point = new JSObject(points.getJSONObject(j).toString());
                         path.lineTo((float) point.getDouble("x"), (float) point.getDouble("y"));
                     }
                     
