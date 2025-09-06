@@ -9,6 +9,8 @@ import Testimonials from "@/components/marketing/Testimonials";
 import FAQ from "@/components/marketing/FAQ";
 import FinalCTA from "@/components/marketing/FinalCTA";
 import { CompactThemeToggle } from "@/components/ui/theme-toggle";
+import { Capacitor } from '@capacitor/core';
+import { useNavigate } from 'react-router-dom';
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -27,6 +29,16 @@ const jsonLd = {
 };
 
 export default function HandwerkerSoftware() {
+  const navigate = useNavigate();
+  
+  // Auto-redirect für Mobile Apps
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      navigate('/app', { replace: true });
+      return;
+    }
+  }, [navigate]);
+
   useEffect(() => {
     // SEO: title, description, canonical
     document.title = "Handwerkersoftware von HandwerkOS";
