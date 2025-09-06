@@ -27,3 +27,17 @@ dist-ssr
 *.vsidx
 *.vssscc
 *.sln.docstates
+
+# Android / Capacitor Build Artefakte (ignorieren um Konflikte zu vermeiden)
+android/app/build/
+android/build/
+android/.gradle/
+android/capacitor-cordova-android-plugins/build/
+android/app/src/main/assets/public/
+*.apk
+*.aab
+local.properties
+
+# iOS (falls später verwendet)
+ios/App/Pods/
+ios/App/build/

@@ -14,7 +14,8 @@
       "Bash(npx cap add:*)",
       "Bash(npx cap sync:*)",
       "Bash(npx cap open:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(git rm:*)"
     ],
     "deny": []
   }
