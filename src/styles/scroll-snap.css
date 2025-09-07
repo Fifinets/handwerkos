@@ -1,0 +1,41 @@
+/* Scroll Snap CSS für bessere mobile Navigation */
+
+/* Container mit Scroll Snap */
+.scroll-snap-container {
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  overflow-y: auto;
+  height: 100%;
+}
+
+/* Snap-Punkte für Karten/Sections */
+.scroll-snap-start {
+  scroll-snap-align: start;
+  scroll-margin-top: 1rem;
+}
+
+.scroll-snap-center {
+  scroll-snap-align: center;
+}
+
+.scroll-snap-end {
+  scroll-snap-align: end;
+}
+
+/* Sanftes Scrollen mit Easing */
+.scroll-snap-smooth {
+  scroll-behavior: smooth;
+  scroll-padding: 1rem;
+}
+
+/* Stärkere Snap-Einstellung für bessere Sichtbarkeit */
+.scroll-snap-mandatory {
+  scroll-snap-type: y mandatory;
+  scroll-snap-stop: always;
+}
+
+/* Für bessere Performance auf mobilen Geräten */
+.scroll-snap-container * {
+  transform: translateZ(0);
+  will-change: scroll-position;
+}

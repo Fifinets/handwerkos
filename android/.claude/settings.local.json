@@ -57,7 +57,10 @@
       "Read(//c/Users/filip/StudioProjects/handwerkos/**)",
       "Bash(JAVA_HOME=\"C:\\Program Files\\Android\\Android Studio\\jbr\" ./gradlew uninstallAll)",
       "Bash(npx cap run:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(timeout 30 git push)",
+      "WebFetch(domain:handwerkos.de)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ],
     "deny": [],
     "ask": []

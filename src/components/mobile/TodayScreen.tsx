@@ -211,7 +211,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       </div>
 
       {/* Live-Timer Card */}
-      <Card className={`${activeTime.active ? 'ring-2 ring-green-500' : ''}`}>
+      <Card className={`scroll-snap-start min-h-[250px] ${activeTime.active ? 'ring-2 ring-green-500' : ''}`}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
@@ -325,7 +325,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       </Card>
 
       {/* Tages-Statistiken */}
-      <Card>
+      <Card className="scroll-snap-start min-h-[300px]">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />

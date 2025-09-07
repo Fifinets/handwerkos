@@ -24,6 +24,8 @@ import { initGA, trackPageView } from "./utils/analytics";
 import { GoogleAnalytics } from "./components/GoogleAnalytics";
 import "./styles/animations.css";
 import "./styles/safearea.css";
+import "./styles/scroll-snap.css";
+import "./styles/cookie-banner-fix.css";
 
 const queryClient = new QueryClient({
   defaultOptions: {

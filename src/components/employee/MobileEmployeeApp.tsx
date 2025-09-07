@@ -43,7 +43,7 @@ import MapView from "../MapView";
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
 import { TodayScreen } from '../mobile/TodayScreen';
-import { TodayScreenSwipeable } from '../mobile/TodayScreenSwipeable';
+import { TodayScreenTabs } from '../mobile/TodayScreenTabs';
 import MobileDeliverySignature from '../MobileDeliverySignature';
 
 interface Project {
@@ -1695,8 +1695,8 @@ const MobileEmployeeApp: React.FC = () => {
         {currentView === 'home' && renderHomeView()}
         {currentView === 'docs' && renderDocumentationView()}
         {currentView === 'time' && (
-          <div className="h-full -mx-3 -mb-16" style={{ marginTop: '-52px' }}>
-            <TodayScreenSwipeable />
+          <div className="h-full -mx-3 -mb-16 overflow-hidden" style={{ marginTop: '-52px' }}>
+            <TodayScreenTabs />
           </div>
         )}
         {currentView === 'signature' && (

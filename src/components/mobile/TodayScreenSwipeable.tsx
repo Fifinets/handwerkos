@@ -169,19 +169,35 @@ export const TodayScreenSwipeable: React.FC = () => {
     }
   }
 
-  // Touch handlers for swipe navigation
+  // Touch handlers for swipe navigation - optimized for mobile UX
+  const startY = useRef(0)
+  const currentY = useRef(0)
+  const startTime = useRef(0)
+
   const handleTouchStart = (e: React.TouchEvent) => {
     startX.current = e.touches[0].clientX
+    startY.current = e.touches[0].clientY
+    startTime.current = Date.now()
     isDragging.current = true
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging.current) return
     currentX.current = e.touches[0].clientX
+    currentY.current = e.touches[0].clientY
     
-    const diff = currentX.current - startX.current
-    if (containerRef.current) {
-      containerRef.current.style.transform = `translateX(${diff}px)`
+    const diffX = currentX.current - startX.current
+    const diffY = currentY.current - startY.current
+    
+    // Nur horizontale Swipes berücksichtigen (vertikale sind für Scrollen)
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
+      e.preventDefault() // Verhindere vertikales Scrollen während Swipe
+      
+      if (containerRef.current) {
+        const currentTransform = -currentPage * 100
+        const movePercentage = (diffX / window.innerWidth) * 100
+        containerRef.current.style.transform = `translateX(${currentTransform + movePercentage}%)`
+      }
     }
   }
 
@@ -189,22 +205,32 @@ export const TodayScreenSwipeable: React.FC = () => {
     if (!isDragging.current) return
     isDragging.current = false
     
-    const diff = currentX.current - startX.current
-    const threshold = 50 // Minimum swipe distance
+    const diffX = currentX.current - startX.current
+    const diffY = currentY.current - startY.current
+    const timeDiff = Date.now() - startTime.current
+    const velocity = Math.abs(diffX) / timeDiff
     
-    if (Math.abs(diff) > threshold) {
-      if (diff > 0 && currentPage > 0) {
-        // Swipe right - go to previous page
-        setCurrentPage(currentPage - 1)
-      } else if (diff < 0 && currentPage < 2) {
-        // Swipe left - go to next page
-        setCurrentPage(currentPage + 1)
+    // Bestimme ob es ein horizontaler Swipe war
+    const isHorizontalSwipe = Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 30
+    
+    if (isHorizontalSwipe) {
+      // Schnelle Swipes haben niedrigere Schwelle
+      const threshold = velocity > 0.3 ? 30 : 80
+      
+      if (Math.abs(diffX) > threshold) {
+        if (diffX > 0 && currentPage > 0) {
+          // Swipe right - previous page
+          setCurrentPage(currentPage - 1)
+        } else if (diffX < 0 && currentPage < 2) {
+          // Swipe left - next page  
+          setCurrentPage(currentPage + 1)
+        }
       }
     }
     
-    // Reset position
+    // Reset to current page position
     if (containerRef.current) {
-      containerRef.current.style.transform = 'translateX(0)'
+      containerRef.current.style.transform = `translateX(-${currentPage * 100}%)`
     }
   }
 
@@ -309,7 +335,7 @@ export const TodayScreenSwipeable: React.FC = () => {
   )
 
   return (
-    <div className="relative h-full overflow-hidden">
+    <div className="relative h-full w-full overflow-hidden bg-background">
       {/* Page content container */}
       <div
         ref={containerRef}
@@ -324,35 +350,57 @@ export const TodayScreenSwipeable: React.FC = () => {
         }}
       >
         {/* Page 1: Statistics */}
-        <div className="w-full h-full overflow-y-auto" style={{ width: '33.333%' }}>
+        <div className="h-full overflow-y-auto" style={{ width: '33.333%', flex: '0 0 33.333%' }}>
           {renderStatisticsPage()}
         </div>
 
         {/* Page 2: Today (Main) */}
-        <div className="w-full h-full overflow-y-auto" style={{ width: '33.333%' }}>
+        <div className="h-full overflow-y-auto" style={{ width: '33.333%', flex: '0 0 33.333%' }}>
           <TodayScreen />
         </div>
 
         {/* Page 3: Timeline */}
-        <div className="w-full h-full overflow-y-auto" style={{ width: '33.333%' }}>
+        <div className="h-full overflow-y-auto" style={{ width: '33.333%', flex: '0 0 33.333%' }}>
           {renderTimelinePage()}
         </div>
       </div>
 
-      {/* Page indicators */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 bg-background/80 backdrop-blur-sm rounded-full px-3 py-1.5">
-        {[0, 1, 2].map((page) => (
-          <button
-            key={page}
-            onClick={() => setCurrentPage(page)}
-            className={`h-2 transition-all duration-300 rounded-full ${
-              currentPage === page 
-                ? 'w-6 bg-primary' 
-                : 'w-2 bg-muted-foreground/30'
-            }`}
-            aria-label={`Go to page ${page + 1}`}
-          />
-        ))}
+      {/* Page indicators - positioned lower with swipe hints */}
+      <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 flex items-center gap-3 bg-background/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg border">
+        {/* Left swipe hint */}
+        <div className={`transition-opacity duration-300 ${currentPage > 0 ? 'opacity-50' : 'opacity-20'}`}>
+          <ChevronLeft className="h-3 w-3 text-muted-foreground" />
+        </div>
+        
+        {/* Page dots */}
+        <div className="flex gap-2">
+          {[0, 1, 2].map((page) => (
+            <button
+              key={page}
+              onClick={() => setCurrentPage(page)}
+              className={`h-2.5 transition-all duration-300 rounded-full ${
+                currentPage === page 
+                  ? 'w-8 bg-primary' 
+                  : 'w-2.5 bg-muted-foreground/40'
+              }`}
+              aria-label={`Go to page ${page + 1}`}
+            />
+          ))}
+        </div>
+        
+        {/* Right swipe hint */}
+        <div className={`transition-opacity duration-300 ${currentPage < 2 ? 'opacity-50' : 'opacity-20'}`}>
+          <ChevronRight className="h-3 w-3 text-muted-foreground" />
+        </div>
+      </div>
+
+      {/* Page titles for better UX */}
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-background/90 backdrop-blur-sm rounded-full px-4 py-1.5 shadow-sm border">
+        <div className="text-sm font-medium text-muted-foreground">
+          {currentPage === 0 && "📊 Statistiken"}
+          {currentPage === 1 && "⏰ Heute"}
+          {currentPage === 2 && "📋 Timeline"}
+        </div>
       </div>
 
       {/* Optional: Navigation buttons for desktop/tablet */}
@@ -360,7 +408,7 @@ export const TodayScreenSwipeable: React.FC = () => {
         <Button
           size="icon"
           variant="ghost"
-          className="pointer-events-auto"
+          className="pointer-events-auto bg-background/80 backdrop-blur-sm"
           onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
           disabled={currentPage === 0}
         >
@@ -369,7 +417,7 @@ export const TodayScreenSwipeable: React.FC = () => {
         <Button
           size="icon"
           variant="ghost"
-          className="pointer-events-auto"
+          className="pointer-events-auto bg-background/80 backdrop-blur-sm"
           onClick={() => setCurrentPage(Math.min(2, currentPage + 1))}
           disabled={currentPage === 2}
         >
