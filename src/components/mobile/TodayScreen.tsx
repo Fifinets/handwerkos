@@ -151,11 +151,15 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   // Quick Actions
   const handleStart = async (projectId?: string) => {
     try {
+      toast.info('Starte Zeiterfassung...', { duration: 1000 })
+      console.log('Starting tracking for project:', projectId)
       await startTracking(projectId || 'default', 'work', 'Mobile Start')
+      
       toast.success('Zeiterfassung gestartet')
+      console.log('Start tracking completed')
     } catch (error) {
       console.error('Start error:', error)
-      toast.error('Fehler beim Starten')
+      toast.error(`Fehler beim Starten: ${error}`)
     }
   }
 
@@ -171,6 +175,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
 
   const handleBreak = async () => {
     try {
+      toast.info('Starte Pause...', { duration: 1000 })
       if (activeTime.active) {
         await stopTracking('Pause gestartet')
       }
@@ -178,12 +183,13 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       toast.success('Pause gestartet')
     } catch (error) {
       console.error('Break error:', error)
-      toast.error('Fehler bei Pause')
+      toast.error(`Fehler bei Pause: ${error}`)
     }
   }
 
   const handleDrive = async () => {
     try {
+      toast.info('Starte Fahrt...', { duration: 1000 })
       if (activeTime.active) {
         await stopTracking('Fahrt gestartet')
       }
@@ -191,7 +197,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       toast.success('Fahrt gestartet')
     } catch (error) {
       console.error('Drive error:', error)
-      toast.error('Fehler bei Fahrt')
+      toast.error(`Fehler bei Fahrt: ${error}`)
     }
   }
 

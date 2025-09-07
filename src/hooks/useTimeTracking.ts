@@ -78,17 +78,46 @@ export const useTimeTracking = () => {
       }
       
       try {
-        const { data, error } = await supabase.rpc('rpc_get_active_time_tracking')
+        // Direkt von time_segments Tabelle laden statt RPC
+        const { data: activeSegments, error } = await supabase
+          .from('time_segments')
+          .select(`
+            id,
+            project_id,
+            segment_type,
+            started_at,
+            description,
+            project:projects(name)
+          `)
+          .is('ended_at', null)
+          .eq('status', 'active')
+          .limit(1)
         
-        if (error && !error.message.includes('function') && !error.message.includes('does not exist')) {
+        if (error && !error.message.includes('relation') && !error.message.includes('does not exist')) {
           throw error
         }
         
-        setActiveTime(data || { active: false })
+        if (activeSegments && activeSegments.length > 0) {
+          const segment = activeSegments[0]
+          setActiveTime({
+            active: true,
+            segment: {
+              id: segment.id,
+              project_id: segment.project_id,
+              project_name: segment.project?.name || null,
+              customer_name: null,
+              segment_type: segment.segment_type,
+              started_at: segment.started_at,
+              current_duration_minutes: 0,
+              description: segment.description
+            }
+          })
+        } else {
+          setActiveTime({ active: false })
+        }
       } catch (error: any) {
-        if (error.message.includes('function') || error.message.includes('does not exist')) {
-          console.warn('RPC function not found, using mock active time')
-          // Mock active time for demo
+        if (error.message.includes('relation') || error.message.includes('does not exist')) {
+          console.warn('Time segments table not found, using mock active time')
           setActiveTime({ active: false })
         } else {
           throw error

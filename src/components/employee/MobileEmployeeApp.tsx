@@ -1695,7 +1695,7 @@ const MobileEmployeeApp: React.FC = () => {
         {currentView === 'home' && renderHomeView()}
         {currentView === 'docs' && renderDocumentationView()}
         {currentView === 'time' && (
-          <div className="h-full -mx-3 -mb-16 overflow-hidden" style={{ marginTop: '-52px' }}>
+          <div className="h-full overflow-hidden">
             <TodayScreenTabs />
           </div>
         )}

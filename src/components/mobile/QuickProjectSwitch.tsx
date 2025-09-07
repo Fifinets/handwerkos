@@ -66,34 +66,25 @@ export const QuickProjectSwitch: React.FC<QuickProjectSwitchProps> = ({
   const loadProjects = useCallback(async () => {
     setIsLoading(true)
     try {
+      // Lade nur aktive Projekte (schließe abgeschlossene aus)
       const { data, error } = await supabase
         .from('projects')
         .select(`
-          id, name, status, 
-          customer:customers(id, name),
-          location, color
+          id, name, status, location, color, customer_id
         `)
-        .eq('status', 'active')
+        .not('status', 'eq', 'abgeschlossen')
+        .not('status', 'eq', 'completed')
+        .not('status', 'eq', 'cancelled')
+        .not('status', 'eq', 'archiviert')
         .order('name')
 
       if (error) {
-        // Fallback bei fehlender Tabelle
-        console.warn('Projects table not found, using mock data')
-        setProjects([
-          {
-            id: 'mock-1',
-            name: 'Beispiel Baustelle',
-            customer: { id: 'c1', name: 'Max Mustermann GmbH' },
-            location: 'Musterstraße 1',
-            status: 'active'
-          },
-          {
-            id: 'mock-2',
-            name: 'Renovierung Büro',
-            customer: { id: 'c2', name: 'Firma ABC' },
-            status: 'active'
-          }
-        ])
+        console.error('Failed to load projects:', error)
+        toast.error(`Fehler beim Laden der Projekte: ${error.message}`)
+        // Zeige Debug-Info als Toast
+        toast.error(`Error Details: ${error.details || 'No details'}`)
+        toast.error(`Error Hint: ${error.hint || 'No hint'}`)
+        setProjects([])
         return
       }
 
@@ -121,23 +112,8 @@ export const QuickProjectSwitch: React.FC<QuickProjectSwitchProps> = ({
         .limit(10)
 
       if (error) {
-        // Fallback Mock-Daten
-        setRecentProjects([
-          {
-            project_id: 'mock-1',
-            project_name: 'Beispiel Baustelle',
-            customer_name: 'Max Mustermann GmbH',
-            last_used: new Date().toISOString(),
-            usage_count: 15
-          },
-          {
-            project_id: 'mock-2',
-            project_name: 'Renovierung Büro',
-            customer_name: 'Firma ABC',
-            last_used: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            usage_count: 8
-          }
-        ])
+        console.error('Failed to load recent projects:', error)
+        setRecentProjects([])
         return
       }
 
@@ -354,8 +330,13 @@ export const QuickProjectSwitch: React.FC<QuickProjectSwitchProps> = ({
                 <div className="text-center py-8 text-muted-foreground">
                   <Building className="h-12 w-12 mx-auto mb-2 opacity-50" />
                   <p>
-                    {searchQuery ? 'Keine Projekte gefunden' : 'Keine Projekte verfügbar'}
+                    {searchQuery ? 'Keine Projekte gefunden' : 'Noch keine Projekte erstellt'}
                   </p>
+                  {!searchQuery && (
+                    <p className="text-xs mt-2">
+                      Erstellen Sie ein neues Projekt über die Schaltfläche unten
+                    </p>
+                  )}
                 </div>
               )}
             </TabsContent>
