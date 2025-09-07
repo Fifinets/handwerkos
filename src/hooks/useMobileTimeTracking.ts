@@ -249,16 +249,18 @@ export const useMobileTimeTracking = () => {
     }
   }, [isNative])
 
-  // Load data on mount
+  // Load data on mount - nur beim ersten Mount
   useEffect(() => {
     fetchActiveTime()
     fetchTimeSegments()
     
     // Set up interval to refresh active time
-    const interval = setInterval(fetchActiveTime, 30000) // Every 30 seconds
+    const interval = setInterval(() => {
+      fetchActiveTime()
+    }, 30000) // Every 30 seconds
     
     return () => clearInterval(interval)
-  }, [fetchActiveTime, fetchTimeSegments])
+  }, []) // Leere Abhängigkeiten = nur beim Mount
 
   return {
     activeTime,

@@ -11,6 +11,7 @@ import FinalCTA from "@/components/marketing/FinalCTA";
 import { CompactThemeToggle } from "@/components/ui/theme-toggle";
 import { Capacitor } from '@capacitor/core';
 import { useNavigate } from 'react-router-dom';
+import { trackEvent } from "@/utils/analytics";
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -124,10 +125,10 @@ export default function HandwerkerSoftware() {
           </Link>
           <div className="flex items-center gap-3">
             <CompactThemeToggle />
-            <Link to="/login">
+            <Link to="/login" onClick={() => trackEvent('Navigation', 'Click', 'Header Login')}>
               <Button variant="ghost" size="sm" className="hover:bg-white/80 dark:hover:bg-white/10">Anmelden</Button>
             </Link>
-            <Link to="/login">
+            <Link to="/login" onClick={() => trackEvent('CTA', 'Click', 'Header Kostenlos Testen')}>
               <Button size="sm" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg">
                 Kostenlos testen
               </Button>
@@ -153,7 +154,7 @@ export default function HandwerkerSoftware() {
                 Die All-in-One Software für moderne Handwerksbetriebe. Projekte verwalten, Zeiten erfassen, Rechnungen erstellen – alles in einer Plattform.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link to="/login">
+                <Link to="/login" onClick={() => trackEvent('CTA', 'Click', 'Hero Jetzt Kostenlos Starten')}>
                   <Button size="lg" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl text-lg px-8 py-4 h-auto">
                     Jetzt kostenlos starten
                     <svg className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -161,7 +162,7 @@ export default function HandwerkerSoftware() {
                     </svg>
                   </Button>
                 </Link>
-                <a href="#funktionen" className="inline-flex">
+                <a href="#funktionen" className="inline-flex" onClick={() => trackEvent('Navigation', 'Click', 'Hero Demo Ansehen')}>
                   <Button variant="outline" size="lg" className="text-lg px-8 py-4 h-auto border-2 hover:bg-white/80 backdrop-blur-sm">
                     Demo ansehen
                   </Button>

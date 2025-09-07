@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -20,6 +20,8 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { eventBus } from "./services/eventBus";
 import { Capacitor } from '@capacitor/core';
+import { initGA, trackPageView } from "./utils/analytics";
+import { GoogleAnalytics } from "./components/GoogleAnalytics";
 import "./styles/animations.css";
 import "./styles/safearea.css";
 
@@ -126,6 +128,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <GoogleAnalytics />
             <Routes>
               <Route path="/" element={
                 Capacitor.isNativePlatform() ? <MobileAuth /> : <HandwerkerSoftware />

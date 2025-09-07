@@ -329,11 +329,19 @@ export const useTimeTracking = () => {
     }
   }, [fetchActiveTime])
 
-  // Initialize data
+  // Initialize data - nur beim ersten Mount
   useEffect(() => {
     fetchActiveTime()
     fetchTimeSegments()
-  }, [fetchActiveTime, fetchTimeSegments])
+    
+    // Optional: Set up periodic refresh with longer interval
+    const interval = setInterval(() => {
+      fetchActiveTime()
+      fetchTimeSegments()
+    }, 60000) // 60 Sekunden statt ständig
+    
+    return () => clearInterval(interval)
+  }, []) // Leere Abhängigkeiten = nur beim Mount
 
   return {
     activeTime,
