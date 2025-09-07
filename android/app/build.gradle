@@ -4,7 +4,7 @@ android {
     namespace "com.handwerkos.app"
     compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.handwerkos.app"
+        applicationId "com.handwerkos.employee"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

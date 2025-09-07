@@ -56,7 +56,8 @@
       "Read(//c/Users/filip/StudioProjects/handwerkos/node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/**)",
       "Read(//c/Users/filip/StudioProjects/handwerkos/**)",
       "Bash(JAVA_HOME=\"C:\\Program Files\\Android\\Android Studio\\jbr\" ./gradlew uninstallAll)",
-      "Bash(npx cap run:*)"
+      "Bash(npx cap run:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.handwerkos.app"
+    package="com.handwerkos.employee"
     android:versionCode="1"
     android:versionName="1.0.0" >
 
@@ -57,10 +57,10 @@
     </queries>
 
     <permission
-        android:name="com.handwerkos.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+        android:name="com.handwerkos.employee.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
         android:protectionLevel="signature" />
 
-    <uses-permission android:name="com.handwerkos.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+    <uses-permission android:name="com.handwerkos.employee.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
 
     <application
         android:allowBackup="true"
@@ -71,6 +71,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+        android:testOnly="true"
         android:usesCleartextTraffic="true" >
         <activity
             android:name="app.lovable.a0eb28b7447b47a280fca8181ec925b9.MainActivity"
@@ -89,7 +90,7 @@
 
         <provider
             android:name="androidx.startup.InitializationProvider"
-            android:authorities="com.handwerkos.app.androidx-startup"
+            android:authorities="com.handwerkos.employee.androidx-startup"
             android:exported="false" >
             <meta-data
                 android:name="androidx.emoji2.text.EmojiCompatInitializer"
