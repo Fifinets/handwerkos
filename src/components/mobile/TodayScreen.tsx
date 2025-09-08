@@ -54,6 +54,8 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   })
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showQuickSwitch, setShowQuickSwitch] = useState(false)
+  const [selectedProject, setSelectedProject] = useState<{id: string, name: string, customer?: {name: string}} | null>(null)
+  const [projects, setProjects] = useState<any[]>([])
 
   // Aktualisiere Zeit jede Sekunde für Live-Timer
   useEffect(() => {
@@ -61,6 +63,118 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       setCurrentTime(new Date())
     }, 1000)
     return () => clearInterval(interval)
+  }, [])
+
+  // Lade Projekte
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        console.log('Loading real projects from database...')
+        
+        // First, test if the projects table exists at all
+        console.log('Testing supabase connection...')
+        const { data: testData, error: testError } = await supabase
+          .from('projects')
+          .select('id, name')
+          .limit(1)
+        
+        console.log('Basic connection test result:', { testData, testError })
+        
+        if (testError) {
+          console.log('Basic connection failed, trying fallback approach...')
+          // If table doesn't exist or we have no access, use mock projects
+          const mockProjects = [
+            {
+              id: 'mock-project-1',
+              name: 'Test Baustelle A',
+              customer: { name: 'Mustermann GmbH' }
+            },
+            {
+              id: 'mock-project-2',
+              name: 'Test Baustelle B',
+              customer: { name: 'Schmidt & Co' }
+            },
+            {
+              id: 'mock-project-3',
+              name: 'Neubau Bürogebäude',
+              customer: { name: 'Bau AG' }
+            }
+          ]
+          console.log('Using mock projects due to database error:', testError.message)
+          setProjects(mockProjects)
+          toast.info(`${mockProjects.length} Test-Projekte geladen (Offline-Modus)`)
+          return
+        }
+        
+        // Now try the full query - first without customer join to see if it works
+        let { data, error } = await supabase
+          .from('projects')
+          .select('id, name, customer_id')
+          .eq('status', 'active')
+          .order('name')
+        
+        if (error) {
+          console.log('Even simple query failed, trying different approach:', error.message)
+          // Try with different status values or without status filter
+          const { data: data2, error: error2 } = await supabase
+            .from('projects')
+            .select('id, name, customer_id')
+            .order('name')
+            .limit(10)
+          
+          if (error2) throw error2
+          data = data2
+        }
+        
+        // If we got projects, try to add customer names
+        if (data && data.length > 0) {
+          try {
+            // Get customer info separately to avoid join issues
+            const customerIds = [...new Set(data.map(p => p.customer_id).filter(Boolean))]
+            let customerMap = new Map()
+            
+            if (customerIds.length > 0) {
+              const { data: customers } = await supabase
+                .from('customers')
+                .select('id, name')
+                .in('id', customerIds)
+              
+              if (customers) {
+                customers.forEach(c => customerMap.set(c.id, c))
+              }
+            }
+            
+            // Add customer info to projects
+            data = data.map(project => ({
+              ...project,
+              customer: project.customer_id && customerMap.has(project.customer_id) 
+                ? { name: customerMap.get(project.customer_id).name }
+                : null
+            }))
+          } catch (customerError) {
+            console.log('Customer loading failed, using projects without customer names:', customerError)
+            // Continue without customer names
+          }
+        }
+        
+        if (error) throw error
+        console.log('Loaded projects:', data)
+        setProjects(data || [])
+        
+        if (data && data.length > 0) {
+          toast.success(`${data.length} Projekte geladen`)
+        } else {
+          toast.info('Keine aktiven Projekte gefunden')
+        }
+      } catch (error: any) {
+        console.error('Error loading projects:', error)
+        console.error('Error message:', error.message)
+        console.error('Error details:', JSON.stringify(error, null, 2))
+        toast.error(`Fehler beim Laden der Projekte: ${error.message || 'Unbekannter Fehler'}`)
+      }
+    }
+    
+    loadProjects()
   }, [])
 
   // Lade heutige Statistiken
@@ -151,9 +265,15 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   // Quick Actions
   const handleStart = async (projectId?: string) => {
     try {
+      const projectToUse = projectId || selectedProject?.id
+      if (!projectToUse) {
+        toast.error('Bitte wählen Sie zuerst ein Projekt aus')
+        return
+      }
+      
       toast.info('Starte Zeiterfassung...', { duration: 1000 })
-      console.log('Starting tracking for project:', projectId)
-      await startTracking(projectId || 'default', 'work', 'Mobile Start')
+      console.log('Starting tracking for project:', projectToUse)
+      await startTracking(projectToUse, 'work', 'Mobile Start')
       
       toast.success('Zeiterfassung gestartet')
       console.log('Start tracking completed')
@@ -278,9 +398,23 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="text-center text-muted-foreground">
-                <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>Keine aktive Zeiterfassung</p>
+              <div className="text-center">
+                {selectedProject ? (
+                  <>
+                    <Clock className="h-12 w-12 mx-auto mb-2 text-blue-500 opacity-80" />
+                    <p className="font-medium text-lg">{selectedProject.name}</p>
+                    {selectedProject.customer && (
+                      <p className="text-sm text-muted-foreground">{selectedProject.customer.name}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1">Bereit zum Start</p>
+                  </>
+                ) : (
+                  <>
+                    <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p className="text-muted-foreground">Keine aktive Zeiterfassung</p>
+                    <p className="text-xs text-muted-foreground">Bitte wählen Sie ein Projekt aus</p>
+                  </>
+                )}
               </div>
 
               {/* Quick Start Buttons */}
@@ -423,7 +557,13 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             if (activeTime.active) {
               await switchProject(projectId, 'work', 'Projekt gewechselt')
             } else {
-              await handleStart(projectId)
+              // Don't auto-start, just select the project
+              console.log('Project selected but NOT auto-starting:', projectId)
+              const project = projects.find(p => p.id === projectId)
+              if (project) {
+                console.log('Setting selected project to:', project)
+                setSelectedProject(project)
+              }
             }
             setShowQuickSwitch(false)
             if (onProjectSelect) {

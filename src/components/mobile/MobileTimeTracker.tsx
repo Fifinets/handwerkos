@@ -55,6 +55,7 @@ const MobileTimeTracker: React.FC = () => {
   
   const [projects, setProjects] = useState<Project[]>([])
   const [selectedProject, setSelectedProject] = useState<string>('')
+  const [selectedProjectDetails, setSelectedProjectDetails] = useState<Project | null>(null)
   const [description, setDescription] = useState('')
   const [notes, setNotes] = useState('')
   const [isOnline, setIsOnline] = useState(true)
@@ -152,10 +153,61 @@ const MobileTimeTracker: React.FC = () => {
     toast.info('Aktion für Offline-Verarbeitung gespeichert')
   }
   
-  // Load projects
+  // Debug: Log active time changes
+  useEffect(() => {
+    console.log('Active time status changed:', activeTime)
+  }, [activeTime])
+
+  // Debug: Log project selection changes and update project details
+  useEffect(() => {
+    console.log('Selected project changed to:', selectedProject)
+    // Update selected project details
+    if (selectedProject) {
+      const projectDetails = projects.find(p => p.id === selectedProject)
+      if (projectDetails) {
+        setSelectedProjectDetails(projectDetails)
+        console.log('Project details updated:', projectDetails)
+      }
+    } else {
+      setSelectedProjectDetails(null)
+    }
+  }, [selectedProject, projects])
+
+  // Load projects and clean up stale sessions
   useEffect(() => {
     const loadProjects = async () => {
       try {
+        console.log('Loading real projects from database...')
+        
+        // First, check for and clean up any stale sessions (older than 24 hours)
+        const { data: staleSessions } = await supabase
+          .from('time_segments')
+          .select('id, started_at')
+          .is('ended_at', null)
+          .eq('status', 'active')
+        
+        if (staleSessions && staleSessions.length > 0) {
+          for (const session of staleSessions) {
+            const startTime = new Date(session.started_at)
+            const now = new Date()
+            const hoursDiff = (now.getTime() - startTime.getTime()) / (1000 * 60 * 60)
+            
+            // If session is older than 24 hours, mark it as completed
+            if (hoursDiff > 24) {
+              console.log('Cleaning up stale session:', session.id)
+              await supabase
+                .from('time_segments')
+                .update({ 
+                  ended_at: now.toISOString(),
+                  status: 'completed',
+                  notes: 'Automatisch beendet (Session älter als 24 Stunden)'
+                })
+                .eq('id', session.id)
+            }
+          }
+        }
+
+        // Now load projects
         const { data, error } = await supabase
           .from('projects')
           .select(`
@@ -167,12 +219,17 @@ const MobileTimeTracker: React.FC = () => {
           .order('name')
         
         if (error) throw error
+        console.log('Loaded projects:', data)
         setProjects(data || [])
+        
+        if (data && data.length > 0) {
+          toast.success(`${data.length} Projekte geladen`)
+        } else {
+          toast.info('Keine aktiven Projekte gefunden')
+        }
       } catch (error) {
         console.error('Error loading projects:', error)
-        if (isOnline) {
-          toast.error('Fehler beim Laden der Projekte')
-        }
+        toast.error('Fehler beim Laden der Projekte')
       }
     }
     
@@ -217,7 +274,11 @@ const MobileTimeTracker: React.FC = () => {
   
   // Handle start with location and offline support
   const handleStart = async () => {
+    console.log('handleStart called with selectedProject:', selectedProject);
+    console.log('selectedProjectDetails:', selectedProjectDetails);
+    
     if (!selectedProject) {
+      console.log('No project selected, showing error');
       toast.error('Bitte wählen Sie ein Projekt aus')
       return
     }
@@ -333,27 +394,35 @@ const MobileTimeTracker: React.FC = () => {
               <div className="text-3xl font-mono font-bold mb-2">
                 {formatDuration(getLiveDuration())}
               </div>
-              <div className="flex items-center justify-center gap-2 text-blue-100">
+              <div className="flex items-center justify-center gap-2 text-blue-100 mb-2">
                 <div className="h-2 w-2 bg-green-400 rounded-full animate-pulse" />
                 <span className="text-sm">Aktiv seit {new Date(activeTime.segment!.started_at).toLocaleTimeString('de-DE')}</span>
               </div>
-              {activeTime.segment?.project_name && (
-                <div className="mt-2 text-sm font-medium">
-                  {activeTime.segment.project_name}
-                </div>
-              )}
+              <div className="text-lg font-medium">
+                {activeTime.segment?.project_name || 'Allgemein'}
+              </div>
               {activeTime.segment?.customer_name && (
-                <div className="text-xs text-blue-200">
+                <div className="text-sm text-blue-200 mt-1">
                   {activeTime.segment.customer_name}
                 </div>
               )}
             </div>
           ) : (
             <div className="text-center">
-              <div className="text-2xl font-bold mb-2">Bereit</div>
-              <div className="text-blue-100 text-sm">
-                Zeiterfassung ist bereit zum Start
-              </div>
+              {selectedProjectDetails ? (
+                <>
+                  <div className="text-lg font-medium mb-1">{selectedProjectDetails.name}</div>
+                  {selectedProjectDetails.customer && (
+                    <div className="text-sm text-blue-200 mb-2">{selectedProjectDetails.customer.name}</div>
+                  )}
+                  <div className="text-xs text-blue-100">Bereit zum Start</div>
+                </>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold mb-2">Keine aktive Zeiterfassung</div>
+                  <div className="text-blue-100 text-sm">Bitte wählen Sie ein Projekt aus</div>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -371,10 +440,33 @@ const MobileTimeTracker: React.FC = () => {
           <CardContent className="space-y-4">
             {!activeTime.active ? (
               <>
+                {/* Debug Info - only in development */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="p-2 bg-gray-100 rounded text-xs text-gray-600 mb-3 space-y-1">
+                    <div>Debug: activeTime.active = {String(activeTime.active)}</div>
+                    <div>selectedProject = {selectedProject || 'none'}</div>
+                    {selectedProjectDetails && (
+                      <div>selectedProjectDetails = {selectedProjectDetails.name}</div>
+                    )}
+                    <div>projects loaded = {projects.length}</div>
+                    {activeTime.segment && (
+                      <>
+                        <div>Active segment ID: {activeTime.segment.id}</div>
+                        <div>Active project: {activeTime.segment.project_name}</div>
+                      </>
+                    )}
+                  </div>
+                )}
+                
                 {/* Project Selection */}
                 <div className="space-y-2">
-                  <Label htmlFor="mobile-project">Projekt auswählen</Label>
-                  <Select value={selectedProject} onValueChange={setSelectedProject}>
+                  <Label htmlFor="mobile-project">
+                    {selectedProject ? 'Ausgewähltes Projekt' : 'Projekt auswählen'}
+                  </Label>
+                  <Select value={selectedProject} onValueChange={(value) => {
+                    console.log('Project selection changed to:', value);
+                    setSelectedProject(value);
+                  }}>
                     <SelectTrigger className="h-12 text-base">
                       <SelectValue placeholder="Projekt wählen..." />
                     </SelectTrigger>
@@ -449,6 +541,39 @@ const MobileTimeTracker: React.FC = () => {
                       <Square className="h-6 w-6 mr-2" />
                       Zeiterfassung beenden
                     </Button>
+                    
+                    {/* Emergency Stop - Only in development */}
+                    {process.env.NODE_ENV === 'development' && (
+                      <Button 
+                        onClick={async () => {
+                          try {
+                            // Force stop all active sessions
+                            const { error } = await supabase
+                              .from('time_segments')
+                              .update({ 
+                                ended_at: new Date().toISOString(),
+                                status: 'completed',
+                                notes: 'Notfall-Stop'
+                              })
+                              .is('ended_at', null)
+                              .eq('status', 'active')
+                            
+                            if (!error) {
+                              toast.success('Alle aktiven Sessions gestoppt')
+                              window.location.reload()
+                            }
+                          } catch (err) {
+                            console.error('Emergency stop error:', err)
+                          }
+                        }}
+                        size="sm"
+                        variant="outline"
+                        className="h-10 text-xs border-red-300 text-red-600"
+                      >
+                        <AlertTriangle className="h-4 w-4 mr-1" />
+                        Notfall-Stop (Dev)
+                      </Button>
+                    )}
                     
                     {/* Switch Project Button */}
                     <Sheet open={showProjectSheet} onOpenChange={setShowProjectSheet}>

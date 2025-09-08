@@ -166,6 +166,23 @@ const MobileAuth: React.FC = () => {
             </Button>
           </form>
 
+          {/* Development Quick Login - Always show in mobile app for testing */}
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-xs text-yellow-700 mb-2 font-medium">🚧 Entwicklungsmodus</p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-9 text-xs border-yellow-400 hover:bg-yellow-100"
+              onClick={() => {
+                setEmail('gotit57576@euleina.com');
+                setPassword('test1234');
+              }}
+            >
+              <Wrench className="h-3 w-3 mr-2" />
+              Test-Mitarbeiter (gotit57576@euleina.com)
+            </Button>
+          </div>
+
           {/* Help Text */}
           <div className="mt-4 text-center text-xs text-gray-600">
             <p>Probleme beim Anmelden?</p>
