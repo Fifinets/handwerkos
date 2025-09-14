@@ -774,7 +774,7 @@ const TimeTrackingModule: React.FC = () => {
   }
   return <div className="p-4 space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-gray-900">Zeiterfassung</h1>
         <div className="flex items-center gap-4">
           {userRole === 'manager' && <Button 
@@ -795,8 +795,26 @@ const TimeTrackingModule: React.FC = () => {
         </div>
       </div>
 
-      {/* KPI Bar */}
-      <div className="grid grid-cols-4 gap-4">
+      <Tabs defaultValue="today" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3 bg-muted/30 p-0.5 h-auto">
+          <TabsTrigger value="today" className="data-[state=active]:bg-white data-[state=active]:shadow-sm py-2.5">
+            <Clock className="h-4 w-4 mr-1.5" />
+            Heute
+          </TabsTrigger>
+          <TabsTrigger value="timeline" className="data-[state=active]:bg-white data-[state=active]:shadow-sm py-2.5">
+            <Calendar className="h-4 w-4 mr-1.5" />
+            Timeline
+          </TabsTrigger>
+          <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:shadow-sm py-2.5">
+            <Users className="h-4 w-4 mr-1.5" />
+            Übersicht
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Heute Tab */}
+        <TabsContent value="today" className="space-y-4">
+          {/* KPI Bar */}
+          <div className="grid grid-cols-4 gap-4">
         <Card className="shadow-soft rounded-2xl">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -841,10 +859,10 @@ const TimeTrackingModule: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
+          </div>
 
-      {/* Current Status */}
-      <Card className="shadow-soft rounded-2xl">
+              {/* Current Status */}
+          <Card className="shadow-soft rounded-2xl">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5" />
@@ -900,10 +918,12 @@ const TimeTrackingModule: React.FC = () => {
               </Button>
             </div>}
         </CardContent>
-      </Card>
+          </Card>
+        </TabsContent>
 
-      {/* Zeiterfassungs-Log */}
-      <Card className="shadow-soft rounded-2xl">
+        {/* Timeline Tab */}
+        <TabsContent value="timeline" className="space-y-4">
+          <Card className="shadow-soft rounded-2xl">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5" />
@@ -1145,16 +1165,26 @@ const TimeTrackingModule: React.FC = () => {
               </div>;
         })()}
         </CardContent>
-      </Card>
+          </Card>
+        </TabsContent>
 
-      {/* Filters */}
-      
-
-      {/* Summary */}
-      
-
-      {/* Time Entries List */}
-      
+        {/* Übersicht Tab */}
+        <TabsContent value="overview" className="space-y-4">
+          <Card className="shadow-soft rounded-2xl">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 w-5" />
+                Team-Übersicht
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-muted-foreground">
+                Hier kommt die Team-Übersicht mit Statistiken und Berichten.
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <NewEntryDialog />
       <WorkingHoursDialog />

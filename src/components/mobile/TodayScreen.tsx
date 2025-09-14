@@ -25,7 +25,6 @@ import { useTimeTracking } from '@/hooks/useTimeTracking'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { QuickProjectSwitch } from './QuickProjectSwitch'
-import { TodayTimeline } from './TodayTimeline'
 
 interface TodayStats {
   totalWorkMinutes: number
@@ -701,8 +700,6 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         </CardContent>
       </Card>
 
-      {/* Heute Timeline */}
-      <TodayTimeline />
 
       {/* Quick Project Switch Sheet */}
       <QuickProjectSwitch
@@ -710,8 +707,23 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         onClose={() => setShowQuickSwitch(false)}
         onProjectSelect={async (projectId) => {
           try {
+            console.log('onProjectSelect called with:', projectId)
+            console.log('projects state:', projects)
+            console.log('projects type:', typeof projects)
+            console.log('projects length:', projects?.length)
+
             // First try to find project in our loaded projects
-            let project = projects.find(p => p.id === projectId)
+            let project = null
+            try {
+              if (projects && Array.isArray(projects) && projects.length > 0) {
+                project = projects.find(p => p && p.id === projectId)
+                console.log('Found project in list:', project)
+              } else {
+                console.log('Projects not ready:', projects)
+              }
+            } catch (findError) {
+              console.error('Error in projects.find:', findError)
+            }
             
             // If not found, try to load it directly from database
             if (!project) {

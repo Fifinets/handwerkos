@@ -195,7 +195,16 @@ const MobileTimeTracker: React.FC = () => {
     console.log('Available projects:', projects.length, projects.map(p => ({ id: p.id, name: p.name })))
     // Update selected project details
     if (selectedProject) {
-      const projectDetails = projects.find(p => p.id === selectedProject)
+      console.log('MobileTimeTracker: Updating project details for:', selectedProject)
+      console.log('MobileTimeTracker: projects state:', projects)
+      let projectDetails = null
+      try {
+        if (projects && Array.isArray(projects) && projects.length > 0) {
+          projectDetails = projects.find(p => p && p.id === selectedProject)
+        }
+      } catch (error) {
+        console.error('MobileTimeTracker: Error finding project:', error)
+      }
       if (projectDetails) {
         setSelectedProjectDetails(projectDetails)
         console.log('Project details updated:', projectDetails)
@@ -685,7 +694,7 @@ const MobileTimeTracker: React.FC = () => {
                                 console.log('Switch project selection changed to:', value);
                                 setSelectedProject(value);
                                 // Update project details immediately
-                                const project = projects.find(p => p.id === value);
+                                const project = projects && projects.length > 0 ? projects.find(p => p.id === value) : null;
                                 if (project) {
                                   console.log('Found project details for switch:', project);
                                   setSelectedProjectDetails(project);

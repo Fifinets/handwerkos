@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Mail, Settings, Clock, DollarSign, FileText, Calendar } from "lucide-react";
+import { Building2, Mail, Settings, Clock, DollarSign, FileText, Calendar, Workflow, Package, Users, Zap } from "lucide-react";
 
 interface CompanySettings {
   id: string;
@@ -261,25 +262,45 @@ export function CompanySettingsSimple() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-gray-600 bg-clip-text text-transparent flex items-center gap-3">
-            <Settings className="h-8 w-8 text-gray-600" />
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <Settings className="h-6 w-6 text-gray-700" />
             Firmeneinstellungen
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground mt-0.5">
             Verwalten Sie alle wichtigen Firmeninformationen
           </p>
         </div>
         <Button onClick={saveSettings} disabled={saving}>
-          {saving ? "Speichere..." : "Einstellungen speichern"}
+          {saving ? "Speichere..." : "Speichern"}
         </Button>
       </div>
 
-      <div className="grid gap-6">
-        {/* Company Information */}
-        <Card>
+      <Tabs defaultValue="company">
+        <TabsList className="grid w-full grid-cols-4 bg-muted/30 p-0.5 h-auto">
+          <TabsTrigger value="company" className="data-[state=active]:bg-white data-[state=active]:shadow-sm py-2.5 text-xs sm:text-sm">
+            <Building2 className="h-4 w-4 mr-1.5" />
+            Firma
+          </TabsTrigger>
+          <TabsTrigger value="financial" className="data-[state=active]:bg-white data-[state=active]:shadow-sm py-2.5 text-xs sm:text-sm">
+            <DollarSign className="h-4 w-4 mr-1.5" />
+            Finanzen
+          </TabsTrigger>
+          <TabsTrigger value="worktime" className="data-[state=active]:bg-white data-[state=active]:shadow-sm py-2.5 text-xs sm:text-sm">
+            <Clock className="h-4 w-4 mr-1.5" />
+            Arbeitszeit
+          </TabsTrigger>
+          <TabsTrigger value="workflows" className="data-[state=active]:bg-white data-[state=active]:shadow-sm py-2.5 text-xs sm:text-sm">
+            <Workflow className="h-4 w-4 mr-1.5" />
+            Workflows
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="company" className="space-y-4 mt-6">
+          {/* Company Information */}
+          <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5" />
@@ -310,7 +331,6 @@ export function CompanySettingsSimple() {
                 />
               </div>
             </div>
-            
             <div className="space-y-2">
               <Label htmlFor="company_address">Adresse</Label>
               <Textarea
@@ -321,8 +341,7 @@ export function CompanySettingsSimple() {
                 rows={2}
               />
             </div>
-            
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="company_postal_code">Postleitzahl</Label>
                 <Input
@@ -354,8 +373,8 @@ export function CompanySettingsSimple() {
           </CardContent>
         </Card>
 
-        {/* Contact Information */}
-        <Card>
+          {/* Contact Information */}
+          <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Mail className="h-5 w-5" />
@@ -411,8 +430,118 @@ export function CompanySettingsSimple() {
           </CardContent>
         </Card>
 
-        {/* Working Hours */}
-        <Card>
+          {/* Document Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Dokumenteinstellungen
+              </CardTitle>
+              <CardDescription>
+                Präfixe für automatische Nummerierung
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="invoice_prefix">Rechnungs-Präfix</Label>
+                  <Input
+                    id="invoice_prefix"
+                    value={settings.invoice_prefix || ""}
+                    onChange={(e) => updateSetting("invoice_prefix", e.target.value)}
+                    placeholder="RE"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="quote_prefix">Angebots-Präfix</Label>
+                  <Input
+                    id="quote_prefix"
+                    value={settings.quote_prefix || ""}
+                    onChange={(e) => updateSetting("quote_prefix", e.target.value)}
+                    placeholder="AN"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="project_prefix">Projekt-Präfix</Label>
+                  <Input
+                    id="project_prefix"
+                    value={settings.project_prefix || ""}
+                    onChange={(e) => updateSetting("project_prefix", e.target.value)}
+                    placeholder="PR"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="financial" className="space-y-4 mt-6">
+          {/* Financial Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                Finanzeinstellungen
+              </CardTitle>
+              <CardDescription>
+                Standard-Werte für Preise und Steuern
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="default_hourly_rate">Standard-Stundensatz (€)</Label>
+                  <Input
+                    id="default_hourly_rate"
+                    type="number"
+                    step="0.50"
+                    value={settings.default_hourly_rate || ""}
+                    onChange={(e) => updateSetting("default_hourly_rate", Number(e.target.value))}
+                    placeholder="50.00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="default_overtime_rate">Überstunden-Satz (€)</Label>
+                  <Input
+                    id="default_overtime_rate"
+                    type="number"
+                    step="0.50"
+                    value={settings.default_overtime_rate || ""}
+                    onChange={(e) => updateSetting("default_overtime_rate", Number(e.target.value))}
+                    placeholder="62.50"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="default_currency">Währung</Label>
+                  <Input
+                    id="default_currency"
+                    value={settings.default_currency || "EUR"}
+                    onChange={(e) => updateSetting("default_currency", e.target.value)}
+                    placeholder="EUR"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="default_tax_rate">Steuersatz (%)</Label>
+                  <Input
+                    id="default_tax_rate"
+                    type="number"
+                    step="0.1"
+                    value={settings.default_tax_rate || ""}
+                    onChange={(e) => updateSetting("default_tax_rate", Number(e.target.value))}
+                    placeholder="19.0"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="worktime" className="space-y-4 mt-6">
+          {/* Working Hours */}
+          <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5" />
@@ -422,8 +551,8 @@ export function CompanySettingsSimple() {
               Standard-Arbeitszeiten für Berechnungen und Zeiterfassung
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
+          <CardContent className="pt-4 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="default_working_hours_start">Arbeitsbeginn</Label>
                 <Input
@@ -456,142 +585,122 @@ export function CompanySettingsSimple() {
           </CardContent>
         </Card>
 
-        {/* Financial Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
-              Finanzeinstellungen
-            </CardTitle>
-            <CardDescription>
-              Standard-Werte für Preise und Steuern
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          {/* Vacation Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Urlaubseinstellungen
+              </CardTitle>
+              <CardDescription>
+                Standard-Urlaubstage für neue Mitarbeiter
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="default_hourly_rate">Standard-Stundensatz (€)</Label>
+                <Label htmlFor="default_vacation_days">Standard Urlaubstage pro Jahr</Label>
                 <Input
-                  id="default_hourly_rate"
+                  id="default_vacation_days"
                   type="number"
-                  step="0.50"
-                  value={settings.default_hourly_rate || ""}
-                  onChange={(e) => updateSetting("default_hourly_rate", Number(e.target.value))}
-                  placeholder="50.00"
+                  min="0"
+                  max="50"
+                  value={settings.default_vacation_days || 25}
+                  onChange={(e) => updateSetting("default_vacation_days", Number(e.target.value))}
+                  placeholder="25"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Diese Anzahl wird automatisch jedem neuen Mitarbeiter bei der Erstellung zugewiesen
+                </p>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="default_overtime_rate">Überstunden-Satz (€)</Label>
-                <Input
-                  id="default_overtime_rate"
-                  type="number"
-                  step="0.50"
-                  value={settings.default_overtime_rate || ""}
-                  onChange={(e) => updateSetting("default_overtime_rate", Number(e.target.value))}
-                  placeholder="62.50"
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="default_currency">Währung</Label>
-                <Input
-                  id="default_currency"
-                  value={settings.default_currency || "EUR"}
-                  onChange={(e) => updateSetting("default_currency", e.target.value)}
-                  placeholder="EUR"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="default_tax_rate">Steuersatz (%)</Label>
-                <Input
-                  id="default_tax_rate"
-                  type="number"
-                  step="0.1"
-                  value={settings.default_tax_rate || ""}
-                  onChange={(e) => updateSetting("default_tax_rate", Number(e.target.value))}
-                  placeholder="19.0"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-        {/* Vacation Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Urlaubseinstellungen
-            </CardTitle>
-            <CardDescription>
-              Standard-Urlaubstage für neue Mitarbeiter
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="default_vacation_days">Standard Urlaubstage pro Jahr</Label>
-              <Input
-                id="default_vacation_days"
-                type="number"
-                min="0"
-                max="50"
-                value={settings.default_vacation_days || 25}
-                onChange={(e) => updateSetting("default_vacation_days", Number(e.target.value))}
-                placeholder="25"
-              />
-              <p className="text-xs text-muted-foreground">
-                Diese Anzahl wird automatisch jedem neuen Mitarbeiter bei der Erstellung zugewiesen
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <TabsContent value="workflows" className="mt-6">
+          {/* Workflow Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Workflow className="h-5 w-5" />
+                Workflow-Einstellungen
+              </CardTitle>
+              <CardDescription>
+                Konfigurieren Sie die automatischen Regeln für die Workflow-Erkennung zwischen
+                Direktabrechnung und Lieferschein-Workflow.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-6">
+              {/* Automatische Schwellwerte */}
+              <div>
+                <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Automatische Schwellwerte
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Mindest-Arbeitszeit für Lieferschein (Stunden)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      placeholder="8"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Projekte mit mehr Stunden erhalten automatisch einen Lieferschein
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Mindest-Materialwert für Lieferschein (€)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="50"
+                      placeholder="500"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Projekte mit Material über diesem Wert erhalten einen Lieferschein
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-        {/* Document Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Dokumenteinstellungen
-            </CardTitle>
-            <CardDescription>
-              Präfixe für automatische Nummerierung
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="invoice_prefix">Rechnungs-Präfix</Label>
-                <Input
-                  id="invoice_prefix"
-                  value={settings.invoice_prefix || ""}
-                  onChange={(e) => updateSetting("invoice_prefix", e.target.value)}
-                  placeholder="RE"
-                />
+              {/* Kunden-basierte Regeln */}
+              <div>
+                <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Kunden-basierte Regeln
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 rounded-md border">
+                    <div>
+                      <Label>B2B-Kunden immer mit Lieferschein</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Geschäftskunden erhalten grundsätzlich einen Lieferschein
+                      </p>
+                    </div>
+                    <div className="w-12 h-6 bg-blue-500 rounded-full relative">
+                      <div className="w-5 h-5 bg-white rounded-full absolute top-0.5 right-0.5"></div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>B2C-Schwellwert für Lieferschein (€)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="100"
+                      placeholder="1000"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Privatkunden-Projekte über diesem Wert erhalten einen Lieferschein
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="quote_prefix">Angebots-Präfix</Label>
-                <Input
-                  id="quote_prefix"
-                  value={settings.quote_prefix || ""}
-                  onChange={(e) => updateSetting("quote_prefix", e.target.value)}
-                  placeholder="AN"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="project_prefix">Projekt-Präfix</Label>
-                <Input
-                  id="project_prefix"
-                  value={settings.project_prefix || ""}
-                  onChange={(e) => updateSetting("project_prefix", e.target.value)}
-                  placeholder="PR"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

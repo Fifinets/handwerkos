@@ -157,6 +157,60 @@ export const useTimeTracking = () => {
     }
   }, [fetchActiveTime])
 
+  // Fetch recent time segments
+  const fetchTimeSegments = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Try to get employee_id first
+      let employeeId = user.id
+      const { data: employees } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('user_id', user.id)
+        .single()
+
+      if (employees) {
+        employeeId = employees.id
+      }
+
+      const { data, error } = await supabase
+        .from('timesheets')
+        .select(`
+          *,
+          projects(id, name, customers(name))
+        `)
+        .eq('employee_id', employeeId)
+        .order('date', { ascending: false })
+        .order('start_time', { ascending: false })
+        .limit(20)
+
+      if (error && !error.message.includes('relation')) {
+        console.error('Error fetching time segments:', error)
+
+        // Try with user.id if employee_id fails
+        const { data: fallbackData } = await supabase
+          .from('timesheets')
+          .select(`
+            *,
+            projects(id, name, customers(name))
+          `)
+          .eq('employee_id', user.id)
+          .order('date', { ascending: false })
+          .order('start_time', { ascending: false })
+          .limit(20)
+
+        setSegments(fallbackData || [])
+        return
+      }
+
+      setSegments(data || [])
+    } catch (error) {
+      console.error('Error in fetchTimeSegments:', error)
+    }
+  }, [])
+
   // Stop time tracking and save to timesheets
   const stopTracking = useCallback(async (notes?: string) => {
     try {
@@ -288,60 +342,6 @@ export const useTimeTracking = () => {
       setIsLoading(false)
     }
   }, [activeTime, stopTracking, startTracking])
-
-  // Fetch recent time segments
-  const fetchTimeSegments = useCallback(async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      // Try to get employee_id first
-      let employeeId = user.id
-      const { data: employees } = await supabase
-        .from('employees')
-        .select('id')
-        .eq('user_id', user.id)
-        .single()
-
-      if (employees) {
-        employeeId = employees.id
-      }
-
-      const { data, error } = await supabase
-        .from('timesheets')
-        .select(`
-          *,
-          projects(id, name, customers(name))
-        `)
-        .eq('employee_id', employeeId)
-        .order('date', { ascending: false })
-        .order('start_time', { ascending: false })
-        .limit(20)
-
-      if (error && !error.message.includes('relation')) {
-        console.error('Error fetching time segments:', error)
-
-        // Try with user.id if employee_id fails
-        const { data: fallbackData } = await supabase
-          .from('timesheets')
-          .select(`
-            *,
-            projects(id, name, customers(name))
-          `)
-          .eq('employee_id', user.id)
-          .order('date', { ascending: false })
-          .order('start_time', { ascending: false })
-          .limit(20)
-
-        setSegments(fallbackData || [])
-        return
-      }
-
-      setSegments(data || [])
-    } catch (error) {
-      console.error('Error in fetchTimeSegments:', error)
-    }
-  }, [])
 
   // Auto-refresh active time
   useEffect(() => {
