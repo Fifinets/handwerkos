@@ -56,14 +56,35 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   const [showQuickSwitch, setShowQuickSwitch] = useState(false)
   const [selectedProject, setSelectedProject] = useState<{id: string, name: string, customer?: {name: string}} | null>(null)
   const [projects, setProjects] = useState<any[]>([])
+  const [breakTimer, setBreakTimer] = useState<{
+    isActive: boolean
+    remainingSeconds: number
+    totalSeconds: number
+  }>({
+    isActive: false,
+    remainingSeconds: 0,
+    totalSeconds: 0
+  })
+  const [companySettings, setCompanySettings] = useState<{default_break_duration: number} | null>(null)
 
-  // Aktualisiere Zeit jede Sekunde für Live-Timer
+  // Aktualisiere Zeit jede Sekunde für Live-Timer und Pause-Timer
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date())
+      
+      // Update break timer
+      if (breakTimer.isActive && breakTimer.remainingSeconds > 0) {
+        setBreakTimer(prev => ({
+          ...prev,
+          remainingSeconds: prev.remainingSeconds - 1
+        }))
+      } else if (breakTimer.isActive && breakTimer.remainingSeconds <= 0) {
+        // Timer finished
+        setBreakTimer(prev => ({ ...prev, isActive: false }))
+      }
     }, 1000)
     return () => clearInterval(interval)
-  }, [])
+  }, [breakTimer.isActive, breakTimer.remainingSeconds])
 
   // Lade Projekte
   useEffect(() => {
@@ -175,7 +196,86 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
     }
     
     loadProjects()
+    loadCompanySettings()
   }, [])
+
+  // Lade Company Settings für Pausenzeit
+  const loadCompanySettings = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        console.log('No user found')
+        setCompanySettings({ default_break_duration: 15 })
+        return
+      }
+
+      console.log('Loading company settings for user:', user.id)
+
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('company_id')
+        .eq('user_id', user.id)
+        .single()
+
+      console.log('User profile result:', { data, error })
+
+      if (error || !data?.company_id) {
+        console.log('No company_id found, trying to fix automatically...')
+        
+        // Try to find and set company_id automatically
+        const { data: companies, error: companyError } = await supabase
+          .from('company_settings')
+          .select('id, default_break_duration')
+          .order('created_at', { ascending: false })
+          .limit(1)
+
+        if (companyError || !companies || companies.length === 0) {
+          console.log('No company found, using default break time')
+          setCompanySettings({ default_break_duration: 15 })
+          return
+        }
+
+        console.log('Found company, setting company_id for user:', companies[0].id)
+
+        // Update user profile with company_id
+        const { error: updateError } = await supabase
+          .from('user_profiles')
+          .update({ company_id: companies[0].id })
+          .eq('user_id', user.id)
+
+        if (updateError) {
+          console.log('Failed to update user profile, using default:', updateError.message)
+          setCompanySettings({ default_break_duration: 15 })
+          return
+        }
+
+        console.log('Successfully set company_id, using company settings')
+        setCompanySettings({ default_break_duration: companies[0].default_break_duration })
+        return
+      }
+
+      console.log('Found company_id:', data.company_id)
+
+      const { data: settings, error: settingsError } = await supabase
+        .from('company_settings')
+        .select('default_break_duration')
+        .eq('id', data.company_id)
+        .single()
+
+      console.log('Company settings result:', { settings, settingsError })
+
+      if (settingsError) {
+        console.log('No company settings found, using default:', settingsError.message)
+        setCompanySettings({ default_break_duration: 15 })
+      } else {
+        console.log('Loaded company settings - break duration:', settings.default_break_duration)
+        setCompanySettings(settings)
+      }
+    } catch (error) {
+      console.error('Error loading company settings:', error)
+      setCompanySettings({ default_break_duration: 15 })
+    }
+  }
 
   // Lade heutige Statistiken
   const loadTodayStats = useCallback(async () => {
@@ -295,15 +395,28 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
 
   const handleBreak = async () => {
     try {
-      toast.info('Starte Pause...', { duration: 1000 })
       if (activeTime.active) {
         await stopTracking('Pause gestartet')
       }
       await startTracking('break-project', 'break', 'Pause')
-      toast.success('Pause gestartet')
+      
+      // Starte Pause-Timer mit Company Settings
+      const breakDuration = companySettings?.default_break_duration || 15 // Minuten
+      const totalSeconds = breakDuration * 60 // Convert to seconds
+      
+      console.log('🟡 BREAK TIMER DEBUG:')
+      console.log('Company settings:', companySettings)
+      console.log('Break duration (minutes):', breakDuration)
+      console.log('Total seconds:', totalSeconds)
+      
+      setBreakTimer({
+        isActive: true,
+        remainingSeconds: totalSeconds,
+        totalSeconds: totalSeconds
+      })
+      
     } catch (error) {
       console.error('Break error:', error)
-      toast.error(`Fehler bei Pause: ${error}`)
     }
   }
 
@@ -321,6 +434,13 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
     }
   }
 
+  // Helper function to format timer display
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+
   // Berechne Fortschritt zum Tagesziel
   const progressPercentage = Math.min((todayStats.totalWorkMinutes / todayStats.targetHours) * 100, 100)
   const isTargetReached = todayStats.totalWorkMinutes >= todayStats.targetHours
@@ -328,6 +448,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
 
   return (
     <div className="space-y-4 p-4 max-w-md mx-auto">
+
       {/* Header mit Datum */}
       <div className="text-center">
         <h1 className="text-2xl font-bold">Heute</h1>
@@ -365,6 +486,35 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                 </p>
               </div>
 
+              {/* Break Timer Display */}
+              {breakTimer.isActive && (
+                <div className="text-center bg-orange-50 p-3 rounded-lg border border-orange-200">
+                  <div className="text-2xl font-mono font-bold text-orange-600 mb-1">
+                    {formatTime(breakTimer.remainingSeconds)}
+                  </div>
+                  <p className="text-xs text-orange-700">
+                    Pausenzeit verbleibt
+                  </p>
+                  {/* Progress bar for break time */}
+                  <div className="w-full bg-orange-200 rounded-full h-2 mt-2">
+                    <div 
+                      className="bg-orange-500 h-2 rounded-full transition-all duration-1000" 
+                      style={{ 
+                        width: `${((breakTimer.totalSeconds - breakTimer.remainingSeconds) / breakTimer.totalSeconds) * 100}%` 
+                      }}
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setBreakTimer(prev => ({ ...prev, isActive: false }))}
+                    className="mt-2 text-xs"
+                  >
+                    Pause beenden
+                  </Button>
+                </div>
+              )}
+
               {/* Aktuelle Session Info */}
               <div className="text-xs text-muted-foreground">
                 <div>Gestartet: {format(new Date(activeTime.segment.started_at), 'HH:mm')}</div>
@@ -378,11 +528,11 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setShowQuickSwitch(true)}
+                  onClick={handleBreak}
                   className="flex-1"
                 >
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Wechseln
+                  <Coffee className="h-4 w-4 mr-2" />
+                  Pause
                 </Button>
                 <Button
                   variant="destructive"
@@ -429,7 +579,13 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => setShowQuickSwitch(true)}
+                  onClick={() => {
+                    console.log('🔥 PROJEKT BUTTON CLICKED!');
+                    console.log('Before setState - showQuickSwitch:', showQuickSwitch);
+                    setShowQuickSwitch(true);
+                    console.log('After setState called');
+                    toast.info('Projekt-Dialog wird geöffnet...');
+                  }}
                   disabled={isLoading}
                   className="h-12"
                 >
@@ -554,14 +710,33 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         onClose={() => setShowQuickSwitch(false)}
         onProjectSelect={async (projectId) => {
           try {
+            // First try to find project in our loaded projects
+            let project = projects.find(p => p.id === projectId)
+            
+            // If not found, try to load it directly from database
+            if (!project) {
+              try {
+                const { data: dbProject, error } = await supabase
+                  .from('projects')
+                  .select('id, name, customer_id')
+                  .eq('id', projectId)
+                  .single()
+                
+                if (!error && dbProject) {
+                  project = dbProject
+                  // Add to our projects array for future use
+                  setProjects(prev => [...prev, project])
+                }
+              } catch (dbError) {
+                console.error('Database error:', dbError)
+              }
+            }
+            
             if (activeTime.active) {
               await switchProject(projectId, 'work', 'Projekt gewechselt')
             } else {
               // Don't auto-start, just select the project
-              console.log('Project selected but NOT auto-starting:', projectId)
-              const project = projects.find(p => p.id === projectId)
               if (project) {
-                console.log('Setting selected project to:', project)
                 setSelectedProject(project)
               }
             }
@@ -571,7 +746,6 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             }
           } catch (error) {
             console.error('Project switch error:', error)
-            toast.error('Fehler beim Projektwechsel')
           }
         }}
         currentProjectId={activeTime.segment?.project_id}

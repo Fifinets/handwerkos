@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+// Native select is used instead of shadcn Select for better mobile compatibility
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
 import { 
@@ -53,9 +53,32 @@ const MobileTimeTracker: React.FC = () => {
     switchProject 
   } = useTimeTracking()
   
-  const [projects, setProjects] = useState<Project[]>([])
+  // Initialize with mock projects
+  const mockProjectsDefault = [
+    {
+      id: '6c81e627-8c38-472b-ae6b-5c63af8b9016',
+      name: 'Baustelle Musterstraße',
+      status: 'active',
+      customer: { name: 'Mustermann GmbH' }
+    },
+    {
+      id: 'mock-project-2',
+      name: 'Renovierung Bürogebäude',
+      status: 'active',
+      customer: { name: 'Schmidt & Co' }
+    },
+    {
+      id: 'mock-project-3',
+      name: 'Neubau Einfamilienhaus',
+      status: 'active',
+      customer: { name: 'Bau AG' }
+    }
+  ]
+  
+  const [projects, setProjects] = useState<Project[]>(mockProjectsDefault)
   const [selectedProject, setSelectedProject] = useState<string>('')
   const [selectedProjectDetails, setSelectedProjectDetails] = useState<Project | null>(null)
+  const [, forceUpdate] = useState({})
   const [description, setDescription] = useState('')
   const [notes, setNotes] = useState('')
   const [isOnline, setIsOnline] = useState(true)
@@ -157,75 +180,64 @@ const MobileTimeTracker: React.FC = () => {
   useEffect(() => {
     console.log('Active time status changed:', activeTime)
   }, [activeTime])
+  
+  // Debug: Monitor selectedProject state
+  useEffect(() => {
+    console.log('=== STATE UPDATE ===');
+    console.log('selectedProject state:', selectedProject);
+    console.log('selectedProjectDetails state:', selectedProjectDetails);
+    console.log('==================');
+  }, [selectedProject, selectedProjectDetails])
 
   // Debug: Log project selection changes and update project details
   useEffect(() => {
     console.log('Selected project changed to:', selectedProject)
+    console.log('Available projects:', projects.length, projects.map(p => ({ id: p.id, name: p.name })))
     // Update selected project details
     if (selectedProject) {
       const projectDetails = projects.find(p => p.id === selectedProject)
       if (projectDetails) {
         setSelectedProjectDetails(projectDetails)
         console.log('Project details updated:', projectDetails)
+      } else {
+        console.log('Project not found in list:', selectedProject)
       }
     } else {
       setSelectedProjectDetails(null)
     }
   }, [selectedProject, projects])
 
-  // Load projects and clean up stale sessions
+  // Load projects from database
   useEffect(() => {
     const loadProjects = async () => {
       try {
-        console.log('Loading real projects from database...')
+        console.log('Loading projects from database...')
         
-        // First, check for and clean up any stale sessions (older than 24 hours)
-        const { data: staleSessions } = await supabase
-          .from('time_segments')
-          .select('id, started_at')
-          .is('ended_at', null)
-          .eq('status', 'active')
-        
-        if (staleSessions && staleSessions.length > 0) {
-          for (const session of staleSessions) {
-            const startTime = new Date(session.started_at)
-            const now = new Date()
-            const hoursDiff = (now.getTime() - startTime.getTime()) / (1000 * 60 * 60)
-            
-            // If session is older than 24 hours, mark it as completed
-            if (hoursDiff > 24) {
-              console.log('Cleaning up stale session:', session.id)
-              await supabase
-                .from('time_segments')
-                .update({ 
-                  ended_at: now.toISOString(),
-                  status: 'completed',
-                  notes: 'Automatisch beendet (Session älter als 24 Stunden)'
-                })
-                .eq('id', session.id)
-            }
-          }
-        }
-
-        // Now load projects
+        // Load all projects from database
         const { data, error } = await supabase
           .from('projects')
           .select(`
             id,
             name,
+            status,
             customer:customers(name)
           `)
-          .eq('status', 'active')
           .order('name')
         
-        if (error) throw error
-        console.log('Loaded projects:', data)
-        setProjects(data || [])
+        if (error) {
+          console.error('Database error loading projects:', error)
+          toast.error('Fehler beim Laden der Projekte')
+          return
+        }
         
         if (data && data.length > 0) {
+          console.log('Loaded projects from database:', data.length, data)
+          setProjects(data)
           toast.success(`${data.length} Projekte geladen`)
         } else {
-          toast.info('Keine aktiven Projekte gefunden')
+          console.log('No projects found in database, data:', data)
+          setProjects([])
+          toast.warning('Keine Projekte in der Datenbank gefunden')
         }
       } catch (error) {
         console.error('Error loading projects:', error)
@@ -233,10 +245,8 @@ const MobileTimeTracker: React.FC = () => {
       }
     }
     
-    if (isOnline) {
-      loadProjects()
-    }
-  }, [isOnline])
+    loadProjects()
+  }, [])
   
   // Live timer updates
   useEffect(() => {
@@ -428,6 +438,20 @@ const MobileTimeTracker: React.FC = () => {
         </div>
       </div>
       
+      {/* Debug Info - ALWAYS visible at top */}
+      <div className="p-2 bg-yellow-100 rounded text-xs text-gray-800 mx-4 mt-2 space-y-1">
+        <div><strong>DEBUG:</strong> activeTime.active = {String(activeTime.active)}</div>
+        <div>selectedProject = {selectedProject || 'none'}</div>
+        {selectedProjectDetails && (
+          <div>selectedProjectDetails = {selectedProjectDetails.name}</div>
+        )}
+        <div>projects loaded = {projects.length}</div>
+        {projects.length > 0 && (
+          <div>First project: {projects[0].name} (ID: {projects[0].id})</div>
+        )}
+        <div>Projects list: {JSON.stringify(projects.map(p => ({ id: p.id, name: p.name })))}</div>
+      </div>
+
       {/* Main Content */}
       <div className="p-4 space-y-4 pb-safe">
         {/* Quick Actions */}
@@ -440,51 +464,84 @@ const MobileTimeTracker: React.FC = () => {
           <CardContent className="space-y-4">
             {!activeTime.active ? (
               <>
-                {/* Debug Info - only in development */}
-                {process.env.NODE_ENV === 'development' && (
-                  <div className="p-2 bg-gray-100 rounded text-xs text-gray-600 mb-3 space-y-1">
-                    <div>Debug: activeTime.active = {String(activeTime.active)}</div>
-                    <div>selectedProject = {selectedProject || 'none'}</div>
-                    {selectedProjectDetails && (
-                      <div>selectedProjectDetails = {selectedProjectDetails.name}</div>
-                    )}
-                    <div>projects loaded = {projects.length}</div>
-                    {activeTime.segment && (
-                      <>
-                        <div>Active segment ID: {activeTime.segment.id}</div>
-                        <div>Active project: {activeTime.segment.project_name}</div>
-                      </>
-                    )}
-                  </div>
-                )}
+                {/* Debug Info - always visible for now */}
+                <div className="p-2 bg-gray-100 rounded text-xs text-gray-600 mb-3 space-y-1">
+                  <div>Debug: activeTime.active = {String(activeTime.active)}</div>
+                  <div>selectedProject = {selectedProject || 'none'}</div>
+                  {selectedProjectDetails && (
+                    <div>selectedProjectDetails = {selectedProjectDetails.name}</div>
+                  )}
+                  <div>projects loaded = {projects.length}</div>
+                  {projects.length > 0 && (
+                    <div>First project: {projects[0].name} (ID: {projects[0].id})</div>
+                  )}
+                  <div>Projects list: {JSON.stringify(projects.map(p => ({ id: p.id, name: p.name })))}</div>
+                  {activeTime.segment && (
+                    <>
+                      <div>Active segment ID: {activeTime.segment.id}</div>
+                      <div>Active project: {activeTime.segment.project_name}</div>
+                    </>
+                  )}
+                </div>
                 
-                {/* Project Selection */}
+                {/* Project Selection - Button Based */}
                 <div className="space-y-2">
-                  <Label htmlFor="mobile-project">
-                    {selectedProject ? 'Ausgewähltes Projekt' : 'Projekt auswählen'}
+                  <Label>
+                    {selectedProject ? '✅ Ausgewähltes Projekt' : '⚠️ Projekt auswählen'}
                   </Label>
-                  <Select value={selectedProject} onValueChange={(value) => {
-                    console.log('Project selection changed to:', value);
-                    setSelectedProject(value);
-                  }}>
-                    <SelectTrigger className="h-12 text-base">
-                      <SelectValue placeholder="Projekt wählen..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projects.map((project) => (
-                        <SelectItem key={project.id} value={project.id}>
-                          <div className="flex flex-col items-start py-1">
-                            <span className="font-medium">{project.name}</span>
+                  
+                  {/* Show selected project or selection prompt */}
+                  {selectedProject && selectedProjectDetails ? (
+                    <div 
+                      className="w-full p-4 text-left rounded-lg border-2 border-green-500 bg-green-50"
+                      onClick={() => {
+                        console.log('Clearing selection');
+                        setSelectedProject('');
+                        setSelectedProjectDetails(null);
+                      }}
+                    >
+                      <div className="font-medium text-green-900">{selectedProjectDetails.name}</div>
+                      {selectedProjectDetails.customer && (
+                        <div className="text-sm text-green-700">{selectedProjectDetails.customer.name}</div>
+                      )}
+                      <div className="text-xs text-green-600 mt-1">Tippen zum Ändern</div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {projects.length === 0 ? (
+                        <div className="text-center text-gray-500 p-4">
+                          Keine Projekte verfügbar
+                        </div>
+                      ) : (
+                        projects.map((project) => (
+                          <div
+                            key={project.id}
+                            onClick={() => {
+                              console.log('=== PROJECT CLICK ===');
+                              console.log('Selecting project:', project.id, project.name);
+                              setSelectedProject(project.id);
+                              setSelectedProjectDetails(project);
+                              // Save to localStorage for mock tracking
+                              localStorage.setItem('selectedProjectDetails', JSON.stringify(project));
+                              console.log('Project selected and stored');
+                              toast.success(`Projekt "${project.name}" ausgewählt`);
+                              try {
+                                Haptics.impact({ style: ImpactStyle.Light });
+                              } catch (e) {
+                                console.log('Haptics not available');
+                              }
+                            }}
+                            className="w-full p-3 text-left rounded-lg border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-colors active:bg-blue-100 cursor-pointer"
+                          >
+                            <div className="font-medium">{project.name}</div>
                             {project.customer && (
-                              <span className="text-sm text-muted-foreground">
-                                {project.customer.name}
-                              </span>
+                              <div className="text-sm text-gray-600">{project.customer.name}</div>
                             )}
                           </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
                 
                 {/* Description */}
@@ -500,15 +557,35 @@ const MobileTimeTracker: React.FC = () => {
                   />
                 </div>
                 
+                {/* Visual feedback for selected project */}
+                {selectedProject && selectedProjectDetails && (
+                  <div className="p-3 bg-green-100 border border-green-500 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-800">
+                      <CheckCircle2 className="h-5 w-5" />
+                      <div>
+                        <div className="font-semibold">Projekt ausgewählt:</div>
+                        <div className="text-sm">{selectedProjectDetails.name}</div>
+                        {selectedProjectDetails.customer && (
+                          <div className="text-xs text-green-600">{selectedProjectDetails.customer.name}</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 {/* Start Button */}
                 <Button 
                   onClick={handleStart}
-                  disabled={!selectedProject || isLoading}
+                  disabled={!selectedProject || !selectedProjectDetails || isLoading}
                   size="lg"
-                  className="w-full h-14 text-lg bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+                  className={`w-full h-14 text-lg ${
+                    selectedProject && selectedProjectDetails && !isLoading
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600' 
+                      : 'bg-gray-400'
+                  }`}
                 >
                   <Play className="h-6 w-6 mr-2" />
-                  Zeiterfassung starten
+                  {selectedProject && selectedProjectDetails ? 'Zeiterfassung starten' : 'Bitte Projekt wählen'}
                 </Button>
               </>
             ) : (
@@ -587,7 +664,7 @@ const MobileTimeTracker: React.FC = () => {
                           Projekt wechseln
                         </Button>
                       </SheetTrigger>
-                      <SheetContent side="bottom" className="h-[80vh]">
+                      <SheetContent side="bottom" className="h-[80vh]" onPointerDownOutside={(e) => e.preventDefault()}>
                         <SheetHeader className="text-left pb-4">
                           <SheetTitle>Projekt wechseln</SheetTitle>
                           <SheetDescription>
@@ -598,26 +675,51 @@ const MobileTimeTracker: React.FC = () => {
                         <div className="space-y-4">
                           {/* New Project Selection */}
                           <div className="space-y-2">
-                            <Label>Neues Projekt</Label>
-                            <Select value={selectedProject} onValueChange={setSelectedProject}>
-                              <SelectTrigger className="h-12 text-base">
-                                <SelectValue placeholder="Neues Projekt wählen..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {projects.map((project) => (
-                                  <SelectItem key={project.id} value={project.id}>
-                                    <div className="flex flex-col items-start py-1">
-                                      <span className="font-medium">{project.name}</span>
-                                      {project.customer && (
-                                        <span className="text-sm text-muted-foreground">
-                                          {project.customer.name}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <Label htmlFor="mobile-switch-project">Neues Projekt</Label>
+                            <select 
+                              id="mobile-switch-project"
+                              value={selectedProject} 
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                const value = e.target.value;
+                                console.log('Switch project selection changed to:', value);
+                                setSelectedProject(value);
+                                // Update project details immediately
+                                const project = projects.find(p => p.id === value);
+                                if (project) {
+                                  console.log('Found project details for switch:', project);
+                                  setSelectedProjectDetails(project);
+                                } else {
+                                  setSelectedProjectDetails(null);
+                                }
+                                // Haptic feedback on selection
+                                if (value) {
+                                  Haptics.impact({ style: ImpactStyle.Light });
+                                }
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className={`w-full h-14 px-4 text-lg rounded-lg border-2 appearance-none cursor-pointer ${
+                                selectedProject 
+                                  ? 'border-green-500 bg-green-50 text-green-900' 
+                                  : 'border-orange-400 bg-orange-50 text-gray-900'
+                              } focus:outline-none focus:ring-4 focus:ring-blue-500 focus:border-blue-500`}
+                              style={{
+                                WebkitAppearance: 'none',
+                                MozAppearance: 'none',
+                                backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                                backgroundRepeat: 'no-repeat',
+                                backgroundPosition: 'right 1rem center',
+                                backgroundSize: '1.5em',
+                                paddingRight: '3rem'
+                              }}
+                            >
+                              <option value="">📋 Neues Projekt wählen...</option>
+                              {projects.map((project) => (
+                                <option key={project.id} value={project.id}>
+                                  {project.name} {project.customer ? `- ${project.customer.name}` : ''}
+                                </option>
+                              ))}
+                            </select>
                           </div>
                           
                           {/* New Description */}
@@ -730,6 +832,18 @@ const MobileTimeTracker: React.FC = () => {
           </Card>
         )}
       </div>
+
+      {/* Material Recorder Dialog */}
+      <MobileMaterialRecorder
+        projectId={activeTime.segment?.project_id || selectedProject || ''}
+        projectName={activeTime.segment?.project_name || selectedProjectDetails?.name}
+        isOpen={showMaterialDialog}
+        onClose={() => setShowMaterialDialog(false)}
+        onMaterialAdded={() => {
+          setMaterialCount(prev => prev + 1)
+          toast.success('Material wurde verbucht')
+        }}
+      />
     </div>
   )
 }

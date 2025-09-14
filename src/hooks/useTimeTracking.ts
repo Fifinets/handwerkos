@@ -3,24 +3,19 @@ import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { isAndroid, useAndroidTimeTracking } from '@/utils/androidPlugins'
 
-interface TimeSegment {
+// Verwende timesheets Tabelle für Kompatibilität mit Manager Dashboard
+interface TimeEntry {
   id: string
   employee_id: string
   project_id: string | null
-  started_at: string
-  ended_at: string | null
-  duration_minutes_computed: number | null
-  segment_type: 'work' | 'break' | 'drive'
-  status: 'active' | 'completed' | 'paused'
+  date: string  // DATE field
+  start_time: string  // TIME field
+  end_time: string | null  // TIME field
+  hours: number
+  break_minutes?: number
   description: string | null
-  notes: string | null
-  project?: {
-    id: string
-    name: string
-    customer?: {
-      name: string
-    }
-  }
+  is_billable: boolean
+  task_category?: string
 }
 
 interface ActiveTimeStatus {
@@ -37,349 +32,340 @@ interface ActiveTimeStatus {
   }
 }
 
+// Hilfsfunktionen für Zeit-Konvertierung
+const getTimeFromDate = (date: Date): string => {
+  // Format: HH:MM:SS
+  return date.toTimeString().split(' ')[0]
+}
+
+const getDateFromDate = (date: Date): string => {
+  // Format: YYYY-MM-DD
+  return date.toISOString().split('T')[0]
+}
+
+const calculateHours = (startTime: string, endTime: string): number => {
+  const [startHours, startMinutes] = startTime.split(':').map(Number)
+  const [endHours, endMinutes] = endTime.split(':').map(Number)
+
+  const totalMinutes = (endHours * 60 + endMinutes) - (startHours * 60 + startMinutes)
+  return Math.round((totalMinutes / 60) * 100) / 100 // Round to 2 decimal places
+}
+
 export const useTimeTracking = () => {
   const [activeTime, setActiveTime] = useState<ActiveTimeStatus>({ active: false })
   const [isLoading, setIsLoading] = useState(false)
-  const [segments, setSegments] = useState<TimeSegment[]>([])
+  const [segments, setSegments] = useState<TimeEntry[]>([])
+  const [activeEntryData, setActiveEntryData] = useState<any>(null)
 
   // Get Android-specific hooks if on Android platform
   const androidTimeTracking = isAndroid() ? useAndroidTimeTracking() : null
 
-  // Fallback function with error handling (enhanced with Android support)
+  // Fetch active time entry from localStorage (temporary storage for active entries)
   const fetchActiveTime = useCallback(async () => {
     try {
       setIsLoading(true)
-      
-      // Use Android plugin if available
-      if (isAndroid() && androidTimeTracking) {
-        try {
-          const result = await androidTimeTracking.getActiveSession()
-          if (result.active && result.session) {
-            setActiveTime({
-              active: true,
-              segment: {
-                id: 'android-session',
-                project_id: result.session.projectId,
-                project_name: result.session.projectName,
-                customer_name: null,
-                segment_type: 'work',
-                started_at: new Date(result.session.startTime).toISOString(),
-                current_duration_minutes: result.session.durationMinutes,
-                description: result.session.description
-              }
-            })
-          } else {
-            setActiveTime({ active: false })
+
+      // Check localStorage for active entry (since timesheets table doesn't support "active" status)
+      const activeEntry = localStorage.getItem('activeTimeEntry')
+      if (activeEntry) {
+        const entry = JSON.parse(activeEntry)
+        const startTime = new Date(entry.startedAt)
+        const now = new Date()
+        const durationMinutes = Math.floor((now.getTime() - startTime.getTime()) / 1000 / 60)
+
+        setActiveTime({
+          active: true,
+          segment: {
+            id: entry.id,
+            project_id: entry.project_id,
+            project_name: entry.project_name || null,
+            customer_name: entry.customer_name || null,
+            segment_type: 'work',
+            started_at: entry.startedAt,
+            current_duration_minutes: durationMinutes,
+            description: entry.description
           }
-          return
-        } catch (androidError) {
-          console.warn('Android time tracking failed, falling back to web:', androidError)
-        }
+        })
+        setActiveEntryData(entry)
+      } else {
+        setActiveTime({ active: false })
+        setActiveEntryData(null)
       }
-      
-      try {
-        // Direkt von time_segments Tabelle laden statt RPC
-        const { data: activeSegments, error } = await supabase
-          .from('time_segments')
-          .select(`
-            id,
-            project_id,
-            segment_type,
-            started_at,
-            description,
-            project:projects(name)
-          `)
-          .is('ended_at', null)
-          .eq('status', 'active')
-          .limit(1)
-        
-        if (error && !error.message.includes('relation') && !error.message.includes('does not exist')) {
-          throw error
-        }
-        
-        if (activeSegments && activeSegments.length > 0) {
-          const segment = activeSegments[0]
-          setActiveTime({
-            active: true,
-            segment: {
-              id: segment.id,
-              project_id: segment.project_id,
-              project_name: segment.project?.name || null,
-              customer_name: null,
-              segment_type: segment.segment_type,
-              started_at: segment.started_at,
-              current_duration_minutes: 0,
-              description: segment.description
-            }
-          })
-        } else {
-          setActiveTime({ active: false })
-        }
-      } catch (error: any) {
-        if (error.message.includes('relation') || error.message.includes('does not exist')) {
-          console.warn('Time segments table not found, using mock active time')
-          setActiveTime({ active: false })
-        } else {
-          throw error
-        }
-      }
+
     } catch (error: any) {
-      console.error('Error fetching active time:', error)
+      console.error('Error in fetchActiveTime:', error)
       setActiveTime({ active: false })
     } finally {
       setIsLoading(false)
     }
-  }, [androidTimeTracking])
-
-  // Fetch time segments with fallback
-  const fetchTimeSegments = useCallback(async () => {
-    try {
-      try {
-        const { data, error } = await supabase
-          .from('time_segments')
-          .select(`
-            *,
-            project:projects(
-              id,
-              name,
-              customer:customers(name)
-            )
-          `)
-          .order('started_at', { ascending: false })
-          .limit(50)
-        
-        if (error && !error.message.includes('relation') && !error.message.includes('does not exist')) {
-          throw error
-        }
-        
-        setSegments(data || [])
-      } catch (error: any) {
-        if (error.message.includes('relation') || error.message.includes('does not exist')) {
-          console.warn('Time segments table not found, using mock data')
-          // Mock time segments for demo
-          setSegments([
-            {
-              id: 'mock-segment-1',
-              employee_id: 'mock-employee-1',
-              project_id: 'mock-project-1',
-              started_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-              ended_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-              duration_minutes_computed: 60,
-              segment_type: 'work',
-              status: 'completed',
-              description: 'Demo Arbeitszeit',
-              notes: 'Test-Zeiterfassung',
-              project: {
-                id: 'mock-project-1',
-                name: 'Beispiel Baustelle',
-                customer: {
-                  name: 'Max Mustermann GmbH'
-                }
-              }
-            }
-          ])
-        } else {
-          throw error
-        }
-      }
-    } catch (error: any) {
-      console.error('Error fetching time segments:', error)
-      setSegments([])
-    }
   }, [])
 
-  // Start tracking with fallback (enhanced with Android support)
+  // Start time tracking
   const startTracking = useCallback(async (
-    projectId: string, 
-    segmentType: 'work' | 'break' | 'drive' = 'work', 
+    projectId: string | null,
+    segmentType: 'work' | 'break' | 'drive' = 'work',
     description?: string
   ) => {
     try {
       setIsLoading(true)
-      
-      // Use Android plugin if available
-      if (isAndroid() && androidTimeTracking) {
-        try {
-          const result = await androidTimeTracking.startTracking(projectId, 'Demo Projekt', description)
-          if (result.success) {
-            toast.success('Zeiterfassung gestartet (Android)')
-            await fetchActiveTime()
-            return
-          }
-        } catch (androidError) {
-          console.warn('Android start tracking failed, falling back to web:', androidError)
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        toast.error('Nicht angemeldet')
+        return
+      }
+
+      const now = new Date()
+
+      // Store active entry in localStorage
+      const activeEntry = {
+        id: crypto.randomUUID(),
+        employee_id: user.id,
+        project_id: projectId,
+        project_name: null, // Will be fetched if needed
+        startedAt: now.toISOString(),
+        date: getDateFromDate(now),
+        start_time: getTimeFromDate(now),
+        description: description || null,
+        segment_type: segmentType
+      }
+
+      // Get project name if projectId exists
+      if (projectId) {
+        const { data: project } = await supabase
+          .from('projects')
+          .select('name, customers(name)')
+          .eq('id', projectId)
+          .single()
+
+        if (project) {
+          activeEntry.project_name = project.name
         }
       }
-      
-      try {
-        const { data, error } = await supabase.rpc('rpc_start_time_tracking', {
-          p_project_id: projectId,
-          p_segment_type: segmentType,
-          p_description: description
-        })
-        
-        if (error && !error.message.includes('function') && !error.message.includes('does not exist')) {
-          throw error
-        }
-        
-        toast.success('Zeiterfassung gestartet')
-        await fetchActiveTime()
-      } catch (error: any) {
-        if (error.message.includes('function') || error.message.includes('does not exist')) {
-          console.warn('RPC function not found, using mock time tracking')
-          // Mock start tracking
-          setActiveTime({
-            active: true,
-            segment: {
-              id: `mock-${Date.now()}`,
-              project_id: projectId,
-              project_name: 'Demo Projekt',
-              customer_name: 'Demo Kunde',
-              segment_type: segmentType,
-              started_at: new Date().toISOString(),
-              current_duration_minutes: 0,
-              description: description || null
-            }
-          })
-          toast.success('Zeiterfassung gestartet (Demo-Modus)')
-        } else {
-          throw error
-        }
-      }
+
+      localStorage.setItem('activeTimeEntry', JSON.stringify(activeEntry))
+
+      toast.success('Zeiterfassung gestartet')
+      await fetchActiveTime()
+
     } catch (error: any) {
       console.error('Error starting time tracking:', error)
       toast.error('Fehler beim Starten der Zeiterfassung')
     } finally {
       setIsLoading(false)
     }
-  }, [fetchActiveTime, androidTimeTracking])
+  }, [fetchActiveTime])
 
-  // Stop tracking with fallback (enhanced with Android support)
+  // Stop time tracking and save to timesheets
   const stopTracking = useCallback(async (notes?: string) => {
     try {
       setIsLoading(true)
-      
-      // Use Android plugin if available
-      if (isAndroid() && androidTimeTracking) {
-        try {
-          const result = await androidTimeTracking.stopTracking(notes)
-          if (result.success) {
-            toast.success(`Zeiterfassung beendet (${result.durationMinutes} min, Android)`)
-            setActiveTime({ active: false })
-            await fetchTimeSegments()
-            return
-          }
-        } catch (androidError) {
-          console.warn('Android stop tracking failed, falling back to web:', androidError)
-        }
+
+      const activeEntryStr = localStorage.getItem('activeTimeEntry')
+      if (!activeEntryStr) {
+        toast.error('Keine aktive Zeiterfassung')
+        return
       }
-      
-      try {
-        const { data, error } = await supabase.rpc('rpc_stop_time_tracking', {
-          p_notes: notes
+
+      const activeEntry = JSON.parse(activeEntryStr)
+      const now = new Date()
+      const endTime = getTimeFromDate(now)
+
+      // Calculate hours
+      const hours = calculateHours(activeEntry.start_time, endTime)
+
+      // Get current user (to get employee_id)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        toast.error('Nicht angemeldet')
+        return
+      }
+
+      // Get employee record
+      let employeeId = user.id
+      const { data: employees } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('user_id', user.id)
+        .single()
+
+      if (employees) {
+        employeeId = employees.id
+      }
+
+      // Save to timesheets table
+      const { data, error } = await supabase
+        .from('timesheets')
+        .insert({
+          employee_id: employeeId,
+          project_id: activeEntry.project_id,
+          date: activeEntry.date,
+          start_time: activeEntry.start_time,
+          end_time: endTime,
+          hours: hours,
+          break_minutes: 0,
+          description: notes ?
+            (activeEntry.description ?
+              `${activeEntry.description}\n${notes}` : notes)
+            : activeEntry.description,
+          task_category: 'general',
+          is_billable: true
         })
-        
-        if (error && !error.message.includes('function') && !error.message.includes('does not exist')) {
-          throw error
-        }
-        
-        toast.success('Zeiterfassung beendet')
-        setActiveTime({ active: false })
-        await fetchTimeSegments()
-      } catch (error: any) {
-        if (error.message.includes('function') || error.message.includes('does not exist')) {
-          console.warn('RPC function not found, using mock stop tracking')
-          // Mock stop tracking
-          setActiveTime({ active: false })
-          toast.success('Zeiterfassung beendet (Demo-Modus)')
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error saving timesheet:', error)
+        // Try without employee_id constraint
+        if (error.message.includes('employees')) {
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from('timesheets')
+            .insert({
+              employee_id: user.id, // Use user.id directly
+              project_id: activeEntry.project_id,
+              date: activeEntry.date,
+              start_time: activeEntry.start_time,
+              end_time: endTime,
+              hours: hours,
+              break_minutes: 0,
+              description: notes ?
+                (activeEntry.description ?
+                  `${activeEntry.description}\n${notes}` : notes)
+                : activeEntry.description,
+              task_category: 'general',
+              is_billable: true
+            })
+            .select()
+            .single()
+
+          if (fallbackError) throw fallbackError
         } else {
           throw error
         }
       }
+
+      // Clear active entry
+      localStorage.removeItem('activeTimeEntry')
+
+      toast.success('Zeiterfassung beendet und gespeichert')
+      setActiveTime({ active: false })
+      setActiveEntryData(null)
+
+      // Refresh segments
+      await fetchTimeSegments()
+
     } catch (error: any) {
       console.error('Error stopping time tracking:', error)
-      toast.error('Fehler beim Beenden der Zeiterfassung')
+      toast.error(`Fehler beim Beenden: ${error.message}`)
     } finally {
       setIsLoading(false)
     }
-  }, [fetchTimeSegments, androidTimeTracking])
+  }, [fetchTimeSegments])
 
-  // Switch project with fallback
+  // Switch project
   const switchProject = useCallback(async (
-    projectId: string, 
-    segmentType: 'work' | 'break' | 'drive' = 'work', 
+    newProjectId: string,
+    segmentType: 'work' | 'break' | 'drive' = 'work',
     description?: string,
     notes?: string
   ) => {
     try {
       setIsLoading(true)
-      
-      try {
-        const { data, error } = await supabase.rpc('rpc_switch_time_tracking', {
-          p_project_id: projectId,
-          p_segment_type: segmentType,
-          p_description: description,
-          p_notes: notes
-        })
-        
-        if (error && !error.message.includes('function') && !error.message.includes('does not exist')) {
-          throw error
-        }
-        
-        toast.success('Projekt gewechselt')
-        await fetchActiveTime()
-      } catch (error: any) {
-        if (error.message.includes('function') || error.message.includes('does not exist')) {
-          console.warn('RPC function not found, using mock project switch')
-          // Mock switch project
-          setActiveTime({
-            active: true,
-            segment: {
-              id: `mock-${Date.now()}`,
-              project_id: projectId,
-              project_name: 'Neues Demo Projekt',
-              customer_name: 'Demo Kunde',
-              segment_type: segmentType,
-              started_at: new Date().toISOString(),
-              current_duration_minutes: 0,
-              description: description || null
-            }
-          })
-          toast.success('Projekt gewechselt (Demo-Modus)')
-        } else {
-          throw error
-        }
+
+      // Stop current tracking
+      if (activeTime.active) {
+        await stopTracking(notes)
       }
+
+      // Start new tracking
+      await startTracking(newProjectId, segmentType, description)
+
     } catch (error: any) {
       console.error('Error switching project:', error)
       toast.error('Fehler beim Projektwechsel')
     } finally {
       setIsLoading(false)
     }
-  }, [fetchActiveTime])
+  }, [activeTime, stopTracking, startTracking])
 
-  // Initialize data - nur beim ersten Mount
+  // Fetch recent time segments
+  const fetchTimeSegments = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Try to get employee_id first
+      let employeeId = user.id
+      const { data: employees } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('user_id', user.id)
+        .single()
+
+      if (employees) {
+        employeeId = employees.id
+      }
+
+      const { data, error } = await supabase
+        .from('timesheets')
+        .select(`
+          *,
+          projects(id, name, customers(name))
+        `)
+        .eq('employee_id', employeeId)
+        .order('date', { ascending: false })
+        .order('start_time', { ascending: false })
+        .limit(20)
+
+      if (error && !error.message.includes('relation')) {
+        console.error('Error fetching time segments:', error)
+
+        // Try with user.id if employee_id fails
+        const { data: fallbackData } = await supabase
+          .from('timesheets')
+          .select(`
+            *,
+            projects(id, name, customers(name))
+          `)
+          .eq('employee_id', user.id)
+          .order('date', { ascending: false })
+          .order('start_time', { ascending: false })
+          .limit(20)
+
+        setSegments(fallbackData || [])
+        return
+      }
+
+      setSegments(data || [])
+    } catch (error) {
+      console.error('Error in fetchTimeSegments:', error)
+    }
+  }, [])
+
+  // Auto-refresh active time
   useEffect(() => {
     fetchActiveTime()
     fetchTimeSegments()
-    
-    // Optional: Set up periodic refresh with longer interval
+
+    // Refresh every 30 seconds
     const interval = setInterval(() => {
-      fetchActiveTime()
-      fetchTimeSegments()
-    }, 60000) // 60 Sekunden statt ständig
-    
+      if (activeTime.active) {
+        fetchActiveTime()
+      }
+    }, 30000)
+
     return () => clearInterval(interval)
-  }, []) // Leere Abhängigkeiten = nur beim Mount
+  }, []) // Remove dependencies to avoid re-creating interval
 
   return {
     activeTime,
     isLoading,
     segments,
-    fetchActiveTime,
-    fetchTimeSegments,
     startTracking,
     stopTracking,
-    switchProject
+    switchProject,
+    fetchActiveTime,
+    fetchTimeSegments
   }
 }

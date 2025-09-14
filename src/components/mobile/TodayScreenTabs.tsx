@@ -151,6 +151,7 @@ export const TodayScreenTabs: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col bg-background">
+
       {/* Tab Navigation */}
       <div className="flex-none bg-background border-b">
         <div className="flex">
