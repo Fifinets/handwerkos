@@ -4,7 +4,7 @@
             "outputFile": "com.handwerkos.app-mergeDebugResources-37:/values-pt/values-pt.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\filip\\.gradle\\caches\\8.13\\transforms\\c2c0531c99ad3d74e66978bca0b3f97a\\transformed\\core-1.13.1\\res\\values-pt\\values-pt.xml",
+                    "source": "C:\\Users\\filip\\.gradle\\caches\\8.13\\transforms\\ee22ac005dffb05b89c2821c50767f76\\transformed\\core-1.13.1\\res\\values-pt\\values-pt.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9",
                         "startColumns": "4,4,4,4,4,4,4,4",
@@ -21,7 +21,7 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\filip\\.gradle\\caches\\8.13\\transforms\\17fba9dcaf761e1a8533c7e60ded5662\\transformed\\appcompat-1.6.1\\res\\values-pt\\values-pt.xml",
+                    "source": "C:\\Users\\filip\\.gradle\\caches\\8.13\\transforms\\a0b1e49ad9f56cf330596846df3661c1\\transformed\\appcompat-1.6.1\\res\\values-pt\\values-pt.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",

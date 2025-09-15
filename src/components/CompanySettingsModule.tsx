@@ -36,6 +36,7 @@ interface CompanySettings {
   default_working_hours_start: string;
   default_working_hours_end: string;
   default_break_duration: number;
+  default_break_start_time?: string;
 }
 
 export function CompanySettingsModule() {
@@ -501,6 +502,15 @@ export function CompanySettingsModule() {
                   type="number"
                   value={settings.default_break_duration}
                   onChange={(e) => updateSetting("default_break_duration", parseInt(e.target.value))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="default_break_start_time">Pausenbeginn</Label>
+                <Input
+                  id="default_break_start_time"
+                  type="time"
+                  value={settings.default_break_start_time || "12:00"}
+                  onChange={(e) => updateSetting("default_break_start_time", e.target.value)}
                 />
               </div>
             </div>

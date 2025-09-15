@@ -42,15 +42,24 @@ interface Project {
     name: string
   }
   location?: string
+  team?: string[]
+  isAssigned?: boolean
+  isRecent?: boolean
+  lastUsed?: string
+  assignedUntil?: string
+  assignmentPriority?: number
+  assignmentNotes?: string
 }
 
 const MobileTimeTracker: React.FC = () => {
-  const { 
-    activeTime, 
-    isLoading, 
-    startTracking, 
-    stopTracking, 
-    switchProject 
+  const {
+    activeTime,
+    isLoading,
+    startTracking,
+    stopTracking,
+    switchProject,
+    startBreak,
+    endBreak
   } = useTimeTracking()
   
   // Initialize with mock projects
@@ -78,8 +87,10 @@ const MobileTimeTracker: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>(mockProjectsDefault)
   const [selectedProject, setSelectedProject] = useState<string>('')
   const [selectedProjectDetails, setSelectedProjectDetails] = useState<Project | null>(null)
+  const [assignedProjects, setAssignedProjects] = useState<Project[]>([])
+  const [lastUsedProject, setLastUsedProject] = useState<Project | null>(null)
   const [, forceUpdate] = useState({})
-  const [description, setDescription] = useState('')
+  const [workDescription, setWorkDescription] = useState('')
   const [notes, setNotes] = useState('')
   const [isOnline, setIsOnline] = useState(true)
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null)
@@ -216,14 +227,14 @@ const MobileTimeTracker: React.FC = () => {
     }
   }, [selectedProject, projects])
 
-  // Load projects from database
+  // Load projects with assignment status
   useEffect(() => {
-    const loadProjects = async () => {
+    const loadProjectsWithAssignments = async () => {
       try {
-        console.log('Loading projects from database...')
-        
-        // Load all projects from database
-        const { data, error } = await supabase
+        console.log('Loading projects with assignments...')
+
+        // Load projects and check for assignments
+        const { data: projectsData, error: projectsError } = await supabase
           .from('projects')
           .select(`
             id,
@@ -232,29 +243,170 @@ const MobileTimeTracker: React.FC = () => {
             customer:customers(name)
           `)
           .order('name')
-        
-        if (error) {
-          console.error('Database error loading projects:', error)
+
+        if (projectsError) {
+          console.error('Database error loading projects:', projectsError)
           toast.error('Fehler beim Laden der Projekte')
           return
         }
-        
-        if (data && data.length > 0) {
-          console.log('Loaded projects from database:', data.length, data)
-          setProjects(data)
-          toast.success(`${data.length} Projekte geladen`)
-        } else {
-          console.log('No projects found in database, data:', data)
+
+        if (!projectsData || projectsData.length === 0) {
+          console.log('No projects found in database')
           setProjects([])
-          toast.warning('Keine Projekte in der Datenbank gefunden')
+          return
         }
+
+        // Get current user's employee ID
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          setProjects(projectsData)
+          return
+        }
+
+        // Get current user's employee info
+        const { data: employee } = await supabase
+          .from('employees')
+          .select('id, first_name, last_name')
+          .eq('user_id', user.id)
+          .single()
+
+        if (!employee) {
+          console.log('No employee record found for user')
+          setProjects(projectsData)
+          return
+        }
+
+        console.log('Current employee ID for assignment check:', employee.id)
+
+        // Get project assignments for this employee
+        const { data: assignmentsData } = await supabase
+          .from('project_assignments')
+          .select('project_id, role, start_date, end_date, notes')
+          .eq('employee_id', employee.id)
+
+        const assignedProjectIds = new Set(
+          assignmentsData?.map(assignment => assignment.project_id) || []
+        )
+
+        console.log('Employee assigned to project IDs:', Array.from(assignedProjectIds))
+
+        // Smart sorting: assigned > recent > alphabetical
+        const assignedProjectsList = []
+        const recentProjectsList = []
+        const regularProjectsList = []
+
+        for (const project of projectsData) {
+          // Check if user is assigned to this project via project_assignments table
+          const isAssigned = assignedProjectIds.has(project.id)
+          const assignmentInfo = assignmentsData?.find(a => a.project_id === project.id)
+
+          console.log(`Project ${project.name}: isAssigned=${isAssigned}`)
+
+          if (isAssigned) {
+            assignedProjectsList.push({
+              ...project,
+              isAssigned: true,
+              assignmentPriority: 1,
+              assignmentNotes: assignmentInfo?.notes || 'Vom Manager zugewiesen',
+              assignmentRole: assignmentInfo?.role || 'mitarbeiter'
+            })
+          } else {
+            regularProjectsList.push({
+              ...project,
+              isAssigned: false
+            })
+          }
+        }
+
+        // Get recent projects (last 7 days) for smart sorting
+        try {
+          const { data: recentTimesheets } = await supabase
+            .from('timesheets')
+            .select(`
+              project_id,
+              date,
+              projects(id, name, customers(name))
+            `)
+            .eq('employee_id', employee?.id || user.id)
+            .gte('date', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+            .order('date', { ascending: false })
+            .order('start_time', { ascending: false })
+
+          if (recentTimesheets && recentTimesheets.length > 0) {
+            // Get unique recent project IDs
+            const recentProjectIds = [...new Set(recentTimesheets.map(ts => ts.project_id))]
+
+            // Set last used project (most recent)
+            const lastProject = recentTimesheets[0]?.projects
+            if (lastProject) {
+              setLastUsedProject({
+                id: lastProject.id,
+                name: lastProject.name,
+                customer: lastProject.customers
+              })
+            }
+
+            // Move recent projects to separate list (but not assigned ones)
+            for (let i = regularProjectsList.length - 1; i >= 0; i--) {
+              const project = regularProjectsList[i]
+              if (recentProjectIds.includes(project.id)) {
+                // Remove from regular list and add to recent list
+                regularProjectsList.splice(i, 1)
+                recentProjectsList.push({
+                  ...project,
+                  isRecent: true,
+                  lastUsed: recentTimesheets.find(ts => ts.project_id === project.id)?.date
+                })
+              }
+            }
+
+            // Sort recent projects by last usage
+            recentProjectsList.sort((a, b) => {
+              const dateA = new Date(a.lastUsed || 0)
+              const dateB = new Date(b.lastUsed || 0)
+              return dateB.getTime() - dateA.getTime()
+            })
+          }
+        } catch (error) {
+          console.log('No recent timesheets found:', error)
+        }
+
+        // Combine: assigned > recent > alphabetical
+        const allProjects = [
+          ...assignedProjectsList,
+          ...recentProjectsList,
+          ...regularProjectsList.sort((a, b) => a.name.localeCompare(b.name))
+        ]
+
+        setProjects(allProjects)
+        setAssignedProjects(assignedProjectsList)
+
+        console.log(`Smart sorted projects: ${assignedProjectsList.length} assigned, ${recentProjectsList.length} recent, ${regularProjectsList.length} other`)
+
+        // Auto-select project: assigned > recent > none
+        if (assignedProjectsList.length > 0) {
+          const topAssigned = assignedProjectsList[0]
+          setSelectedProject(topAssigned.id)
+          setSelectedProjectDetails(topAssigned)
+          toast.success(`🔧 Zugewiesenes Projekt "${topAssigned.name}" ausgewählt`, {
+            style: { backgroundColor: '#e0f2fe', borderColor: '#0284c7' }
+          })
+        } else if (recentProjectsList.length > 0 && !selectedProject) {
+          const recentProject = recentProjectsList[0]
+          setSelectedProject(recentProject.id)
+          setSelectedProjectDetails(recentProject)
+          toast.info(`⏱️ Letztes Projekt "${recentProject.name}" vorausgewählt`)
+        }
+
+        console.log(`Loaded ${allProjects.length} projects: ${assignedProjectsList.length} assigned, ${recentProjectsList.length} recent, ${regularProjectsList.length} other`)
+
       } catch (error) {
-        console.error('Error loading projects:', error)
+        console.error('Error loading projects with assignments:', error)
         toast.error('Fehler beim Laden der Projekte')
       }
     }
-    
-    loadProjects()
+
+    loadProjectsWithAssignments()
   }, [])
   
   // Live timer updates
@@ -266,13 +418,12 @@ const MobileTimeTracker: React.FC = () => {
     return () => clearInterval(interval)
   }, [])
   
-  // Get live duration
+  // Get live duration (excluding break time)
   const getLiveDuration = () => {
     if (!activeTime.active || !activeTime.segment?.started_at) return 0
-    
-    const start = new Date(activeTime.segment.started_at)
-    const diff = Math.floor((currentTime.getTime() - start.getTime()) / 1000 / 60)
-    return Math.max(0, diff)
+
+    // Use the duration from the hook which already accounts for breaks
+    return activeTime.segment.current_duration_minutes || 0
   }
   
   // Format duration for display
@@ -293,11 +444,8 @@ const MobileTimeTracker: React.FC = () => {
   
   // Handle start with location and offline support
   const handleStart = async () => {
-    console.log('handleStart called with selectedProject:', selectedProject);
-    console.log('selectedProjectDetails:', selectedProjectDetails);
     
     if (!selectedProject) {
-      console.log('No project selected, showing error');
       toast.error('Bitte wählen Sie ein Projekt aus')
       return
     }
@@ -317,23 +465,28 @@ const MobileTimeTracker: React.FC = () => {
     // Get location if available
     await getCurrentLocation()
     
-    await startTracking(selectedProject, 'work', description || undefined)
-    setDescription('')
+    await startTracking(selectedProject, 'work', undefined)
   }
   
   // Handle stop with offline support
   const handleStop = async () => {
     triggerHaptic(ImpactStyle.Heavy)
-    
+
     if (!isOnline) {
       addToOfflineQueue({
         type: 'stop',
-        notes
+        notes: `${workDescription}${notes ? `\n\nNotizen: ${notes}` : ''}`
       })
       return
     }
-    
-    await stopTracking(notes || undefined)
+
+    // Combine work description and notes
+    const finalNotes = workDescription
+      ? `${workDescription}${notes ? `\n\nNotizen: ${notes}` : ''}`
+      : notes || undefined
+
+    await stopTracking(finalNotes)
+    setWorkDescription('')
     setNotes('')
   }
   
@@ -414,8 +567,17 @@ const MobileTimeTracker: React.FC = () => {
                 {formatDuration(getLiveDuration())}
               </div>
               <div className="flex items-center justify-center gap-2 text-blue-100 mb-2">
-                <div className="h-2 w-2 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-sm">Aktiv seit {new Date(activeTime.segment!.started_at).toLocaleTimeString('de-DE')}</span>
+                {!activeTime.onBreak ? (
+                  <>
+                    <div className="h-2 w-2 bg-green-400 rounded-full animate-pulse" />
+                    <span className="text-sm">Aktiv seit {new Date(activeTime.segment!.started_at).toLocaleTimeString('de-DE')}</span>
+                  </>
+                ) : (
+                  <>
+                    <div className="h-2 w-2 bg-orange-400 rounded-full animate-pulse" />
+                    <span className="text-sm">⏸️ Pause ({formatDuration(activeTime.segment?.break_duration_minutes || 0)})</span>
+                  </>
+                )}
               </div>
               <div className="text-lg font-medium">
                 {activeTime.segment?.project_name || 'Allgemein'}
@@ -423,6 +585,11 @@ const MobileTimeTracker: React.FC = () => {
               {activeTime.segment?.customer_name && (
                 <div className="text-sm text-blue-200 mt-1">
                   {activeTime.segment.customer_name}
+                </div>
+              )}
+              {activeTime.onBreak && (
+                <div className="text-xs text-orange-200 mt-2">
+                  ☕ Pausenzeit wird von Arbeitszeit abgezogen
                 </div>
               )}
             </div>
@@ -447,19 +614,6 @@ const MobileTimeTracker: React.FC = () => {
         </div>
       </div>
       
-      {/* Debug Info - ALWAYS visible at top */}
-      <div className="p-2 bg-yellow-100 rounded text-xs text-gray-800 mx-4 mt-2 space-y-1">
-        <div><strong>DEBUG:</strong> activeTime.active = {String(activeTime.active)}</div>
-        <div>selectedProject = {selectedProject || 'none'}</div>
-        {selectedProjectDetails && (
-          <div>selectedProjectDetails = {selectedProjectDetails.name}</div>
-        )}
-        <div>projects loaded = {projects.length}</div>
-        {projects.length > 0 && (
-          <div>First project: {projects[0].name} (ID: {projects[0].id})</div>
-        )}
-        <div>Projects list: {JSON.stringify(projects.map(p => ({ id: p.id, name: p.name })))}</div>
-      </div>
 
       {/* Main Content */}
       <div className="p-4 space-y-4 pb-safe">
@@ -473,25 +627,6 @@ const MobileTimeTracker: React.FC = () => {
           <CardContent className="space-y-4">
             {!activeTime.active ? (
               <>
-                {/* Debug Info - always visible for now */}
-                <div className="p-2 bg-gray-100 rounded text-xs text-gray-600 mb-3 space-y-1">
-                  <div>Debug: activeTime.active = {String(activeTime.active)}</div>
-                  <div>selectedProject = {selectedProject || 'none'}</div>
-                  {selectedProjectDetails && (
-                    <div>selectedProjectDetails = {selectedProjectDetails.name}</div>
-                  )}
-                  <div>projects loaded = {projects.length}</div>
-                  {projects.length > 0 && (
-                    <div>First project: {projects[0].name} (ID: {projects[0].id})</div>
-                  )}
-                  <div>Projects list: {JSON.stringify(projects.map(p => ({ id: p.id, name: p.name })))}</div>
-                  {activeTime.segment && (
-                    <>
-                      <div>Active segment ID: {activeTime.segment.id}</div>
-                      <div>Active project: {activeTime.segment.project_name}</div>
-                    </>
-                  )}
-                </div>
                 
                 {/* Project Selection - Button Based */}
                 <div className="space-y-2">
@@ -526,26 +661,73 @@ const MobileTimeTracker: React.FC = () => {
                           <div
                             key={project.id}
                             onClick={() => {
-                              console.log('=== PROJECT CLICK ===');
-                              console.log('Selecting project:', project.id, project.name);
                               setSelectedProject(project.id);
                               setSelectedProjectDetails(project);
-                              // Save to localStorage for mock tracking
+                              // Save to localStorage for tracking
                               localStorage.setItem('selectedProjectDetails', JSON.stringify(project));
-                              console.log('Project selected and stored');
-                              toast.success(`Projekt "${project.name}" ausgewählt`);
+
+                              const toastMessage = project.isAssigned
+                                ? `Zugewiesenes Projekt "${project.name}" ausgewählt`
+                                : `Projekt "${project.name}" ausgewählt`;
+
+                              toast.success(toastMessage, {
+                                style: project.isAssigned
+                                  ? { backgroundColor: '#e0f2fe', borderColor: '#0284c7' }
+                                  : {}
+                              });
+
                               try {
                                 Haptics.impact({ style: ImpactStyle.Light });
                               } catch (e) {
-                                console.log('Haptics not available');
+                                // Haptics not available
                               }
                             }}
-                            className="w-full p-3 text-left rounded-lg border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-colors active:bg-blue-100 cursor-pointer"
+                            className={`w-full p-3 text-left rounded-lg border-2 transition-colors cursor-pointer ${
+                              project.isAssigned
+                                ? 'border-blue-400 bg-blue-50 hover:border-blue-500 hover:bg-blue-100 active:bg-blue-150'
+                                : project.isRecent
+                                ? 'border-orange-300 bg-orange-50 hover:border-orange-400 hover:bg-orange-100 active:bg-orange-150'
+                                : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50 active:bg-blue-100'
+                            }`}
                           >
-                            <div className="font-medium">{project.name}</div>
-                            {project.customer && (
-                              <div className="text-sm text-gray-600">{project.customer.name}</div>
-                            )}
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="font-medium flex items-center gap-2">
+                                  {project.name}
+                                  {project.isAssigned && (
+                                    <span className="text-xs px-2 py-1 bg-blue-200 text-blue-800 rounded-full font-medium">
+                                      Zugewiesen
+                                    </span>
+                                  )}
+                                  {project.isRecent && !project.isAssigned && (
+                                    <span className="text-xs px-2 py-1 bg-orange-200 text-orange-800 rounded-full font-medium">
+                                      Kürzlich
+                                    </span>
+                                  )}
+                                </div>
+                                {project.customer && (
+                                  <div className="text-sm text-gray-600">{project.customer.name}</div>
+                                )}
+                                {project.isAssigned && project.assignmentNotes && (
+                                  <div className="text-xs text-blue-600 mt-1">{project.assignmentNotes}</div>
+                                )}
+                                {project.isRecent && !project.isAssigned && (
+                                  <div className="text-xs text-orange-600 mt-1">
+                                    ⏱️ Zuletzt verwendet: {new Date(project.lastUsed || '').toLocaleDateString('de-DE')}
+                                  </div>
+                                )}
+                              </div>
+                              {project.isAssigned && (
+                                <div className="text-blue-500">
+                                  ⭐
+                                </div>
+                              )}
+                              {project.isRecent && !project.isAssigned && (
+                                <div className="text-orange-500">
+                                  ⏱️
+                                </div>
+                              )}
+                            </div>
                           </div>
                         ))
                       )}
@@ -553,29 +735,47 @@ const MobileTimeTracker: React.FC = () => {
                   )}
                 </div>
                 
-                {/* Description */}
-                <div className="space-y-2">
-                  <Label htmlFor="mobile-description">Beschreibung (optional)</Label>
-                  <Textarea
-                    id="mobile-description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Was werden Sie arbeiten?"
-                    rows={2}
-                    className="text-base"
-                  />
-                </div>
-                
                 {/* Visual feedback for selected project */}
                 {selectedProject && selectedProjectDetails && (
-                  <div className="p-3 bg-green-100 border border-green-500 rounded-lg">
-                    <div className="flex items-center gap-2 text-green-800">
+                  <div className={`p-3 border rounded-lg ${
+                    selectedProjectDetails.isAssigned
+                      ? 'bg-blue-100 border-blue-500'
+                      : selectedProjectDetails.isRecent
+                      ? 'bg-orange-100 border-orange-500'
+                      : 'bg-green-100 border-green-500'
+                  }`}>
+                    <div className={`flex items-center gap-2 ${
+                      selectedProjectDetails.isAssigned
+                        ? 'text-blue-800'
+                        : selectedProjectDetails.isRecent
+                        ? 'text-orange-800'
+                        : 'text-green-800'
+                    }`}>
                       <CheckCircle2 className="h-5 w-5" />
                       <div>
-                        <div className="font-semibold">Projekt ausgewählt:</div>
+                        <div className="font-semibold">
+                          {selectedProjectDetails.isAssigned
+                            ? 'Zugewiesenes Projekt:'
+                            : selectedProjectDetails.isRecent
+                            ? 'Kürzlich verwendetes Projekt:'
+                            : 'Projekt ausgewählt:'}
+                        </div>
                         <div className="text-sm">{selectedProjectDetails.name}</div>
                         {selectedProjectDetails.customer && (
-                          <div className="text-xs text-green-600">{selectedProjectDetails.customer.name}</div>
+                          <div className={`text-xs ${
+                            selectedProjectDetails.isAssigned
+                              ? 'text-blue-600'
+                              : selectedProjectDetails.isRecent
+                              ? 'text-orange-600'
+                              : 'text-green-600'
+                          }`}>
+                            {selectedProjectDetails.customer.name}
+                          </div>
+                        )}
+                        {selectedProjectDetails.isAssigned && selectedProjectDetails.assignedUntil && (
+                          <div className="text-xs text-blue-600 font-medium mt-1">
+                            Zugewiesen bis: {selectedProjectDetails.assignedUntil}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -601,65 +801,70 @@ const MobileTimeTracker: React.FC = () => {
               <>
                 {/* Active Session Controls */}
                 <div className="space-y-3">
-                  {/* Notes for current session */}
+                  {/* Work Description for current session */}
                   <div className="space-y-2">
-                    <Label htmlFor="mobile-notes">Notizen hinzufügen</Label>
+                    <Label htmlFor="mobile-work-description">Arbeitsbeschreibung</Label>
+                    <Textarea
+                      id="mobile-work-description"
+                      value={workDescription}
+                      onChange={(e) => setWorkDescription(e.target.value)}
+                      placeholder="Was arbeiten Sie gerade? (z.B. Elektroinstallation, Malerarbeiten...)"
+                      rows={2}
+                      className="text-base"
+                    />
+                  </div>
+
+                  {/* Additional Notes */}
+                  <div className="space-y-2">
+                    <Label htmlFor="mobile-notes">Zusätzliche Notizen (optional)</Label>
                     <Textarea
                       id="mobile-notes"
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Notizen für diese Arbeitszeit..."
+                      placeholder="Besonderheiten, Material, etc..."
                       rows={2}
                       className="text-base"
                     />
                   </div>
                   
                   {/* Action Buttons */}
-                  <div className="grid grid-cols-1 gap-3">
+                  <div className="space-y-3">
+                    {/* Break/Continue Button */}
+                    {!activeTime.onBreak ? (
+                      <Button
+                        onClick={startBreak}
+                        disabled={isLoading}
+                        size="lg"
+                        variant="outline"
+                        className="w-full h-12 text-base border-orange-300 text-orange-700 hover:bg-orange-50"
+                      >
+                        <Coffee className="h-5 w-5 mr-2" />
+                        Pause starten
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={endBreak}
+                        disabled={isLoading}
+                        size="lg"
+                        className="w-full h-12 text-base bg-orange-500 hover:bg-orange-600 text-white"
+                      >
+                        <Play className="h-5 w-5 mr-2" />
+                        Pause beenden ({formatDuration(activeTime.segment?.break_duration_minutes || 0)})
+                      </Button>
+                    )}
+
                     {/* Stop Button */}
-                    <Button 
+                    <Button
                       onClick={handleStop}
                       disabled={isLoading}
                       size="lg"
                       variant="destructive"
-                      className="h-14 text-lg"
+                      className="w-full h-14 text-lg"
                     >
                       <Square className="h-6 w-6 mr-2" />
                       Zeiterfassung beenden
                     </Button>
                     
-                    {/* Emergency Stop - Only in development */}
-                    {process.env.NODE_ENV === 'development' && (
-                      <Button 
-                        onClick={async () => {
-                          try {
-                            // Force stop all active sessions
-                            const { error } = await supabase
-                              .from('time_segments')
-                              .update({ 
-                                ended_at: new Date().toISOString(),
-                                status: 'completed',
-                                notes: 'Notfall-Stop'
-                              })
-                              .is('ended_at', null)
-                              .eq('status', 'active')
-                            
-                            if (!error) {
-                              toast.success('Alle aktiven Sessions gestoppt')
-                              window.location.reload()
-                            }
-                          } catch (err) {
-                            console.error('Emergency stop error:', err)
-                          }
-                        }}
-                        size="sm"
-                        variant="outline"
-                        className="h-10 text-xs border-red-300 text-red-600"
-                      >
-                        <AlertTriangle className="h-4 w-4 mr-1" />
-                        Notfall-Stop (Dev)
-                      </Button>
-                    )}
                     
                     {/* Switch Project Button */}
                     <Sheet open={showProjectSheet} onOpenChange={setShowProjectSheet}>

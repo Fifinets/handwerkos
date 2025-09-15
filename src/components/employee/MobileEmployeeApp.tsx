@@ -32,8 +32,7 @@ import {
   Receipt,
   Plus,
   X,
-  Calendar,
-  PenTool
+  Calendar
 } from "lucide-react";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -44,7 +43,7 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
 import { TodayScreen } from '../mobile/TodayScreen';
 import { TodayScreenTabs } from '../mobile/TodayScreenTabs';
-import MobileDeliverySignature from '../MobileDeliverySignature';
+import MobileMaterialRecorder from '../mobile/MobileMaterialRecorder';
 
 interface Project {
   id: string;
@@ -97,7 +96,7 @@ const MobileEmployeeApp: React.FC = () => {
   const { toast } = useToast();
   
   // State Management
-  const [currentView, setCurrentView] = useState<'home' | 'docs' | 'time' | 'signature' | 'profile'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'docs' | 'time' | 'material' | 'profile'>('home');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, address: string} | null>(null);
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
@@ -1305,7 +1304,7 @@ const MobileEmployeeApp: React.FC = () => {
           <CardContent className="text-sm space-y-2">
             <div><strong>Start-Tab:</strong> Übersicht und Schnellzugriff</div>
             <div><strong>Zeit-Tab:</strong> Zeiterfassung starten/stoppen</div>
-            <div><strong>Signatur-Tab:</strong> Lieferscheine digital unterschreiben</div>
+            <div><strong>Material-Tab:</strong> Materialverbrauch erfassen</div>
             <div><strong>Profil-Tab:</strong> Persönliche Einstellungen</div>
           </CardContent>
         </Card>
@@ -1325,18 +1324,18 @@ const MobileEmployeeApp: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Signatur-Funktionen */}
+        {/* Material-Funktionen */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              ✍️ Digitale Signaturen
+              📦 Material erfassen
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm space-y-2">
-            <div><strong>Lieferschein:</strong> Wareneingänge bestätigen</div>
-            <div><strong>Auftragsabschluss:</strong> Arbeiten abzeichnen</div>
-            <div><strong>Qualitätskontrolle:</strong> Prüfungen dokumentieren</div>
-            <div><strong>Speicherung:</strong> Automatisch in der Cloud</div>
+            <div><strong>Materialverbrauch:</strong> Verwendete Materialien erfassen</div>
+            <div><strong>Lagerbestand:</strong> Aktuelle Bestände einsehen</div>
+            <div><strong>Schnellerfassung:</strong> Direkt am Projekt verbuchen</div>
+            <div><strong>Synchronisation:</strong> Automatisch mit Lager abgleichen</div>
           </CardContent>
         </Card>
 
@@ -1699,9 +1698,35 @@ const MobileEmployeeApp: React.FC = () => {
             <TodayScreenTabs />
           </div>
         )}
-        {currentView === 'signature' && (
+        {currentView === 'material' && (
           <div className="h-full overflow-y-auto">
-            <MobileDeliverySignature className="pb-4" />
+            <div className="p-4">
+              <h3 className="text-lg font-semibold mb-4">Material erfassen</h3>
+              {assignedProjects.length > 0 ? (
+                <MobileMaterialRecorder
+                  projectId={assignedProjects[0].id}
+                  projectName={assignedProjects[0].name}
+                  isOpen={true}
+                  onClose={() => {}}
+                  onMaterialAdded={() => {
+                    toast({
+                      title: "Material erfasst",
+                      description: "Material wurde erfolgreich hinzugefügt"
+                    });
+                  }}
+                />
+              ) : (
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                    <h4 className="font-medium text-gray-700 mb-2">Kein Projekt zugewiesen</h4>
+                    <p className="text-gray-500 text-sm">
+                      Material kann nur bei zugewiesenen Projekten erfasst werden
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </div>
         )}
         {currentView === 'profile' && renderProfileView()}
@@ -1717,7 +1742,7 @@ const MobileEmployeeApp: React.FC = () => {
             { id: 'home', icon: Home, label: 'Start' },
             { id: 'docs', icon: FileText, label: 'Dokumentation' },
             { id: 'time', icon: Clock, label: 'Zeit' },
-            { id: 'signature', icon: PenTool, label: 'Signatur' },
+            { id: 'material', icon: Package, label: 'Material' },
             { id: 'profile', icon: User, label: 'Profil' }
           ].map((item) => (
             <Button

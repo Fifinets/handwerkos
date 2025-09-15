@@ -16,6 +16,7 @@ import { de } from "date-fns/locale";
 import { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateProject } from "@/hooks/useApi";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Customer {
   id: string;
@@ -57,7 +58,7 @@ interface AddProjectDialogProps {
 
 const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMembers }: AddProjectDialogProps) => {
   const { toast } = useToast();
-  const createProject = useCreateProject();
+  const createProjectMutation = useCreateProject();
   
   // Debug logging
   console.log('AddProjectDialog - customers:', customers);
@@ -119,9 +120,9 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validierung
     if (!formData.name || !formData.customer || !formData.budget) {
       toast({
@@ -132,39 +133,107 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
       return;
     }
 
-    // Neues Projekt erstellen
-    const newProject = {
-      id: `P2024-${String(Date.now()).slice(-3)}`,
+    // Finde den ausgewählten Kunden
+    const selectedCustomer = customers.find(customer =>
+      (customer.name === formData.customer) || (customer.company_name === formData.customer)
+    );
+
+    if (!selectedCustomer) {
+      toast({
+        title: "Fehler",
+        description: "Kunde nicht gefunden.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Projekt-Daten für Supabase vorbereiten
+    const projectData = {
       name: formData.name,
-      customer: formData.customer,
+      customer_id: selectedCustomer.id,
       status: formData.status,
-      progress: 0,
-      startDate: dateRange?.from ? format(dateRange.from, 'dd.MM.yyyy') : new Date().toLocaleDateString('de-DE'),
-      endDate: dateRange?.to ? format(dateRange.to, 'dd.MM.yyyy') : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('de-DE'),
-      budget: formData.budget.startsWith('€') ? formData.budget : `€${formData.budget}`,
-      team: formData.team.length > 0 ? formData.team : ['Nicht zugewiesen'],
-      location: formData.location || 'Nicht angegeben'
+      location: formData.location || selectedCustomer.address || 'Nicht angegeben',
+      budget: parseFloat(formData.budget.replace('€', '').replace(',', '.')) || 0,
+      start_date: dateRange?.from ? dateRange.from.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      end_date: dateRange?.to ? dateRange.to.toISOString().split('T')[0] : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      description: `Team: ${formData.team.length > 0 ? formData.team.join(', ') : 'Nicht zugewiesen'}`,
+      // Team assignments will be handled separately
+      team_assignments: formData.team
     };
 
-    onProjectAdded(newProject);
-    
-    // Formular zurücksetzen
-    setFormData({
-      name: '',
-      customer: '',
-      location: '',
-      budget: '',
-      team: [],
-      status: 'geplant'
-    });
-    setDateRange(undefined);
+    try {
+      // Erst das Projekt erstellen
+      const createdProject = await createProjectMutation.mutateAsync(projectData);
 
-    toast({
-      title: "Erfolg",
-      description: "Projekt wurde erfolgreich hinzugefügt."
-    });
+      // Dann Team-Zuweisungen in der project_assignments Tabelle speichern
+      if (formData.team.length > 0) {
+        const assignments = await Promise.all(
+          formData.team.map(async (memberName) => {
+            // Finde die Mitarbeiter-ID über den Namen
+            const { data: employee } = await supabase
+              .from('employees')
+              .select('id')
+              .or(`first_name.eq.${memberName.split(' ')[0]},last_name.eq.${memberName.split(' ').slice(1).join(' ')},name.eq.${memberName}`)
+              .single();
 
-    onClose();
+            if (employee) {
+              return supabase
+                .from('project_assignments')
+                .insert({
+                  project_id: createdProject.id,
+                  employee_id: employee.id,
+                  start_date: dateRange?.from ? dateRange.from.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                  end_date: dateRange?.to ? dateRange.to.toISOString().split('T')[0] : null,
+                  role: 'mitarbeiter',
+                  hours_per_day: 8.0
+                });
+            }
+          })
+        );
+
+        const successfulAssignments = assignments.filter(Boolean);
+        console.log('Team assignments created:', successfulAssignments.length);
+      }
+
+      // Erfolgsmeldung für Team-Zuweisungen
+      if (formData.team.length > 0) {
+        toast({
+          title: "Projekt erstellt",
+          description: `Projekt "${formData.name}" wurde erstellt und ${formData.team.length} Mitarbeiter zugewiesen.`
+        });
+      } else {
+        toast({
+          title: "Projekt erstellt",
+          description: `Projekt "${formData.name}" wurde erfolgreich erstellt.`
+        });
+      }
+
+      onProjectAdded({
+        id: createdProject.id,
+        name: createdProject.name,
+        status: createdProject.status || 'geplant'
+      });
+
+      // Formular zurücksetzen
+      setFormData({
+        name: '',
+        customer: '',
+        location: '',
+        budget: '',
+        team: [],
+        status: 'geplant'
+      });
+      setDateRange(undefined);
+
+      onClose();
+    } catch (error) {
+      console.error('Error creating project:', error);
+      toast({
+        title: "Fehler",
+        description: "Projekt konnte nicht erstellt werden.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {

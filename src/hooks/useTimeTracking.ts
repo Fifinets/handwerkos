@@ -20,6 +20,7 @@ interface TimeEntry {
 
 interface ActiveTimeStatus {
   active: boolean
+  onBreak?: boolean
   segment?: {
     id: string
     project_id: string | null
@@ -29,6 +30,8 @@ interface ActiveTimeStatus {
     started_at: string
     current_duration_minutes: number
     description: string | null
+    break_started_at?: string
+    break_duration_minutes?: number
   }
 }
 
@@ -52,7 +55,7 @@ const calculateHours = (startTime: string, endTime: string): number => {
 }
 
 export const useTimeTracking = () => {
-  const [activeTime, setActiveTime] = useState<ActiveTimeStatus>({ active: false })
+  const [activeTime, setActiveTime] = useState<ActiveTimeStatus>({ active: false, onBreak: false })
   const [isLoading, setIsLoading] = useState(false)
   const [segments, setSegments] = useState<TimeEntry[]>([])
   const [activeEntryData, setActiveEntryData] = useState<any>(null)
@@ -67,14 +70,33 @@ export const useTimeTracking = () => {
 
       // Check localStorage for active entry (since timesheets table doesn't support "active" status)
       const activeEntry = localStorage.getItem('activeTimeEntry')
+      const activeBreak = localStorage.getItem('activeBreak')
+
       if (activeEntry) {
         const entry = JSON.parse(activeEntry)
         const startTime = new Date(entry.startedAt)
         const now = new Date()
-        const durationMinutes = Math.floor((now.getTime() - startTime.getTime()) / 1000 / 60)
+        let durationMinutes = Math.floor((now.getTime() - startTime.getTime()) / 1000 / 60)
+
+        // Check if currently on break
+        let onBreak = false
+        let breakDurationMinutes = 0
+        let breakStartedAt = null
+
+        if (activeBreak) {
+          const breakData = JSON.parse(activeBreak)
+          breakStartedAt = breakData.startedAt
+          const breakStart = new Date(breakStartedAt)
+          breakDurationMinutes = Math.floor((now.getTime() - breakStart.getTime()) / 1000 / 60)
+          onBreak = true
+
+          // Subtract break time from work duration
+          durationMinutes = Math.max(0, durationMinutes - breakDurationMinutes)
+        }
 
         setActiveTime({
           active: true,
+          onBreak,
           segment: {
             id: entry.id,
             project_id: entry.project_id,
@@ -83,12 +105,14 @@ export const useTimeTracking = () => {
             segment_type: 'work',
             started_at: entry.startedAt,
             current_duration_minutes: durationMinutes,
-            description: entry.description
+            description: entry.description,
+            break_started_at: breakStartedAt,
+            break_duration_minutes: breakDurationMinutes
           }
         })
         setActiveEntryData(entry)
       } else {
-        setActiveTime({ active: false })
+        setActiveTime({ active: false, onBreak: false })
         setActiveEntryData(null)
       }
 
@@ -229,6 +253,90 @@ export const useTimeTracking = () => {
       // Calculate hours
       const hours = calculateHours(activeEntry.start_time, endTime)
 
+      // Calculate break minutes - check for manual breaks first
+      let breakMinutes = 0
+      let hasManualBreaks = false
+
+      // Check if there were any manual breaks during this work session
+      if (activeEntry.breaks && Array.isArray(activeEntry.breaks)) {
+        for (const manualBreak of activeEntry.breaks) {
+          breakMinutes += manualBreak.durationMinutes || 0
+
+          // Check if manual break was during lunch time (11:00-13:00)
+          const breakStart = new Date(manualBreak.startedAt)
+          const breakHour = breakStart.getHours()
+          if (breakHour >= 11 && breakHour <= 13) {
+            hasManualBreaks = true
+          }
+        }
+        console.log(`Manual breaks found: ${activeEntry.breaks.length}, total: ${breakMinutes} minutes, lunch time break: ${hasManualBreaks}`)
+      }
+
+      // Only add automatic lunch break if no manual break during lunch time
+      if (!hasManualBreaks) {
+        try {
+          // First get the user's company_id from profiles
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('company_id')
+              .eq('id', user.id)
+              .single()
+
+            if (profile?.company_id) {
+              // Get company settings
+              const { data: companySettings } = await supabase
+                .from('company_settings')
+                .select('default_break_duration, default_break_start_time')
+                .eq('company_id', profile.company_id)
+                .single()
+
+              // Use company settings or defaults
+              const breakDuration = companySettings?.default_break_duration || 30
+              const breakStartTime = companySettings?.default_break_start_time || '12:00'
+
+              // Parse break start time
+              const [breakHour, breakMinute] = breakStartTime.split(':').map(Number)
+              const [startHour, startMinute] = activeEntry.start_time.split(':').map(Number)
+              const [endHour, endMinute] = endTime.split(':').map(Number)
+
+              // Calculate break end time (break start + duration)
+              let breakEndHour = breakHour
+              let breakEndMinute = breakMinute + breakDuration
+              if (breakEndMinute >= 60) {
+                breakEndHour += Math.floor(breakEndMinute / 60)
+                breakEndMinute = breakEndMinute % 60
+              }
+
+              // Check if work period overlaps with break period
+              const startBeforeBreak = startHour < breakHour || (startHour === breakHour && startMinute < breakMinute)
+              const endAfterBreakEnd = endHour > breakEndHour || (endHour === breakEndHour && endMinute >= breakEndMinute)
+
+              if (startBeforeBreak && endAfterBreakEnd) {
+                breakMinutes += breakDuration
+                console.log(`Automatische Mittagspause (${breakDuration} Min) hinzugefügt - keine manuelle Pause erkannt`)
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching company settings:', error)
+          // Fallback to default 30 min break at 12:00
+          const [startHour] = activeEntry.start_time.split(':').map(Number)
+          const [endHour, endMinute] = endTime.split(':').map(Number)
+
+          if (startHour < 12 && (endHour > 12 || (endHour === 12 && endMinute >= 30))) {
+            breakMinutes += 30
+            console.log('Automatische Mittagspause (30 Min) hinzugefügt (Fallback) - keine manuelle Pause erkannt')
+          }
+        }
+      } else {
+        console.log('Keine automatische Mittagspause - manuelle Pause bereits vorhanden')
+      }
+
+      // Adjust hours for break time
+      const adjustedHours = Math.max(0, hours - (breakMinutes / 60))
+
       // Get current user (to get employee_id)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
@@ -257,8 +365,8 @@ export const useTimeTracking = () => {
           date: activeEntry.date,
           start_time: activeEntry.start_time,
           end_time: endTime,
-          hours: hours,
-          break_minutes: 0,
+          hours: adjustedHours,
+          break_minutes: breakMinutes,
           description: notes ?
             (activeEntry.description ?
               `${activeEntry.description}\n${notes}` : notes)
@@ -281,8 +389,8 @@ export const useTimeTracking = () => {
               date: activeEntry.date,
               start_time: activeEntry.start_time,
               end_time: endTime,
-              hours: hours,
-              break_minutes: 0,
+              hours: adjustedHours,
+              break_minutes: breakMinutes,
               description: notes ?
                 (activeEntry.description ?
                   `${activeEntry.description}\n${notes}` : notes)
@@ -302,7 +410,12 @@ export const useTimeTracking = () => {
       // Clear active entry
       localStorage.removeItem('activeTimeEntry')
 
-      toast.success('Zeiterfassung beendet und gespeichert')
+      // Show appropriate success message
+      if (breakMinutes > 0) {
+        toast.success(`Zeiterfassung beendet und gespeichert (${breakMinutes} Min Mittagspause automatisch abgezogen)`)
+      } else {
+        toast.success('Zeiterfassung beendet und gespeichert')
+      }
       setActiveTime({ active: false })
       setActiveEntryData(null)
 
@@ -343,6 +456,82 @@ export const useTimeTracking = () => {
     }
   }, [activeTime, stopTracking, startTracking])
 
+  // Start break
+  const startBreak = useCallback(async () => {
+    try {
+      setIsLoading(true)
+
+      if (!activeTime.active || activeTime.onBreak) {
+        toast.error('Keine aktive Zeiterfassung oder bereits in Pause')
+        return
+      }
+
+      const now = new Date()
+      const breakData = {
+        id: crypto.randomUUID(),
+        startedAt: now.toISOString(),
+        type: 'manual'
+      }
+
+      localStorage.setItem('activeBreak', JSON.stringify(breakData))
+      toast.success('⏸️ Pause gestartet')
+      await fetchActiveTime()
+
+    } catch (error: any) {
+      console.error('Error starting break:', error)
+      toast.error('Fehler beim Starten der Pause')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [activeTime, fetchActiveTime])
+
+  // End break
+  const endBreak = useCallback(async () => {
+    try {
+      setIsLoading(true)
+
+      if (!activeTime.active || !activeTime.onBreak) {
+        toast.error('Keine aktive Pause')
+        return
+      }
+
+      const activeBreak = localStorage.getItem('activeBreak')
+      if (!activeBreak) {
+        toast.error('Keine aktive Pause gefunden')
+        return
+      }
+
+      const breakData = JSON.parse(activeBreak)
+      const now = new Date()
+      const breakStart = new Date(breakData.startedAt)
+      const breakMinutes = Math.floor((now.getTime() - breakStart.getTime()) / 1000 / 60)
+
+      // Store break information in activeTimeEntry for later use
+      const activeEntry = localStorage.getItem('activeTimeEntry')
+      if (activeEntry) {
+        const entry = JSON.parse(activeEntry)
+        if (!entry.breaks) entry.breaks = []
+        entry.breaks.push({
+          type: breakData.type || 'manual',
+          startedAt: breakData.startedAt,
+          endedAt: now.toISOString(),
+          durationMinutes: breakMinutes
+        })
+        localStorage.setItem('activeTimeEntry', JSON.stringify(entry))
+      }
+
+      localStorage.removeItem('activeBreak')
+      toast.success(`▶️ Pause beendet (${breakMinutes} Min)`)
+      await fetchActiveTime()
+
+    } catch (error: any) {
+      console.error('Error ending break:', error)
+      toast.error('Fehler beim Beenden der Pause')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [activeTime, fetchActiveTime])
+
   // Auto-refresh active time
   useEffect(() => {
     fetchActiveTime()
@@ -365,6 +554,8 @@ export const useTimeTracking = () => {
     startTracking,
     stopTracking,
     switchProject,
+    startBreak,
+    endBreak,
     fetchActiveTime,
     fetchTimeSegments
   }

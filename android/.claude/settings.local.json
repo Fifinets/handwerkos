@@ -76,7 +76,8 @@
       "Bash(./adb logcat -d)",
       "Bash(npm run dev:*)",
       "Bash(sed:*)",
-      "Bash(./adb logcat -c)"
+      "Bash(./adb logcat -c)",
+      "Bash(../adb shell am start -n com.handwerkos.employee/app.lovable.a0eb28b7447b47a280fca8181ec925b9.MainActivity)"
     ],
     "deny": [],
     "ask": []

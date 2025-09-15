@@ -152,6 +152,13 @@ class PushNotificationManager {
           // Navigate to signature view
           window.location.hash = '#/employee'
           break
+        case 'project_assignment':
+          // Navigate to employee dashboard with project assignment highlight
+          window.location.hash = '#/employee?highlight=project_assignment'
+          toast.info('Neues Projekt zugewiesen!', {
+            style: { backgroundColor: '#e0f2fe', borderColor: '#0284c7' }
+          })
+          break
         case 'project_update':
           // Navigate to projects
           window.location.hash = '#/employee'
@@ -200,6 +207,24 @@ class PushNotificationManager {
     } catch (error) {
       console.error('Error cancelling notifications:', error)
     }
+  }
+
+  // Send project assignment notification
+  async sendProjectAssignmentNotification(projectName: string, customerName?: string, assignedUntil?: string) {
+    const body = customerName
+      ? `Neues Projekt "${projectName}" für ${customerName} zugewiesen${assignedUntil ? ` bis ${assignedUntil}` : ''}`
+      : `Neues Projekt "${projectName}" zugewiesen${assignedUntil ? ` bis ${assignedUntil}` : ''}`
+
+    await this.showLocalNotification({
+      title: '🔧 Neues Projekt zugewiesen',
+      body,
+      data: {
+        type: 'project_assignment',
+        projectName,
+        customerName,
+        assignedUntil
+      }
+    })
   }
 
   // Send notification (for testing purposes)
