@@ -5,12 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { 
-  Clock, 
-  Package, 
-  MapPin, 
+import {
+  Clock,
+  Package,
+  MapPin,
   Map,
-  Camera, 
+  Camera,
   CheckCircle,
   Play,
   Pause,
@@ -32,7 +32,8 @@ import {
   Receipt,
   Plus,
   X,
-  Calendar
+  Calendar,
+  Building
 } from "lucide-react";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -44,6 +45,9 @@ import { Capacitor } from '@capacitor/core';
 import { TodayScreen } from '../mobile/TodayScreen';
 import { TodayScreenTabs } from '../mobile/TodayScreenTabs';
 import MobileMaterialRecorder from '../mobile/MobileMaterialRecorder';
+import { useTimeTracking } from "@/hooks/useTimeTracking";
+import { useMaterials } from "@/hooks/useMaterials";
+import { InfoView } from './InfoView';
 
 interface Project {
   id: string;
@@ -94,9 +98,11 @@ interface ProjectComment {
 const MobileEmployeeApp: React.FC = () => {
   const { user, userRole } = useSupabaseAuth();
   const { toast } = useToast();
+  const { activeTime } = useTimeTracking();
+  const { getProjectMaterialUsage } = useMaterials();
   
   // State Management
-  const [currentView, setCurrentView] = useState<'home' | 'docs' | 'time' | 'material' | 'profile'>('home');
+  const [currentView, setCurrentView] = useState<'info' | 'docs' | 'time' | 'material' | 'profile'>('time');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, address: string} | null>(null);
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
@@ -126,6 +132,9 @@ const MobileEmployeeApp: React.FC = () => {
   const [vacationBalance, setVacationBalance] = useState({ available: 0, total: 0 });
   const [nearByProjects, setNearByProjects] = useState<string[]>([]);
   const [safeAreaInsets, setSafeAreaInsets] = useState({ top: 0, bottom: 0 });
+  const [showMaterialDialog, setShowMaterialDialog] = useState(false);
+  const [projectMaterialUsage, setProjectMaterialUsage] = useState<any[]>([]);
+  const [loadingMaterials, setLoadingMaterials] = useState(false);
 
   // Quick Actions State
   const [quickMaterialEntry, setQuickMaterialEntry] = useState({
@@ -217,6 +226,35 @@ const MobileEmployeeApp: React.FC = () => {
       stopCamera();
     };
   }, []);
+
+  // Load material usage when active project changes
+  useEffect(() => {
+    const currentProjectId = activeTime?.segment?.project_id ||
+                           (assignedProjects.length > 0 ? assignedProjects[0].id : null);
+
+    if (currentProjectId) {
+      loadProjectMaterialUsage(currentProjectId);
+    }
+  }, [activeTime?.segment?.project_id, assignedProjects, getProjectMaterialUsage]);
+
+  // Load material usage for current project
+  const loadProjectMaterialUsage = async (projectId: string) => {
+    if (!projectId) {
+      setProjectMaterialUsage([]);
+      return;
+    }
+
+    try {
+      setLoadingMaterials(true);
+      const usage = await getProjectMaterialUsage(projectId);
+      setProjectMaterialUsage(usage || []);
+    } catch (error) {
+      console.error('Error loading project material usage:', error);
+      setProjectMaterialUsage([]);
+    } finally {
+      setLoadingMaterials(false);
+    }
+  };
 
   // Geolocation functions
   const getCurrentLocation = () => {
@@ -1118,8 +1156,8 @@ const MobileEmployeeApp: React.FC = () => {
   };
 
   // Legacy render functions (keeping for now)
-  const renderHomeView = () => (
-    <div className="space-y-2 w-full overflow-hidden">
+  const renderInfoView = () => (
+    <div className="space-y-4 w-full overflow-hidden">
 
       {/* Active Time Tracking */}
       {activeTimeEntry && (
@@ -1691,7 +1729,15 @@ const MobileEmployeeApp: React.FC = () => {
     >
       {/* Main Content */}
       <div className="flex-1 px-3 pt-2 pb-20 overflow-y-auto overflow-x-hidden">
-        {currentView === 'home' && renderHomeView()}
+        {currentView === 'info' && (
+          <InfoView
+            user={user}
+            userRole={userRole || ''}
+            assignedProjects={assignedProjects}
+            isOnline={isOnline}
+            currentLocation={currentLocation}
+          />
+        )}
         {currentView === 'docs' && renderDocumentationView()}
         {currentView === 'time' && (
           <div className="h-full overflow-hidden">
@@ -1703,18 +1749,97 @@ const MobileEmployeeApp: React.FC = () => {
             <div className="p-4">
               <h3 className="text-lg font-semibold mb-4">Material erfassen</h3>
               {assignedProjects.length > 0 ? (
-                <MobileMaterialRecorder
-                  projectId={assignedProjects[0].id}
-                  projectName={assignedProjects[0].name}
-                  isOpen={true}
-                  onClose={() => {}}
-                  onMaterialAdded={() => {
-                    toast({
-                      title: "Material erfasst",
-                      description: "Material wurde erfolgreich hinzugefügt"
-                    });
-                  }}
-                />
+                <div className="space-y-4">
+                  {/* Material Overview Card */}
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <Package className="h-5 w-5 text-blue-600" />
+                          <h4 className="font-medium">Material verbuchen</h4>
+                        </div>
+                        <Badge variant="outline">{assignedProjects[0].name}</Badge>
+                      </div>
+                      <p className="text-gray-600 text-sm mb-4">
+                        Erfassen Sie verwendetes Material für Ihr aktuelles Projekt
+                      </p>
+                      <Button
+                        onClick={() => setShowMaterialDialog(true)}
+                        className="w-full"
+                        size="lg"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Material erfassen
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  {/* Recent Materials */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center justify-between">
+                        Kürzlich erfasst
+                        {activeTime?.segment?.project_name && (
+                          <Badge variant="secondary" className="text-xs">
+                            {activeTime.segment.project_name}
+                          </Badge>
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      {loadingMaterials ? (
+                        <div className="text-center py-8">
+                          <div className="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2"></div>
+                          <p className="text-sm text-gray-500">Lade Material-Daten...</p>
+                        </div>
+                      ) : projectMaterialUsage.length > 0 ? (
+                        <div className="space-y-3">
+                          {projectMaterialUsage.slice(0, 5).map((usage, index) => (
+                            <div key={usage.id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                              <div className="flex-1">
+                                <div className="font-medium text-sm">
+                                  {usage.material?.name || 'Unbekanntes Material'}
+                                </div>
+                                <div className="text-xs text-gray-600">
+                                  {usage.quantity} {usage.material?.unit || 'Stk'}
+                                  {usage.notes && ` • ${usage.notes}`}
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {new Date(usage.used_at).toLocaleDateString('de-DE', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </div>
+                              </div>
+                              <div className="ml-3">
+                                <Package className="h-4 w-4 text-gray-400" />
+                              </div>
+                            </div>
+                          ))}
+                          {projectMaterialUsage.length > 5 && (
+                            <div className="text-center pt-2">
+                              <p className="text-xs text-gray-500">
+                                und {projectMaterialUsage.length - 5} weitere...
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center text-gray-500 py-8">
+                          <Package className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                          <p className="text-sm">
+                            {activeTime?.segment?.project_name
+                              ? `Noch kein Material für "${activeTime.segment.project_name}" erfasst`
+                              : 'Noch kein Material erfasst'
+                            }
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
               ) : (
                 <Card>
                   <CardContent className="p-6 text-center">
@@ -1739,7 +1864,7 @@ const MobileEmployeeApp: React.FC = () => {
       >
         <div className="grid grid-cols-5 gap-1 p-2">
           {[
-            { id: 'home', icon: Home, label: 'Start' },
+            { id: 'info', icon: Building, label: 'Info' },
             { id: 'docs', icon: FileText, label: 'Dokumentation' },
             { id: 'time', icon: Clock, label: 'Zeit' },
             { id: 'material', icon: Package, label: 'Material' },
@@ -1904,6 +2029,28 @@ const MobileEmployeeApp: React.FC = () => {
         onOpenChange={setShowVacationDialog}
         onSuccess={loadVacationBalance}
       />
+
+      {/* Material Recorder Dialog */}
+      {assignedProjects.length > 0 && (
+        <MobileMaterialRecorder
+          projectId={assignedProjects[0].id}
+          projectName={assignedProjects[0].name}
+          isOpen={showMaterialDialog}
+          onClose={() => setShowMaterialDialog(false)}
+          onMaterialAdded={() => {
+            toast({
+              title: "Material erfasst",
+              description: "Material wurde erfolgreich hinzugefügt"
+            });
+            // Reload material usage for current project
+            const currentProjectId = activeTime?.segment?.project_id ||
+                                   (assignedProjects.length > 0 ? assignedProjects[0].id : null);
+            if (currentProjectId) {
+              loadProjectMaterialUsage(currentProjectId);
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

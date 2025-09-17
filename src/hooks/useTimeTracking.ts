@@ -210,7 +210,7 @@ export const useTimeTracking = () => {
         .order('start_time', { ascending: false })
         .limit(20)
 
-      if (error && !error.message.includes('relation')) {
+      if (error && error.message && !error.message.includes('relation')) {
         console.error('Error fetching time segments:', error)
 
         // Try with user.id if employee_id fails
@@ -242,7 +242,15 @@ export const useTimeTracking = () => {
 
       const activeEntryStr = localStorage.getItem('activeTimeEntry')
       if (!activeEntryStr) {
-        toast.error('Keine aktive Zeiterfassung')
+        console.log('No active time entry found in localStorage')
+        // Clear the active state anyway
+        setActiveTime({
+          active: false,
+          onBreak: false,
+          segment: null
+        })
+        setActiveEntryData(null)
+        toast.success('Zeiterfassung beendet')
         return
       }
 
@@ -380,7 +388,7 @@ export const useTimeTracking = () => {
       if (error) {
         console.error('Error saving timesheet:', error)
         // Try without employee_id constraint
-        if (error.message.includes('employees')) {
+        if (error.message && error.message.includes('employees')) {
           const { data: fallbackData, error: fallbackError } = await supabase
             .from('timesheets')
             .insert({
@@ -409,6 +417,9 @@ export const useTimeTracking = () => {
 
       // Clear active entry
       localStorage.removeItem('activeTimeEntry')
+      localStorage.removeItem('activeBreak')
+
+      console.log('🛑 HOOK: stopTracking - Clearing localStorage and updating state')
 
       // Show appropriate success message
       if (breakMinutes > 0) {
@@ -416,15 +427,23 @@ export const useTimeTracking = () => {
       } else {
         toast.success('Zeiterfassung beendet und gespeichert')
       }
-      setActiveTime({ active: false })
+
+      // Reset activeTime state completely
+      setActiveTime({
+        active: false,
+        onBreak: false,
+        segment: null
+      })
       setActiveEntryData(null)
+
+      console.log('🛑 HOOK: stopTracking - State updated to inactive')
 
       // Refresh segments
       await fetchTimeSegments()
 
     } catch (error: any) {
       console.error('Error stopping time tracking:', error)
-      toast.error(`Fehler beim Beenden: ${error.message}`)
+      toast.error('Fehler beim Beenden der Zeiterfassung')
     } finally {
       setIsLoading(false)
     }

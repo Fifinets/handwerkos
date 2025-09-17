@@ -53,7 +53,17 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   })
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showQuickSwitch, setShowQuickSwitch] = useState(false)
-  const [selectedProject, setSelectedProject] = useState<{id: string, name: string, customer?: {name: string}} | null>(null)
+  const [selectedProject, setSelectedProject] = useState<{
+    id: string,
+    name: string,
+    customer?: {name: string},
+    location?: string,
+    status?: string,
+    start_date?: string,
+    end_date?: string,
+    priority?: string,
+    description?: string
+  } | null>(null)
   const [projects, setProjects] = useState<any[]>([])
   const [breakTimer, setBreakTimer] = useState<{
     isActive: boolean
@@ -85,11 +95,27 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
     return () => clearInterval(interval)
   }, [breakTimer.isActive, breakTimer.remainingSeconds])
 
+  // Restore selected project from localStorage on component mount
+  useEffect(() => {
+    const savedProject = localStorage.getItem('selectedProject')
+    if (savedProject) {
+      try {
+        const project = JSON.parse(savedProject)
+        setSelectedProject(project)
+        console.log('Restored selected project from localStorage:', project)
+      } catch (e) {
+        console.error('Error parsing saved project:', e)
+        localStorage.removeItem('selectedProject')
+      }
+    }
+  }, [])
+
   // Lade Projekte
   useEffect(() => {
     const loadProjects = async () => {
       try {
-        console.log('Loading real projects from database...')
+        console.log('🔥 Loading real projects from database...')
+        console.log('🔥 Current selectedProject before loading:', selectedProject)
         
         // First, test if the projects table exists at all
         console.log('Testing supabase connection...')
@@ -107,29 +133,49 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             {
               id: 'mock-project-1',
               name: 'Test Baustelle A',
-              customer: { name: 'Mustermann GmbH' }
+              customer: { name: 'Mustermann GmbH' },
+              location: 'Musterstraße 123, 12345 Berlin',
+              status: 'active',
+              priority: 'high',
+              start_date: '2024-01-15',
+              end_date: '2024-06-30',
+              description: 'Renovierung und Umbau des Erdgeschosses'
             },
             {
               id: 'mock-project-2',
               name: 'Test Baustelle B',
-              customer: { name: 'Schmidt & Co' }
+              customer: { name: 'Schmidt & Co' },
+              location: 'Hauptstraße 45, 10115 Berlin',
+              status: 'active',
+              priority: 'normal',
+              start_date: '2024-02-01',
+              end_date: '2024-05-15',
+              description: 'Sanitärinstallation im 2. OG'
             },
             {
               id: 'mock-project-3',
               name: 'Neubau Bürogebäude',
-              customer: { name: 'Bau AG' }
+              customer: { name: 'Bau AG' },
+              location: 'Industriepark 7, 12489 Berlin',
+              status: 'active',
+              priority: 'urgent',
+              start_date: '2024-01-01',
+              end_date: '2024-12-31',
+              description: 'Neubau eines 5-stöckigen Bürogebäudes mit Tiefgarage'
             }
           ]
           console.log('Using mock projects due to database error:', testError.message)
           setProjects(mockProjects)
+          // DON'T auto-select first project - user should choose
+          console.log('NOT auto-selecting project - user must choose manually')
           toast.info(`${mockProjects.length} Test-Projekte geladen (Offline-Modus)`)
           return
         }
         
-        // Now try the full query - first without customer join to see if it works
+        // Now try the full query with all fields
         let { data, error } = await supabase
           .from('projects')
-          .select('id, name, customer_id')
+          .select('id, name, customer_id, location, status, start_date, end_date, priority, description')
           .eq('status', 'active')
           .order('name')
         
@@ -138,7 +184,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
           // Try with different status values or without status filter
           const { data: data2, error: error2 } = await supabase
             .from('projects')
-            .select('id, name, customer_id')
+            .select('id, name, customer_id, location, status, start_date, end_date, priority, description')
             .order('name')
             .limit(10)
           
@@ -384,8 +430,17 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
 
   const handleStop = async () => {
     try {
-      await stopTracking('Mobile Stop')
-      toast.success('Zeiterfassung beendet')
+      // Save selected project before clearing localStorage
+      if (selectedProject) {
+        localStorage.setItem('selectedProject', JSON.stringify(selectedProject))
+      }
+
+      // Simple manual stop without complex logic
+      localStorage.removeItem('activeTimeEntry')
+      localStorage.removeItem('activeBreak')
+
+      // Force UI update by reloading the page
+      window.location.reload()
     } catch (error) {
       console.error('Stop error:', error)
       toast.error('Fehler beim Beenden')
@@ -462,7 +517,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
               <Timer className={`h-5 w-5 ${activeTime.active ? 'text-green-500' : 'text-gray-400'}`} />
-              {activeTime.active ? 'Läuft' : 'Gestoppt'}
+              {activeTime.active ? 'Läuft' : 'Zeiterfassung'}
             </CardTitle>
             {activeTime.active && activeTime.segment && (
               <Badge variant="outline">
@@ -547,24 +602,88 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="text-center">
-                {selectedProject ? (
-                  <>
-                    <Clock className="h-12 w-12 mx-auto mb-2 text-blue-500 opacity-80" />
-                    <p className="font-medium text-lg">{selectedProject.name}</p>
-                    {selectedProject.customer && (
-                      <p className="text-sm text-muted-foreground">{selectedProject.customer.name}</p>
+              {/* Projekt Info Card */}
+              {selectedProject ? (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-5 w-5 text-blue-600" />
+                      <span className="font-semibold text-blue-900">Ausgewähltes Projekt</span>
+                    </div>
+                    {selectedProject.priority && (
+                      <Badge variant={
+                        selectedProject.priority === 'urgent' ? 'destructive' :
+                        selectedProject.priority === 'high' ? 'default' :
+                        'secondary'
+                      }>
+                        {selectedProject.priority === 'urgent' ? 'Dringend' :
+                         selectedProject.priority === 'high' ? 'Hoch' :
+                         selectedProject.priority === 'normal' ? 'Normal' : 'Niedrig'}
+                      </Badge>
                     )}
-                    <p className="text-xs text-muted-foreground mt-1">Bereit zum Start</p>
-                  </>
-                ) : (
-                  <>
-                    <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p className="text-muted-foreground">Keine aktive Zeiterfassung</p>
-                    <p className="text-xs text-muted-foreground">Bitte wählen Sie ein Projekt aus</p>
-                  </>
-                )}
-              </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div>
+                      <p className="font-bold text-lg">{selectedProject.name}</p>
+                      {selectedProject.customer && (
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Kunde:</span> {selectedProject.customer.name}
+                        </p>
+                      )}
+                    </div>
+
+                    {selectedProject.location && (
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
+                        <p className="text-sm text-gray-600">{selectedProject.location}</p>
+                      </div>
+                    )}
+
+                    {(selectedProject.start_date || selectedProject.end_date) && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        <span>
+                          {selectedProject.start_date && format(new Date(selectedProject.start_date), 'dd.MM.yyyy')}
+                          {selectedProject.start_date && selectedProject.end_date && ' - '}
+                          {selectedProject.end_date && format(new Date(selectedProject.end_date), 'dd.MM.yyyy')}
+                        </span>
+                      </div>
+                    )}
+
+                    {selectedProject.status && (
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-gray-400" />
+                        <Badge variant="outline" className="text-xs">
+                          {selectedProject.status === 'active' ? 'Aktiv' :
+                           selectedProject.status === 'planning' ? 'In Planung' :
+                           selectedProject.status === 'completed' ? 'Abgeschlossen' :
+                           selectedProject.status}
+                        </Badge>
+                      </div>
+                    )}
+
+                    {selectedProject.description && (
+                      <div className="pt-2 border-t">
+                        <p className="text-xs text-gray-500">Beschreibung:</p>
+                        <p className="text-sm text-gray-700">{selectedProject.description}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="text-center pt-2">
+                    <p className="text-xs text-green-600 font-medium">
+                      ✅ Bereit zum Start der Zeiterfassung
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-muted-foreground">Keine aktive Zeiterfassung</p>
+                  <p className="text-xs text-muted-foreground">Bitte wählen Sie ein Projekt aus</p>
+                </div>
+              )}
 
               {/* Quick Start Buttons */}
               <div className="grid grid-cols-2 gap-2">
@@ -730,11 +849,28 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
               try {
                 const { data: dbProject, error } = await supabase
                   .from('projects')
-                  .select('id, name, customer_id')
+                  .select('id, name, customer_id, location, status, start_date, end_date, priority, description')
                   .eq('id', projectId)
                   .single()
-                
+
                 if (!error && dbProject) {
+                  // Try to load customer info separately if needed
+                  if (dbProject.customer_id) {
+                    try {
+                      const { data: customer } = await supabase
+                        .from('customers')
+                        .select('id, name')
+                        .eq('id', dbProject.customer_id)
+                        .single()
+
+                      if (customer) {
+                        dbProject.customer = { name: customer.name }
+                      }
+                    } catch (customerError) {
+                      console.log('Customer loading failed:', customerError)
+                    }
+                  }
+
                   project = dbProject
                   // Add to our projects array for future use
                   setProjects(prev => [...prev, project])
@@ -750,6 +886,24 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
               // Don't auto-start, just select the project
               if (project) {
                 setSelectedProject(project)
+                // Save to localStorage for persistence
+                localStorage.setItem('selectedProject', JSON.stringify(project))
+              } else {
+                // Fallback: Use mock project if real data fails
+                const mockProject = {
+                  id: projectId,
+                  name: 'Test Baustelle A',
+                  customer: { name: 'Mustermann GmbH' },
+                  location: 'Musterstraße 123, 12345 Berlin',
+                  status: 'active',
+                  priority: 'high',
+                  start_date: '2024-01-15',
+                  end_date: '2024-06-30',
+                  description: 'Renovierung und Umbau des Erdgeschosses'
+                }
+                setSelectedProject(mockProject)
+                // Save to localStorage for persistence
+                localStorage.setItem('selectedProject', JSON.stringify(mockProject))
               }
             }
             setShowQuickSwitch(false)
