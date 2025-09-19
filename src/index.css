@@ -215,8 +215,74 @@ All colors MUST be HSL.
   }
 }
 
-/* sanfter Seitenverlauf + softer Schatten */
-.shadow-soft { box-shadow: 0 10px 30px rgba(2,6,23,.06); }     /* Karten */
-.shadow-softer { box-shadow: 0 6px 18px rgba(2,6,23,.05); }    /* kleine Elemente */
+/* Mobile Design System - Blue Theme */
+@layer components {
+  /* Modern blue gradients and shadows */
+  .gradient-blue { @apply bg-gradient-to-br from-primary to-blue-500; }
+  .gradient-subtle { @apply bg-gradient-to-b from-background to-muted/30; }
+  .shadow-blue { box-shadow: 0 10px 30px rgba(59, 130, 246, 0.15); }
+  .shadow-soft { box-shadow: 0 10px 30px rgba(2,6,23,.06); }
+  .shadow-softer { box-shadow: 0 6px 18px rgba(2,6,23,.05); }
+  
+  /* Mobile-optimized components */
+  .mobile-card { 
+    @apply bg-white rounded-2xl shadow-soft p-6 border-0;
+  }
+  
+  .mobile-fab {
+    @apply fixed bottom-20 right-4 w-14 h-14 bg-primary text-white rounded-full shadow-blue 
+           flex items-center justify-center z-50 transition-all hover:scale-105 active:scale-95;
+  }
+  
+  .mobile-tab {
+    @apply flex-1 flex flex-col items-center justify-center py-2 px-3 text-xs font-medium
+           transition-all duration-200 min-h-[64px];
+  }
+  
+  .mobile-tab.active {
+    @apply text-primary bg-primary/5;
+  }
+  
+  .mobile-tab.inactive {
+    @apply text-muted-foreground hover:text-foreground;
+  }
+  
+  .mobile-touch-target {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+  
+  .mobile-status-dot {
+    @apply w-3 h-3 rounded-full;
+  }
+  
+  .mobile-status-active { @apply bg-green-500; }
+  .mobile-status-break { @apply bg-yellow-500; }
+  .mobile-status-drive { @apply bg-blue-500; }
+  .mobile-status-inactive { @apply bg-gray-300; }
+  
+  /* Typography improvements */
+  .mobile-headline { @apply text-xl font-bold text-foreground; }
+  .mobile-subheadline { @apply text-base font-semibold text-foreground; }
+  .mobile-body { @apply text-sm text-muted-foreground; }
+  .mobile-caption { @apply text-xs text-muted-foreground; }
+  
+  /* Button variants for mobile */
+  .btn-mobile-primary {
+    @apply h-12 rounded-2xl bg-primary text-white font-semibold text-base
+           shadow-blue hover:bg-primary/90 active:scale-95 transition-all;
+  }
+  
+  .btn-mobile-secondary {
+    @apply h-12 rounded-2xl bg-secondary text-secondary-foreground font-semibold text-base
+           hover:bg-secondary/80 active:scale-95 transition-all;
+  }
+  
+  .btn-mobile-outline {
+    @apply h-12 rounded-2xl border-2 border-primary bg-transparent text-primary font-semibold text-base
+           hover:bg-primary/5 active:scale-95 transition-all;
+  }
+}
+
+/* Legacy styles */
 .badge-pill { @apply inline-flex items-center rounded-full border px-2.5 py-1 text-xs; }
 .kpi-card  { @apply bg-card border rounded-lg px-4 py-3 flex items-center justify-between; }

@@ -101,8 +101,8 @@ const MobileEmployeeApp: React.FC = () => {
   const { activeTime } = useTimeTracking();
   const { getProjectMaterialUsage } = useMaterials();
   
-  // State Management
-  const [currentView, setCurrentView] = useState<'info' | 'docs' | 'time' | 'material' | 'profile'>('time');
+  // State Management - Updated for modern mobile navigation
+  const [currentView, setCurrentView] = useState<'today' | 'projects' | 'material' | 'map' | 'profile'>('today');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, address: string} | null>(null);
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
@@ -1719,7 +1719,7 @@ const MobileEmployeeApp: React.FC = () => {
 
   return (
     <div 
-      className="h-full bg-gray-50 flex flex-col relative overflow-hidden" 
+      className="h-full bg-gradient-to-br from-background to-muted/20 flex flex-col relative overflow-hidden" 
       style={{ 
         width: '100vw', 
         maxWidth: 'none', 
@@ -1728,161 +1728,208 @@ const MobileEmployeeApp: React.FC = () => {
       }}
     >
       {/* Main Content */}
-      <div className="flex-1 px-3 pt-2 pb-20 overflow-y-auto overflow-x-hidden">
-        {currentView === 'info' && (
-          <InfoView
-            user={user}
-            userRole={userRole || ''}
-            assignedProjects={assignedProjects}
-            isOnline={isOnline}
-            currentLocation={currentLocation}
-          />
-        )}
-        {currentView === 'docs' && renderDocumentationView()}
-        {currentView === 'time' && (
-          <div className="h-full overflow-hidden">
+      <div className="flex-1 overflow-hidden">
+        {/* Today/Time View - Modern Cards */}
+        {currentView === 'today' && (
+          <div className="h-full pb-24">
             <TodayScreenTabs />
           </div>
         )}
-        {currentView === 'material' && (
-          <div className="h-full overflow-y-auto">
-            <div className="p-4">
-              <h3 className="text-lg font-semibold mb-4">Material erfassen</h3>
-              {assignedProjects.length > 0 ? (
-                <div className="space-y-4">
-                  {/* Material Overview Card */}
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                          <Package className="h-5 w-5 text-blue-600" />
-                          <h4 className="font-medium">Material verbuchen</h4>
-                        </div>
-                        <Badge variant="outline">{assignedProjects[0].name}</Badge>
-                      </div>
-                      <p className="text-gray-600 text-sm mb-4">
-                        Erfassen Sie verwendetes Material für Ihr aktuelles Projekt
-                      </p>
-                      <Button
-                        onClick={() => setShowMaterialDialog(true)}
-                        className="w-full"
-                        size="lg"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Material erfassen
-                      </Button>
-                    </CardContent>
-                  </Card>
 
-                  {/* Recent Materials */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base flex items-center justify-between">
-                        Kürzlich erfasst
-                        {activeTime?.segment?.project_name && (
-                          <Badge variant="secondary" className="text-xs">
-                            {activeTime.segment.project_name}
-                          </Badge>
-                        )}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4">
-                      {loadingMaterials ? (
-                        <div className="text-center py-8">
-                          <div className="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2"></div>
-                          <p className="text-sm text-gray-500">Lade Material-Daten...</p>
-                        </div>
-                      ) : projectMaterialUsage.length > 0 ? (
-                        <div className="space-y-3">
-                          {projectMaterialUsage.slice(0, 5).map((usage, index) => (
-                            <div key={usage.id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                              <div className="flex-1">
-                                <div className="font-medium text-sm">
-                                  {usage.material?.name || 'Unbekanntes Material'}
-                                </div>
-                                <div className="text-xs text-gray-600">
-                                  {usage.quantity} {usage.material?.unit || 'Stk'}
-                                  {usage.notes && ` • ${usage.notes}`}
-                                </div>
-                                <div className="text-xs text-gray-500 mt-1">
-                                  {new Date(usage.used_at).toLocaleDateString('de-DE', {
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
-                                </div>
-                              </div>
-                              <div className="ml-3">
-                                <Package className="h-4 w-4 text-gray-400" />
-                              </div>
+        {/* Projects View - Modern Card Layout */}
+        {currentView === 'projects' && (
+          <div className="p-4 pb-24 space-y-4 overflow-y-auto h-full">
+            <h2 className="mobile-headline">Meine Projekte</h2>
+            {assignedProjects.length > 0 ? (
+              assignedProjects.map((project) => (
+                <div key={project.id} className="mobile-card">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="mobile-subheadline">{project.name}</h3>
+                      <p className="mobile-body">{project.location}</p>
+                    </div>
+                    <Badge 
+                      variant={project.priority === 'urgent' ? 'destructive' : 'secondary'}
+                      className="rounded-full"
+                    >
+                      {project.priority}
+                    </Badge>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="mobile-primary"
+                      size="mobile"
+                      onClick={() => handleStartTime(project.id)}
+                      className="flex-1"
+                    >
+                      <Play className="h-4 w-4 mr-2" />
+                      Starten
+                    </Button>
+                    <Button
+                      variant="mobile-outline"
+                      size="touch"
+                      onClick={() => setActiveProjectId(project.id)}
+                    >
+                      <MapPin className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="mobile-card text-center">
+                <Building className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                <h4 className="mobile-subheadline mb-2">Keine Projekte zugewiesen</h4>
+                <p className="mobile-body">
+                  Warten Sie auf Projektaweisungen von Ihrem Manager
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Material View - Enhanced Layout */}
+        {currentView === 'material' && (
+          <div className="p-4 pb-24 overflow-y-auto h-full">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="mobile-headline">Material</h2>
+              <Button
+                variant="mobile-primary"
+                onClick={() => setShowMaterialDialog(true)}
+                disabled={!assignedProjects.length}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Hinzufügen
+              </Button>
+            </div>
+
+            {assignedProjects.length > 0 ? (
+              <div className="space-y-4">
+                <div className="mobile-card">
+                  <h3 className="mobile-subheadline mb-4">
+                    Aktuelles Projekt: {activeTime?.segment?.project_name || assignedProjects[0]?.name}
+                  </h3>
+                  
+                  {loadingMaterials ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                      <p className="mobile-body mt-2">Laden...</p>
+                    </div>
+                  ) : projectMaterialUsage.length > 0 ? (
+                    <div className="space-y-3">
+                      {projectMaterialUsage.slice(0, 5).map((usage, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
+                          <div className="flex-1">
+                            <div className="mobile-subheadline text-sm">
+                              {usage.material?.name || 'Unbekanntes Material'}
                             </div>
-                          ))}
-                          {projectMaterialUsage.length > 5 && (
-                            <div className="text-center pt-2">
-                              <p className="text-xs text-gray-500">
-                                und {projectMaterialUsage.length - 5} weitere...
-                              </p>
+                            <div className="mobile-caption">
+                              {usage.quantity} {usage.material?.unit || 'Stk'}
+                              {usage.notes && ` • ${usage.notes}`}
                             </div>
-                          )}
+                            <div className="mobile-caption mt-1">
+                              {new Date(usage.used_at).toLocaleDateString('de-DE', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </div>
+                          </div>
+                          <Package className="h-5 w-5 text-primary" />
                         </div>
-                      ) : (
-                        <div className="text-center text-gray-500 py-8">
-                          <Package className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                          <p className="text-sm">
-                            {activeTime?.segment?.project_name
-                              ? `Noch kein Material für "${activeTime.segment.project_name}" erfasst`
-                              : 'Noch kein Material erfasst'
-                            }
+                      ))}
+                      {projectMaterialUsage.length > 5 && (
+                        <div className="text-center pt-2">
+                          <p className="mobile-caption">
+                            und {projectMaterialUsage.length - 5} weitere...
                           </p>
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                      <p className="mobile-body">
+                        {activeTime?.segment?.project_name
+                          ? `Noch kein Material für "${activeTime.segment.project_name}" erfasst`
+                          : 'Noch kein Material erfasst'
+                        }
+                      </p>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <Card>
-                  <CardContent className="p-6 text-center">
-                    <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                    <h4 className="font-medium text-gray-700 mb-2">Kein Projekt zugewiesen</h4>
-                    <p className="text-gray-500 text-sm">
-                      Material kann nur bei zugewiesenen Projekten erfasst werden
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="mobile-card text-center">
+                <Package className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                <h4 className="mobile-subheadline mb-2">Kein Projekt zugewiesen</h4>
+                <p className="mobile-body">
+                  Material kann nur bei zugewiesenen Projekten erfasst werden
+                </p>
+              </div>
+            )}
           </div>
         )}
+
+        {/* Map View */}
+        {currentView === 'map' && (
+          <div className="h-full pb-24">
+            <MapView />
+          </div>
+        )}
+
         {currentView === 'profile' && renderProfileView()}
       </div>
 
-      {/* Bottom Navigation */}
+      {/* Bottom Navigation - Modern 5-Tab Design */}
       <div 
-        className="absolute left-0 right-0 bottom-0 bg-white border-t shadow-lg" 
+        className="fixed left-0 right-0 bottom-0 bg-white border-t shadow-2xl z-40" 
         style={{ paddingBottom: `${Math.max(safeAreaInsets.bottom, 8)}px` }}
       >
-        <div className="grid grid-cols-5 gap-1 p-2">
+        <div className="flex">
           {[
-            { id: 'info', icon: Building, label: 'Info' },
-            { id: 'docs', icon: FileText, label: 'Dokumentation' },
-            { id: 'time', icon: Clock, label: 'Zeit' },
-            { id: 'material', icon: Package, label: 'Material' },
-            { id: 'profile', icon: User, label: 'Profil' }
+            { id: 'today', icon: Clock, label: 'Heute', dot: activeTime?.active },
+            { id: 'projects', icon: Building, label: 'Projekte', dot: notifications > 0 },
+            { id: 'material', icon: Package, label: 'Material', dot: false },
+            { id: 'map', icon: MapPin, label: 'Karte', dot: false },
+            { id: 'profile', icon: User, label: 'Profil', dot: false }
           ].map((item) => (
-            <Button
+            <button
               key={item.id}
-              variant={currentView === item.id ? "default" : "ghost"}
-              size="sm"
               onClick={() => setCurrentView(item.id as any)}
-              className="flex flex-col gap-0.5 h-14 p-1 relative"
+              className={`mobile-tab ${currentView === item.id ? 'active' : 'inactive'}`}
             >
-              <item.icon className="h-4 w-4" />
-              <span className="text-xs">{item.label}</span>
-            </Button>
+              <div className="relative">
+                <item.icon className="h-5 w-5 mb-1" />
+                {item.dot && (
+                  <div className="absolute -top-1 -right-1 mobile-status-dot mobile-status-active" />
+                )}
+              </div>
+              <span className="text-xs font-medium">{item.label}</span>
+            </button>
           ))}
         </div>
       </div>
+
+      {/* Floating Action Button */}
+      {currentView === 'today' && (
+        <button
+          onClick={() => {
+            if (activeTime?.active) {
+              handleStopTime();
+            } else {
+              handleStartTime();
+            }
+          }}
+          className="mobile-fab"
+        >
+          {activeTime?.active ? (
+            <Square className="h-6 w-6" />
+          ) : (
+            <Play className="h-6 w-6" />
+          )}
+        </button>
+      )}
 
 
       {/* Camera Modal */}
