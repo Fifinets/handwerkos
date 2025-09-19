@@ -423,7 +423,7 @@ const MobileEmployeeApp: React.FC = () => {
     try {
       // Fetch projects where the current user is assigned
       const { data: teamAssignments, error } = await supabase
-        .from('project_team_assignments')
+        .from('project_team_members')
         .select(`
           project_id,
           projects:project_id (
@@ -432,7 +432,7 @@ const MobileEmployeeApp: React.FC = () => {
             status,
             location,
             start_date,
-            end_date,
+            end_date
             priority
           )
         `)
@@ -463,7 +463,7 @@ const MobileEmployeeApp: React.FC = () => {
         name: assignment.projects.name,
         status: assignment.projects.status || 'in_bearbeitung',
         location: assignment.projects.location || 'Nicht angegeben',
-        priority: assignment.projects.priority || 'normal',
+        priority: 'normal',
         assignedTo: [user?.id || 'mock-user'],
         deadline: assignment.projects.end_date
       })) || [];

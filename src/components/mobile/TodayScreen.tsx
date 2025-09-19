@@ -257,9 +257,9 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       console.log('Loading company settings for user:', user.id)
 
       const { data, error } = await supabase
-        .from('user_profiles')
+        .from('profiles')
         .select('company_id')
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .single()
 
       console.log('User profile result:', { data, error })
@@ -284,9 +284,9 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
 
         // Update user profile with company_id
         const { error: updateError } = await supabase
-          .from('user_profiles')
+          .from('profiles')
           .update({ company_id: companies[0].id })
-          .eq('user_id', user.id)
+          .eq('id', user.id)
 
         if (updateError) {
           console.log('Failed to update user profile, using default:', updateError.message)

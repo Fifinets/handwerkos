@@ -1,573 +1,188 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  FileText, 
-  Receipt, 
-  Plus, 
-  Search, 
-  Send, 
-  Eye,
-  Edit,
-  Download,
-  Mail,
-  Scan
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { AddQuoteDialog } from './AddQuoteDialog';
-import { AddInvoiceDialog } from './AddInvoiceDialog';
-import QuoteActions from './QuoteActions';
-import {
-  useQuotes,
-  useInvoices,
-  useDocuments,
-  useCreateQuote,
-  useCreateInvoice,
-  useUpdateQuote,
-  usePendingOCRResults
-} from '@/hooks/useApi';
-import { useQueryClient } from '@tanstack/react-query';
-import { OCRUploadZone } from './OCRUploadZone';
-import { OCRInvoiceValidator } from './OCRInvoiceValidator';
-import { ComprehensiveOCRValidator } from './ComprehensiveOCRValidator';
-import { OCRResult } from '@/services/ocrService';
-import { SupplierInvoiceList } from './SupplierInvoiceList';
-// TODO: Re-enable when DocumentTemplateManager is implemented
-// import DocumentTemplateManager from './documents/DocumentTemplateManager';
+import React, { useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Plus, FileText, Eye } from "lucide-react"
+import { supabase } from "@/integrations/supabase/client"
+import { toast } from "sonner"
 
 interface Quote {
-  id: string;
-  quote_number: string;
-  title: string;
-  customer: {
-    company_name: string;
-    contact_person: string;
-    email: string;
-  };
-  quote_date: string;
-  valid_until: string | null;
-  status: string;
-  total_amount: number;
-  currency: string;
+  id: string
+  title: string
+  status: string
+  created_at: string
 }
 
 interface Invoice {
-  id: string;
-  invoice_number: string;
-  title: string;
-  customer: {
-    company_name: string;
-    contact_person: string;
-    email: string;
-  };
-  invoice_date: string;
-  due_date: string;
-  status: string;
-  total_amount: number;
-  currency: string;
+  id: string
+  title: string
+  status: string
+  created_at: string
 }
 
-export function DocumentModule() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showAddQuote, setShowAddQuote] = useState(false);
-  const [showAddInvoice, setShowAddInvoice] = useState(false);
-  const [activeOCRResult, setActiveOCRResult] = useState<OCRResult | null>(null);
-  const { toast } = useToast();
+const DocumentModuleSimple: React.FC = () => {
+  const [quotes, setQuotes] = useState<Quote[]>([])
+  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  // React Query hooks
-  const { data: quotesResponse, isLoading: quotesLoading } = useQuotes();
-  const { data: invoicesResponse, isLoading: invoicesLoading } = useInvoices();
-  const { data: documentsResponse, isLoading: documentsLoading } = useDocuments();
-  const { data: pendingOCRResults, isLoading: ocrLoading } = usePendingOCRResults();
-  
-  const queryClient = useQueryClient();
-  const createQuoteMutation = useCreateQuote();
-  const createInvoiceMutation = useCreateInvoice();
-  const updateQuoteMutation = useUpdateQuote();
-  
-  // Extract data from responses
-  const quotes = quotesResponse?.items || [];
-  const invoices = invoicesResponse?.items || [];
-  const documents = documentsResponse?.items || [];
-  
-  // Loading state
-  const isLoading = quotesLoading || invoicesLoading || documentsLoading;
+  useEffect(() => {
+    const loadDocuments = async () => {
+      try {
+        // Load quotes
+        const { data: quotesData, error: quotesError } = await supabase
+          .from('quotes')
+          .select('id, title, status, created_at')
+          .order('created_at', { ascending: false })
+          .limit(25)
+        
+        if (quotesError) console.error('Quotes error:', quotesError)
+        else setQuotes(quotesData || [])
 
-  const handleSendEmail = async (documentType: 'quote' | 'invoice', documentId: string, documentData: any) => {
-    try {
-      // This would use a send email mutation from useApi hooks
-      toast({
-        title: 'E-Mail versendet',
-        description: `${documentType === 'quote' ? 'Angebot' : 'Rechnung'} wurde erfolgreich an ${documentData.customer?.email || 'den Kunden'} versendet.`
-      });
-    } catch (error) {
-      toast({
-        title: 'Fehler beim Versenden',
-        description: 'Die E-Mail konnte nicht versendet werden.',
-        variant: 'destructive'
-      });
+        // Load invoices  
+        const { data: invoicesData, error: invoicesError } = await supabase
+          .from('invoices')
+          .select('id, title, status, created_at')
+          .order('created_at', { ascending: false })
+          .limit(25)
+        
+        if (invoicesError) console.error('Invoices error:', invoicesError)
+        else setInvoices(invoicesData || [])
+        
+      } catch (error) {
+        console.error('Error loading documents:', error)
+        toast.error('Fehler beim Laden der Dokumente')
+      } finally {
+        setIsLoading(false)
+      }
     }
-  };
-  // Email sending logic moved to handleSendEmail function above
+    
+    loadDocuments()
+  }, [])
 
   const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'Entwurf': return 'secondary';
-      case 'Versendet': return 'default';
-      case 'Angenommen':
-      case 'Bezahlt': return 'default';
-      case 'Abgelehnt':
-      case 'Storniert': return 'destructive';
-      case 'Überfällig': return 'destructive';
-      case 'Abgelaufen': return 'secondary';
-      default: return 'default';
+    switch (status.toLowerCase()) {
+      case 'draft': case 'entwurf': return 'secondary'
+      case 'sent': case 'versendet': return 'default'
+      case 'paid': case 'bezahlt': return 'default'
+      case 'accepted': case 'angenommen': return 'default'
+      default: return 'outline'
     }
-  };
+  }
 
-  const formatCurrency = (amount: number, currency: string = 'EUR') => {
-    return new Intl.NumberFormat('de-DE', {
-      style: 'currency',
-      currency: currency
-    }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('de-DE');
-  };
-
-  const filteredQuotes = quotes.filter(quote =>
-    quote.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    quote.quote_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    quote.customer.company_name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredInvoices = invoices.filter(invoice =>
-    invoice.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.customer.company_name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold">Dokumente</h2>
+        <div className="text-center py-8">Laden...</div>
+      </div>
+    )
+  }
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Header */}
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Dokumente</h1>
-        <div className="flex items-center gap-4">
-          <Button 
-            onClick={() => setShowAddQuote(true)}
-            className="bg-blue-600 hover:bg-blue-700 rounded-full"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Angebot erstellen
-          </Button>
-          <Button 
-            onClick={() => setShowAddInvoice(true)}
-            className="bg-blue-600 hover:bg-blue-700 rounded-full"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Rechnung erstellen
-          </Button>
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Dokumente</h2>
+          <p className="text-muted-foreground">
+            Angebote und Rechnungen verwalten
+          </p>
         </div>
+        
+        <Button onClick={() => toast.info('Funktion noch nicht verfügbar')}>
+          <Plus className="h-4 w-4 mr-2" />
+          Neues Dokument
+        </Button>
       </div>
 
-      {/* Search Bar */}
-      <Card className="shadow-soft rounded-2xl overflow-hidden">
-        <CardContent className="p-4">
-          <div className="flex items-center space-x-2">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Dokumente suchen..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 rounded-xl"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Tabs defaultValue="quotes" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="quotes" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Angebote ({quotes.length})
-          </TabsTrigger>
-          <TabsTrigger value="invoices" className="flex items-center gap-2">
-            <Receipt className="h-4 w-4" />
-            Rechnungen ({invoices.length})
-          </TabsTrigger>
-          <TabsTrigger value="ocr" className="flex items-center gap-2">
-            <Scan className="h-4 w-4" />
-            OCR-Import {pendingOCRResults && pendingOCRResults.length > 0 && (
-              <Badge variant="destructive" className="ml-1 px-1.5 py-0.5 text-xs">
-                {pendingOCRResults.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="templates" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Vorlagen
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="quotes" className="space-y-4">
-          {isLoading ? (
-            <div className="space-y-4">
-              {Array(3).fill(0).map((_, i) => (
-                <Card key={i} className="shadow-soft rounded-2xl">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <Skeleton className="h-5 w-32" />
-                          <Skeleton className="h-6 w-20" />
-                        </div>
-                        <Skeleton className="h-4 w-48 mb-2" />
-                        <Skeleton className="h-4 w-24" />
-                      </div>
-                      <div className="text-right">
-                        <Skeleton className="h-6 w-20 mb-2" />
-                        <div className="flex gap-2">
-                          <Skeleton className="h-8 w-16" />
-                          <Skeleton className="h-8 w-16" />
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : filteredQuotes.length === 0 ? (
-            <Card className="shadow-soft rounded-2xl">
-              <CardContent className="py-8 text-center">
-                <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Keine Angebote gefunden</h3>
-                <p className="text-muted-foreground mb-4">
-                  {searchTerm ? 'Keine Angebote entsprechen Ihren Suchkriterien.' : 'Erstellen Sie Ihr erstes Angebot.'}
-                </p>
-                <Button onClick={() => setShowAddQuote(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Angebot erstellen
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4">
-              {filteredQuotes.map((quote) => (
-                <Card key={quote.id} className="shadow-soft rounded-2xl hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold">{quote.quote_number}</h3>
-                          <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs ${
-                            quote.status === 'Entwurf' ? 'bg-gray-100 text-gray-800' :
-                            quote.status === 'Versendet' ? 'bg-blue-100 text-blue-800' :
-                            quote.status === 'Angenommen' ? 'bg-green-100 text-green-800' :
-                            quote.status === 'Abgelehnt' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {quote.status}
-                          </span>
-                        </div>
-                        <h4 className="text-lg font-medium mb-1">{quote.title}</h4>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {quote.customer.company_name} • {quote.customer.contact_person}
-                        </p>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>Erstellt: {formatDate(quote.quote_date)}</span>
-                          {quote.valid_until && (
-                            <span>Gültig bis: {formatDate(quote.valid_until)}</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xl font-bold mb-2">
-                          {formatCurrency(quote.total_amount, quote.currency)}
-                        </div>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="sm" title="Ansehen" className="rounded-xl">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" title="Bearbeiten" className="rounded-xl">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="rounded-xl"
-                            title="Per E-Mail versenden"
-                            onClick={() => handleSendEmail('quote', quote.id, quote)}
-                            disabled={false}
-                          >
-                            <Mail className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" title="Herunterladen" className="rounded-xl">
-                            <Download className="h-4 w-4" />
-                          </Button>
-                          <QuoteActions
-                            quote={quote}
-                            onRefresh={() =>
-                              queryClient.invalidateQueries({ queryKey: ['quotes'] })
-                            }
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="invoices" className="space-y-4">
-          <Tabs defaultValue="customer" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="customer">Kundenrechnungen ({invoices.length})</TabsTrigger>
-              <TabsTrigger value="supplier">Lieferantenrechnungen</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="customer" className="space-y-4">
-              {isLoading ? (
-                <div className="space-y-4">
-                  {Array(3).fill(0).map((_, i) => (
-                    <Card key={i} className="shadow-soft rounded-2xl">
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <Skeleton className="h-5 w-32" />
-                              <Skeleton className="h-6 w-20" />
-                            </div>
-                            <Skeleton className="h-4 w-48 mb-2" />
-                            <Skeleton className="h-4 w-24" />
-                          </div>
-                          <div className="text-right">
-                            <Skeleton className="h-6 w-20 mb-2" />
-                            <div className="flex gap-2">
-                              <Skeleton className="h-8 w-16" />
-                              <Skeleton className="h-8 w-16" />
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : filteredInvoices.length === 0 ? (
-                <Card>
-                  <CardContent className="py-8 text-center">
-                    <Receipt className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Keine Kundenrechnungen gefunden</h3>
-                    <p className="text-muted-foreground mb-4">
-                      {searchTerm ? 'Keine Kundenrechnungen entsprechen Ihren Suchkriterien.' : 'Erstellen Sie Ihre erste Kundenrechnung.'}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Quotes */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Angebote ({quotes.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {quotes.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Keine Angebote vorhanden</p>
+              </div>
+            ) : (
+              quotes.slice(0, 5).map((quote) => (
+                <div key={quote.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <p className="font-medium">{quote.title}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(quote.created_at).toLocaleDateString()}
                     </p>
-                    <Button onClick={() => setShowAddInvoice(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Kundenrechnung erstellen
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid gap-4">
-                  {filteredInvoices.map((invoice) => (
-                    <Card key={invoice.id} className="hover:shadow-lg transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="font-semibold">{invoice.invoice_number}</h3>
-                              <Badge variant={getStatusBadgeVariant(invoice.status)}>
-                                {invoice.status}
-                              </Badge>
-                            </div>
-                            <h4 className="text-lg font-medium mb-1">{invoice.title}</h4>
-                            <p className="text-sm text-muted-foreground mb-2">
-                              {invoice.customer.company_name} • {invoice.customer.contact_person}
-                            </p>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <span>Erstellt: {formatDate(invoice.invoice_date)}</span>
-                              <span>Fällig: {formatDate(invoice.due_date)}</span>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xl font-bold mb-2">
-                              {formatCurrency(invoice.total_amount, invoice.currency)}
-                            </div>
-                            <div className="flex gap-1">
-                              <Button variant="ghost" size="sm" title="Ansehen">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" title="Bearbeiten">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost" 
-                                size="sm" 
-                                title="Per E-Mail versenden"
-                                onClick={() => handleSendEmail('invoice', invoice.id, invoice)}
-                                disabled={false}
-                              >
-                                <Mail className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" title="Herunterladen">
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="supplier" className="space-y-4">
-              <SupplierInvoiceList />
-            </TabsContent>
-          </Tabs>
-        </TabsContent>
-
-        <TabsContent value="ocr" className="space-y-4">
-          {activeOCRResult ? (
-            <ComprehensiveOCRValidator
-              ocrResult={activeOCRResult}
-              onValidated={(validatedData) => {
-                setActiveOCRResult(null);
-                toast({
-                  title: 'Rechnung validiert',
-                  description: 'Die Rechnungsdaten wurden erfolgreich validiert und können übernommen werden.',
-                });
-                // Hier können Sie die validierten Daten weiterverarbeiten
-                console.log('Validated invoice data:', validatedData);
-              }}
-              onRejected={() => {
-                setActiveOCRResult(null);
-                toast({
-                  title: 'OCR-Ergebnis abgelehnt',
-                  description: 'Das OCR-Ergebnis wurde abgelehnt.',
-                });
-              }}
-              onCancel={() => setActiveOCRResult(null)}
-            />
-          ) : (
-            <div className="space-y-6">
-              {/* OCR Upload Zone */}
-              <OCRUploadZone
-                onOCRComplete={(result) => {
-                  setActiveOCRResult(result);
-                }}
-                onError={(error) => {
-                  toast({
-                    title: 'OCR-Fehler',
-                    description: error,
-                    variant: 'destructive',
-                  });
-                }}
-              />
-
-              {/* Pending OCR Results */}
-              {pendingOCRResults && pendingOCRResults.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Scan className="h-5 w-5" />
-                      Ausstehende Validierungen ({pendingOCRResults.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {pendingOCRResults.map((result) => (
-                        <Card key={result.id} className="border-orange-200 bg-orange-50">
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-2">
-                                  <h4 className="font-medium">
-                                    {result.structured_data.supplierName}
-                                  </h4>
-                                  <Badge variant="outline" className="bg-orange-100 text-orange-800">
-                                    Ausstehend
-                                  </Badge>
-                                  <Badge variant="outline">
-                                    {Math.round(result.confidence_scores.overall * 100)}% Konfidenz
-                                  </Badge>
-                                </div>
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                  <span>Rechnung: {result.structured_data.invoiceNumber}</span>
-                                  <span>Betrag: {result.structured_data.totalAmount.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}</span>
-                                  <span>Datum: {new Date(result.structured_data.date).toLocaleDateString('de-DE')}</span>
-                                  <span>Verarbeitet: {new Date(result.created_at).toLocaleString('de-DE')}</span>
-                                </div>
-                              </div>
-                              <Button
-                                onClick={() => setActiveOCRResult(result)}
-                                size="sm"
-                              >
-                                Validieren
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* OCR Info */}
-              <Card className="bg-blue-50 border-blue-200">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Scan className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-blue-900 mb-2">
-                        Automatische Rechnungserfassung mit OCR
-                      </h3>
-                      <ul className="text-sm text-blue-800 space-y-1">
-                        <li>• Laden Sie Bilder oder PDFs von Lieferantenrechnungen hoch</li>
-                        <li>• OCR erkennt automatisch Rechnungsnummer, Betrag, Lieferant und Datum</li>
-                        <li>• Validieren Sie die erkannten Daten vor der Übernahme</li>
-                        <li>• Rechnungen werden automatisch in Ihrem System angelegt</li>
-                      </ul>
-                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </TabsContent>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={getStatusBadgeVariant(quote.status)}>
+                      {quote.status}
+                    </Badge>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => toast.info('Details-Ansicht noch nicht verfügbar')}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+            {quotes.length > 5 && (
+              <Button variant="outline" className="w-full">
+                Alle Angebote anzeigen ({quotes.length})
+              </Button>
+            )}
+          </CardContent>
+        </Card>
 
-        <TabsContent value="templates" className="space-y-4">
-          <Card>
-            <CardContent className="py-8 text-center">
-              <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Vorlagen-Manager</h3>
-              <p className="text-muted-foreground">
-                Die Vorlagen-Funktionalität wird bald verfügbar sein.
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      <AddQuoteDialog 
-        open={showAddQuote} 
-        onOpenChange={setShowAddQuote} 
-      />
-      <AddInvoiceDialog 
-        open={showAddInvoice} 
-        onOpenChange={setShowAddInvoice} 
-      />
+        {/* Invoices */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Rechnungen ({invoices.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {invoices.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Keine Rechnungen vorhanden</p>
+              </div>
+            ) : (
+              invoices.slice(0, 5).map((invoice) => (
+                <div key={invoice.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <p className="font-medium">{invoice.title}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(invoice.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={getStatusBadgeVariant(invoice.status)}>
+                      {invoice.status}
+                    </Badge>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => toast.info('Details-Ansicht noch nicht verfügbar')}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+            {invoices.length > 5 && (
+              <Button variant="outline" className="w-full">
+                Alle Rechnungen anzeigen ({invoices.length})
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
-  );
+  )
 }
+
+export default DocumentModuleSimple
