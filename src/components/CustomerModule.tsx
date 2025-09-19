@@ -371,8 +371,8 @@ const CustomerModule = () => {
       <EditCustomerDialog
         isOpen={isEditCustomerOpen}
         onClose={() => setIsEditCustomerOpen(false)}
-        customer={selectedCustomer}
-        onCustomerUpdated={handleUpdateCustomer}
+        customer={selectedCustomer as any}
+        onCustomerUpdated={handleUpdateCustomer as any}
       />
     </div>
   );

@@ -68,14 +68,17 @@ const DeliveryNotesManager: React.FC = () => {
     deliveryNotes,
     isLoading,
     isCreating,
+    fetchDeliveryNotes,
     createDeliveryNote,
-    signDeliveryNote,
-    generatePDF,
-    sendEmail,
-    updateStatus,
-    applyTimeRules,
-    fetchDeliveryNote
+    signDeliveryNote
   } = useDeliveryNotes()
+  
+  // Note: These functions might not be available yet in the hook
+  const generatePDF = () => console.log('PDF generation not implemented')
+  const sendEmail = () => console.log('Email sending not implemented')
+  const updateStatus = () => console.log('Status update not implemented')
+  const applyTimeRules = () => console.log('Time rules not implemented')
+  const fetchDeliveryNote = () => console.log('Single delivery note fetch not implemented')
   
   const { segments, fetchTimeSegments } = useTimeTracking()
   

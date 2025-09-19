@@ -66,7 +66,7 @@ export default function DebugEmployees() {
       console.log('10. useEmployees loading:', isLoading);
       console.log('11. useEmployees error:', error);
       console.log('12. useEmployees data:', employeesData);
-      console.log('13. useEmployees items:', employeesData?.items);
+      console.log('13. useEmployees items:', employeesData?.length);
       console.log('=== END DEBUG ===');
     };
     
@@ -79,7 +79,7 @@ export default function DebugEmployees() {
       <pre className="text-xs overflow-auto">
         Loading: {isLoading ? 'Yes' : 'No'}
         {'\n'}Error: {error ? error.message : 'None'}
-        {'\n'}Items: {employeesData?.items?.length || 0} employees
+        {'\n'}Items: {employeesData?.length || 0} employees
         {'\n'}Data: {JSON.stringify(employeesData, null, 2)}
       </pre>
       <Button 

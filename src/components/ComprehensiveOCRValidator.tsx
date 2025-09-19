@@ -264,7 +264,7 @@ export function ComprehensiveOCRValidator({
     });
   };
 
-  const updatePosition = (index: number, field: keyof InvoicePosition, value: any) => {
+  const updatePosition = (index: number, field: keyof any, value: any) => {
     setValidatedData(prev => {
       const newPositions = [...(prev.positions || [])];
       const position = { ...newPositions[index] };

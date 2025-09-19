@@ -151,7 +151,7 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
     const projectData = {
       name: formData.name,
       customer_id: selectedCustomer.id,
-      status: formData.status,
+      status: formData.status as "active" | "planned" | "blocked" | "completed" | "cancelled",
       location: formData.location || selectedCustomer.address || 'Nicht angegeben',
       budget: parseFloat(formData.budget.replace('€', '').replace(',', '.')) || 0,
       start_date: dateRange?.from ? dateRange.from.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],

@@ -124,8 +124,8 @@ export function CompanySettingsModule() {
     onError: (error) => {
       console.error("Detailed error updating settings:", error);
       console.error("Error message:", error.message);
-      console.error("Error details:", error.details);
-      console.error("Error code:", error.code);
+      console.error("Error details:", (error as any).details);
+      console.error("Error code:", (error as any).code);
       
       toast({
         title: "Fehler beim Speichern",
@@ -178,9 +178,9 @@ export function CompanySettingsModule() {
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
         <div className="text-muted-foreground">Fehler beim Laden der Firmeneinstellungen</div>
         <div className="text-sm text-red-500">
-          {error.message?.includes('row-level security') 
+          {(error as any).message?.includes('row-level security') 
             ? 'Zugriff verweigert. Bitte melden Sie sich als Manager an.' 
-            : error.message}
+            : (error as any).message}
         </div>
         <Button
           onClick={() => window.location.reload()} 
