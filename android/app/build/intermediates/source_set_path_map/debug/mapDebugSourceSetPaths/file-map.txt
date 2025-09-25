@@ -41,8 +41,11 @@ com.handwerkos.app-debug-39 C:\Users\filip\StudioProjects\handwerkos\android\app
 com.handwerkos.app-debug-40 C:\Users\filip\StudioProjects\handwerkos\android\app\src\debug\res
 com.handwerkos.app-main-41 C:\Users\filip\StudioProjects\handwerkos\android\app\src\main\res
 com.handwerkos.app-debug-42 C:\Users\filip\StudioProjects\handwerkos\android\capacitor-cordova-android-plugins\build\intermediates\packaged_res\debug\packageDebugResources
-com.handwerkos.app-debug-43 C:\Users\filip\StudioProjects\handwerkos\node_modules\@capacitor\android\capacitor\build\intermediates\packaged_res\debug\packageDebugResources
-com.handwerkos.app-debug-44 C:\Users\filip\StudioProjects\handwerkos\node_modules\@capacitor\camera\android\build\intermediates\packaged_res\debug\packageDebugResources
-com.handwerkos.app-debug-45 C:\Users\filip\StudioProjects\handwerkos\node_modules\@capacitor\geolocation\android\build\intermediates\packaged_res\debug\packageDebugResources
-com.handwerkos.app-debug-46 C:\Users\filip\StudioProjects\handwerkos\node_modules\@capacitor\splash-screen\android\build\intermediates\packaged_res\debug\packageDebugResources
-com.handwerkos.app-debug-47 C:\Users\filip\StudioProjects\handwerkos\node_modules\@capacitor\status-bar\android\build\intermediates\packaged_res\debug\packageDebugResources
+com.handwerkos.app-debug-43 C:\Users\filip\StudioProjects\handwerkos\node_modules\@capacitor-community\keep-awake\android\build\intermediates\packaged_res\debug\packageDebugResources
+com.handwerkos.app-debug-44 C:\Users\filip\StudioProjects\handwerkos\node_modules\@capacitor\android\capacitor\build\intermediates\packaged_res\debug\packageDebugResources
+com.handwerkos.app-debug-45 C:\Users\filip\StudioProjects\handwerkos\node_modules\@capacitor\camera\android\build\intermediates\packaged_res\debug\packageDebugResources
+com.handwerkos.app-debug-46 C:\Users\filip\StudioProjects\handwerkos\node_modules\@capacitor\geolocation\android\build\intermediates\packaged_res\debug\packageDebugResources
+com.handwerkos.app-debug-47 C:\Users\filip\StudioProjects\handwerkos\node_modules\@capacitor\haptics\android\build\intermediates\packaged_res\debug\packageDebugResources
+com.handwerkos.app-debug-48 C:\Users\filip\StudioProjects\handwerkos\node_modules\@capacitor\network\android\build\intermediates\packaged_res\debug\packageDebugResources
+com.handwerkos.app-debug-49 C:\Users\filip\StudioProjects\handwerkos\node_modules\@capacitor\splash-screen\android\build\intermediates\packaged_res\debug\packageDebugResources
+com.handwerkos.app-debug-50 C:\Users\filip\StudioProjects\handwerkos\node_modules\@capacitor\status-bar\android\build\intermediates\packaged_res\debug\packageDebugResources

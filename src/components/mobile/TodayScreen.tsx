@@ -17,7 +17,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Zap,
-  Timer
+  Timer,
+  Phone
 } from 'lucide-react'
 import { format, differenceInMinutes, startOfDay, endOfDay } from 'date-fns'
 import { de } from 'date-fns/locale'
@@ -56,7 +57,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   const [selectedProject, setSelectedProject] = useState<{
     id: string,
     name: string,
-    customer?: {name: string},
+    customer?: {name: string, phone?: string},
     location?: string,
     status?: string,
     start_date?: string,
@@ -97,17 +98,10 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
 
   // Restore selected project from localStorage on component mount
   useEffect(() => {
-    const savedProject = localStorage.getItem('selectedProject')
-    if (savedProject) {
-      try {
-        const project = JSON.parse(savedProject)
-        setSelectedProject(project)
-        console.log('Restored selected project from localStorage:', project)
-      } catch (e) {
-        console.error('Error parsing saved project:', e)
-        localStorage.removeItem('selectedProject')
-      }
-    }
+    // Clear any old localStorage data on component mount
+    localStorage.removeItem('selectedProject')
+    setSelectedProject(null)
+    console.log('TodayScreen: Cleared old localStorage data')
   }, [])
 
   // Lade Projekte
@@ -129,67 +123,36 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         if (testError) {
           console.log('Basic connection failed, trying fallback approach...')
           // If table doesn't exist or we have no access, use mock projects
-          const mockProjects = [
-            {
-              id: 'mock-project-1',
-              name: 'Test Baustelle A',
-              customer: { name: 'Mustermann GmbH' },
-              location: 'Musterstraße 123, 12345 Berlin',
-              status: 'active',
-              priority: 'high',
-              start_date: '2024-01-15',
-              end_date: '2024-06-30',
-              description: 'Renovierung und Umbau des Erdgeschosses'
-            },
-            {
-              id: 'mock-project-2',
-              name: 'Test Baustelle B',
-              customer: { name: 'Schmidt & Co' },
-              location: 'Hauptstraße 45, 10115 Berlin',
-              status: 'active',
-              priority: 'normal',
-              start_date: '2024-02-01',
-              end_date: '2024-05-15',
-              description: 'Sanitärinstallation im 2. OG'
-            },
-            {
-              id: 'mock-project-3',
-              name: 'Neubau Bürogebäude',
-              customer: { name: 'Bau AG' },
-              location: 'Industriepark 7, 12489 Berlin',
-              status: 'active',
-              priority: 'urgent',
-              start_date: '2024-01-01',
-              end_date: '2024-12-31',
-              description: 'Neubau eines 5-stöckigen Bürogebäudes mit Tiefgarage'
-            }
-          ]
-          console.log('Using mock projects due to database error:', testError.message)
-          setProjects(mockProjects)
-          // DON'T auto-select first project - user should choose
-          console.log('NOT auto-selecting project - user must choose manually')
-          toast.info(`${mockProjects.length} Test-Projekte geladen (Offline-Modus)`)
-          return
+          // Don't use mock projects - force real data instead
+          console.log('Database connection issue, but trying to continue:', testError.message)
+          // Continue to try loading real data below
+          // return  // REMOVED - don't return early
         }
         
-        // Now try the full query with all fields
+        // Start with simplest query possible
         let { data, error } = await supabase
           .from('projects')
-          .select('id, name, customer_id, location, status, start_date, end_date, priority, description')
-          .eq('status', 'active')
+          .select('id, name')
           .order('name')
-        
+          .limit(10)
+
+        console.log('Simple projects query result:', { data, error })
+
         if (error) {
-          console.log('Even simple query failed, trying different approach:', error.message)
-          // Try with different status values or without status filter
-          const { data: data2, error: error2 } = await supabase
+          console.error('Even simplest query failed:', error.message)
+          throw error
+        }
+
+        // If basic query works, try to get more fields
+        if (data && data.length > 0) {
+          const { data: fullData, error: fullError } = await supabase
             .from('projects')
             .select('id, name, customer_id, location, status, start_date, end_date, priority, description')
             .order('name')
-            .limit(10)
-          
-          if (error2) throw error2
-          data = data2
+
+          if (!fullError && fullData) {
+            data = fullData
+          }
         }
         
         // If we got projects, try to add customer names
@@ -202,19 +165,22 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             if (customerIds.length > 0) {
               const { data: customers } = await supabase
                 .from('customers')
-                .select('id, name')
+                .select('id, name, phone')
                 .in('id', customerIds)
-              
+
               if (customers) {
                 customers.forEach(c => customerMap.set(c.id, c))
               }
             }
-            
+
             // Add customer info to projects
             data = data.map(project => ({
               ...project,
-              customer: project.customer_id && customerMap.has(project.customer_id) 
-                ? { name: customerMap.get(project.customer_id).name }
+              customer: project.customer_id && customerMap.has(project.customer_id)
+                ? {
+                    name: customerMap.get(project.customer_id).name,
+                    phone: customerMap.get(project.customer_id).phone
+                  }
                 : null
             }))
           } catch (customerError) {
@@ -602,7 +568,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Projekt Info Card */}
+              {/* Projekt Info Card - BLAUE CARD nach Projektauswahl */}
               {selectedProject ? (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between">
@@ -626,30 +592,24 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                   <div className="space-y-2">
                     <div>
                       <p className="font-bold text-lg">{selectedProject.name}</p>
-                      {selectedProject.customer && (
-                        <p className="text-sm text-gray-600">
-                          <span className="font-medium">Kunde:</span> {selectedProject.customer.name}
-                        </p>
-                      )}
+                      {/* Kunde IMMER anzeigen */}
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Kunde:</span> {selectedProject?.customer?.name || 'Nicht verfügbar'}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Tel:</span> {selectedProject?.customer?.phone || 'Nicht verfügbar'}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Adresse:</span> {selectedProject?.location || 'Nicht verfügbar'}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Zeitraum:</span> {
+                          (selectedProject?.start_date || selectedProject?.end_date)
+                            ? `${selectedProject?.start_date || 'k.A.'} - ${selectedProject?.end_date || 'k.A.'}`
+                            : 'Nicht verfügbar'
+                        }
+                      </p>
                     </div>
-
-                    {selectedProject.location && (
-                      <div className="flex items-start gap-2">
-                        <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
-                        <p className="text-sm text-gray-600">{selectedProject.location}</p>
-                      </div>
-                    )}
-
-                    {(selectedProject.start_date || selectedProject.end_date) && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Calendar className="h-4 w-4 text-gray-400" />
-                        <span>
-                          {selectedProject.start_date && format(new Date(selectedProject.start_date), 'dd.MM.yyyy')}
-                          {selectedProject.start_date && selectedProject.end_date && ' - '}
-                          {selectedProject.end_date && format(new Date(selectedProject.end_date), 'dd.MM.yyyy')}
-                        </span>
-                      </div>
-                    )}
 
                     {selectedProject.status && (
                       <div className="flex items-center gap-2">
@@ -667,6 +627,32 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                       <div className="pt-2 border-t">
                         <p className="text-xs text-gray-500">Beschreibung:</p>
                         <p className="text-sm text-gray-700">{selectedProject.description}</p>
+                      </div>
+                    )}
+
+                    {selectedProject.customer?.phone && (
+                      <div className="pt-2 border-t">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-500">Kundenkontakt:</p>
+                            <p className="text-sm text-gray-700 font-medium">
+                              {selectedProject.customer.name}
+                            </p>
+                            <p className="text-sm text-blue-600">
+                              {selectedProject.customer.phone}
+                            </p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              window.location.href = `tel:${selectedProject.customer.phone}`
+                            }}
+                            className="ml-2"
+                          >
+                            <Phone className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -827,8 +813,15 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         onProjectSelect={async (projectId) => {
           try {
             console.log('onProjectSelect called with:', projectId)
-            console.log('projects state:', projects)
-            console.log('projects type:', typeof projects)
+
+            // Wait for projects to be loaded (max 5 seconds)
+            let waitCount = 0
+            while ((!projects || !Array.isArray(projects) || projects.length === 0) && waitCount < 50) {
+              await new Promise(resolve => setTimeout(resolve, 100))
+              waitCount++
+            }
+
+            console.log('projects state after wait:', projects)
             console.log('projects length:', projects?.length)
 
             // First try to find project in our loaded projects
@@ -838,7 +831,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                 project = projects.find(p => p && p.id === projectId)
                 console.log('Found project in list:', project)
               } else {
-                console.log('Projects not ready:', projects)
+                console.log('Projects still not ready after wait:', projects)
               }
             } catch (findError) {
               console.error('Error in projects.find:', findError)
@@ -859,12 +852,12 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                     try {
                       const { data: customer } = await supabase
                         .from('customers')
-                        .select('id, name')
+                        .select('id, name, phone')
                         .eq('id', dbProject.customer_id)
                         .single()
 
                       if (customer) {
-                        dbProject.customer = { name: customer.name }
+                        dbProject.customer = { name: customer.name, phone: customer.phone }
                       }
                     } catch (customerError) {
                       console.log('Customer loading failed:', customerError)
@@ -885,25 +878,20 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             } else {
               // Don't auto-start, just select the project
               if (project) {
+                console.log('📱 SELECTED PROJECT DATA:', project)
+                console.log('📱 Customer data:', project.customer)
+                console.log('📱 Location:', project.location)
+                console.log('📱 Dates:', project.start_date, project.end_date)
                 setSelectedProject(project)
                 // Save to localStorage for persistence
                 localStorage.setItem('selectedProject', JSON.stringify(project))
               } else {
-                // Fallback: Use mock project if real data fails
-                const mockProject = {
-                  id: projectId,
-                  name: 'Test Baustelle A',
-                  customer: { name: 'Mustermann GmbH' },
-                  location: 'Musterstraße 123, 12345 Berlin',
-                  status: 'active',
-                  priority: 'high',
-                  start_date: '2024-01-15',
-                  end_date: '2024-06-30',
-                  description: 'Renovierung und Umbau des Erdgeschosses'
-                }
-                setSelectedProject(mockProject)
-                // Save to localStorage for persistence
-                localStorage.setItem('selectedProject', JSON.stringify(mockProject))
+                // No fallback - if project not found, show error
+                console.error('Project not found:', projectId)
+                toast.error('Projekt konnte nicht geladen werden')
+                setSelectedProject(null)
+                // Clear invalid data from localStorage
+                localStorage.removeItem('selectedProject')
               }
             }
             setShowQuickSwitch(false)

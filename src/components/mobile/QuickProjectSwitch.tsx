@@ -24,12 +24,17 @@ interface Project {
   id: string
   name: string
   customer?: {
-    id: string
+    id?: string
     name: string
+    phone?: string
   }
   location?: string
   color?: string
   status: string
+  start_date?: string
+  end_date?: string
+  priority?: string
+  description?: string
   last_used?: string
   is_favorite?: boolean
 }
@@ -66,28 +71,78 @@ export const QuickProjectSwitch: React.FC<QuickProjectSwitchProps> = ({
   const loadProjects = useCallback(async () => {
     setIsLoading(true)
     try {
-      // Lade nur aktive Projekte (schließe abgeschlossene aus)
-      const { data, error } = await supabase
+      console.log('🔍 Loading projects from QuickProjectSwitch...')
+
+      // Erst einfache Abfrage versuchen
+      let { data, error } = await supabase
         .from('projects')
-        .select(`
-          id, name, status, location, color, customer_id
-        `)
-        .not('status', 'eq', 'abgeschlossen')
-        .not('status', 'eq', 'completed')
-        .not('status', 'eq', 'cancelled')
-        .not('status', 'eq', 'archiviert')
-        .order('name')
+        .select('id, name')
+        .limit(5)
+
+      console.log('📊 Basic project query result:', { data, error })
 
       if (error) {
-        console.error('Failed to load projects:', error)
-        toast.error(`Fehler beim Laden der Projekte: ${error.message}`)
-        // Zeige Debug-Info als Toast
-        toast.error(`Error Details: ${error.details || 'No details'}`)
-        toast.error(`Error Hint: ${error.hint || 'No hint'}`)
+        console.error('Basic query failed:', error)
+        toast.error(`Basis-Abfrage fehlgeschlagen: ${error.message}`)
         setProjects([])
         return
       }
 
+      // Wenn Basis funktioniert, erweiterte Abfrage versuchen
+      if (data && data.length > 0) {
+        console.log('📊 Basic query OK, trying extended query...')
+        const { data: extendedData, error: extendedError } = await supabase
+          .from('projects')
+          .select(`
+            id, name, status, location, color, customer_id, start_date, end_date, priority, description
+          `)
+          .not('status', 'eq', 'abgeschlossen')
+          .not('status', 'eq', 'completed')
+          .not('status', 'eq', 'cancelled')
+          .not('status', 'eq', 'archiviert')
+          .order('name')
+
+        if (!extendedError && extendedData) {
+          console.log('📊 Extended query successful:', extendedData.length, 'projects')
+          data = extendedData
+
+          // Lade Customer-Daten separat und verknüpfe sie
+          try {
+            const customerIds = [...new Set(data.map(p => p.customer_id).filter(Boolean))]
+            console.log('📊 Customer IDs found:', customerIds)
+            let customerMap = new Map()
+
+            if (customerIds.length > 0) {
+              const { data: customers } = await supabase
+                .from('customers')
+                .select('id, name, phone')
+                .in('id', customerIds)
+
+              console.log('📊 Customers loaded:', customers?.length || 0)
+              if (customers) {
+                customers.forEach(c => customerMap.set(c.id, c))
+              }
+            }
+
+            // Add customer info to projects
+            data = data.map(project => ({
+              ...project,
+              customer: project.customer_id && customerMap.has(project.customer_id)
+                ? {
+                    name: customerMap.get(project.customer_id).name,
+                    phone: customerMap.get(project.customer_id).phone
+                  }
+                : null
+            }))
+          } catch (customerError) {
+            console.log('📊 Customer loading failed, continuing without:', customerError)
+          }
+        } else {
+          console.log('📊 Extended query failed, using basic data:', extendedError)
+        }
+      }
+
+      console.log('📊 Final projects to set:', data?.length || 0)
       setProjects(data || [])
     } catch (error) {
       console.error('Error loading projects:', error)

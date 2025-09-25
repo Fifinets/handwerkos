@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -8,11 +8,11 @@ import { Textarea } from "@/components/ui/textarea"
 // Native select is used instead of shadcn Select for better mobile compatibility
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
-import { 
-  Play, 
-  Square, 
-  RotateCcw, 
-  Clock, 
+import {
+  Play,
+  Square,
+  RotateCcw,
+  Clock,
   MapPin,
   Smartphone,
   Wifi,
@@ -24,16 +24,21 @@ import {
   Coffee,
   Car,
   AlertTriangle,
-  CheckCircle2
+  CheckCircle2,
+  Navigation
 } from "lucide-react"
 import { useTimeTracking } from "@/hooks/useTimeTracking"
 import { supabase } from "@/integrations/supabase/client"
 import { toast } from "sonner"
 import { Geolocation } from '@capacitor/geolocation'
 import { StatusBar, Style as StatusBarStyle } from '@capacitor/status-bar'
-import { KeepAwake } from '@capacitor/keep-awake'
+import { KeepAwake } from '@capacitor-community/keep-awake'
 import { Network } from '@capacitor/network'
 import { Haptics, ImpactStyle } from '@capacitor/haptics'
+import mapboxgl from 'mapbox-gl'
+import 'mapbox-gl/dist/mapbox-gl.css'
+import MobileMaterialRecorder from './MobileMaterialRecorder'
+import { differenceInMinutes } from 'date-fns'
 
 interface Project {
   id: string
@@ -49,6 +54,7 @@ interface Project {
   assignedUntil?: string
   assignmentPriority?: number
   assignmentNotes?: string
+  locationCoords?: { lat: number; lng: number }
 }
 
 const MobileTimeTracker: React.FC = () => {
@@ -61,47 +67,71 @@ const MobileTimeTracker: React.FC = () => {
     startBreak,
     endBreak
   } = useTimeTracking()
-  
-  // Initialize with mock projects
-  const mockProjectsDefault = [
-    {
-      id: '6c81e627-8c38-472b-ae6b-5c63af8b9016',
-      name: 'Baustelle Musterstraße',
-      status: 'active',
-      customer: { name: 'Mustermann GmbH' }
-    },
-    {
-      id: 'mock-project-2',
-      name: 'Renovierung Bürogebäude',
-      status: 'active',
-      customer: { name: 'Schmidt & Co' }
-    },
-    {
-      id: 'mock-project-3',
-      name: 'Neubau Einfamilienhaus',
-      status: 'active',
-      customer: { name: 'Bau AG' }
-    }
-  ]
-  
-  const [projects, setProjects] = useState<Project[]>(mockProjectsDefault)
+
+  const [projects, setProjects] = useState<Project[]>([])
   const [selectedProject, setSelectedProject] = useState<string>('')
   const [selectedProjectDetails, setSelectedProjectDetails] = useState<Project | null>(null)
+  const [userHasSelectedProject, setUserHasSelectedProject] = useState<boolean>(false)
   const [assignedProjects, setAssignedProjects] = useState<Project[]>([])
   const [lastUsedProject, setLastUsedProject] = useState<Project | null>(null)
   const [, forceUpdate] = useState({})
   const [workDescription, setWorkDescription] = useState('')
+  const [description, setDescription] = useState('')
   const [notes, setNotes] = useState('')
   const [isOnline, setIsOnline] = useState(true)
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [showProjectSheet, setShowProjectSheet] = useState(false)
-  
+  const [isInRange, setIsInRange] = useState(false)
+  const [projectLocation, setProjectLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const mapContainer = useRef<HTMLDivElement>(null)
+  const map = useRef<mapboxgl.Map | null>(null)
+  const currentLocationMarker = useRef<mapboxgl.Marker | null>(null)
+  const projectLocationMarker = useRef<mapboxgl.Marker | null>(null)
+
+  const RADIUS_METERS = 100 // 100 Meter Radius
+
+  // Force reset selection on component mount
+  useEffect(() => {
+    console.log('MobileTimeTracker mounted - resetting selection')
+    // Clear ALL project-related localStorage completely
+    localStorage.removeItem('selectedProjectDetails')
+    localStorage.removeItem('selectedProject') // Remove TodayScreen's saved project
+    localStorage.removeItem('activeTimeEntry')
+    localStorage.removeItem('activeBreak')
+    // Force clear state to empty values
+    setSelectedProject('')
+    setSelectedProjectDetails(null)
+    setUserHasSelectedProject(false)
+    // Additional safety: Force update after a small delay
+    setTimeout(() => {
+      setSelectedProject('')
+      setSelectedProjectDetails(null)
+      setUserHasSelectedProject(false)
+    }, 100)
+  }, [])
+
   // Live timer
   const [currentTime, setCurrentTime] = useState(new Date())
   const [batteryLevel, setBatteryLevel] = useState<number | null>(null)
+
+  // Calculate total work time today (excluding breaks)
+  const getTotalWorkTimeToday = () => {
+    if (!activeTime.segment) return 0
+    const startTime = new Date(activeTime.segment.start_time)
+    const now = new Date()
+    const totalMinutes = differenceInMinutes(now, startTime)
+    const breakMinutes = activeTime.segment.break_duration_minutes || 0
+    return Math.max(0, totalMinutes - breakMinutes)
+  }
   
   // Offline queue for when network is unavailable
   const [offlineQueue, setOfflineQueue] = useState<any[]>([])
+  const [showMaterialDialog, setShowMaterialDialog] = useState(false)
+  const [materialCount, setMaterialCount] = useState(0)
+
+  // 10h protection
+  const [showOvertimeWarning, setShowOvertimeWarning] = useState(false)
+  const [hasShownOvertimeWarning, setHasShownOvertimeWarning] = useState(false)
   
   // Mobile-specific configuration
   useEffect(() => {
@@ -136,7 +166,81 @@ const MobileTimeTracker: React.FC = () => {
     
     setupMobile()
   }, [activeTime.active, offlineQueue.length])
-  
+
+  // 10h protection check
+  useEffect(() => {
+    if (!activeTime.active || !activeTime.segment) return
+
+    const totalWorkMinutes = getTotalWorkTimeToday()
+    const totalWorkHours = totalWorkMinutes / 60
+
+    // Show warning at 9.5h (570 minutes)
+    if (totalWorkHours >= 9.5 && !hasShownOvertimeWarning) {
+      setHasShownOvertimeWarning(true)
+      setShowOvertimeWarning(true)
+
+      // Haptic feedback
+      Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {})
+
+      toast.warning(`⚠️ Achtung: Sie arbeiten bereits ${totalWorkHours.toFixed(1)}h. Bitte beenden Sie Ihre Arbeit bald.`, {
+        duration: 8000,
+        action: {
+          label: 'Jetzt beenden',
+          onClick: () => {
+            handleStop()
+          }
+        }
+      })
+    }
+
+    // Auto-stop at exactly 10h (600 minutes)
+    if (totalWorkHours >= 10) {
+      toast.error('🚫 Automatischer Stopp: 10 Stunden Arbeitszeit erreicht!', {
+        duration: 5000
+      })
+
+      // Force stop
+      handleStop()
+
+      // Strong haptic feedback
+      Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {})
+    }
+  }, [activeTime, hasShownOvertimeWarning])
+
+  // Calculate distance between two coordinates
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371e3; // Earth radius in meters
+    const φ1 = lat1 * Math.PI/180;
+    const φ2 = lat2 * Math.PI/180;
+    const Δφ = (lat2-lat1) * Math.PI/180;
+    const Δλ = (lon2-lon1) * Math.PI/180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return R * c; // Distance in meters
+  };
+
+  // Parse location string to coordinates
+  const parseLocationString = (location: string) => {
+    // Try to extract coordinates from string
+    const matches = location.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
+    if (matches) {
+      return {
+        lat: parseFloat(matches[1]),
+        lng: parseFloat(matches[2])
+      };
+    }
+
+    // Fallback coordinates (Berlin)
+    return {
+      lat: 52.5200,
+      lng: 13.4050
+    };
+  };
+
   // Get current location
   const getCurrentLocation = useCallback(async () => {
     try {
@@ -144,19 +248,37 @@ const MobileTimeTracker: React.FC = () => {
         enableHighAccuracy: true,
         timeout: 10000
       })
-      
-      setCurrentLocation({
+
+      const newLocation = {
         lat: coordinates.coords.latitude,
         lng: coordinates.coords.longitude
-      })
-      
+      }
+
+      setCurrentLocation(newLocation)
+
+      // Check if in range of project location
+      if (projectLocation) {
+        const distance = calculateDistance(
+          newLocation.lat,
+          newLocation.lng,
+          projectLocation.lat,
+          projectLocation.lng
+        )
+        setIsInRange(distance <= RADIUS_METERS)
+      }
+
+      // Update marker on map
+      if (currentLocationMarker.current) {
+        currentLocationMarker.current.setLngLat([newLocation.lng, newLocation.lat])
+      }
+
       return coordinates
     } catch (error) {
       console.error('Location error:', error)
       toast.error('Standort konnte nicht ermittelt werden')
       return null
     }
-  }, [])
+  }, [projectLocation])
   
   // Process offline queue when connection is restored
   const processOfflineQueue = async () => {
@@ -200,14 +322,154 @@ const MobileTimeTracker: React.FC = () => {
     console.log('==================');
   }, [selectedProject, selectedProjectDetails])
 
-  // Debug: Log project selection changes and update project details
+  // Initialize map when container is ready
+  useEffect(() => {
+    if (mapContainer.current && !map.current) {
+      // Temporary Mapbox token - User needs to provide their own
+      mapboxgl.accessToken = 'pk.eyJ1IjoiZXhhbXBsZSIsImEiOiJjbGFzc2lmaWVkIn0.token' // TODO: Add real token
+
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: currentLocation ? [currentLocation.lng, currentLocation.lat] : [13.4050, 52.5200],
+        zoom: 15
+      })
+
+      // Add navigation controls
+      map.current.addControl(new mapboxgl.NavigationControl(), 'top-right')
+    }
+
+    return () => {
+      if (map.current) {
+        map.current.remove()
+        map.current = null
+      }
+    }
+  }, [])
+
+  // Update map when location changes
+  useEffect(() => {
+    if (map.current && currentLocation) {
+      // Update or create current location marker
+      if (currentLocationMarker.current) {
+        currentLocationMarker.current.setLngLat([currentLocation.lng, currentLocation.lat])
+      } else {
+        currentLocationMarker.current = new mapboxgl.Marker({ color: '#3B82F6' })
+          .setLngLat([currentLocation.lng, currentLocation.lat])
+          .setPopup(new mapboxgl.Popup().setText('Ihr Standort'))
+          .addTo(map.current)
+      }
+
+      // Center map on current location
+      map.current.flyTo({
+        center: [currentLocation.lng, currentLocation.lat],
+        zoom: 16
+      })
+    }
+  }, [currentLocation])
+
+  // Update project location on map
+  useEffect(() => {
+    if (selectedProjectDetails?.location) {
+      const coords = parseLocationString(selectedProjectDetails.location)
+      setProjectLocation(coords)
+
+      if (map.current) {
+        // Remove old project marker
+        if (projectLocationMarker.current) {
+          projectLocationMarker.current.remove()
+        }
+
+        // Add new project marker
+        projectLocationMarker.current = new mapboxgl.Marker({ color: '#EF4444' })
+          .setLngLat([coords.lng, coords.lat])
+          .setPopup(new mapboxgl.Popup().setText(selectedProjectDetails.name))
+          .addTo(map.current)
+
+        // Add radius circle
+        const sourceId = 'project-radius'
+        const layerId = 'project-radius-layer'
+
+        // Remove existing source and layer if they exist
+        if (map.current.getLayer(layerId)) {
+          map.current.removeLayer(layerId)
+        }
+        if (map.current.getSource(sourceId)) {
+          map.current.removeSource(sourceId)
+        }
+
+        // Add new source and layer for radius
+        map.current.addSource(sourceId, {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'Point',
+              coordinates: [coords.lng, coords.lat]
+            }
+          }
+        })
+
+        map.current.addLayer({
+          id: layerId,
+          type: 'circle',
+          source: sourceId,
+          paint: {
+            'circle-radius': {
+              stops: [
+                [0, 0],
+                [20, RADIUS_METERS / 0.075 / Math.cos(coords.lat * Math.PI / 180)]
+              ],
+              base: 2
+            },
+            'circle-color': isInRange ? '#10B981' : '#EF4444',
+            'circle-opacity': 0.2,
+            'circle-stroke-color': isInRange ? '#10B981' : '#EF4444',
+            'circle-stroke-width': 2
+          }
+        })
+
+        // Fit map to show both markers
+        if (currentLocation) {
+          const bounds = new mapboxgl.LngLatBounds()
+          bounds.extend([currentLocation.lng, currentLocation.lat])
+          bounds.extend([coords.lng, coords.lat])
+          map.current.fitBounds(bounds, { padding: 50 })
+        }
+      }
+
+      // Check if current location is in range
+      if (currentLocation) {
+        const distance = calculateDistance(
+          currentLocation.lat,
+          currentLocation.lng,
+          coords.lat,
+          coords.lng
+        )
+        setIsInRange(distance <= RADIUS_METERS)
+      }
+    }
+  }, [selectedProjectDetails, currentLocation, isInRange])
+
+  // Start location tracking
+  useEffect(() => {
+    getCurrentLocation()
+
+    // Update location every 10 seconds
+    const interval = setInterval(() => {
+      getCurrentLocation()
+    }, 10000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  // Update project details only when selectedProject changes (not when projects load)
   useEffect(() => {
     console.log('Selected project changed to:', selectedProject)
-    console.log('Available projects:', projects.length, projects.map(p => ({ id: p.id, name: p.name })))
-    // Update selected project details
-    if (selectedProject) {
-      console.log('MobileTimeTracker: Updating project details for:', selectedProject)
-      console.log('MobileTimeTracker: projects state:', projects)
+    // Only update details if a project is actually selected
+    if (selectedProject && selectedProject !== '') {
+      console.log('MobileTimeTracker: Finding project details for:', selectedProject)
       let projectDetails = null
       try {
         if (projects && Array.isArray(projects) && projects.length > 0) {
@@ -220,18 +482,24 @@ const MobileTimeTracker: React.FC = () => {
         setSelectedProjectDetails(projectDetails)
         console.log('Project details updated:', projectDetails)
       } else {
-        console.log('Project not found in list:', selectedProject)
+        console.log('Project not found in list, clearing details')
+        setSelectedProjectDetails(null)
       }
     } else {
+      console.log('No project selected - clearing details')
       setSelectedProjectDetails(null)
     }
-  }, [selectedProject, projects])
+  }, [selectedProject])
 
   // Load projects with assignment status
   useEffect(() => {
     const loadProjectsWithAssignments = async () => {
       try {
-        console.log('Loading projects with assignments...')
+        console.log('🚀 STARTING TO LOAD PROJECTS...')
+
+        // Reset selection state at start
+        setSelectedProject('')
+        setSelectedProjectDetails(null)
 
         // Load projects and check for assignments
         const { data: projectsData, error: projectsError } = await supabase
@@ -240,19 +508,24 @@ const MobileTimeTracker: React.FC = () => {
             id,
             name,
             status,
-            customer:customers(name)
+            location,
+            customer_id,
+            customers(id, name, company_name)
           `)
           .order('name')
 
         if (projectsError) {
-          console.error('Database error loading projects:', projectsError)
+          console.error('💥 DATABASE ERROR loading projects:', projectsError)
           toast.error('Fehler beim Laden der Projekte')
           return
         }
 
+        console.log('✅ PROJECTS FROM DATABASE:', projectsData)
+
         if (!projectsData || projectsData.length === 0) {
           console.log('No projects found in database')
           setProjects([])
+          toast.error('Keine Projekte in der Datenbank gefunden')
           return
         }
 
@@ -296,15 +569,25 @@ const MobileTimeTracker: React.FC = () => {
         const regularProjectsList = []
 
         for (const project of projectsData) {
+          // Format customer data properly
+          const formattedProject = {
+            ...project,
+            customer: project.customers ? {
+              id: project.customers.id,
+              name: project.customers.company_name || project.customers.name
+            } : null
+          }
+          delete formattedProject.customers // Remove the nested customers field
+
           // Check if user is assigned to this project via project_assignments table
           const isAssigned = assignedProjectIds.has(project.id)
           const assignmentInfo = assignmentsData?.find(a => a.project_id === project.id)
 
-          console.log(`Project ${project.name}: isAssigned=${isAssigned}`)
+          console.log(`Project ${formattedProject.name}: isAssigned=${isAssigned}, customer=${formattedProject.customer?.name}`)
 
           if (isAssigned) {
             assignedProjectsList.push({
-              ...project,
+              ...formattedProject,
               isAssigned: true,
               assignmentPriority: 1,
               assignmentNotes: assignmentInfo?.notes || 'Vom Manager zugewiesen',
@@ -312,7 +595,7 @@ const MobileTimeTracker: React.FC = () => {
             })
           } else {
             regularProjectsList.push({
-              ...project,
+              ...formattedProject,
               isAssigned: false
             })
           }
@@ -382,23 +665,19 @@ const MobileTimeTracker: React.FC = () => {
         setAssignedProjects(assignedProjectsList)
 
         console.log(`Smart sorted projects: ${assignedProjectsList.length} assigned, ${recentProjectsList.length} recent, ${regularProjectsList.length} other`)
+        console.log('Assigned projects:', assignedProjectsList.map(p => p.name))
+        console.log('Recent projects:', recentProjectsList.map(p => p.name))
 
-        // Auto-select project: assigned > recent > none
-        if (assignedProjectsList.length > 0) {
-          const topAssigned = assignedProjectsList[0]
-          setSelectedProject(topAssigned.id)
-          setSelectedProjectDetails(topAssigned)
-          toast.success(`🔧 Zugewiesenes Projekt "${topAssigned.name}" ausgewählt`, {
-            style: { backgroundColor: '#e0f2fe', borderColor: '#0284c7' }
-          })
-        } else if (recentProjectsList.length > 0 && !selectedProject) {
-          const recentProject = recentProjectsList[0]
-          setSelectedProject(recentProject.id)
-          setSelectedProjectDetails(recentProject)
-          toast.info(`⏱️ Letztes Projekt "${recentProject.name}" vorausgewählt`)
+        // No auto-selection - user must choose manually
+        console.log('Projects loaded - user must choose manually')
+        // Ensure clean state
+        if (!selectedProject) {
+          setSelectedProject('')
+          setSelectedProjectDetails(null)
         }
 
         console.log(`Loaded ${allProjects.length} projects: ${assignedProjectsList.length} assigned, ${recentProjectsList.length} recent, ${regularProjectsList.length} other`)
+        console.log('🔍 ALL PROJECTS FROM DATABASE:', allProjects.map(p => ({ id: p.id, name: p.name, customer: p.customer?.name })))
 
       } catch (error) {
         console.error('Error loading projects with assignments:', error)
@@ -579,11 +858,11 @@ const MobileTimeTracker: React.FC = () => {
                   </>
                 )}
               </div>
-              <div className="text-lg font-medium">
+              <div className="text-lg font-medium text-white">
                 {activeTime.segment?.project_name || 'Allgemein'}
               </div>
               {activeTime.segment?.customer_name && (
-                <div className="text-sm text-blue-200 mt-1">
+                <div className="text-sm text-blue-100 mt-1">
                   {activeTime.segment.customer_name}
                 </div>
               )}
@@ -595,30 +874,84 @@ const MobileTimeTracker: React.FC = () => {
             </div>
           ) : (
             <div className="text-center">
-              {selectedProjectDetails ? (
-                <>
-                  <div className="text-lg font-medium mb-1">{selectedProjectDetails.name}</div>
-                  {selectedProjectDetails.customer && (
-                    <div className="text-sm text-blue-200 mb-2">{selectedProjectDetails.customer.name}</div>
-                  )}
-                  <div className="text-xs text-blue-100">Bereit zum Start</div>
-                </>
-              ) : (
-                <>
-                  <div className="text-2xl font-bold mb-2">Keine aktive Zeiterfassung</div>
-                  <div className="text-blue-100 text-sm">Bitte wählen Sie ein Projekt aus</div>
-                </>
-              )}
+              <div className="text-2xl font-bold mb-2">Keine aktive Zeiterfassung</div>
+              <div className="text-blue-100 text-sm">Bitte wählen Sie ein Projekt aus</div>
             </div>
           )}
         </div>
       </div>
       
 
-      {/* Main Content */}
-      <div className="p-4 space-y-4 pb-safe">
-        {/* Quick Actions */}
-        <Card className="border-0 shadow-lg">
+      {/* Main Content with Map Background */}
+      <div className="relative min-h-[calc(100vh-200px)]">
+        {/* Map Container */}
+        <div ref={mapContainer} className="absolute inset-0 z-0" />
+
+        {/* Overtime warning overlay */}
+        {activeTime.active && (() => {
+          const totalWorkMinutes = getTotalWorkTimeToday()
+          const totalWorkHours = totalWorkMinutes / 60
+
+          if (totalWorkHours >= 9.5) {
+            return (
+              <div className="absolute top-4 left-4 right-4 z-20">
+                <div className="bg-orange-500/95 backdrop-blur-sm rounded-lg p-3 shadow-lg border-2 border-orange-400">
+                  <div className="flex items-center gap-2 text-white">
+                    <AlertTriangle className="h-5 w-5" />
+                    <div>
+                      <p className="text-sm font-bold">
+                        ⚠️ Überstunden: {totalWorkHours.toFixed(1)}h gearbeitet
+                      </p>
+                      <p className="text-xs opacity-90">
+                        {totalWorkHours >= 10 ? 'Automatischer Stopp erfolgt!' : 'Bitte beenden Sie bald Ihre Arbeit'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          }
+          return null
+        })()}
+
+        {/* Overlay for location status */}
+        {selectedProjectDetails?.location && (
+          <div className="absolute top-4 left-4 right-4 z-10" style={{
+            marginTop: activeTime.active && getTotalWorkTimeToday() / 60 >= 9.5 ? '80px' : '0'
+          }}>
+            <div className={`bg-white/95 backdrop-blur-sm rounded-lg p-3 shadow-lg border-2 ${
+              isInRange ? 'border-green-500' : 'border-red-500'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Navigation className={`h-5 w-5 ${isInRange ? 'text-green-600' : 'text-red-600'}`} />
+                  <div>
+                    <p className="text-sm font-medium">
+                      {isInRange ? '✅ Im Arbeitsbereich' : '❌ Außerhalb des Arbeitsbereichs'
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      {selectedProjectDetails.name} ({RADIUS_METERS}m Radius)
+                    </p>
+                  </div>
+                </div>
+                {currentLocation && projectLocation && (
+                  <Badge variant={isInRange ? "default" : "destructive"}>
+                    {Math.round(calculateDistance(
+                      currentLocation.lat,
+                      currentLocation.lng,
+                      projectLocation.lat,
+                      projectLocation.lng
+                    ))}m
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Timer Card at Bottom */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 pb-safe">
+          <Card className="border-0 shadow-lg bg-white/95 backdrop-blur-sm">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">
               {activeTime.active ? 'Laufende Erfassung' : 'Zeiterfassung starten'}
@@ -636,19 +969,42 @@ const MobileTimeTracker: React.FC = () => {
                   
                   {/* Show selected project or selection prompt */}
                   {selectedProject && selectedProjectDetails ? (
-                    <div 
+                    /* Diese Box zeigt das ausgewählte Projekt an, nachdem es aus der Liste gewählt wurde */
+                    <div
                       className="w-full p-4 text-left rounded-lg border-2 border-green-500 bg-green-50"
                       onClick={() => {
                         console.log('Clearing selection');
                         setSelectedProject('');
                         setSelectedProjectDetails(null);
+                        setUserHasSelectedProject(false);
                       }}
                     >
                       <div className="font-medium text-green-900">{selectedProjectDetails.name}</div>
                       {selectedProjectDetails.customer && (
-                        <div className="text-sm text-green-700">{selectedProjectDetails.customer.name}</div>
+                        <>
+                          <div className="text-sm text-green-700 font-medium mt-2">
+                            {selectedProjectDetails.customer.name}
+                          </div>
+                          {selectedProjectDetails.customer.phone && (
+                            <div className="text-sm text-green-600 flex items-center gap-1 mt-1">
+                              📞 {selectedProjectDetails.customer.phone}
+                            </div>
+                          )}
+                        </>
                       )}
-                      <div className="text-xs text-green-600 mt-1">Tippen zum Ändern</div>
+                      {selectedProjectDetails.location && (
+                        <div className="text-sm text-green-600 flex items-center gap-1 mt-1">
+                          📍 {selectedProjectDetails.location}
+                        </div>
+                      )}
+                      {(selectedProjectDetails.start_date || selectedProjectDetails.planned_end_date) && (
+                        <div className="text-sm text-green-600 flex items-center gap-1 mt-1">
+                          📅 {selectedProjectDetails.start_date ? new Date(selectedProjectDetails.start_date).toLocaleDateString('de-DE') : ''}
+                          {selectedProjectDetails.start_date && selectedProjectDetails.planned_end_date && ' - '}
+                          {selectedProjectDetails.planned_end_date ? new Date(selectedProjectDetails.planned_end_date).toLocaleDateString('de-DE') : ''}
+                        </div>
+                      )}
+                      <div className="text-xs text-green-600 mt-2">Tippen zum Ändern</div>
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -661,10 +1017,10 @@ const MobileTimeTracker: React.FC = () => {
                           <div
                             key={project.id}
                             onClick={() => {
+                              console.log('🎯 PROJEKT AUSWAHL:', project);
                               setSelectedProject(project.id);
                               setSelectedProjectDetails(project);
-                              // Save to localStorage for tracking
-                              localStorage.setItem('selectedProjectDetails', JSON.stringify(project));
+                              setUserHasSelectedProject(true);
 
                               const toastMessage = project.isAssigned
                                 ? `Zugewiesenes Projekt "${project.name}" ausgewählt`
@@ -683,6 +1039,9 @@ const MobileTimeTracker: React.FC = () => {
                               }
                             }}
                             className={`w-full p-3 text-left rounded-lg border-2 transition-colors cursor-pointer ${
+                              /* BLAUE CARD: Für zugewiesene Projekte in der Auswahlliste */
+                              /* ORANGE CARD: Für kürzlich verwendete Projekte */
+                              /* GRAUE CARD: Für normale Projekte */
                               project.isAssigned
                                 ? 'border-blue-400 bg-blue-50 hover:border-blue-500 hover:bg-blue-100 active:bg-blue-150'
                                 : project.isRecent
@@ -706,7 +1065,22 @@ const MobileTimeTracker: React.FC = () => {
                                   )}
                                 </div>
                                 {project.customer && (
-                                  <div className="text-sm text-gray-600">{project.customer.name}</div>
+                                  <>
+                                    <div className="text-sm text-gray-600 font-medium">{project.customer.name}</div>
+                                    {project.customer.phone && (
+                                      <div className="text-xs text-gray-500 mt-1">📞 {project.customer.phone}</div>
+                                    )}
+                                  </>
+                                )}
+                                {project.location && (
+                                  <div className="text-xs text-gray-500 mt-1">📍 {project.location}</div>
+                                )}
+                                {(project.start_date || project.planned_end_date) && (
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    📅 {project.start_date ? new Date(project.start_date).toLocaleDateString('de-DE') : ''}
+                                    {project.start_date && project.planned_end_date && ' - '}
+                                    {project.planned_end_date ? new Date(project.planned_end_date).toLocaleDateString('de-DE') : ''}
+                                  </div>
                                 )}
                                 {project.isAssigned && project.assignmentNotes && (
                                   <div className="text-xs text-blue-600 mt-1">{project.assignmentNotes}</div>
@@ -735,52 +1109,6 @@ const MobileTimeTracker: React.FC = () => {
                   )}
                 </div>
                 
-                {/* Visual feedback for selected project */}
-                {selectedProject && selectedProjectDetails && (
-                  <div className={`p-3 border rounded-lg ${
-                    selectedProjectDetails.isAssigned
-                      ? 'bg-blue-100 border-blue-500'
-                      : selectedProjectDetails.isRecent
-                      ? 'bg-orange-100 border-orange-500'
-                      : 'bg-green-100 border-green-500'
-                  }`}>
-                    <div className={`flex items-center gap-2 ${
-                      selectedProjectDetails.isAssigned
-                        ? 'text-blue-800'
-                        : selectedProjectDetails.isRecent
-                        ? 'text-orange-800'
-                        : 'text-green-800'
-                    }`}>
-                      <CheckCircle2 className="h-5 w-5" />
-                      <div>
-                        <div className="font-semibold">
-                          {selectedProjectDetails.isAssigned
-                            ? 'Zugewiesenes Projekt:'
-                            : selectedProjectDetails.isRecent
-                            ? 'Kürzlich verwendetes Projekt:'
-                            : 'Projekt ausgewählt:'}
-                        </div>
-                        <div className="text-sm">{selectedProjectDetails.name}</div>
-                        {selectedProjectDetails.customer && (
-                          <div className={`text-xs ${
-                            selectedProjectDetails.isAssigned
-                              ? 'text-blue-600'
-                              : selectedProjectDetails.isRecent
-                              ? 'text-orange-600'
-                              : 'text-green-600'
-                          }`}>
-                            {selectedProjectDetails.customer.name}
-                          </div>
-                        )}
-                        {selectedProjectDetails.isAssigned && selectedProjectDetails.assignedUntil && (
-                          <div className="text-xs text-blue-600 font-medium mt-1">
-                            Zugewiesen bis: {selectedProjectDetails.assignedUntil}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
                 
                 {/* Start Button */}
                 <Button 
@@ -979,7 +1307,11 @@ const MobileTimeTracker: React.FC = () => {
             )}
           </CardContent>
         </Card>
-        
+        </div>
+      </div>
+
+      {/* Additional Status Info */}
+      <div className="p-4 space-y-4">
         {/* Status Cards */}
         <div className="grid grid-cols-2 gap-4">
           {/* Network Status */}

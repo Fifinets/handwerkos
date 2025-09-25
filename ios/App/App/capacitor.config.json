@@ -49,8 +49,11 @@
 		"allowsLinkPreview": false
 	},
 	"packageClassList": [
+		"KeepAwakePlugin",
 		"CAPCameraPlugin",
 		"GeolocationPlugin",
+		"HapticsPlugin",
+		"CAPNetworkPlugin",
 		"SplashScreenPlugin",
 		"StatusBarPlugin"
 	]

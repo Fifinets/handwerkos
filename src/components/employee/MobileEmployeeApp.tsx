@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   Clock,
@@ -33,7 +34,8 @@ import {
   Plus,
   X,
   Calendar,
-  Building
+  Building,
+  AlertTriangle
 } from "lucide-react";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -48,6 +50,7 @@ import MobileMaterialRecorder from '../mobile/MobileMaterialRecorder';
 import { useTimeTracking } from "@/hooks/useTimeTracking";
 import { useMaterials } from "@/hooks/useMaterials";
 import { InfoView } from './InfoView';
+import { Camera as CapacitorCamera, CameraResultType } from '@capacitor/camera';
 
 interface Project {
   id: string;
@@ -135,6 +138,15 @@ const MobileEmployeeApp: React.FC = () => {
   const [showMaterialDialog, setShowMaterialDialog] = useState(false);
   const [projectMaterialUsage, setProjectMaterialUsage] = useState<any[]>([]);
   const [loadingMaterials, setLoadingMaterials] = useState(false);
+
+  // Documentation dialogs
+  const [showQuickDocDialog, setShowQuickDocDialog] = useState(false);
+  const [showWorkDocDialog, setShowWorkDocDialog] = useState(false);
+  const [showProblemDialog, setShowProblemDialog] = useState(false);
+  const [quickDocPhoto, setQuickDocPhoto] = useState<string | null>(null);
+  const [quickDocDescription, setQuickDocDescription] = useState('');
+  const [problemDescription, setProblemDescription] = useState('');
+  const [workTemplate, setWorkTemplate] = useState('');
 
   // Quick Actions State
   const [quickMaterialEntry, setQuickMaterialEntry] = useState({
@@ -1241,13 +1253,10 @@ const MobileEmployeeApp: React.FC = () => {
           <Button
             variant="outline"
             className="min-h-[60px] p-2 flex flex-col justify-center gap-1 text-sm"
-            onClick={() => setShowVacationDialog(true)}
+            onClick={() => setCurrentView('material')}
           >
-            <Calendar className="h-6 w-6" />
-            <span className="text-sm">Urlaub</span>
-            {vacationBalance.available > 0 && (
-              <span className="text-xs text-green-600">{vacationBalance.available} Tage</span>
-            )}
+            <Package className="h-6 w-6" />
+            <span className="text-sm">Material</span>
           </Button>
         </CardContent>
       </Card>
@@ -1328,99 +1337,97 @@ const MobileEmployeeApp: React.FC = () => {
   );
 
   const renderDocumentationView = () => (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold mb-4">📚 Dokumentation</h3>
-      
-      <div className="space-y-3">
-        {/* App Anleitung */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              📱 App Bedienung
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm space-y-2">
-            <div><strong>Start-Tab:</strong> Übersicht und Schnellzugriff</div>
-            <div><strong>Zeit-Tab:</strong> Zeiterfassung starten/stoppen</div>
-            <div><strong>Material-Tab:</strong> Materialverbrauch erfassen</div>
-            <div><strong>Profil-Tab:</strong> Persönliche Einstellungen</div>
+    <div className="space-y-4 h-full">
+      <h3 className="text-lg font-semibold mb-4">📄 Dokumentation</h3>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 gap-3">
+        {/* Schnell-Doku */}
+        <Card className="border-2 border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Camera className="h-5 w-5 text-blue-600" />
+                <h4 className="font-semibold text-blue-800">Schnell-Doku</h4>
+              </div>
+              <Badge variant="secondary" className="text-xs">Foto + Text</Badge>
+            </div>
+            <p className="text-sm text-blue-700 mb-3">
+              Foto aufnehmen und schnell dokumentieren
+            </p>
+            <Button
+              onClick={() => setShowQuickDocDialog(true)}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+              size="lg"
+            >
+              <Camera className="h-4 w-4 mr-2" />
+              Foto dokumentieren
+            </Button>
           </CardContent>
         </Card>
 
-        {/* Zeiterfassung */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              ⏱️ Zeiterfassung
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm space-y-2">
-            <div><strong>Starten:</strong> Projekt auswählen → "Start" drücken</div>
-            <div><strong>Pausieren:</strong> "Pause" für Unterbrechungen</div>
-            <div><strong>Beenden:</strong> "Stop" → Notizen hinzufügen</div>
-            <div><strong>Arten:</strong> Arbeitszeit, Pause, Fahrtzeit</div>
+        {/* Arbeit dokumentieren */}
+        <Card className="border-2 border-green-200 bg-green-50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-green-600" />
+                <h4 className="font-semibold text-green-800">Arbeit dokumentieren</h4>
+              </div>
+              <Badge variant="secondary" className="text-xs">Template</Badge>
+            </div>
+            <p className="text-sm text-green-700 mb-3">
+              Arbeitsschritte nach Vorlage erfassen
+            </p>
+            <Button
+              onClick={() => setShowWorkDocDialog(true)}
+              className="w-full bg-green-600 hover:bg-green-700"
+              size="lg"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Arbeitsvorlage auswählen
+            </Button>
           </CardContent>
         </Card>
 
-        {/* Material-Funktionen */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              📦 Material erfassen
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm space-y-2">
-            <div><strong>Materialverbrauch:</strong> Verwendete Materialien erfassen</div>
-            <div><strong>Lagerbestand:</strong> Aktuelle Bestände einsehen</div>
-            <div><strong>Schnellerfassung:</strong> Direkt am Projekt verbuchen</div>
-            <div><strong>Synchronisation:</strong> Automatisch mit Lager abgleichen</div>
-          </CardContent>
-        </Card>
-
-        {/* Offline Funktionen */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              📶 Offline Modus
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm space-y-2">
-            <div><strong>Zeiterfassung:</strong> Funktioniert ohne Internet</div>
-            <div><strong>Signaturen:</strong> Werden lokal gespeichert</div>
-            <div><strong>Synchronisation:</strong> Automatisch bei Verbindung</div>
-            <div><strong>Status:</strong> Symbol zeigt Verbindung an</div>
-          </CardContent>
-        </Card>
-
-        {/* Tipps & Tricks */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              💡 Tipps & Tricks
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm space-y-2">
-            <div><strong>Batterie sparen:</strong> App läuft im Hintergrund</div>
-            <div><strong>Genauigkeit:</strong> GPS für Standortverfolgung</div>
-            <div><strong>Daten:</strong> Arbeitet auch im mobilen Netz</div>
-            <div><strong>Updates:</strong> App automatisch aktualisieren</div>
-          </CardContent>
-        </Card>
-
-        {/* Support */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              🆘 Support
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm space-y-2">
-            <div><strong>Probleme:</strong> IT-Abteilung kontaktieren</div>
-            <div><strong>Schulung:</strong> Bei Fragen an Vorgesetzte wenden</div>
-            <div><strong>Version:</strong> HandwerkOS Mobile v1.0</div>
+        {/* Problem melden */}
+        <Card className="border-2 border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+                <h4 className="font-semibold text-red-800">Problem melden</h4>
+              </div>
+              <Badge variant="secondary" className="text-xs">Direkt an Manager</Badge>
+            </div>
+            <p className="text-sm text-red-700 mb-3">
+              Probleme sofort an Vorgesetzten weiterleiten
+            </p>
+            <Button
+              onClick={() => setShowProblemDialog(true)}
+              className="w-full bg-red-600 hover:bg-red-700"
+              size="lg"
+            >
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              Problem melden
+            </Button>
           </CardContent>
         </Card>
       </div>
+
+      {/* Recent Documentation */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Kürzlich dokumentiert</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* TODO: Hier werden die letzten Dokumentationen angezeigt */}
+          <div className="text-center py-4 text-gray-500">
+            <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">Noch keine Dokumentationen vorhanden</p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 
@@ -1665,7 +1672,7 @@ const MobileEmployeeApp: React.FC = () => {
   const renderProfileView = () => (
     <div className="space-y-2">
       <h3 className="text-lg font-semibold">Profil</h3>
-      
+
       <Card>
         <CardContent className="p-3">
           <div className="text-center mb-4">
@@ -1675,7 +1682,7 @@ const MobileEmployeeApp: React.FC = () => {
             <h4 className="font-semibold">{user?.email}</h4>
             <p className="text-gray-600 text-sm">Mitarbeiter</p>
           </div>
-          
+
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
               <span>Status:</span>
@@ -1696,6 +1703,38 @@ const MobileEmployeeApp: React.FC = () => {
               </span>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Urlaubsverwaltung */}
+      <Card className="overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Urlaubsverwaltung
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600">{vacationBalance.total}</div>
+              <div className="text-sm text-blue-700">Gesamte Tage</div>
+            </div>
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <div className="text-2xl font-bold text-green-600">{vacationBalance.available}</div>
+              <div className="text-sm text-green-700">Verfügbar</div>
+            </div>
+          </div>
+
+          {/* Urlaub beantragen Button */}
+          <Button
+            onClick={() => setShowVacationDialog(true)}
+            className="w-full mt-4"
+            size="lg"
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            Urlaub beantragen
+          </Button>
         </CardContent>
       </Card>
 
@@ -2076,6 +2115,241 @@ const MobileEmployeeApp: React.FC = () => {
         onOpenChange={setShowVacationDialog}
         onSuccess={loadVacationBalance}
       />
+
+      {/* Quick Documentation Dialog */}
+      <Dialog open={showQuickDocDialog} onOpenChange={setShowQuickDocDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Camera className="h-5 w-5" />
+              Schnell-Doku
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {!quickDocPhoto ? (
+              <Button
+                onClick={async () => {
+                  try {
+                    const image = await CapacitorCamera.getPhoto({
+                      quality: 70,
+                      allowEditing: false,
+                      resultType: CameraResultType.Base64
+                    });
+                    if (image.base64String) {
+                      setQuickDocPhoto(image.base64String);
+                    }
+                  } catch (error) {
+                    console.error('Camera error:', error);
+                    toast({
+                      title: "Kamera-Fehler",
+                      description: "Kamera konnte nicht geöffnet werden",
+                      variant: "destructive"
+                    });
+                  }
+                }}
+                className="w-full h-24 border-2 border-dashed border-gray-300"
+                variant="outline"
+              >
+                <Camera className="h-8 w-8 mr-2" />
+                Foto aufnehmen
+              </Button>
+            ) : (
+              <div className="relative">
+                <img
+                  src={`data:image/jpeg;base64,${quickDocPhoto}`}
+                  alt="Documentation"
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setQuickDocPhoto(null)}
+                  className="absolute top-2 right-2"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            <div>
+              <Label>Beschreibung wählen:</Label>
+              <div className="grid grid-cols-1 gap-2 mt-2">
+                {[
+                  '✅ Arbeit abgeschlossen',
+                  '📄 Zwischenstand dokumentiert',
+                  '⚠️ Besonderheit festgestellt'
+                ].map((option) => (
+                  <Button
+                    key={option}
+                    variant={quickDocDescription === option ? "default" : "outline"}
+                    onClick={() => setQuickDocDescription(option)}
+                    className="justify-start text-left"
+                  >
+                    {option}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={() => {
+                  if (quickDocPhoto && quickDocDescription) {
+                    // TODO: Save to database
+                    toast({
+                      title: "Dokumentation gespeichert",
+                      description: "Foto und Beschreibung wurden erfasst"
+                    });
+                    setShowQuickDocDialog(false);
+                    setQuickDocPhoto(null);
+                    setQuickDocDescription('');
+                  }
+                }}
+                disabled={!quickDocPhoto || !quickDocDescription}
+                className="flex-1"
+              >
+                Speichern
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowQuickDocDialog(false);
+                  setQuickDocPhoto(null);
+                  setQuickDocDescription('');
+                }}
+              >
+                Abbrechen
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Work Documentation Dialog */}
+      <Dialog open={showWorkDocDialog} onOpenChange={setShowWorkDocDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Arbeitsvorlage
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Vorlage auswählen:</Label>
+              <div className="grid grid-cols-1 gap-2 mt-2">
+                {[
+                  '🔌 Elektroinstallation',
+                  '🔧 Rohbau/Sanitär',
+                  '🎨 Malerarbeiten',
+                  '🚪 Fenster/Türen'
+                ].map((template) => (
+                  <Button
+                    key={template}
+                    variant={workTemplate === template ? "default" : "outline"}
+                    onClick={() => setWorkTemplate(template)}
+                    className="justify-start text-left"
+                  >
+                    {template}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={() => {
+                  if (workTemplate) {
+                    // TODO: Open template checklist
+                    toast({
+                      title: "Vorlage gewählt",
+                      description: `${workTemplate} Checkliste wird geöffnet`
+                    });
+                    setShowWorkDocDialog(false);
+                    setWorkTemplate('');
+                  }
+                }}
+                disabled={!workTemplate}
+                className="flex-1"
+              >
+                Öffnen
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowWorkDocDialog(false);
+                  setWorkTemplate('');
+                }}
+              >
+                Abbrechen
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Problem Report Dialog */}
+      <Dialog open={showProblemDialog} onOpenChange={setShowProblemDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Problem melden
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Problem beschreiben:</Label>
+              <Textarea
+                placeholder="Beschreiben Sie das Problem..."
+                value={problemDescription}
+                onChange={(e) => setProblemDescription(e.target.value)}
+                rows={4}
+                className="mt-2"
+              />
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <div className="flex items-center gap-2 text-yellow-800">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="text-sm font-medium">Hinweis</span>
+              </div>
+              <p className="text-sm text-yellow-700 mt-1">
+                Diese Meldung wird direkt an Ihren Vorgesetzten gesendet.
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={() => {
+                  if (problemDescription.trim()) {
+                    // TODO: Send to manager
+                    toast({
+                      title: "Problem gemeldet",
+                      description: "Ihr Vorgesetzter wurde benachrichtigt"
+                    });
+                    setShowProblemDialog(false);
+                    setProblemDescription('');
+                  }
+                }}
+                disabled={!problemDescription.trim()}
+                className="flex-1 bg-red-600 hover:bg-red-700"
+              >
+                Melden
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowProblemDialog(false);
+                  setProblemDescription('');
+                }}
+              >
+                Abbrechen
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Material Recorder Dialog */}
       {assignedProjects.length > 0 && (

@@ -160,10 +160,20 @@ const MobileMaterialRecorder: React.FC<MobileMaterialRecorderProps> = ({
         <div className="flex flex-col h-full">
           {/* Header */}
           <SheetHeader className="p-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-            <SheetTitle className="text-white flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Material verbuchen
-            </SheetTitle>
+            <div className="flex items-center justify-between">
+              <SheetTitle className="text-white flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Material verbuchen
+              </SheetTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="text-white hover:bg-white/20 h-8 w-8 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
             <SheetDescription className="text-blue-100">
               {projectName || 'Projekt'}
             </SheetDescription>

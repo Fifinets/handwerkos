@@ -75,6 +75,9 @@ export const QUERY_KEYS = {
   customer: (id: string) => ['customers', id] as const,
   customerStats: (id: string) => ['customers', id, 'stats'] as const,
   customerProjects: (id: string) => ['customers', id, 'projects'] as const,
+  // Project keys
+  projects: ['projects'] as const,
+  project: (id: string) => ['projects', id] as const,
   customerQuotes: (id: string) => ['customers', id, 'quotes'] as const,
   customerInvoices: (id: string) => ['customers', id, 'invoices'] as const,
   
@@ -2844,6 +2847,7 @@ export const useRejectOCRResult = (
     ...options,
   });
 };
+
 
 // Export all hooks as default export (moved to end to avoid hoisting issues)
 export default {
