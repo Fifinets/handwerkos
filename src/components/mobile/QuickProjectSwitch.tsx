@@ -42,7 +42,7 @@ interface Project {
 interface QuickProjectSwitchProps {
   isOpen: boolean
   onClose: () => void
-  onProjectSelect: (projectId: string) => void
+  onProjectSelect: (projectId: string, projectData?: any) => void
   currentProjectId?: string
 }
 
@@ -104,6 +104,7 @@ export const QuickProjectSwitch: React.FC<QuickProjectSwitchProps> = ({
 
         if (!extendedError && extendedData) {
           console.log('📊 Extended query successful:', extendedData.length, 'projects')
+          console.log('📊 Sample extended data:', extendedData[0])
           data = extendedData
 
           // Lade Customer-Daten separat und verknüpfe sie
@@ -138,7 +139,8 @@ export const QuickProjectSwitch: React.FC<QuickProjectSwitchProps> = ({
             console.log('📊 Customer loading failed, continuing without:', customerError)
           }
         } else {
-          console.log('📊 Extended query failed, using basic data:', extendedError)
+          console.log('📊 Extended query failed, using basic data')
+          console.error('📊 Extended query error details:', extendedError?.message || extendedError)
         }
       }
 
@@ -230,7 +232,15 @@ export const QuickProjectSwitch: React.FC<QuickProjectSwitchProps> = ({
 
   // Projekt auswählen
   const handleProjectSelect = (projectId: string) => {
-    onProjectSelect(projectId)
+    // Find the full project data to pass along
+    const fullProject = projects.find(p => p.id === projectId)
+    if (fullProject) {
+      // Pass both the ID and the full project data
+      onProjectSelect(projectId, fullProject)
+    } else {
+      // Fallback to just ID if project not found
+      onProjectSelect(projectId)
+    }
   }
 
   // QR-Code Scanner (Placeholder)

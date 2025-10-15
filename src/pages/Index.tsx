@@ -8,16 +8,16 @@ import { TrendingUp, Users, Building2, UserCheck, Package, Settings, Calculator,
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import CustomerModule from "@/components/CustomerModule";
-import ProjectModule from "@/components/ProjectModule";
-import PersonalModule from "@/components/PersonalModule";
-import MaterialModuleEnhanced from "@/components/MaterialModuleEnhanced";
-import MachineModule from "@/components/MachineModule";
-import FinanceModule from "@/components/FinanceModule";
+// import ProjectModule from "@/components/ProjectModule";
+// import PersonalModule from "@/components/PersonalModule";
+// import MaterialModuleEnhanced from "@/components/MaterialModuleEnhanced";
+// import MachineModule from "@/components/MachineModule";
+// import FinanceModule from "@/components/FinanceModule";
 import PlannerModule from "@/components/PlannerModule";
-import TimeTrackingModule from "@/components/TimeTrackingModule";
-import TimeApprovalModule from "@/components/TimeApprovalModule";
-import { DocumentModule } from "@/components/DocumentModule";
-import { InvoiceValidationModule } from "@/components/InvoiceValidationModule";
+// import TimeTrackingModule from "@/components/TimeTrackingModule";
+// import TimeApprovalModule from "@/components/TimeApprovalModule";
+// import { DocumentModule } from "@/components/DocumentModule";
+// import { InvoiceValidationModule } from "@/components/InvoiceValidationModule";
 import { CompanySettingsSimple as CompanySettingsModule } from "@/components/CompanySettingsSimple";
 import EmailModule from "@/components/EmailModule";
 import { VacationManagement } from "@/components/VacationManagement";
@@ -75,27 +75,27 @@ const Index = () => {
       case 'customers':
         return <CustomerModule />;
       case 'projects':
-        return <ProjectModule />;
+        return <PlannerModule />; // Temporär PlannerModule verwenden
       case 'personal':
-        return <PersonalModule />;
+        return <div>Personal Module</div>; // Temporär
       case 'materials':
-        return <MaterialModuleEnhanced />;
+        return <div>Materials Module</div>; // Temporär
       case 'machines':
-        return <MachineModule />;
+        return <div>Machines Module</div>; // Temporär
       case 'emails':
         return <EmailModule />;
       case 'documents':
-        return <DocumentModule />;
+        return <div>Documents Module</div>; // Temporär
       case 'invoice-validation':
-        return <InvoiceValidationModule />;
+        return <div>Invoice Validation Module</div>; // Temporär
       case 'finance':
-        return <FinanceModule />;
+        return <div>Finance Module</div>; // Temporär
       case 'planner':
         return <PlannerModule />;
       case 'timetracking':
-        return <TimeTrackingModule />;
+        return <div>Time Tracking Module</div>; // Temporär
       case 'time-approval':
-        return <TimeApprovalModule />;
+        return <div>Time Approval Module</div>; // Temporär
       case 'vacation':
         return <VacationManagement />;
       case 'company-settings':

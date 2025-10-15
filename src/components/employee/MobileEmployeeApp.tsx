@@ -41,7 +41,7 @@ import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { VacationRequestDialog } from "../VacationRequestDialog";
-import MapView from "../MapView";
+// import MapView from "../MapView";
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
 import { TodayScreen } from '../mobile/TodayScreen';
@@ -104,8 +104,8 @@ const MobileEmployeeApp: React.FC = () => {
   const { activeTime } = useTimeTracking();
   const { getProjectMaterialUsage } = useMaterials();
   
-  // State Management - Updated for modern mobile navigation
-  const [currentView, setCurrentView] = useState<'today' | 'projects' | 'material' | 'map' | 'profile'>('today');
+  // State Management - Classic 5-tab navigation
+  const [currentView, setCurrentView] = useState<'home' | 'docs' | 'time' | 'signature' | 'profile'>('home');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, address: string} | null>(null);
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
@@ -1039,14 +1039,12 @@ const MobileEmployeeApp: React.FC = () => {
       <div className="flex flex-col h-full">
         {/* Map Container */}
         <div className="flex-1">
-          <MapView 
-            constructionSites={projectSites}
-            onLocationUpdate={(userLocation, nearByProjects) => {
-              setCurrentLocation(userLocation);
-              setNearByProjects(nearByProjects.map(site => site.id));
-            }}
-            className="h-full" 
-          />
+          <div className="flex items-center justify-center h-full p-4">
+            <div className="text-center">
+              <p className="text-gray-500 mb-2">Kartenansicht vorübergehend nicht verfügbar</p>
+              <p className="text-sm text-gray-400">Bitte verwenden Sie die anderen Tabs</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -1066,14 +1064,12 @@ const MobileEmployeeApp: React.FC = () => {
     return (
       <div className="flex flex-col h-full">
         <div className="flex-1">
-          <MapView 
-            constructionSites={projectSites}
-            onLocationUpdate={(userLocation, nearByProjects) => {
-              setCurrentLocation(userLocation);
-              setNearByProjects(nearByProjects.map(site => site.id));
-            }}
-            className="h-full" 
-          />
+          <div className="flex items-center justify-center h-full p-4">
+            <div className="text-center">
+              <p className="text-gray-500 mb-2">Kartenansicht vorübergehend nicht verfügbar</p>
+              <p className="text-sm text-gray-400">Bitte verwenden Sie die anderen Tabs</p>
+            </div>
+          </div>
         </div>
         
         {/* Time Tracking Bottom Sheet */}
@@ -1170,43 +1166,6 @@ const MobileEmployeeApp: React.FC = () => {
   // Legacy render functions (keeping for now)
   const renderInfoView = () => (
     <div className="space-y-4 w-full overflow-hidden">
-
-      {/* Active Time Tracking */}
-      {activeTimeEntry && (
-        <Card className="border-2 border-green-400 bg-green-50">
-          <CardContent className="p-3">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="font-semibold text-green-800">Timer läuft</h3>
-              <div className="text-2xl font-mono font-bold text-green-600">
-                {getActiveTime()}
-              </div>
-            </div>
-            <p className="text-green-700 text-sm mb-3">
-              {assignedProjects.find(p => p.id === activeTimeEntry.projectId)?.name}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={pauseTimeTracking}
-                className="flex-1"
-              >
-                <Pause className="h-4 w-4 mr-2" />
-                Pause
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={stopTimeTracking}
-                className="flex-1"
-              >
-                <Square className="h-4 w-4 mr-2" />
-                Stoppen
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Quick Actions */}
       <Card>
@@ -1507,7 +1466,7 @@ const MobileEmployeeApp: React.FC = () => {
                   {assignedProjects.find(p => p.id === photo.projectId)?.name || 'Unbekanntes Projekt'}
                 </span>
                 <span className="text-gray-500">
-                  {photo.createdAt.toLocaleDateString('de-DE')}
+                  {photo.createdAt instanceof Date ? photo.createdAt.toLocaleDateString('de-DE') : 'Kein Datum'}
                 </span>
               </div>
             ))}
@@ -1536,7 +1495,7 @@ const MobileEmployeeApp: React.FC = () => {
                   )}
                 </div>
                 <span className="text-gray-500">
-                  {receipt.createdAt.toLocaleDateString('de-DE')}
+                  {receipt.createdAt instanceof Date ? receipt.createdAt.toLocaleDateString('de-DE') : 'Kein Datum'}
                 </span>
               </div>
             ))}
@@ -1561,7 +1520,7 @@ const MobileEmployeeApp: React.FC = () => {
                     {assignedProjects.find(p => p.id === comment.projectId)?.name || 'Unbekanntes Projekt'}
                   </span>
                   <span className="text-gray-500">
-                    {comment.createdAt.toLocaleDateString('de-DE')}
+                    {comment.createdAt instanceof Date ? comment.createdAt.toLocaleDateString('de-DE') : 'Kein Datum'}
                   </span>
                 </div>
                 <p className="text-gray-700 truncate">{comment.comment}</p>
@@ -1755,7 +1714,7 @@ const MobileEmployeeApp: React.FC = () => {
   );
 
   // Onboarding removed - not needed
-
+  const renderMainView = () => {
   return (
     <div 
       className="h-full bg-gradient-to-br from-background to-muted/20 flex flex-col relative overflow-hidden" 
@@ -1768,170 +1727,52 @@ const MobileEmployeeApp: React.FC = () => {
     >
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
-        {/* Today/Time View - Modern Cards */}
-        {currentView === 'today' && (
-          <div className="h-full pb-24">
+        {/* Home View - Dashboard */}
+        {currentView === 'home' && renderInfoView()}
+
+        {/* Docs View - Documentation */}
+        {currentView === 'docs' && renderDocumentationView()}
+
+        {/* Time View - TodayScreenSwipeable */}
+        {currentView === 'time' && (
+          <div className="h-full -mx-3 -mb-16" style={{ marginTop: '-52px' }}>
             <TodayScreenTabs />
           </div>
         )}
 
-        {/* Projects View - Modern Card Layout */}
-        {currentView === 'projects' && (
-          <div className="p-4 pb-24 space-y-4 overflow-y-auto h-full">
-            <h2 className="mobile-headline">Meine Projekte</h2>
-            {assignedProjects.length > 0 ? (
-              assignedProjects.map((project) => (
-                <div key={project.id} className="mobile-card">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h3 className="mobile-subheadline">{project.name}</h3>
-                      <p className="mobile-body">{project.location}</p>
-                    </div>
-                    <Badge 
-                      variant={project.priority === 'urgent' ? 'destructive' : 'secondary'}
-                      className="rounded-full"
-                    >
-                      {project.priority}
-                    </Badge>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="mobile-primary"
-                      size="mobile"
-                      onClick={() => handleStartTime(project.id)}
-                      className="flex-1"
-                    >
-                      <Play className="h-4 w-4 mr-2" />
-                      Starten
-                    </Button>
-                    <Button
-                      variant="mobile-outline"
-                      size="touch"
-                      onClick={() => setActiveProjectId(project.id)}
-                    >
-                      <MapPin className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="mobile-card text-center">
-                <Building className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                <h4 className="mobile-subheadline mb-2">Keine Projekte zugewiesen</h4>
-                <p className="mobile-body">
-                  Warten Sie auf Projektaweisungen von Ihrem Manager
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Material View - Enhanced Layout */}
-        {currentView === 'material' && (
-          <div className="p-4 pb-24 overflow-y-auto h-full">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="mobile-headline">Material</h2>
-              <Button
-                variant="mobile-primary"
-                onClick={() => setShowMaterialDialog(true)}
-                disabled={!assignedProjects.length}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Hinzufügen
-              </Button>
+        {/* Signature View - Delivery Notes */}
+        {currentView === 'signature' && (
+          <div className="h-full overflow-y-auto pb-24">
+            <div className="p-4 space-y-4">
+              <h2 className="mobile-headline">Lieferscheine</h2>
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Receipt className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                  <h4 className="mobile-subheadline mb-2">Lieferschein-Modul</h4>
+                  <p className="mobile-body">
+                    Hier können Sie Lieferscheine digital unterschreiben
+                  </p>
+                </CardContent>
+              </Card>
             </div>
-
-            {assignedProjects.length > 0 ? (
-              <div className="space-y-4">
-                <div className="mobile-card">
-                  <h3 className="mobile-subheadline mb-4">
-                    Aktuelles Projekt: {activeTime?.segment?.project_name || assignedProjects[0]?.name}
-                  </h3>
-                  
-                  {loadingMaterials ? (
-                    <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                      <p className="mobile-body mt-2">Laden...</p>
-                    </div>
-                  ) : projectMaterialUsage.length > 0 ? (
-                    <div className="space-y-3">
-                      {projectMaterialUsage.slice(0, 5).map((usage, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
-                          <div className="flex-1">
-                            <div className="mobile-subheadline text-sm">
-                              {usage.material?.name || 'Unbekanntes Material'}
-                            </div>
-                            <div className="mobile-caption">
-                              {usage.quantity} {usage.material?.unit || 'Stk'}
-                              {usage.notes && ` • ${usage.notes}`}
-                            </div>
-                            <div className="mobile-caption mt-1">
-                              {new Date(usage.used_at).toLocaleDateString('de-DE', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </div>
-                          </div>
-                          <Package className="h-5 w-5 text-primary" />
-                        </div>
-                      ))}
-                      {projectMaterialUsage.length > 5 && (
-                        <div className="text-center pt-2">
-                          <p className="mobile-caption">
-                            und {projectMaterialUsage.length - 5} weitere...
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                      <p className="mobile-body">
-                        {activeTime?.segment?.project_name
-                          ? `Noch kein Material für "${activeTime.segment.project_name}" erfasst`
-                          : 'Noch kein Material erfasst'
-                        }
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="mobile-card text-center">
-                <Package className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                <h4 className="mobile-subheadline mb-2">Kein Projekt zugewiesen</h4>
-                <p className="mobile-body">
-                  Material kann nur bei zugewiesenen Projekten erfasst werden
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Map View */}
-        {currentView === 'map' && (
-          <div className="h-full pb-24">
-            <MapView />
           </div>
         )}
 
         {currentView === 'profile' && renderProfileView()}
       </div>
 
-      {/* Bottom Navigation - Modern 5-Tab Design */}
-      <div 
-        className="fixed left-0 right-0 bottom-0 bg-white border-t shadow-2xl z-40" 
+      {/* Bottom Navigation - Classic 5-Tab Design */}
+      <div
+        className="fixed left-0 right-0 bottom-0 bg-white border-t shadow-2xl z-40"
         style={{ paddingBottom: `${Math.max(safeAreaInsets.bottom, 8)}px` }}
       >
         <div className="flex">
           {[
-            { id: 'today', icon: Clock, label: 'Heute', dot: activeTime?.active },
-            { id: 'projects', icon: Building, label: 'Projekte', dot: notifications > 0 },
-            { id: 'material', icon: Package, label: 'Material', dot: false },
-            { id: 'map', icon: MapPin, label: 'Karte', dot: false },
-            { id: 'profile', icon: User, label: 'Profil', dot: false }
+            { id: 'home', icon: Home, label: 'Start', dot: false },
+            { id: 'docs', icon: FileText, label: 'Doku', dot: false },
+            { id: 'time', icon: Clock, label: 'Zeit', dot: activeTime?.active },
+            { id: 'signature', icon: Receipt, label: 'Signatur', dot: false },
+            { id: 'profile', icon: User, label: 'Profil', dot: notifications > 0 }
           ].map((item) => (
             <button
               key={item.id}
@@ -1950,19 +1791,19 @@ const MobileEmployeeApp: React.FC = () => {
         </div>
       </div>
 
-      {/* Floating Action Button */}
-      {currentView === 'today' && (
+      {/* Floating Action Button - only on Home view */}
+      {currentView === 'home' && assignedProjects.length > 0 && (
         <button
           onClick={() => {
-            if (activeTime?.active) {
-              handleStopTime();
+            if (activeTimeEntry) {
+              stopTimeTracking();
             } else {
-              handleStartTime();
+              startTimeTracking(assignedProjects[0].id);
             }
           }}
           className="mobile-fab"
         >
-          {activeTime?.active ? (
+          {activeTimeEntry ? (
             <Square className="h-6 w-6" />
           ) : (
             <Play className="h-6 w-6" />
@@ -2374,6 +2215,9 @@ const MobileEmployeeApp: React.FC = () => {
       )}
     </div>
   );
+  };
+
+  return renderMainView();
 };
 
 export default MobileEmployeeApp;

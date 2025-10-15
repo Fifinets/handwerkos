@@ -43,7 +43,7 @@ interface TodayScreenProps {
 export const TodayScreen: React.FC<TodayScreenProps> = ({
   onProjectSelect
 }) => {
-  const { activeTime, isLoading, startTracking, stopTracking, switchProject } = useTimeTracking()
+  const { activeTime, isLoading, startTracking, stopTracking, switchProject, startBreak, endBreak } = useTimeTracking()
   const [todayStats, setTodayStats] = useState<TodayStats>({
     totalWorkMinutes: 0,
     totalBreakMinutes: 0,
@@ -147,11 +147,15 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         if (data && data.length > 0) {
           const { data: fullData, error: fullError } = await supabase
             .from('projects')
-            .select('id, name, customer_id, location, status, start_date, end_date, priority, description')
+            .select('id, name, customer_id, location, status, start_date, end_date, description')
             .order('name')
 
           if (!fullError && fullData) {
+            console.log('✅ Full project data loaded successfully')
+            console.log('📊 Sample full project:', fullData[0])
             data = fullData
+          } else {
+            console.error('❌ Full project query failed:', fullError?.message || fullError)
           }
         }
         
@@ -163,12 +167,17 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             let customerMap = new Map()
             
             if (customerIds.length > 0) {
-              const { data: customers } = await supabase
+              console.log('📊 Loading customers for IDs:', customerIds)
+              const { data: customers, error: customerError } = await supabase
                 .from('customers')
                 .select('id, name, phone')
                 .in('id', customerIds)
 
-              if (customers) {
+              if (customerError) {
+                console.error('❌ Customer query failed:', customerError.message)
+              } else if (customers) {
+                console.log('✅ Customers loaded:', customers.length)
+                console.log('📊 Sample customer:', customers[0])
                 customers.forEach(c => customerMap.set(c.id, c))
               }
             }
@@ -183,6 +192,8 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                   }
                 : null
             }))
+            console.log('✅ Projects with customer data merged')
+            console.log('📊 Sample merged project:', data[0])
           } catch (customerError) {
             console.log('Customer loading failed, using projects without customer names:', customerError)
             // Continue without customer names
@@ -267,10 +278,25 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
 
       console.log('Found company_id:', data.company_id)
 
+      // First check how many rows exist for this company_id
+      const { data: allSettings, error: checkError } = await supabase
+        .from('company_settings')
+        .select('id, company_id, default_break_duration')
+        .eq('company_id', data.company_id)
+
+      console.log('All company_settings for company_id:', JSON.stringify({ allSettings, checkError, count: allSettings?.length }))
+
+      // Also try without company_id filter to see all rows
+      const { data: allRows } = await supabase
+        .from('company_settings')
+        .select('id, company_id, default_break_duration')
+
+      console.log('ALL company_settings in database:', JSON.stringify(allRows))
+
       const { data: settings, error: settingsError } = await supabase
         .from('company_settings')
         .select('default_break_duration')
-        .eq('id', data.company_id)
+        .eq('company_id', data.company_id)
         .single()
 
       console.log('Company settings result:', { settings, settingsError })
@@ -314,21 +340,31 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       }
 
       // Berechne Statistiken
-      const workMinutes = segments
+      let workMinutes = segments
         ?.filter(s => s.segment_type === 'work' && s.ended_at)
         .reduce((sum, s) => sum + (s.duration_minutes_computed || 0), 0) || 0
 
-      const breakMinutes = segments
+      let breakMinutes = segments
         ?.filter(s => s.segment_type === 'break' && s.ended_at)
         .reduce((sum, s) => sum + (s.duration_minutes_computed || 0), 0) || 0
 
       const segmentCount = segments?.length || 0
-      
+
       // Berechne aktuellen Streak (längste kontinuierliche Arbeitszeit)
       let currentStreak = 0
-      if (activeTime.active && activeTime.segment) {
+      if (activeTime.active && activeTime.segment && activeTime.segment.started_at) {
         const startTime = new Date(activeTime.segment.started_at)
-        currentStreak = differenceInMinutes(new Date(), startTime)
+        const elapsedMinutes = differenceInMinutes(new Date(), startTime)
+
+        // Füge das aktive Segment zur entsprechenden Zeit hinzu
+        if (activeTime.segment.segment_type === 'work') {
+          // Für work: Verwende getCurrentDuration() (mit Pausenabzug)
+          currentStreak = getCurrentDuration()
+          workMinutes += currentStreak
+        } else if (activeTime.segment.segment_type === 'break') {
+          // Für break: Addiere zur Pausenzeit, NICHT zur Arbeitszeit
+          breakMinutes += elapsedMinutes
+        }
       }
 
       // Berechne Effizienz (Arbeitszeit vs. Gesamtzeit)
@@ -366,11 +402,38 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
     return `${mins}min`
   }
 
-  // Berechne Live-Timer für aktives Segment
+  // Berechne Live-Timer für aktives Segment (mit Pausenabzug)
   const getCurrentDuration = () => {
-    if (!activeTime.active || !activeTime.segment) return 0
+    if (!activeTime.active || !activeTime.segment || !activeTime.segment.started_at) return 0
+    // Nur Arbeitszeit zählen, nicht Pausen oder Fahrten
+    if (activeTime.segment.segment_type !== 'work') return 0
+
+    // Berechne Gesamtzeit seit Start
     const startTime = new Date(activeTime.segment.started_at)
-    return differenceInMinutes(currentTime, startTime)
+    let totalMinutes = differenceInMinutes(currentTime, startTime)
+
+    // Ziehe laufende Pause ab (wenn aktiv)
+    if (activeTime.onBreak && activeTime.segment.break_started_at) {
+      const breakStart = new Date(activeTime.segment.break_started_at)
+      const breakMinutes = differenceInMinutes(currentTime, breakStart)
+      totalMinutes = Math.max(0, totalMinutes - breakMinutes)
+    }
+
+    // Ziehe bereits beendete Pausen ab (aus localStorage)
+    const activeEntryStr = localStorage.getItem('activeTimeEntry')
+    if (activeEntryStr) {
+      try {
+        const activeEntry = JSON.parse(activeEntryStr)
+        if (activeEntry.breaks && Array.isArray(activeEntry.breaks)) {
+          const completedBreakMinutes = activeEntry.breaks.reduce((sum, b) => sum + (b.durationMinutes || 0), 0)
+          totalMinutes = Math.max(0, totalMinutes - completedBreakMinutes)
+        }
+      } catch (e) {
+        console.error('Error parsing activeTimeEntry:', e)
+      }
+    }
+
+    return Math.max(0, totalMinutes)
   }
 
   // Quick Actions
@@ -415,28 +478,68 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
 
   const handleBreak = async () => {
     try {
-      if (activeTime.active) {
-        await stopTracking('Pause gestartet')
+      // Verwende die Hook-Funktion
+      await startBreak()
+
+      // Lade Company Settings für Break-Timer Display
+      let breakDuration = 15 // Fallback
+
+      if (companySettings?.default_break_duration) {
+        breakDuration = companySettings.default_break_duration
+      } else {
+        // Lade Settings direkt aus DB
+        try {
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('company_id')
+              .eq('id', user.id)
+              .single()
+
+            if (profile?.company_id) {
+              const { data: settings } = await supabase
+                .from('company_settings')
+                .select('default_break_duration')
+                .eq('company_id', profile.company_id)
+                .single()
+
+              if (settings?.default_break_duration) {
+                breakDuration = settings.default_break_duration
+                console.log('🟢 Loaded break duration from DB:', breakDuration)
+              }
+            }
+          }
+        } catch (dbError) {
+          console.error('Error loading break duration:', dbError)
+        }
       }
-      await startTracking('break-project', 'break', 'Pause')
-      
-      // Starte Pause-Timer mit Company Settings
-      const breakDuration = companySettings?.default_break_duration || 15 // Minuten
+
       const totalSeconds = breakDuration * 60 // Convert to seconds
-      
-      console.log('🟡 BREAK TIMER DEBUG:')
-      console.log('Company settings:', companySettings)
-      console.log('Break duration (minutes):', breakDuration)
-      console.log('Total seconds:', totalSeconds)
-      
+
       setBreakTimer({
         isActive: true,
         remainingSeconds: totalSeconds,
         totalSeconds: totalSeconds
       })
-      
+
     } catch (error) {
       console.error('Break error:', error)
+      toast.error('Fehler beim Starten der Pause')
+    }
+  }
+
+  const handleEndBreak = async () => {
+    try {
+      // Beende Pause-Timer
+      setBreakTimer({ isActive: false, remainingSeconds: 0, totalSeconds: 0 })
+
+      // Verwende die Hook-Funktion
+      await endBreak()
+
+    } catch (error) {
+      console.error('Error ending break:', error)
+      toast.error('Fehler beim Beenden der Pause')
     }
   }
 
@@ -478,14 +581,19 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       </div>
 
       {/* Live-Timer Card */}
-      <Card className={`scroll-snap-start min-h-[250px] ${activeTime.active ? 'ring-2 ring-green-500' : ''}`}>
+      <Card className={`scroll-snap-start min-h-[250px] ${breakTimer.isActive ? 'ring-2 ring-orange-500' : activeTime.active ? 'ring-2 ring-green-500' : ''}`}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
-              <Timer className={`h-5 w-5 ${activeTime.active ? 'text-green-500' : 'text-gray-400'}`} />
-              {activeTime.active ? 'Läuft' : 'Zeiterfassung'}
+              <Timer className={`h-5 w-5 ${breakTimer.isActive ? 'text-orange-500' : activeTime.active ? 'text-green-500' : 'text-gray-400'}`} />
+              {breakTimer.isActive ? 'Pause' : activeTime.active ? 'Läuft' : 'Zeiterfassung'}
             </CardTitle>
-            {activeTime.active && activeTime.segment && (
+            {breakTimer.isActive && (
+              <Badge variant="outline" className="bg-orange-50">
+                Pause
+              </Badge>
+            )}
+            {activeTime.active && activeTime.segment && !breakTimer.isActive && (
               <Badge variant="outline">
                 {activeTime.segment.segment_type === 'work' ? 'Arbeit' :
                  activeTime.segment.segment_type === 'break' ? 'Pause' : 'Fahrt'}
@@ -494,7 +602,41 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
           </div>
         </CardHeader>
         <CardContent>
-          {activeTime.active && activeTime.segment ? (
+          {breakTimer.isActive ? (
+            <div className="space-y-4">
+              {/* Pause Timer Display */}
+              <div className="text-center bg-orange-50 p-4 rounded-lg border border-orange-200">
+                <p className="text-sm text-orange-700 mb-2">Pause läuft</p>
+                <div className="text-4xl font-mono font-bold text-orange-600 mb-2">
+                  {formatTime(breakTimer.remainingSeconds)}
+                </div>
+                <p className="text-xs text-orange-700 mb-3">
+                  Pausenzeit verbleibt
+                </p>
+                {/* Progress bar for break time */}
+                <div className="w-full bg-orange-200 rounded-full h-2 mb-3">
+                  <div
+                    className="bg-orange-500 h-2 rounded-full transition-all duration-1000"
+                    style={{
+                      width: `${((breakTimer.totalSeconds - breakTimer.remainingSeconds) / breakTimer.totalSeconds) * 100}%`
+                    }}
+                  />
+                </div>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleEndBreak}
+                  className="w-full bg-orange-600 hover:bg-orange-700"
+                >
+                  Pause beenden & Arbeit fortsetzen
+                </Button>
+              </div>
+
+              <p className="text-xs text-center text-muted-foreground">
+                Die Zeiterfassung ist pausiert
+              </p>
+            </div>
+          ) : activeTime.active && activeTime.segment ? (
             <div className="space-y-3">
               {/* Live Timer Display */}
               <div className="text-center">
@@ -506,38 +648,9 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                 </p>
               </div>
 
-              {/* Break Timer Display */}
-              {breakTimer.isActive && (
-                <div className="text-center bg-orange-50 p-3 rounded-lg border border-orange-200">
-                  <div className="text-2xl font-mono font-bold text-orange-600 mb-1">
-                    {formatTime(breakTimer.remainingSeconds)}
-                  </div>
-                  <p className="text-xs text-orange-700">
-                    Pausenzeit verbleibt
-                  </p>
-                  {/* Progress bar for break time */}
-                  <div className="w-full bg-orange-200 rounded-full h-2 mt-2">
-                    <div 
-                      className="bg-orange-500 h-2 rounded-full transition-all duration-1000" 
-                      style={{ 
-                        width: `${((breakTimer.totalSeconds - breakTimer.remainingSeconds) / breakTimer.totalSeconds) * 100}%` 
-                      }}
-                    />
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setBreakTimer(prev => ({ ...prev, isActive: false }))}
-                    className="mt-2 text-xs"
-                  >
-                    Pause beenden
-                  </Button>
-                </div>
-              )}
-
               {/* Aktuelle Session Info */}
               <div className="text-xs text-muted-foreground">
-                <div>Gestartet: {format(new Date(activeTime.segment.started_at), 'HH:mm')}</div>
+                <div>Gestartet: {activeTime.segment.started_at ? format(new Date(activeTime.segment.started_at), 'HH:mm') : 'k.A.'}</div>
                 {activeTime.segment.description && (
                   <div>Notiz: {activeTime.segment.description}</div>
                 )}
@@ -571,6 +684,24 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
               {/* Projekt Info Card - BLAUE CARD nach Projektauswahl */}
               {selectedProject ? (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                  {/* DEBUG INFO - Zeigt wichtige Projektdaten */}
+                  <div className="text-xs bg-blue-100 p-3 rounded mb-2 border border-blue-300">
+                    <div className="font-bold mb-2 text-blue-900">DEBUG: Geladene Projektdaten</div>
+                    <div className="space-y-1 font-mono text-blue-800">
+                      <div><span className="font-semibold">ID:</span> {selectedProject.id}</div>
+                      <div><span className="font-semibold">Name:</span> {selectedProject.name}</div>
+                      {selectedProject.location && (
+                        <div><span className="font-semibold">Adresse:</span> {selectedProject.location}</div>
+                      )}
+                      {selectedProject.customer?.name && (
+                        <div><span className="font-semibold">Kunde:</span> {selectedProject.customer.name}</div>
+                      )}
+                      {selectedProject.customer?.phone && (
+                        <div><span className="font-semibold">Telefon:</span> {selectedProject.customer.phone}</div>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <MapPin className="h-5 w-5 text-blue-600" />
@@ -592,75 +723,96 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                   <div className="space-y-2">
                     <div>
                       <p className="font-bold text-lg">{selectedProject.name}</p>
-                      {/* Kunde IMMER anzeigen */}
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium">Kunde:</span> {selectedProject?.customer?.name || 'Nicht verfügbar'}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium">Tel:</span> {selectedProject?.customer?.phone || 'Nicht verfügbar'}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium">Adresse:</span> {selectedProject?.location || 'Nicht verfügbar'}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium">Zeitraum:</span> {
-                          (selectedProject?.start_date || selectedProject?.end_date)
-                            ? `${selectedProject?.start_date || 'k.A.'} - ${selectedProject?.end_date || 'k.A.'}`
-                            : 'Nicht verfügbar'
-                        }
-                      </p>
+
+                      {/* Kunde */}
+                      {selectedProject?.customer?.name && (
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Kunde:</span> {selectedProject.customer.name}
+                        </p>
+                      )}
+
+                      {/* Standort */}
+                      {selectedProject?.location && (
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Standort:</span> {selectedProject.location}
+                        </p>
+                      )}
+
+                      {/* Telefon */}
+                      {selectedProject?.customer?.phone && (
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Telefon:</span>
+                          <a href={`tel:${selectedProject.customer.phone}`} className="text-blue-600 ml-1">
+                            {selectedProject.customer.phone}
+                          </a>
+                        </p>
+                      )}
+
+                      {/* Status */}
+                      {selectedProject?.status && (
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Status:</span>
+                          <span className="ml-1">
+                            {selectedProject.status === 'active' ? 'Aktiv' :
+                             selectedProject.status === 'in_bearbeitung' ? 'In Bearbeitung' :
+                             selectedProject.status === 'geplant' ? 'Geplant' :
+                             selectedProject.status === 'abgeschlossen' ? 'Abgeschlossen' :
+                             selectedProject.status === 'completed' ? 'Abgeschlossen' :
+                             selectedProject.status === 'planning' ? 'In Planung' :
+                             selectedProject.status}
+                          </span>
+                        </p>
+                      )}
+
+                      {/* Zeitraum */}
+                      {(selectedProject?.start_date || selectedProject?.end_date) && (
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Zeitraum:</span> {
+                            `${selectedProject.start_date ? format(new Date(selectedProject.start_date), 'dd.MM.yyyy', { locale: de }) : 'k.A.'} -
+                             ${selectedProject.end_date ? format(new Date(selectedProject.end_date), 'dd.MM.yyyy', { locale: de }) : 'k.A.'}`
+                          }
+                        </p>
+                      )}
+
+                      {/* Geplante Dauer */}
+                      {selectedProject?.estimated_hours && (
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Geplante Dauer:</span> {selectedProject.estimated_hours} Stunden
+                        </p>
+                      )}
+
+                      {/* Budget */}
+                      {selectedProject?.budget && (
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Budget:</span> {new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(selectedProject.budget)}
+                        </p>
+                      )}
+
+                      {/* Team Mitglieder Anzahl */}
+                      {selectedProject?.team_count && (
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Team:</span> {selectedProject.team_count} Mitarbeiter
+                        </p>
+                      )}
                     </div>
 
-                    {selectedProject.status && (
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-gray-400" />
-                        <Badge variant="outline" className="text-xs">
-                          {selectedProject.status === 'active' ? 'Aktiv' :
-                           selectedProject.status === 'planning' ? 'In Planung' :
-                           selectedProject.status === 'completed' ? 'Abgeschlossen' :
-                           selectedProject.status}
-                        </Badge>
-                      </div>
-                    )}
-
+                    {/* Beschreibung */}
                     {selectedProject.description && (
                       <div className="pt-2 border-t">
-                        <p className="text-xs text-gray-500">Beschreibung:</p>
+                        <p className="text-xs text-gray-500 font-medium mb-1">Beschreibung:</p>
                         <p className="text-sm text-gray-700">{selectedProject.description}</p>
                       </div>
                     )}
 
-                    {selectedProject.customer?.phone && (
-                      <div className="pt-2 border-t">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <p className="text-xs text-gray-500">Kundenkontakt:</p>
-                            <p className="text-sm text-gray-700 font-medium">
-                              {selectedProject.customer.name}
-                            </p>
-                            <p className="text-sm text-blue-600">
-                              {selectedProject.customer.phone}
-                            </p>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              window.location.href = `tel:${selectedProject.customer.phone}`
-                            }}
-                            className="ml-2"
-                          >
-                            <Phone className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="text-center pt-2">
-                    <p className="text-xs text-green-600 font-medium">
-                      ✅ Bereit zum Start der Zeiterfassung
-                    </p>
+                    {/* Projekt wechseln Button */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowQuickSwitch(!showQuickSwitch)}
+                      className="w-full mt-3"
+                    >
+                      Projekt wechseln
+                    </Button>
                   </div>
                 </div>
               ) : (
@@ -810,31 +962,36 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       <QuickProjectSwitch
         isOpen={showQuickSwitch}
         onClose={() => setShowQuickSwitch(false)}
-        onProjectSelect={async (projectId) => {
+        onProjectSelect={async (projectId, projectData) => {
           try {
-            console.log('onProjectSelect called with:', projectId)
+            console.log('onProjectSelect called with:', projectId, projectData)
 
-            // Wait for projects to be loaded (max 5 seconds)
-            let waitCount = 0
-            while ((!projects || !Array.isArray(projects) || projects.length === 0) && waitCount < 50) {
-              await new Promise(resolve => setTimeout(resolve, 100))
-              waitCount++
-            }
+            // Use the passed projectData if available
+            let project = projectData || null
 
-            console.log('projects state after wait:', projects)
-            console.log('projects length:', projects?.length)
-
-            // First try to find project in our loaded projects
-            let project = null
-            try {
-              if (projects && Array.isArray(projects) && projects.length > 0) {
-                project = projects.find(p => p && p.id === projectId)
-                console.log('Found project in list:', project)
-              } else {
-                console.log('Projects still not ready after wait:', projects)
+            // Only fallback to searching if projectData wasn't passed
+            if (!project) {
+              // Wait for projects to be loaded (max 5 seconds)
+              let waitCount = 0
+              while ((!projects || !Array.isArray(projects) || projects.length === 0) && waitCount < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100))
+                waitCount++
               }
-            } catch (findError) {
-              console.error('Error in projects.find:', findError)
+
+              console.log('projects state after wait:', projects)
+              console.log('projects length:', projects?.length)
+
+              // Try to find project in our loaded projects
+              try {
+                if (projects && Array.isArray(projects) && projects.length > 0) {
+                  project = projects.find(p => p && p.id === projectId)
+                  console.log('Found project in list:', project)
+                } else {
+                  console.log('Projects still not ready after wait:', projects)
+                }
+              } catch (findError) {
+                console.error('Error in projects.find:', findError)
+              }
             }
             
             // If not found, try to load it directly from database
@@ -842,7 +999,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
               try {
                 const { data: dbProject, error } = await supabase
                   .from('projects')
-                  .select('id, name, customer_id, location, status, start_date, end_date, priority, description')
+                  .select('id, name, customer_id, location, status, start_date, end_date, description')
                   .eq('id', projectId)
                   .single()
 

@@ -78,6 +78,12 @@ export const useTimeTracking = () => {
         const now = new Date()
         let durationMinutes = Math.floor((now.getTime() - startTime.getTime()) / 1000 / 60)
 
+        // Subtract all completed breaks from work duration
+        let totalCompletedBreakMinutes = 0
+        if (entry.breaks && Array.isArray(entry.breaks)) {
+          totalCompletedBreakMinutes = entry.breaks.reduce((sum, b) => sum + (b.durationMinutes || 0), 0)
+        }
+
         // Check if currently on break
         let onBreak = false
         let breakDurationMinutes = 0
@@ -89,10 +95,10 @@ export const useTimeTracking = () => {
           const breakStart = new Date(breakStartedAt)
           breakDurationMinutes = Math.floor((now.getTime() - breakStart.getTime()) / 1000 / 60)
           onBreak = true
-
-          // Subtract break time from work duration
-          durationMinutes = Math.max(0, durationMinutes - breakDurationMinutes)
         }
+
+        // Subtract both completed breaks and current break from work duration
+        durationMinutes = Math.max(0, durationMinutes - totalCompletedBreakMinutes - breakDurationMinutes)
 
         setActiveTime({
           active: true,
