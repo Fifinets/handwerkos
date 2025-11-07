@@ -1716,26 +1716,34 @@ const MobileEmployeeApp: React.FC = () => {
   // Onboarding removed - not needed
   const renderMainView = () => {
   return (
-    <div 
-      className="h-full bg-gradient-to-br from-background to-muted/20 flex flex-col relative overflow-hidden" 
-      style={{ 
-        width: '100vw', 
-        maxWidth: 'none', 
+    <div
+      className="h-full bg-gradient-to-br from-background to-muted/20 flex flex-col relative overflow-hidden"
+      style={{
+        width: '100vw',
+        maxWidth: 'none',
         paddingTop: `${Math.max(safeAreaInsets.top, 44)}px`,
         paddingBottom: `${Math.max(safeAreaInsets.bottom, 0)}px`
       }}
     >
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
-        {/* Home View - Dashboard */}
-        {currentView === 'home' && renderInfoView()}
+        {/* Home View - Dashboard mit Quick Actions */}
+        {currentView === 'home' && (
+          <div className="h-full overflow-y-auto pb-24 p-4">
+            {renderInfoView()}
+          </div>
+        )}
 
         {/* Docs View - Documentation */}
-        {currentView === 'docs' && renderDocumentationView()}
+        {currentView === 'docs' && (
+          <div className="h-full overflow-y-auto pb-24 p-4">
+            {renderDocumentationView()}
+          </div>
+        )}
 
-        {/* Time View - TodayScreenSwipeable */}
+        {/* Time View - TodayScreen Zeiterfassung */}
         {currentView === 'time' && (
-          <div className="h-full -mx-3 -mb-16" style={{ marginTop: '-52px' }}>
+          <div className="h-full overflow-y-auto pb-24">
             <TodayScreenTabs />
           </div>
         )}
@@ -1758,7 +1766,12 @@ const MobileEmployeeApp: React.FC = () => {
           </div>
         )}
 
-        {currentView === 'profile' && renderProfileView()}
+        {/* Profile View */}
+        {currentView === 'profile' && (
+          <div className="h-full overflow-y-auto pb-24 p-4">
+            {renderProfileView()}
+          </div>
+        )}
       </div>
 
       {/* Bottom Navigation - Classic 5-Tab Design */}

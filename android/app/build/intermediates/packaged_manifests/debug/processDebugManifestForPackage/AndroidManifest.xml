@@ -73,6 +73,7 @@
         android:supportsRtl="true"
         android:testOnly="true"
         android:usesCleartextTraffic="true" >
+        22clStopcla
         <activity
             android:name="app.lovable.a0eb28b7447b47a280fca8181ec925b9.MainActivity"
             android:exported="true"

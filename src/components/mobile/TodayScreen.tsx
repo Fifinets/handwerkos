@@ -26,6 +26,13 @@ import { useTimeTracking } from '@/hooks/useTimeTracking'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { QuickProjectSwitch } from './QuickProjectSwitch'
+import { useDualTimeTracking } from '@/hooks/useFeatureFlag'
+import { DayCoverageBar } from './DayCoverageBar'
+import { CostCenterQuickPick } from './CostCenterQuickPick'
+import { AttendanceService } from '@/services/attendanceService'
+import { LogIn, LogOut } from 'lucide-react'
+import { EmergencyTimeTrackingFix } from './EmergencyTimeTrackingFix'
+import { AutoDebugFix } from './AutoDebugFix'
 
 interface TodayStats {
   totalWorkMinutes: number
@@ -44,6 +51,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   onProjectSelect
 }) => {
   const { activeTime, isLoading, startTracking, stopTracking, switchProject, startBreak, endBreak } = useTimeTracking()
+  const { enabled: dualModeEnabled, isLoading: flagLoading } = useDualTimeTracking()
   const [todayStats, setTodayStats] = useState<TodayStats>({
     totalWorkMinutes: 0,
     totalBreakMinutes: 0,
@@ -75,7 +83,15 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
     remainingSeconds: 0,
     totalSeconds: 0
   })
-  const [companySettings, setCompanySettings] = useState<{default_break_duration: number} | null>(null)
+  const [companySettings, setCompanySettings] = useState<{
+    default_break_duration: number
+    default_working_hours_end?: string
+  } | null>(null)
+
+  // Attendance state for Arbeitstag
+  const [currentAttendance, setCurrentAttendance] = useState<any>(null)
+  const [employeeId, setEmployeeId] = useState<string | null>(null)
+  const [arbeitstagLoading, setArbeitstagLoading] = useState(false)
 
   // Aktualisiere Zeit jede Sekunde für Live-Timer und Pause-Timer
   useEffect(() => {
@@ -221,6 +237,78 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
     loadCompanySettings()
   }, [])
 
+  // Load employee ID and attendance
+  useEffect(() => {
+    const loadEmployeeData = async () => {
+      try {
+        console.log('🟡 Loading employee data...')
+        console.log('🟡 About to call supabase.auth.getUser()')
+
+        const result = await supabase.auth.getUser()
+        console.log('🟡 getUser() returned:', result)
+
+        const { data: { user }, error: userError } = result
+
+        console.log('🟡 Extracted user:', user)
+        console.log('🟡 Extracted error:', userError)
+
+        if (userError) {
+          console.error('❌ Error getting user:', userError)
+          toast.error('Fehler beim Laden des Benutzers')
+          return
+        }
+
+        if (!user) {
+          console.log('❌ No user logged in')
+          toast.error('Sie sind nicht angemeldet')
+          return
+        }
+
+        console.log('✅ User found:', user.id)
+        console.log('✅ User email:', user.email)
+
+        console.log('🔍 Querying employees table with user_id:', user.id)
+        const { data: employee, error: employeeError } = await supabase
+          .from('employees')
+          .select('id')
+          .eq('user_id', user.id)
+          .single()
+
+        console.log('🔍 Query result - employee:', employee)
+        console.log('🔍 Query result - error:', employeeError)
+
+        if (employeeError) {
+          console.error('❌ Error loading employee:', employeeError)
+          console.error('❌ Error code:', employeeError.code)
+          console.error('❌ Error message:', employeeError.message)
+          console.error('❌ Error details:', employeeError.details)
+          toast.error('Mitarbeiter-Daten konnten nicht geladen werden: ' + employeeError.message)
+          return
+        }
+
+        if (!employee) {
+          console.log('❌ No employee found for user:', user.id)
+          toast.error('Kein Mitarbeiter-Profil gefunden')
+          return
+        }
+
+        console.log('✅ Employee found:', employee.id)
+        setEmployeeId(employee.id)
+        console.log('✅ setEmployeeId called with:', employee.id)
+
+        // Load current attendance
+        const attendance = await AttendanceService.getCurrentAttendance(employee.id)
+        setCurrentAttendance(attendance)
+        console.log('Current attendance:', attendance)
+      } catch (error) {
+        console.error('Error loading employee data:', error)
+        toast.error('Fehler beim Laden der Mitarbeiter-Daten')
+      }
+    }
+
+    loadEmployeeData()
+  }, [])
+
   // Lade Company Settings für Pausenzeit
   const loadCompanySettings = async () => {
     try {
@@ -247,7 +335,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         // Try to find and set company_id automatically
         const { data: companies, error: companyError } = await supabase
           .from('company_settings')
-          .select('id, default_break_duration')
+          .select('id, default_break_duration, default_working_hours_end')
           .order('created_at', { ascending: false })
           .limit(1)
 
@@ -272,7 +360,10 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         }
 
         console.log('Successfully set company_id, using company settings')
-        setCompanySettings({ default_break_duration: companies[0].default_break_duration })
+        setCompanySettings({
+          default_break_duration: companies[0].default_break_duration,
+          default_working_hours_end: companies[0].default_working_hours_end
+        })
         return
       }
 
@@ -295,7 +386,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
 
       const { data: settings, error: settingsError } = await supabase
         .from('company_settings')
-        .select('default_break_duration')
+        .select('default_break_duration, default_working_hours_end')
         .eq('company_id', data.company_id)
         .single()
 
@@ -303,9 +394,9 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
 
       if (settingsError) {
         console.log('No company settings found, using default:', settingsError.message)
-        setCompanySettings({ default_break_duration: 15 })
+        setCompanySettings({ default_break_duration: 15, default_working_hours_end: '17:00:00' })
       } else {
-        console.log('Loaded company settings - break duration:', settings.default_break_duration)
+        console.log('Loaded company settings - break duration:', settings.default_break_duration, 'work end:', settings.default_working_hours_end)
         setCompanySettings(settings)
       }
     } catch (error) {
@@ -436,43 +527,137 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
     return Math.max(0, totalMinutes)
   }
 
-  // Quick Actions
-  const handleStart = async (projectId?: string) => {
+  // Start Arbeitstag (Attendance)
+  const handleStartArbeitstag = async () => {
+    console.log('🔵 handleStartArbeitstag called!')
+    console.log('🔵 employeeId:', employeeId)
+    console.log('🔵 arbeitstagLoading:', arbeitstagLoading)
+
     try {
-      const projectToUse = projectId || selectedProject?.id
-      if (!projectToUse) {
-        toast.error('Bitte wählen Sie zuerst ein Projekt aus')
+      if (!employeeId) {
+        console.error('❌ No employeeId found!')
+        toast.error('Employee ID nicht gefunden')
         return
       }
-      
-      toast.info('Starte Zeiterfassung...', { duration: 1000 })
-      console.log('Starting tracking for project:', projectToUse)
-      await startTracking(projectToUse, 'work', 'Mobile Start')
-      
-      toast.success('Zeiterfassung gestartet')
-      console.log('Start tracking completed')
-    } catch (error) {
-      console.error('Start error:', error)
-      toast.error(`Fehler beim Starten: ${error}`)
+
+      console.log('✅ Setting loading to true')
+      setArbeitstagLoading(true)
+
+      // Get location if available
+      let location: { lat: number; lng: number; accuracy?: number } | undefined
+
+      if ('geolocation' in navigator) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              timeout: 5000,
+              maximumAge: 0
+            })
+          })
+
+          location = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          }
+        } catch (geoError) {
+          console.warn('Could not get location:', geoError)
+        }
+      }
+
+      await AttendanceService.clockIn({
+        employeeId,
+        location
+      })
+
+      // Reload attendance
+      const attendance = await AttendanceService.getCurrentAttendance(employeeId)
+      setCurrentAttendance(attendance)
+
+      toast.success('Arbeitstag gestartet!')
+    } catch (error: any) {
+      console.error('Start Arbeitstag error:', error)
+      toast.error(error.message || 'Fehler beim Starten')
+    } finally {
+      setArbeitstagLoading(false)
     }
   }
 
-  const handleStop = async () => {
+  const handleStopArbeitstag = async () => {
     try {
-      // Save selected project before clearing localStorage
-      if (selectedProject) {
-        localStorage.setItem('selectedProject', JSON.stringify(selectedProject))
+      if (!currentAttendance) {
+        toast.error('Kein aktiver Arbeitstag')
+        return
       }
 
-      // Simple manual stop without complex logic
+      setArbeitstagLoading(true)
+
+      // Stop current break if active (WICHTIG: Pause zuerst beenden!)
+      if (activeTime.active && activeTime.onBreak) {
+        console.log('⏸️ Ending active break before stopping project...')
+        await endBreak()
+        console.log('✅ Break ended')
+      }
+
+      // Stop current project if active
+      if (activeTime.active) {
+        console.log('🛑 Stopping active project before ending workday...')
+        toast.info('Beende laufendes Projekt...', { duration: 2000 })
+        await stopTracking('Arbeitstag beendet')
+        console.log('✅ Project stopped successfully')
+      }
+
+      // CLEANUP: Entferne localStorage-Einträge (Fallback falls stopTracking fehlschlägt)
+      console.log('🧹 Cleaning up localStorage...')
       localStorage.removeItem('activeTimeEntry')
       localStorage.removeItem('activeBreak')
+      localStorage.removeItem('selectedProject')
+      console.log('✅ localStorage cleaned')
 
-      // Force UI update by reloading the page
-      window.location.reload()
-    } catch (error) {
-      console.error('Stop error:', error)
-      toast.error('Fehler beim Beenden')
+      // Get location if available
+      let location: { lat: number; lng: number; accuracy?: number } | undefined
+
+      if ('geolocation' in navigator) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              timeout: 5000,
+              maximumAge: 0
+            })
+          })
+
+          location = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          }
+        } catch (geoError) {
+          console.warn('Could not get location:', geoError)
+        }
+      }
+
+      await AttendanceService.clockOut({
+        attendanceId: currentAttendance.id,
+        location
+      })
+
+      // Reset state
+      setCurrentAttendance(null)
+      setSelectedProject(null)
+
+      // Force refresh activeTime state
+      await fetchActiveTime()
+
+      if (activeTime.active || activeTime.onBreak) {
+        toast.success('Arbeitstag, Projekt und Pause beendet!')
+      } else {
+        toast.success('Arbeitstag beendet!')
+      }
+    } catch (error: any) {
+      console.error('Stop Arbeitstag error:', error)
+      toast.error(error.message || 'Fehler beim Beenden')
+    } finally {
+      setArbeitstagLoading(false)
     }
   }
 
@@ -569,8 +754,166 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   const isTargetReached = todayStats.totalWorkMinutes >= todayStats.targetHours
   const remainingMinutes = Math.max(0, todayStats.targetHours - todayStats.totalWorkMinutes)
 
+  // Calculate work duration for Arbeitstag
+  // WICHTIG: Zeige die TATSÄCHLICHE ARBEITSZEIT (aus timesheets + aktives Projekt)
+  // NICHT die Gesamtzeit seit clock-in!
+  const getArbeitstagDuration = () => {
+    if (!currentAttendance || !currentAttendance.clock_in) return 0
+
+    // Verwende todayStats.totalWorkMinutes, welches bereits enthält:
+    // - Alle abgeschlossenen Arbeits-Segmente aus timesheets
+    // - Aktuell laufende Projekt-Zeit (falls vorhanden)
+    // - Pausen sind bereits korrekt abgezogen
+    return todayStats.totalWorkMinutes
+  }
+
+  // Check if approaching 10-hour limit
+  const getTotalWorkMinutesIncludingCurrent = () => {
+    let total = todayStats.totalWorkMinutes
+    // If work is active, current duration is already included in todayStats
+    return total
+  }
+
+  const getWorkTimeStatus = () => {
+    const totalMinutes = getTotalWorkMinutesIncludingCurrent()
+    const MAX_MINUTES = 10 * 60 // 10 Stunden - automatischer Stop
+    const FINAL_WARNING_MINUTES = 9.5 * 60 // 9:30 Stunden - letzte Warnung
+    const STANDARD_WORK_HOURS = 8 * 60 // 8 Stunden - Standardarbeitszeit
+
+    const now = new Date()
+    const currentHour = now.getHours()
+    const currentMinute = now.getMinutes()
+    const currentTimeInMinutes = currentHour * 60 + currentMinute
+
+    // Prüfe ob Arbeitsende-Zeit (aus company_settings) erreicht wurde
+    // Default: 17:00 Uhr
+    let workEndTimeMinutes = 17 * 60
+    if (companySettings?.default_working_hours_end) {
+      try {
+        const [endHour, endMinute] = companySettings.default_working_hours_end.split(':').map(Number)
+        workEndTimeMinutes = endHour * 60 + endMinute
+      } catch (e) {
+        console.error('Error parsing work end time:', e)
+      }
+    }
+
+    const endHour = Math.floor(workEndTimeMinutes / 60)
+    const endMin = workEndTimeMinutes % 60
+    const workedHours = Math.floor(totalMinutes / 60)
+    const workedMins = totalMinutes % 60
+
+    // KRITISCH: 10 Stunden erreicht (Auto-Stop)
+    if (totalMinutes >= MAX_MINUTES) {
+      return {
+        status: 'exceeded',
+        color: 'text-red-600',
+        bgColor: 'bg-red-50',
+        borderColor: 'border-red-500',
+        message: '🛑 10-Stunden-Grenze erreicht!',
+        description: 'Automatischer Stop erfolgt.'
+      }
+    }
+
+    // KRITISCH: 9:30 Stunden - letzte Warnung
+    else if (totalMinutes >= FINAL_WARNING_MINUTES) {
+      const remaining = MAX_MINUTES - totalMinutes
+      return {
+        status: 'critical',
+        color: 'text-red-600',
+        bgColor: 'bg-red-50',
+        borderColor: 'border-red-400',
+        message: `⚠️⚠️ Noch ${remaining} Min bis automatischem Stop!`,
+        description: 'Bitte beenden Sie Ihren Arbeitstag.'
+      }
+    }
+
+    // WARNUNG: Was zuerst kommt - Arbeitsende-UHRZEIT oder 8 STUNDEN
+    const reachedWorkEndTime = currentTimeInMinutes >= workEndTimeMinutes
+    const reachedEightHours = totalMinutes >= STANDARD_WORK_HOURS
+
+    if (reachedWorkEndTime && reachedEightHours) {
+      // Fall A: Beide Bedingungen erfüllt
+      return {
+        status: 'warning',
+        color: 'text-orange-600',
+        bgColor: 'bg-orange-50',
+        borderColor: 'border-orange-500',
+        message: `✋ Arbeitsende (${endHour}:${endMin.toString().padStart(2, '0')}) - 8h gearbeitet`,
+        description: 'Bitte beenden Sie Ihren Arbeitstag.'
+      }
+    } else if (reachedWorkEndTime) {
+      // Fall B: Nur Arbeitsende-Zeit erreicht
+      return {
+        status: 'warning',
+        color: 'text-orange-600',
+        bgColor: 'bg-orange-50',
+        borderColor: 'border-orange-500',
+        message: `✋ Firmen-Arbeitsende (${endHour}:${endMin.toString().padStart(2, '0')})`,
+        description: `${workedHours}h ${workedMins}m gearbeitet. Bitte Arbeitstag beenden.`
+      }
+    } else if (reachedEightHours) {
+      // Fall C: Nur 8 Stunden erreicht
+      return {
+        status: 'warning',
+        color: 'text-orange-600',
+        bgColor: 'bg-orange-50',
+        borderColor: 'border-orange-500',
+        message: `✋ 8 Stunden gearbeitet`,
+        description: `Arbeitsende: ${endHour}:${endMin.toString().padStart(2, '0')}} Uhr. Bitte Arbeitstag beenden.`
+      }
+    }
+
+    return { status: 'normal', color: '', bgColor: '', borderColor: '', message: '', description: '' }
+  }
+
+  const handleStop = async () => {
+    try {
+      console.log('🔴 handleStop called')
+      console.log('🔴 Current activeTime:', activeTime)
+      console.log('🔴 localStorage activeTimeEntry:', localStorage.getItem('activeTimeEntry'))
+
+      await stopTracking('Manuell gestoppt')
+
+      setSelectedProject(null)
+      localStorage.removeItem('selectedProject')
+      console.log('✅ handleStop completed successfully')
+    } catch (error: any) {
+      console.error('❌ Stop error:', error)
+      console.error('❌ Error message:', error?.message)
+      console.error('❌ Error stack:', error?.stack)
+
+      // Show detailed error to user
+      const errorMsg = error?.message || error?.toString() || 'Unbekannter Fehler'
+      toast.error(`Fehler beim Stoppen: ${errorMsg}`, {
+        duration: 10000,
+        description: 'Siehe Console (F12) für Details'
+      })
+    }
+  }
+
+  const handleStart = async () => {
+    if (!selectedProject) {
+      toast.error('Bitte wählen Sie zuerst ein Projekt aus')
+      setShowQuickSwitch(true)
+      return
+    }
+
+    try {
+      await startTracking(selectedProject.id, 'work', 'Manuell gestartet')
+      toast.success(`Projekt "${selectedProject.name}" gestartet`)
+    } catch (error) {
+      console.error('Start error:', error)
+      toast.error('Fehler beim Starten')
+    }
+  }
+
+  // Show emergency fix if there's an error
+  const [showEmergencyFix, setShowEmergencyFix] = useState(false)
+
   return (
     <div className="space-y-4 p-4 max-w-md mx-auto">
+      {/* Auto Debug Fix - läuft automatisch */}
+      <AutoDebugFix />
 
       {/* Header mit Datum */}
       <div className="text-center">
@@ -580,7 +923,121 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         </p>
       </div>
 
-      {/* Live-Timer Card */}
+      {/* Emergency Fix Toggle */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setShowEmergencyFix(!showEmergencyFix)}
+        className="w-full border-orange-300 text-orange-700 hover:bg-orange-50"
+      >
+        <AlertCircle className="h-4 w-4 mr-2" />
+        {showEmergencyFix ? 'Diagnose ausblenden' : 'Probleme? → Diagnose öffnen'}
+      </Button>
+
+      {/* Emergency Fix Panel */}
+      {showEmergencyFix && <EmergencyTimeTrackingFix />}
+
+      {/* DEBUG: Employee Status */}
+      <Card className="border-yellow-200 bg-yellow-50">
+        <CardContent className="p-3">
+          <div className="text-xs space-y-1">
+            <div><strong>Debug Info:</strong></div>
+            <div>Employee ID: {employeeId || 'NICHT GELADEN'}</div>
+            <div>Attendance: {currentAttendance ? 'Vorhanden' : 'Keine'}</div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Arbeitstag (Attendance) Card */}
+      {!currentAttendance ? (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <LogIn className="h-5 w-5 text-blue-600" />
+              Arbeitstag
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Nicht eingestempelt
+            </p>
+            <Button
+              onClick={() => {
+                console.log('🟢 BUTTON CLICKED!')
+                handleStartArbeitstag()
+              }}
+              disabled={arbeitstagLoading}
+              className="w-full bg-blue-600 hover:bg-blue-700 h-12"
+            >
+              <LogIn className="h-5 w-5 mr-2" />
+              {arbeitstagLoading ? 'Wird gestartet...' : 'START ARBEITSTAG'}
+            </Button>
+            <div className="text-xs text-center text-muted-foreground mt-2">
+              Button Status: {arbeitstagLoading ? 'Loading...' : 'Ready'}
+              <br />
+              Employee: {employeeId || 'NOT LOADED'}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Arbeitstag Info Badge */}
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium text-green-800">
+                    Arbeitstag: {formatDuration(getArbeitstagDuration())}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    seit {format(new Date(currentAttendance.clock_in), 'HH:mm', { locale: de })}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleStopArbeitstag}
+                  disabled={arbeitstagLoading}
+                  className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <LogOut className="h-3 w-3 mr-1" />
+                  {arbeitstagLoading ? '...' : 'Stop'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Arbeitszeit-Warnungen (8h / 9:30h / 10h) */}
+          {getWorkTimeStatus().status !== 'normal' && (
+            <Card className={`border-2 ${getWorkTimeStatus().borderColor} ${getWorkTimeStatus().bgColor} ${getWorkTimeStatus().status === 'exceeded' || getWorkTimeStatus().status === 'critical' ? 'animate-pulse' : ''}`}>
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className={`h-5 w-5 ${getWorkTimeStatus().color}`} />
+                  <div className="flex-1">
+                    <span className={`text-sm font-bold ${getWorkTimeStatus().color} block`}>
+                      {getWorkTimeStatus().message}
+                    </span>
+                    <p className={`text-xs ${getWorkTimeStatus().color} mt-1`}>
+                      {getWorkTimeStatus().description}
+                    </p>
+                  </div>
+                </div>
+                {(getWorkTimeStatus().status === 'warning' || getWorkTimeStatus().status === 'critical') && (
+                  <Button
+                    onClick={handleStopArbeitstag}
+                    disabled={arbeitstagLoading}
+                    className={`w-full mt-3 ${getWorkTimeStatus().status === 'critical' ? 'bg-red-600 hover:bg-red-700' : 'bg-orange-600 hover:bg-orange-700'}`}
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Arbeitstag jetzt beenden
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Live-Timer Card - nur wenn Arbeitstag aktiv */}
       <Card className={`scroll-snap-start min-h-[250px] ${breakTimer.isActive ? 'ring-2 ring-orange-500' : activeTime.active ? 'ring-2 ring-green-500' : ''}`}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -813,6 +1270,20 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                     >
                       Projekt wechseln
                     </Button>
+
+                    {/* Stop Button - zeige wenn Zeiterfassung läuft */}
+                    {(activeTime.active || localStorage.getItem('activeTimeEntry')) && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={handleStop}
+                        disabled={isLoading}
+                        className="w-full mt-2"
+                      >
+                        <Square className="h-4 w-4 mr-2" />
+                        Zeiterfassung beenden
+                      </Button>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -823,58 +1294,66 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                 </div>
               )}
 
-              {/* Quick Start Buttons */}
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  onClick={() => handleStart()}
-                  disabled={isLoading}
-                  className="h-12"
-                >
-                  <Play className="h-4 w-4 mr-2" />
-                  Start
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    console.log('🔥 PROJEKT BUTTON CLICKED!');
-                    console.log('Before setState - showQuickSwitch:', showQuickSwitch);
-                    setShowQuickSwitch(true);
-                    console.log('After setState called');
-                    toast.info('Projekt-Dialog wird geöffnet...');
-                  }}
-                  disabled={isLoading}
-                  className="h-12"
-                >
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Projekt
-                </Button>
-              </div>
+              {/* Projekt auswählen Button */}
+              <Button
+                variant="default"
+                onClick={() => {
+                  console.log('🔥 PROJEKT BUTTON CLICKED!');
+                  console.log('Before setState - showQuickSwitch:', showQuickSwitch);
+                  setShowQuickSwitch(true);
+                  console.log('After setState called');
+                  toast.info('Projekt-Dialog wird geöffnet...');
+                }}
+                disabled={isLoading}
+                className="w-full h-12"
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                {selectedProject ? 'Projekt wechseln' : 'Projekt auswählen'}
+              </Button>
 
               {/* Quick Actions */}
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBreak}
-                  className="flex-1"
-                >
-                  <Coffee className="h-4 w-4 mr-1" />
-                  Pause
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDrive}
-                  className="flex-1"
-                >
-                  <Car className="h-4 w-4 mr-1" />
-                  Fahrt
-                </Button>
+              <div className="space-y-2">
+                {/* Stop Button falls Zeiterfassung läuft aber nicht als "active" erkannt */}
+                {(activeTime.active || localStorage.getItem('activeTimeEntry')) && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleStop}
+                    disabled={isLoading}
+                    className="w-full"
+                  >
+                    <Square className="h-4 w-4 mr-2" />
+                    Zeiterfassung beenden
+                  </Button>
+                )}
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleBreak}
+                    className="flex-1"
+                  >
+                    <Coffee className="h-4 w-4 mr-1" />
+                    Pause
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDrive}
+                    className="flex-1"
+                  >
+                    <Car className="h-4 w-4 mr-1" />
+                    Fahrt
+                  </Button>
+                </div>
               </div>
             </div>
           )}
         </CardContent>
       </Card>
+        </>
+      )}
 
       {/* Tages-Statistiken */}
       <Card className="scroll-snap-start min-h-[300px]">
@@ -957,6 +1436,28 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         </CardContent>
       </Card>
 
+      {/* Dual Time Tracking: Coverage & Cost Centers - nur wenn Feature aktiv */}
+      {dualModeEnabled && !flagLoading && activeTime.segment?.employee_id && (
+        <>
+          {/* Day Coverage Bar */}
+          <DayCoverageBar
+            employeeId={activeTime.segment.employee_id}
+            date={format(currentTime, 'yyyy-MM-dd')}
+            compact={false}
+          />
+
+          {/* Cost Center Quick Pick */}
+          <CostCenterQuickPick
+            employeeId={activeTime.segment.employee_id}
+            onCostCenterSelect={async (costCenterId, costCenter) => {
+              console.log('Cost center selected:', costCenterId, costCenter)
+              // TODO: Implement cost center time booking
+              // This will create a time_entry with type='cost_center'
+            }}
+            compact={false}
+          />
+        </>
+      )}
 
       {/* Quick Project Switch Sheet */}
       <QuickProjectSwitch
@@ -1031,23 +1532,38 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             }
             
             if (activeTime.active) {
+              // Projekt läuft bereits - wechsle automatisch
               await switchProject(projectId, 'work', 'Projekt gewechselt')
-            } else {
-              // Don't auto-start, just select the project
               if (project) {
-                console.log('📱 SELECTED PROJECT DATA:', project)
-                console.log('📱 Customer data:', project.customer)
-                console.log('📱 Location:', project.location)
-                console.log('📱 Dates:', project.start_date, project.end_date)
                 setSelectedProject(project)
-                // Save to localStorage for persistence
                 localStorage.setItem('selectedProject', JSON.stringify(project))
+              }
+            } else if (currentAttendance) {
+              // Arbeitstag läuft, aber kein Projekt - starte Projekt automatisch!
+              if (project) {
+                console.log('🚀 AUTO-START PROJECT:', project.name)
+                setSelectedProject(project)
+                localStorage.setItem('selectedProject', JSON.stringify(project))
+
+                // Start project tracking automatically
+                toast.info('Starte Projekt...', { duration: 1000 })
+                await startTracking(projectId, 'work', 'Auto-Start nach Auswahl')
+                toast.success(`Projekt "${project.name}" gestartet!`)
               } else {
-                // No fallback - if project not found, show error
+                console.error('Project not found:', projectId)
+                toast.error('Projekt konnte nicht geladen werden')
+              }
+            } else {
+              // Kein Arbeitstag aktiv - nur Projekt setzen, nicht starten
+              if (project) {
+                console.log('📱 SELECTED PROJECT (not started):', project.name)
+                setSelectedProject(project)
+                localStorage.setItem('selectedProject', JSON.stringify(project))
+                toast.info('Projekt ausgewählt. Bitte starten Sie zuerst den Arbeitstag.')
+              } else {
                 console.error('Project not found:', projectId)
                 toast.error('Projekt konnte nicht geladen werden')
                 setSelectedProject(null)
-                // Clear invalid data from localStorage
                 localStorage.removeItem('selectedProject')
               }
             }
