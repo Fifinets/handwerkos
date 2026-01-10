@@ -1,14 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
+import { Capacitor } from '@capacitor/core';
+import { capacitorStorage } from './capacitorStorage';
 
 const SUPABASE_URL = 'https://qgwhkjrhndeoskrxewpb.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnd2hranJobmRlb3Nrcnhld3BiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NTExODAsImV4cCI6MjA2NzEyNzE4MH0.eSPBRJKIBd9oiXqfo8vrbmMCl6QByxnVgHqtgofDGtg';
 
+// Use Capacitor storage for native apps, localStorage for web
+const storage = Capacitor.isNativePlatform() ? capacitorStorage : localStorage;
+
+console.log('[Supabase Client] Platform:', Capacitor.getPlatform());
+console.log('[Supabase Client] Using storage:', Capacitor.isNativePlatform() ? 'Capacitor Preferences' : 'localStorage');
+
 // Regular Supabase client used across the app
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage: storage,
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true

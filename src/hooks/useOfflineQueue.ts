@@ -237,12 +237,12 @@ export const useOfflineQueue = () => {
     }, SYNC_RETRY_DELAY)
     
     return () => clearInterval(interval)
-  }, [isOnline, queue, syncQueue])
+  }, [isOnline, syncQueue]) // queue entfernt aus Dependencies
 
-  // Queue beim Laden initialisieren
+  // Queue beim Laden initialisieren - nur beim Mount
   useEffect(() => {
     loadQueue()
-  }, [loadQueue])
+  }, []) // Nur beim Mount laden
 
   // Queue leeren (nur für Debug/Admin)
   const clearQueue = useCallback(() => {

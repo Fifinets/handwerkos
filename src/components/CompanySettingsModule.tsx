@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Mail, DollarSign, Clock, FileText, Palette, Settings } from "lucide-react";
+import { Building2, Mail, DollarSign, Clock, FileText, Palette, Settings, Zap } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import WorkflowSettingsPanel from "./WorkflowSettingsPanel";
 
 interface CompanySettings {
   id: string;
@@ -34,6 +36,7 @@ interface CompanySettings {
   default_working_hours_start: string;
   default_working_hours_end: string;
   default_break_duration: number;
+  default_break_start_time?: string;
 }
 
 export function CompanySettingsModule() {
@@ -121,8 +124,8 @@ export function CompanySettingsModule() {
     onError: (error) => {
       console.error("Detailed error updating settings:", error);
       console.error("Error message:", error.message);
-      console.error("Error details:", error.details);
-      console.error("Error code:", error.code);
+      console.error("Error details:", (error as any).details);
+      console.error("Error code:", (error as any).code);
       
       toast({
         title: "Fehler beim Speichern",
@@ -175,9 +178,9 @@ export function CompanySettingsModule() {
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
         <div className="text-muted-foreground">Fehler beim Laden der Firmeneinstellungen</div>
         <div className="text-sm text-red-500">
-          {error.message?.includes('row-level security') 
+          {(error as any).message?.includes('row-level security') 
             ? 'Zugriff verweigert. Bitte melden Sie sich als Manager an.' 
-            : error.message}
+            : (error as any).message}
         </div>
         <Button
           onClick={() => window.location.reload()} 
@@ -239,7 +242,28 @@ export function CompanySettingsModule() {
         </Button>
       </div>
 
-      <div className="grid gap-6">
+      <Tabs defaultValue="company" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="company" className="flex items-center gap-2">
+            <Building2 className="h-4 w-4" />
+            Firma
+          </TabsTrigger>
+          <TabsTrigger value="financial" className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4" />
+            Finanzen
+          </TabsTrigger>
+          <TabsTrigger value="time" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Arbeitszeit
+          </TabsTrigger>
+          <TabsTrigger value="workflows" className="flex items-center gap-2">
+            <Zap className="h-4 w-4" />
+            Workflows
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="company" className="space-y-6">
+          <div className="grid gap-6">
         {/* Company Information */}
         <Card>
           <CardHeader>
@@ -480,6 +504,15 @@ export function CompanySettingsModule() {
                   onChange={(e) => updateSetting("default_break_duration", parseInt(e.target.value))}
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="default_break_start_time">Pausenbeginn</Label>
+                <Input
+                  id="default_break_start_time"
+                  type="time"
+                  value={settings.default_break_start_time || "12:00"}
+                  onChange={(e) => updateSetting("default_break_start_time", e.target.value)}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -518,7 +551,181 @@ export function CompanySettingsModule() {
             </div>
           </CardContent>
         </Card>
-      </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="financial" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                Finanzeinstellungen
+              </CardTitle>
+              <CardDescription>
+                Standard-Einstellungen für Rechnungen und Steuern
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="default_currency">Standardwährung</Label>
+                  <Input
+                    id="default_currency"
+                    value={settings.default_currency}
+                    onChange={(e) => updateSetting("default_currency", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="default_tax_rate">Standardsteuersatz (%)</Label>
+                  <Input
+                    id="default_tax_rate"
+                    type="number"
+                    step="0.01"
+                    value={settings.default_tax_rate}
+                    onChange={(e) => updateSetting("default_tax_rate", parseFloat(e.target.value))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="quote_validity_days">Angebotsgültigkeit (Tage)</Label>
+                  <Input
+                    id="quote_validity_days"
+                    type="number"
+                    value={settings.quote_validity_days}
+                    onChange={(e) => updateSetting("quote_validity_days", parseInt(e.target.value))}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="time" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Arbeitszeit-Einstellungen
+              </CardTitle>
+              <CardDescription>
+                Standard-Arbeitszeiten und Pausenregelungen
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="default_working_hours_start">Arbeitsbeginn</Label>
+                  <Input
+                    id="default_working_hours_start"
+                    type="time"
+                    value={settings.default_working_hours_start}
+                    onChange={(e) => updateSetting("default_working_hours_start", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="default_working_hours_end">Arbeitsende</Label>
+                  <Input
+                    id="default_working_hours_end"
+                    type="time"
+                    value={settings.default_working_hours_end}
+                    onChange={(e) => updateSetting("default_working_hours_end", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="default_break_duration">Pausenzeit (Minuten)</Label>
+                  <Input
+                    id="default_break_duration"
+                    type="number"
+                    value={settings.default_break_duration}
+                    onChange={(e) => updateSetting("default_break_duration", parseInt(e.target.value))}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="workflows" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5" />
+                Workflow-Einstellungen
+              </CardTitle>
+              <CardDescription>
+                Konfigurieren Sie die automatischen Regeln für Workflow-Entscheidungen.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <h3 className="font-semibold text-blue-900 mb-2">🔧 Workflow-System</h3>
+                  <p className="text-blue-800 text-sm mb-4">
+                    Automatische Erkennung zwischen Direktabrechnung und Lieferschein-Workflow basierend auf:
+                  </p>
+                  <ul className="text-sm text-blue-700 space-y-1">
+                    <li>• <strong>Stunden:</strong> Mehr als 8h → Lieferschein</li>
+                    <li>• <strong>Material:</strong> Über 500€ → Lieferschein</li>
+                    <li>• <strong>B2B-Kunden:</strong> Immer Lieferschein</li>
+                    <li>• <strong>B2C-Kunden:</strong> Über 1000€ → Lieferschein</li>
+                  </ul>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="hours_threshold">Stunden-Schwellwert</Label>
+                    <Input
+                      id="hours_threshold"
+                      type="number"
+                      placeholder="8"
+                      min="0"
+                      step="0.5"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Stunden ab denen ein Lieferschein erstellt wird
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="material_threshold">Material-Schwellwert (€)</Label>
+                    <Input
+                      id="material_threshold"
+                      type="number"
+                      placeholder="500"
+                      min="0"
+                      step="50"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Material-Wert ab dem ein Lieferschein erstellt wird
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-green-50 rounded-lg">
+                  <h4 className="font-semibold text-green-900 mb-2">✅ Beispiel: Direktabrechnung</h4>
+                  <div className="text-sm text-green-700">
+                    • Privatkunde • 4h Arbeitszeit • 200€ Material → <strong>Direkt zur Rechnung</strong>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-orange-50 rounded-lg">
+                  <h4 className="font-semibold text-orange-900 mb-2">📋 Beispiel: Mit Lieferschein</h4>
+                  <div className="text-sm text-orange-700">
+                    • Geschäftskunde ODER 12h Arbeitszeit ODER 800€ Material → <strong>Lieferschein zuerst</strong>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-4">
+                  <Button className="flex-1">
+                    Einstellungen speichern
+                  </Button>
+                  <Button variant="outline" className="flex-1">
+                    Standard wiederherstellen
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

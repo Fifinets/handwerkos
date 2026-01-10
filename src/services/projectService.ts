@@ -133,7 +133,7 @@ export class ProjectService {
       const projectData = {
         ...validatedData,
         status: 'planned' as const,
-        assigned_employees: validatedData.assigned_employees || [],
+        // Team assignments are handled separately via project_assignments table
       };
       
       const query = supabase

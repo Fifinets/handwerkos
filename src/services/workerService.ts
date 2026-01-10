@@ -113,9 +113,9 @@ export class WorkerService {
       for (const projectKPI of criticalProjects) {
         // Get all managers/admins who should be notified
         const managersQuery = supabase
-          .from('user_profiles')
+          .from('profiles')
           .select('id, email, first_name, last_name')
-          .or('is_admin.eq.true,is_project_manager.eq.true');
+          .eq('status', 'active');
 
         const managers = await createQuery(managersQuery).execute();
 
@@ -202,9 +202,9 @@ export class WorkerService {
 
           // Get all managers/admins to notify
           const managersQuery = supabase
-            .from('user_profiles')
+            .from('profiles')
             .select('id, email, first_name, last_name')
-            .or('is_admin.eq.true,is_project_manager.eq.true');
+            .eq('status', 'active');
 
           const managers = await createQuery(managersQuery).execute();
 

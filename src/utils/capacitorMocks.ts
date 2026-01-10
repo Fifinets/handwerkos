@@ -30,6 +30,14 @@ export const Style = {
   Default: 'DEFAULT'
 } as const
 
+// Mock SafeArea
+export const SafeArea = {
+  getSafeAreaInsets: async () => {
+    console.log('SafeArea.getSafeAreaInsets (web mock)')
+    return { top: 0, bottom: 0, left: 0, right: 0 }
+  }
+}
+
 // Mock KeepAwake
 export const KeepAwake = {
   keepAwake: async () => {

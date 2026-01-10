@@ -16,6 +16,7 @@ import { de } from "date-fns/locale";
 import { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateProject } from "@/hooks/useApi";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Customer {
   id: string;
@@ -57,11 +58,13 @@ interface AddProjectDialogProps {
 
 const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMembers }: AddProjectDialogProps) => {
   const { toast } = useToast();
-  const createProject = useCreateProject();
-  
+  const createProjectMutation = useCreateProject();
+
   // Debug logging
   console.log('AddProjectDialog - customers:', customers);
   console.log('AddProjectDialog - teamMembers:', teamMembers);
+  console.log('AddProjectDialog - createProjectMutation:', createProjectMutation);
+  console.log('AddProjectDialog - useCreateProject function:', useCreateProject);
   const [formData, setFormData] = useState({
     name: '',
     customer: '',
@@ -119,11 +122,17 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validierung
+    console.log('🔍 Validating form data:', formData);
     if (!formData.name || !formData.customer || !formData.budget) {
+      console.log('❌ Validation failed - missing required fields:', {
+        name: !!formData.name,
+        customer: !!formData.customer,
+        budget: !!formData.budget
+      });
       toast({
         title: "Fehler",
         description: "Bitte füllen Sie alle Pflichtfelder aus.",
@@ -132,39 +141,139 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
       return;
     }
 
-    // Neues Projekt erstellen
-    const newProject = {
-      id: `P2024-${String(Date.now()).slice(-3)}`,
+    // Finde den ausgewählten Kunden
+    const selectedCustomer = customers.find(customer =>
+      (customer.name === formData.customer) || (customer.company_name === formData.customer)
+    );
+
+    if (!selectedCustomer) {
+      toast({
+        title: "Fehler",
+        description: "Kunde nicht gefunden.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Projekt-Daten für Supabase vorbereiten
+    const projectData = {
       name: formData.name,
-      customer: formData.customer,
-      status: formData.status,
-      progress: 0,
-      startDate: dateRange?.from ? format(dateRange.from, 'dd.MM.yyyy') : new Date().toLocaleDateString('de-DE'),
-      endDate: dateRange?.to ? format(dateRange.to, 'dd.MM.yyyy') : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('de-DE'),
-      budget: formData.budget.startsWith('€') ? formData.budget : `€${formData.budget}`,
-      team: formData.team.length > 0 ? formData.team : ['Nicht zugewiesen'],
-      location: formData.location || 'Nicht angegeben'
+      customer_id: selectedCustomer.id,
+      status: formData.status as "active" | "planned" | "blocked" | "completed" | "cancelled",
+      location: formData.location || selectedCustomer.address || 'Nicht angegeben',
+      budget: parseFloat(formData.budget.replace('€', '').replace(',', '.')) || 0,
+      start_date: dateRange?.from ? dateRange.from.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      end_date: dateRange?.to ? dateRange.to.toISOString().split('T')[0] : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      description: `Team: ${formData.team.length > 0 ? formData.team.join(', ') : 'Nicht zugewiesen'}`
     };
 
-    onProjectAdded(newProject);
-    
-    // Formular zurücksetzen
-    setFormData({
-      name: '',
-      customer: '',
-      location: '',
-      budget: '',
-      team: [],
-      status: 'geplant'
-    });
-    setDateRange(undefined);
+    try {
+      console.log('🚀 Attempting to create project with data:', projectData);
+      console.log('🔧 CreateProjectMutation status:', createProjectMutation.status);
 
-    toast({
-      title: "Erfolg",
-      description: "Projekt wurde erfolgreich hinzugefügt."
-    });
+      // Erst das Projekt erstellen
+      const createdProject = await createProjectMutation.mutateAsync(projectData);
+      console.log('✅ Project created successfully:', createdProject);
 
-    onClose();
+      // Dann Team-Zuweisungen in der project_assignments Tabelle speichern
+      if (formData.team.length > 0) {
+        const assignments = await Promise.all(
+          formData.team.map(async (memberName) => {
+            try {
+              // Finde die Mitarbeiter-ID über den Namen (robustere Suche)
+              const nameParts = memberName.trim().split(' ');
+              const firstName = nameParts[0] || '';
+              const lastName = nameParts.slice(1).join(' ') || '';
+
+              const { data: employee, error } = await supabase
+                .from('employees')
+                .select('id')
+                .or(`first_name.ilike.${firstName}%,last_name.ilike.${lastName}%`)
+                .single();
+
+              if (error) {
+                console.warn(`Employee not found for name: ${memberName}`, error);
+                return null;
+              }
+
+              if (employee) {
+                const { data: assignment, error: assignmentError } = await supabase
+                  .from('project_assignments')
+                  .insert({
+                    project_id: createdProject.id,
+                    employee_id: employee.id,
+                    start_date: dateRange?.from ? dateRange.from.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                    end_date: dateRange?.to ? dateRange.to.toISOString().split('T')[0] : null,
+                    role: 'mitarbeiter',
+                    hours_per_day: 8.0
+                  })
+                  .select()
+                  .single();
+
+                if (assignmentError) {
+                  console.error('Error creating assignment:', assignmentError);
+                  return null;
+                }
+
+                return assignment;
+              }
+            } catch (error) {
+              console.error('Error in team assignment:', error);
+              return null;
+            }
+            return null;
+          })
+        );
+
+        const successfulAssignments = assignments.filter(Boolean);
+        console.log('Team assignments created:', successfulAssignments.length);
+      }
+
+      // Erfolgsmeldung für Team-Zuweisungen
+      if (formData.team.length > 0) {
+        toast({
+          title: "Projekt erstellt",
+          description: `Projekt "${formData.name}" wurde erstellt und ${formData.team.length} Mitarbeiter zugewiesen.`
+        });
+      } else {
+        toast({
+          title: "Projekt erstellt",
+          description: `Projekt "${formData.name}" wurde erfolgreich erstellt.`
+        });
+      }
+
+      onProjectAdded({
+        id: createdProject.id,
+        name: createdProject.name,
+        status: createdProject.status || 'geplant'
+      });
+
+      // Formular zurücksetzen
+      setFormData({
+        name: '',
+        customer: '',
+        location: '',
+        budget: '',
+        team: [],
+        status: 'geplant'
+      });
+      setDateRange(undefined);
+
+      onClose();
+    } catch (error) {
+      console.error('❌ Error creating project:', error);
+      console.error('❌ Error details:', {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        stack: error?.stack
+      });
+      toast({
+        title: "Fehler",
+        description: `Projekt konnte nicht erstellt werden: ${error?.message || 'Unbekannter Fehler'}`,
+        variant: "destructive"
+      });
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -304,24 +413,31 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
           <div>
             <Label>Team auswählen</Label>
             <div className="mt-2 space-y-2 max-h-48 overflow-y-auto border rounded-md p-3">
-              {teamMembersWithAvailability.map((member) => (
-                <div key={member.id} className="flex items-center justify-between space-x-2 p-2 rounded-lg hover:bg-gray-50">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`team-${member.id}`}
-                      checked={formData.team.includes(member.name || `${member.first_name || ''} ${member.last_name || ''}`.trim())}
-                      onCheckedChange={(checked) => handleTeamMemberToggle(member.name || `${member.first_name || ''} ${member.last_name || ''}`.trim(), checked as boolean)}
-                    />
-                    <div>
-                      <label htmlFor={`team-${member.id}`} className="text-sm font-medium cursor-pointer">
-                        {member.name || `${member.first_name || ''} ${member.last_name || ''}`.trim() || 'Unbekannt'}
-                      </label>
-                      <p className="text-xs text-gray-500">{member.role || member.position || 'Mitarbeiter'}</p>
-                    </div>
-                  </div>
-                  {getAvailabilityBadge(member.availability)}
+              {teamMembersWithAvailability.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  <p className="text-sm">Keine Teammitglieder verfügbar.</p>
+                  <p className="text-xs mt-1">Bitte erst Mitarbeiter im Personal-Modul hinzufügen.</p>
                 </div>
-              ))}
+              ) : (
+                teamMembersWithAvailability.map((member) => (
+                  <div key={member.id} className="flex items-center justify-between space-x-2 p-2 rounded-lg hover:bg-gray-50">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`team-${member.id}`}
+                        checked={formData.team.includes(member.name || `${member.first_name || ''} ${member.last_name || ''}`.trim())}
+                        onCheckedChange={(checked) => handleTeamMemberToggle(member.name || `${member.first_name || ''} ${member.last_name || ''}`.trim(), checked as boolean)}
+                      />
+                      <div>
+                        <label htmlFor={`team-${member.id}`} className="text-sm font-medium cursor-pointer">
+                          {member.name || `${member.first_name || ''} ${member.last_name || ''}`.trim() || 'Unbekannt'}
+                        </label>
+                        <p className="text-xs text-gray-500">{member.role || member.position || 'Mitarbeiter'}</p>
+                      </div>
+                    </div>
+                    {getAvailabilityBadge(member.availability)}
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

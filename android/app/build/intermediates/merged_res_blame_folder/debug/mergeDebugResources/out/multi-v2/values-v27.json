@@ -4,7 +4,7 @@
             "outputFile": "com.handwerkos.app-mergeDebugResources-37:/values-v27/values-v27.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\filip\\.gradle\\caches\\8.13\\transforms\\496281d0ebeeb8ff23c43702fbb45cb4\\transformed\\core-splashscreen-1.0.1\\res\\values-v27\\values-v27.xml",
+                    "source": "C:\\Users\\filip\\.gradle\\caches\\8.13\\transforms\\ad071db8b88784371cc37375612518f5\\transformed\\core-splashscreen-1.0.1\\res\\values-v27\\values-v27.xml",
                     "from": {
                         "startLines": "2,3,4,7",
                         "startColumns": "4,4,4,4",

@@ -1,0 +1,15 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Monochrome Logo Variante -->
+  
+  <!-- Linke Pille -->
+  <ellipse cx="60" cy="100" rx="40" ry="80" fill="#2D3748" />
+  
+  <!-- Rechte Pille -->
+  <ellipse cx="140" cy="100" rx="40" ry="80" fill="#4A5568" />
+  
+  <!-- Zentrale Verbindung -->
+  <ellipse cx="100" cy="100" rx="60" ry="40" fill="#718096" />
+  
+  <!-- Weißer Kreis -->
+  <circle cx="100" cy="140" r="20" fill="white" />
+</svg>

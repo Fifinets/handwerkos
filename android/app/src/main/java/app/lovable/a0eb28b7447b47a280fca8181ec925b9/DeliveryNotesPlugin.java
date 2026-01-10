@@ -193,7 +193,7 @@ public class DeliveryNotesPlugin extends Plugin {
                     path.moveTo((float) firstPoint.getDouble("x"), (float) firstPoint.getDouble("y"));
                     
                     for (int j = 1; j < points.length(); j++) {
-                        JSObject point = new JSObject(points.getJSONObject(j).toString());
+                        JSObject point = new JSObject(points        .getJSONObject(j).toString());
                         path.lineTo((float) point.getDouble("x"), (float) point.getDouble("y"));
                     }
                     

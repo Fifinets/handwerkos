@@ -24,12 +24,17 @@ interface Project {
   id: string
   name: string
   customer?: {
-    id: string
+    id?: string
     name: string
+    phone?: string
   }
   location?: string
   color?: string
   status: string
+  start_date?: string
+  end_date?: string
+  priority?: string
+  description?: string
   last_used?: string
   is_favorite?: boolean
 }
@@ -37,7 +42,7 @@ interface Project {
 interface QuickProjectSwitchProps {
   isOpen: boolean
   onClose: () => void
-  onProjectSelect: (projectId: string) => void
+  onProjectSelect: (projectId: string, projectData?: any) => void
   currentProjectId?: string
 }
 
@@ -66,37 +71,80 @@ export const QuickProjectSwitch: React.FC<QuickProjectSwitchProps> = ({
   const loadProjects = useCallback(async () => {
     setIsLoading(true)
     try {
-      const { data, error } = await supabase
+      console.log('🔍 Loading projects from QuickProjectSwitch...')
+
+      // Erst einfache Abfrage versuchen
+      let { data, error } = await supabase
         .from('projects')
-        .select(`
-          id, name, status, 
-          customer:customers(id, name),
-          location, color
-        `)
-        .eq('status', 'active')
-        .order('name')
+        .select('id, name')
+        .limit(5)
+
+      console.log('📊 Basic project query result:', { data, error })
 
       if (error) {
-        // Fallback bei fehlender Tabelle
-        console.warn('Projects table not found, using mock data')
-        setProjects([
-          {
-            id: 'mock-1',
-            name: 'Beispiel Baustelle',
-            customer: { id: 'c1', name: 'Max Mustermann GmbH' },
-            location: 'Musterstraße 1',
-            status: 'active'
-          },
-          {
-            id: 'mock-2',
-            name: 'Renovierung Büro',
-            customer: { id: 'c2', name: 'Firma ABC' },
-            status: 'active'
-          }
-        ])
+        console.error('Basic query failed:', error)
+        toast.error(`Basis-Abfrage fehlgeschlagen: ${error.message}`)
+        setProjects([])
         return
       }
 
+      // Wenn Basis funktioniert, erweiterte Abfrage versuchen
+      if (data && data.length > 0) {
+        console.log('📊 Basic query OK, trying extended query...')
+        const { data: extendedData, error: extendedError } = await supabase
+          .from('projects')
+          .select(`
+            id, name, status, location, color, customer_id, start_date, end_date, priority, description
+          `)
+          .not('status', 'eq', 'abgeschlossen')
+          .not('status', 'eq', 'completed')
+          .not('status', 'eq', 'cancelled')
+          .not('status', 'eq', 'archiviert')
+          .order('name')
+
+        if (!extendedError && extendedData) {
+          console.log('📊 Extended query successful:', extendedData.length, 'projects')
+          console.log('📊 Sample extended data:', extendedData[0])
+          data = extendedData
+
+          // Lade Customer-Daten separat und verknüpfe sie
+          try {
+            const customerIds = [...new Set(data.map(p => p.customer_id).filter(Boolean))]
+            console.log('📊 Customer IDs found:', customerIds)
+            let customerMap = new Map()
+
+            if (customerIds.length > 0) {
+              const { data: customers } = await supabase
+                .from('customers')
+                .select('id, name, phone')
+                .in('id', customerIds)
+
+              console.log('📊 Customers loaded:', customers?.length || 0)
+              if (customers) {
+                customers.forEach(c => customerMap.set(c.id, c))
+              }
+            }
+
+            // Add customer info to projects
+            data = data.map(project => ({
+              ...project,
+              customer: project.customer_id && customerMap.has(project.customer_id)
+                ? {
+                    name: customerMap.get(project.customer_id).name,
+                    phone: customerMap.get(project.customer_id).phone
+                  }
+                : null
+            }))
+          } catch (customerError) {
+            console.log('📊 Customer loading failed, continuing without:', customerError)
+          }
+        } else {
+          console.log('📊 Extended query failed, using basic data')
+          console.error('📊 Extended query error details:', extendedError?.message || extendedError)
+        }
+      }
+
+      console.log('📊 Final projects to set:', data?.length || 0)
       setProjects(data || [])
     } catch (error) {
       console.error('Error loading projects:', error)
@@ -121,23 +169,8 @@ export const QuickProjectSwitch: React.FC<QuickProjectSwitchProps> = ({
         .limit(10)
 
       if (error) {
-        // Fallback Mock-Daten
-        setRecentProjects([
-          {
-            project_id: 'mock-1',
-            project_name: 'Beispiel Baustelle',
-            customer_name: 'Max Mustermann GmbH',
-            last_used: new Date().toISOString(),
-            usage_count: 15
-          },
-          {
-            project_id: 'mock-2',
-            project_name: 'Renovierung Büro',
-            customer_name: 'Firma ABC',
-            last_used: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            usage_count: 8
-          }
-        ])
+        console.error('Failed to load recent projects:', error)
+        setRecentProjects([])
         return
       }
 
@@ -199,7 +232,15 @@ export const QuickProjectSwitch: React.FC<QuickProjectSwitchProps> = ({
 
   // Projekt auswählen
   const handleProjectSelect = (projectId: string) => {
-    onProjectSelect(projectId)
+    // Find the full project data to pass along
+    const fullProject = projects.find(p => p.id === projectId)
+    if (fullProject) {
+      // Pass both the ID and the full project data
+      onProjectSelect(projectId, fullProject)
+    } else {
+      // Fallback to just ID if project not found
+      onProjectSelect(projectId)
+    }
   }
 
   // QR-Code Scanner (Placeholder)
@@ -354,8 +395,13 @@ export const QuickProjectSwitch: React.FC<QuickProjectSwitchProps> = ({
                 <div className="text-center py-8 text-muted-foreground">
                   <Building className="h-12 w-12 mx-auto mb-2 opacity-50" />
                   <p>
-                    {searchQuery ? 'Keine Projekte gefunden' : 'Keine Projekte verfügbar'}
+                    {searchQuery ? 'Keine Projekte gefunden' : 'Noch keine Projekte erstellt'}
                   </p>
+                  {!searchQuery && (
+                    <p className="text-xs mt-2">
+                      Erstellen Sie ein neues Projekt über die Schaltfläche unten
+                    </p>
+                  )}
                 </div>
               )}
             </TabsContent>

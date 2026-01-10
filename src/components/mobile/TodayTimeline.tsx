@@ -152,7 +152,7 @@ export const TodayTimeline: React.FC<TodayTimelineProps> = ({
 
   // Berechne Live-Dauer für aktive Segmente
   const getLiveDuration = (segment: TimelineSegment) => {
-    if (segment.status === 'active' && !segment.ended_at) {
+    if (segment.status === 'active' && !segment.ended_at && segment.started_at) {
       const startTime = new Date(segment.started_at)
       const currentTime = new Date()
       return differenceInMinutes(currentTime, startTime)
@@ -207,7 +207,7 @@ export const TodayTimeline: React.FC<TodayTimelineProps> = ({
             <div className="space-y-3">
               {segments.map((segment, index) => {
                 const liveDuration = getLiveDuration(segment)
-                const startTime = new Date(segment.started_at)
+                const startTime = segment.started_at ? new Date(segment.started_at) : new Date()
                 const endTime = segment.ended_at ? new Date(segment.ended_at) : null
                 
                 return (
