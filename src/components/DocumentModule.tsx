@@ -155,7 +155,7 @@ export function DocumentModule() {
     <div className="p-4 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Dokumente</h1>
+        <h1 className="text-2xl font-bold text-foreground">Dokumente</h1>
         <div className="flex items-center gap-4">
           <Button 
             onClick={() => setShowAddQuote(true)}

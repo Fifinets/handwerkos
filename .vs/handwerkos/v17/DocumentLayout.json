@@ -118,7 +118,7 @@
               "RelativeDocumentMoniker": "supabase\\migrations\\20250830120002_import_pipeline_rpc.sql",
               "ToolTip": "C:\\Users\\filip\\source\\repos\\Fifinets\\handwerkos\\supabase\\migrations\\20250830120002_import_pipeline_rpc.sql",
               "RelativeToolTip": "supabase\\migrations\\20250830120002_import_pipeline_rpc.sql",
-              "ViewState": "AgIAABcCAAAAAAAAAAAAAEMCAAAEAAAAAAAAAA==",
+              "ViewState": "AgIAAEMCAAAAAAAAAAAAAAwCAAAbAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
               "WhenOpened": "2025-08-30T17:11:35.981Z",
               "EditorCaption": ""
@@ -133,8 +133,7 @@
               "RelativeToolTip": "supabase\\migrations\\20250830120003_validation_functions_final.sql",
               "ViewState": "AgIAAJwAAAAAAAAAAAAAAOYAAAByAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
-              "WhenOpened": "2025-08-30T17:10:33.045Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-30T17:10:33.045Z"
             },
             {
               "$type": "Document",
@@ -146,8 +145,7 @@
               "RelativeToolTip": "supabase\\migrations\\20250830120001_validation_functions_working.sql",
               "ViewState": "AgIAACEBAAAAAAAAAAAAAGsBAABiAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
-              "WhenOpened": "2025-08-30T17:08:10.412Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-30T17:08:10.412Z"
             },
             {
               "$type": "Document",
@@ -159,8 +157,7 @@
               "RelativeToolTip": "supabase\\migrations\\20250830120001_test_function_creation.sql",
               "ViewState": "AgIAAAUAAAAAAAAAAAAAAE8AAAAvAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
-              "WhenOpened": "2025-08-30T17:05:28.341Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-30T17:05:28.341Z"
             },
             {
               "$type": "Document",
@@ -172,8 +169,7 @@
               "RelativeToolTip": "supabase\\migrations\\20250830120001_validation_functions_simple.sql",
               "ViewState": "AgIAAGYAAAAAAAAAAAAAALAAAABnAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
-              "WhenOpened": "2025-08-30T17:03:48.252Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-30T17:03:48.252Z"
             },
             {
               "$type": "Document",
@@ -185,8 +181,7 @@
               "RelativeToolTip": "supabase\\migrations\\20250830120001_validation_functions_clean.sql",
               "ViewState": "AgIAAL8BAAAAAAAAAAAAANkBAABIAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
-              "WhenOpened": "2025-08-30T17:02:17.513Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-30T17:02:17.513Z"
             },
             {
               "$type": "Document",
@@ -198,8 +193,7 @@
               "RelativeToolTip": "supabase\\migrations\\20250830120001_validation_functions_final_fix.sql",
               "ViewState": "AgIAAI8BAAAAAAAAAAAAAJ8BAAAyAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
-              "WhenOpened": "2025-08-30T16:59:24.181Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-30T16:59:24.181Z"
             },
             {
               "$type": "Document",
@@ -211,8 +205,7 @@
               "RelativeToolTip": "supabase\\migrations\\20250830120001_validation_functions_fixed.sql",
               "ViewState": "AgIAAJcBAAAAAAAAAAAAAKIBAAAeAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
-              "WhenOpened": "2025-08-30T16:54:03.27Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-30T16:54:03.27Z"
             },
             {
               "$type": "Document",
@@ -224,8 +217,7 @@
               "RelativeToolTip": "supabase\\migrations\\20250830120001_validation_functions.sql",
               "ViewState": "AgIAAMEBAAAAAAAAAAAAANMBAABnAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
-              "WhenOpened": "2025-08-30T16:50:31.437Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-30T16:50:31.437Z"
             },
             {
               "$type": "Document",
@@ -237,8 +229,7 @@
               "RelativeToolTip": "supabase\\migrations\\20250830120000_enhanced_ocr_invoice_system_fixed.sql",
               "ViewState": "AgIAAC4BAAAAAAAAAAAAAHgBAABZAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
-              "WhenOpened": "2025-08-30T16:50:03.154Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-30T16:50:03.154Z"
             },
             {
               "$type": "Document",
@@ -250,8 +241,7 @@
               "RelativeToolTip": "supabase\\migrations\\20250830120000_enhanced_ocr_invoice_system.sql",
               "ViewState": "AgIAANkAAAAAAAAAAAAAAPQAAAAXAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
-              "WhenOpened": "2025-08-30T16:46:25.954Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-30T16:46:25.954Z"
             },
             {
               "$type": "Document",
@@ -263,8 +253,7 @@
               "RelativeToolTip": "src\\components\\DashboardCalendar.tsx",
               "ViewState": "AgIAAJwAAAAAAAAAAAAAAB8AAAAEAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2025-08-24T17:42:33.952Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-08-24T17:42:33.952Z"
             },
             {
               "$type": "Document",

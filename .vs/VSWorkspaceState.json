@@ -1,8 +1,16 @@
 {
   "ExpandedNodes": [
     "",
-    "\\public",
-    "\\src"
+    "\\src",
+    "\\src\\components",
+    "\\src\\components\\employee",
+    "\\src\\components\\manager",
+    "\\src\\components\\marketing",
+    "\\src\\components\\material",
+    "\\src\\components\\mobile",
+    "\\src\\components\\projects",
+    "\\src\\components\\ui"
   ],
+  "SelectedNode": "\\vite.config.ts",
   "PreviewInSolutionExplorer": false
 }

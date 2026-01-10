@@ -19,6 +19,9 @@ export default {
 			}
 		},
 		extend: {
+			backdropBlur: {
+				xs: '2px',
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -74,6 +77,10 @@ export default {
 			boxShadow: {
 				soft: "0 10px 30px rgba(2,6,23,.06)",
 				softer: "0 6px 18px rgba(2,6,23,.05)",
+				'card-light': "0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06)",
+				'card-dark': "0 2px 8px rgba(0,0,0,.3), 0 1px 2px rgba(0,0,0,.4)",
+				'card-hover': "0 4px 12px rgba(0,0,0,.12), 0 2px 4px rgba(0,0,0,.08)",
+				'glass': "0 8px 32px rgba(0,0,0,.1)",
 			},
 			keyframes: {
 				'accordion-down': {

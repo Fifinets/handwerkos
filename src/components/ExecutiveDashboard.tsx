@@ -40,6 +40,7 @@ import {
 import { workflowService } from '@/services/WorkflowService';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { ProjectCostAnalysis } from './ProjectCostAnalysis';
 
 interface DashboardData {
   // Kritische Aufmerksamkeits-Items
@@ -297,13 +298,13 @@ const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ onNavigate }) =
   }
 
   return (
-    <div className="space-y-6 animate-fadeIn p-6 bg-gray-50 min-h-screen">
+    <div className="space-y-6 animate-fadeIn p-6 bg-background min-h-screen">
       {/* Dashboard Header */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+      <div className="enterprise-card p-8">
         <div className="flex items-center justify-between">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-600">Zentrale Übersicht Ihres Handwerksbetriebs</p>
+            <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-muted-foreground">Zentrale Übersicht Ihres Handwerksbetriebs</p>
           </div>
           
           {getCriticalAlertCount() > 0 && (
@@ -341,39 +342,42 @@ const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ onNavigate }) =
         />
       </KpiContainer>
 
+      {/* Projekt-Kostenanalyse - KRITISCH FÜR GESCHÄFTSFÜHRER */}
+      <ProjectCostAnalysis />
+
       {/* Dashboard Hauptbereich */}
       <div className="grid grid-cols-12 gap-6">
         {/* Linke Spalte - Dashboard Content */}
         <div className="col-span-8 space-y-6">
           {/* Finanzübersicht */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-            <div className="p-6 border-b border-gray-100">
-              <h2 className="text-xl font-semibold text-gray-900">Finanzübersicht</h2>
+          <div className="enterprise-card">
+            <div className="p-6 border-b border-border">
+              <h2 className="text-xl font-semibold text-foreground">Finanzübersicht</h2>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <div className="text-sm text-gray-600 mb-1">Umsatz</div>
+                  <div className="text-sm text-muted-foreground mb-1">Umsatz</div>
                   <div className="text-2xl font-bold text-green-600">{formatCurrency(dashboardData.financialKPIs.monthlyRevenue)}</div>
                 </div>
                 <div>
-                  <div className="text-sm text-gray-600 mb-1">Gewinn</div>
-                  <div className="text-2xl font-bold text-blue-600">{formatCurrency(dashboardData.financialKPIs.profit)}</div>
+                  <div className="text-sm text-muted-foreground mb-1">Gewinn</div>
+                  <div className="text-2xl font-bold text-primary">{formatCurrency(dashboardData.financialKPIs.profit)}</div>
                 </div>
               </div>
-              <div className="mt-6 p-4 bg-gray-50 rounded-xl">
+              <div className="mt-6 p-4 bg-muted/30 rounded-xl border border-border/40">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-700">Gewinnmarge</span>
-                  <span className="font-semibold text-gray-900">{dashboardData.financialKPIs.profitMargin}%</span>
+                  <span className="text-muted-foreground">Gewinnmarge</span>
+                  <span className="font-semibold text-foreground">{dashboardData.financialKPIs.profitMargin}%</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Schnellaktionen */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-            <div className="p-6 border-b border-gray-100">
-              <h2 className="text-xl font-semibold text-gray-900">Schnellaktionen</h2>
+          <div className="enterprise-card">
+            <div className="p-6 border-b border-border">
+              <h2 className="text-xl font-semibold text-foreground">Schnellaktionen</h2>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-2 gap-4">
@@ -400,57 +404,57 @@ const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ onNavigate }) =
         {/* Rechte Spalte - Dashboard Sidebar */}
         <div className="col-span-4 space-y-6">
           {/* Projektstatus */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Projektstatus</h3>
+          <div className="enterprise-card p-6">
+            <h3 className="font-semibold text-foreground mb-4">Projektstatus</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                  <span className="text-sm text-gray-700">Anfrage</span>
+                  <div className="w-2 h-2 rounded-full bg-primary"></div>
+                  <span className="text-sm text-muted-foreground">Anfrage</span>
                 </div>
-                <span className="text-sm font-medium">{dashboardData.projectStatus.planning}</span>
+                <span className="text-sm font-medium text-foreground">{dashboardData.projectStatus.planning}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                  <span className="text-sm text-gray-700">In Bearbeitung</span>
+                  <span className="text-sm text-muted-foreground">In Bearbeitung</span>
                 </div>
-                <span className="text-sm font-medium">{dashboardData.projectStatus.active}</span>
+                <span className="text-sm font-medium text-foreground">{dashboardData.projectStatus.active}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                  <span className="text-sm text-gray-700">Abgeschlossen</span>
+                  <div className="w-2 h-2 rounded-full bg-muted"></div>
+                  <span className="text-sm text-muted-foreground">Abgeschlossen</span>
                 </div>
-                <span className="text-sm font-medium">{dashboardData.projectStatus.completed}</span>
+                <span className="text-sm font-medium text-foreground">{dashboardData.projectStatus.completed}</span>
               </div>
             </div>
           </div>
 
           {/* Team Übersicht */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Team Übersicht</h3>
+          <div className="enterprise-card p-6">
+            <h3 className="font-semibold text-foreground mb-4">Team Übersicht</h3>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-gray-700">Aktive Mitarbeiter</span>
-                <span className="font-medium">{dashboardData.teamOverview.activeEmployees}</span>
+                <span className="text-muted-foreground">Aktive Mitarbeiter</span>
+                <span className="font-medium text-foreground">{dashboardData.teamOverview.activeEmployees}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-700">Stunden heute</span>
-                <span className="font-medium">{dashboardData.teamOverview.todayHours}h</span>
+                <span className="text-muted-foreground">Stunden heute</span>
+                <span className="font-medium text-foreground">{dashboardData.teamOverview.todayHours}h</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-700">Auslastung</span>
-                <span className="font-medium">{dashboardData.teamOverview.utilizationRate}%</span>
+                <span className="text-muted-foreground">Auslastung</span>
+                <span className="font-medium text-foreground">{dashboardData.teamOverview.utilizationRate}%</span>
               </div>
             </div>
           </div>
 
           {/* Heute / Termine */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Heute</h3>
+          <div className="enterprise-card p-6">
+            <h3 className="font-semibold text-foreground mb-4">Heute</h3>
             <div className="text-center py-4">
-              <p className="text-gray-500">Keine Termine für heute</p>
+              <p className="text-muted-foreground">Keine Termine für heute</p>
             </div>
           </div>
         </div>

@@ -101,8 +101,8 @@ export default function HandwerkerSoftware() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-foreground">
-      <header className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="relative overflow-hidden bg-gradient-to-br from-blue-50/50 via-indigo-50/30 to-purple-50/50 dark:from-background dark:via-background dark:to-background">
         <div className="absolute inset-0 -z-10">
           {/* Modern mesh gradient background */}
           <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-indigo-600/5 to-purple-600/10" />
@@ -125,10 +125,10 @@ export default function HandwerkerSoftware() {
           <div className="flex items-center gap-3">
             <CompactThemeToggle />
             <Link to="/login">
-              <Button variant="ghost" size="sm" className="hover:bg-white/80 dark:hover:bg-white/10">Anmelden</Button>
+              <Button variant="ghost" size="sm" className="hover:bg-accent">Anmelden</Button>
             </Link>
             <Link to="/login">
-              <Button size="sm" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg">
+              <Button size="sm" className="bg-primary hover:bg-primary/90 shadow-lg">
                 Kostenlos testen
               </Button>
             </Link>
@@ -139,22 +139,22 @@ export default function HandwerkerSoftware() {
         <section aria-labelledby="hero" className="relative z-10 container py-12 md:py-20">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
-              <div className="inline-flex items-center rounded-full bg-white/80 backdrop-blur-sm px-4 py-2 shadow-sm border">
-                <span className="text-sm font-medium text-blue-600">🚀 Moderne Handwerkersoftware</span>
+              <div className="inline-flex items-center rounded-full bg-card/80 backdrop-blur-sm px-4 py-2 shadow-sm border border-border">
+                <span className="text-sm font-medium text-primary">🚀 Moderne Handwerkersoftware</span>
               </div>
               <h1 id="hero" className="text-5xl md:text-7xl font-bold tracking-tight leading-none">
                 <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
                   Handwerk
                 </span>
                 <br />
-                <span className="text-slate-900">neu gedacht</span>
+                <span className="text-foreground">neu gedacht</span>
               </h1>
-              <p className="text-xl text-slate-600 leading-relaxed max-w-lg">
+              <p className="text-xl text-muted-foreground leading-relaxed max-w-lg">
                 Die All-in-One Software für moderne Handwerksbetriebe. Projekte verwalten, Zeiten erfassen, Rechnungen erstellen – alles in einer Plattform.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link to="/login">
-                  <Button size="lg" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl text-lg px-8 py-4 h-auto">
+                  <Button size="lg" className="bg-primary hover:bg-primary/90 shadow-xl text-lg px-8 py-4 h-auto">
                     Jetzt kostenlos starten
                     <svg className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
@@ -162,14 +162,14 @@ export default function HandwerkerSoftware() {
                   </Button>
                 </Link>
                 <a href="#funktionen" className="inline-flex">
-                  <Button variant="outline" size="lg" className="text-lg px-8 py-4 h-auto border-2 hover:bg-white/80 backdrop-blur-sm">
+                  <Button variant="outline" size="lg" className="text-lg px-8 py-4 h-auto border-2 hover:bg-accent backdrop-blur-sm">
                     Demo ansehen
                   </Button>
                 </a>
               </div>
-              
+
               {/* Trust indicators */}
-              <div className="flex items-center gap-6 text-sm text-slate-500 pt-4">
+              <div className="flex items-center gap-6 text-sm text-muted-foreground pt-4">
                 <div className="flex items-center gap-2">
                   <svg className="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -193,19 +193,19 @@ export default function HandwerkerSoftware() {
             
             {/* Modern Hero Showcase */}
             <div className="relative">
-              <div className="absolute -top-8 -left-8 h-72 w-72 rounded-full bg-gradient-to-r from-blue-200/40 to-indigo-200/40 blur-3xl" />
-              <div className="absolute -bottom-8 -right-8 h-80 w-80 rounded-full bg-gradient-to-r from-indigo-200/30 to-purple-200/30 blur-3xl" />
-              
-              <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/20">
+              <div className="absolute -top-8 -left-8 h-72 w-72 rounded-full bg-gradient-to-r from-blue-400/20 to-indigo-400/20 blur-3xl" />
+              <div className="absolute -bottom-8 -right-8 h-80 w-80 rounded-full bg-gradient-to-r from-indigo-400/15 to-purple-400/15 blur-3xl" />
+
+              <div className="relative glass-card p-8 shadow-2xl">
                 <div className="space-y-4">
-                  <div className="h-4 bg-gradient-to-r from-blue-200 to-indigo-200 rounded-full w-3/4"></div>
-                  <div className="h-4 bg-gradient-to-r from-indigo-200 to-purple-200 rounded-full w-1/2"></div>
-                  <div className="h-32 bg-gradient-to-br from-slate-100 to-slate-200 rounded-lg flex items-center justify-center">
-                    <div className="text-slate-400 text-sm">HandwerkOS Dashboard</div>
+                  <div className="h-4 bg-gradient-to-r from-primary/40 to-primary/60 rounded-full w-3/4"></div>
+                  <div className="h-4 bg-gradient-to-r from-primary/30 to-primary/50 rounded-full w-1/2"></div>
+                  <div className="h-32 bg-muted rounded-lg flex items-center justify-center">
+                    <div className="text-muted-foreground text-sm">HandwerkOS Dashboard</div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="h-16 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg"></div>
-                    <div className="h-16 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-lg"></div>
+                    <div className="h-16 bg-gradient-to-r from-primary/20 to-primary/30 rounded-lg"></div>
+                    <div className="h-16 bg-gradient-to-r from-primary/15 to-primary/25 rounded-lg"></div>
                   </div>
                 </div>
               </div>
@@ -221,7 +221,7 @@ export default function HandwerkerSoftware() {
         </section>
 
         {/* Module Section with background */}
-        <section id="module" className="bg-slate-50 dark:bg-slate-800/50 py-16 md:py-24">
+        <section id="module" className="bg-muted/30 py-16 md:py-24">
           <div className="container">
             <ModuleShowcase />
           </div>
@@ -233,7 +233,7 @@ export default function HandwerkerSoftware() {
         </section>
 
         {/* Testimonials Section with gradient background */}
-        <section id="kundenstimmen" className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-slate-800/30 dark:to-slate-700/30 py-16 md:py-24">
+        <section id="kundenstimmen" className="bg-muted/20 py-16 md:py-24">
           <div className="container">
             <Testimonials />
           </div>
@@ -249,65 +249,65 @@ export default function HandwerkerSoftware() {
           <FinalCTA />
         </section>
       </main>
-      <footer className="bg-slate-900 dark:bg-slate-950 text-white mt-24">
+      <footer className="bg-card border-t border-border mt-24">
         <div className="container py-12">
           <div className="grid md:grid-cols-4 gap-8">
             {/* Brand section */}
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">H</span>
+                <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                  <span className="text-primary-foreground font-bold text-sm">H</span>
                 </div>
-                <span className="font-bold text-xl">HandwerkOS</span>
+                <span className="font-bold text-xl text-foreground">HandwerkOS</span>
               </div>
-              <p className="text-slate-300 text-sm leading-relaxed">
-                Die moderne Software-Lösung für Handwerksbetriebe. 
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Die moderne Software-Lösung für Handwerksbetriebe.
                 Einfach, intuitiv und speziell für deutsche Handwerker entwickelt.
               </p>
             </div>
-            
+
             {/* Product links */}
             <div className="space-y-4">
-              <h4 className="font-semibold text-white">Produkt</h4>
-              <ul className="space-y-2 text-sm text-slate-300">
-                <li><a href="#funktionen" className="hover:text-white transition-colors">Funktionen</a></li>
-                <li><a href="#module" className="hover:text-white transition-colors">Module</a></li>
-                <li><a href="#faq" className="hover:text-white transition-colors">FAQ</a></li>
-                <li><Link to="/login" className="hover:text-white transition-colors">Kostenlos testen</Link></li>
+              <h4 className="font-semibold text-foreground">Produkt</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><a href="#funktionen" className="hover:text-foreground transition-colors">Funktionen</a></li>
+                <li><a href="#module" className="hover:text-foreground transition-colors">Module</a></li>
+                <li><a href="#faq" className="hover:text-foreground transition-colors">FAQ</a></li>
+                <li><Link to="/login" className="hover:text-foreground transition-colors">Kostenlos testen</Link></li>
               </ul>
             </div>
-            
+
             {/* Company links */}
             <div className="space-y-4">
-              <h4 className="font-semibold text-white">Unternehmen</h4>
-              <ul className="space-y-2 text-sm text-slate-300">
-                <li><a href="#" className="hover:text-white transition-colors">Über uns</a></li>
-                <li><a href="#kundenstimmen" className="hover:text-white transition-colors">Referenzen</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Karriere</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Kontakt</a></li>
+              <h4 className="font-semibold text-foreground">Unternehmen</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><a href="#" className="hover:text-foreground transition-colors">Über uns</a></li>
+                <li><a href="#kundenstimmen" className="hover:text-foreground transition-colors">Referenzen</a></li>
+                <li><a href="#" className="hover:text-foreground transition-colors">Karriere</a></li>
+                <li><a href="#" className="hover:text-foreground transition-colors">Kontakt</a></li>
               </ul>
             </div>
-            
+
             {/* Legal links */}
             <div className="space-y-4">
-              <h4 className="font-semibold text-white">Rechtliches</h4>
-              <ul className="space-y-2 text-sm text-slate-300">
-                <li><Link to="/privacy" className="hover:text-white transition-colors">Datenschutz</Link></li>
-                <li><a href="#" className="hover:text-white transition-colors">Impressum</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">AGB</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">DSGVO</a></li>
+              <h4 className="font-semibold text-foreground">Rechtliches</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link to="/privacy" className="hover:text-foreground transition-colors">Datenschutz</Link></li>
+                <li><a href="#" className="hover:text-foreground transition-colors">Impressum</a></li>
+                <li><a href="#" className="hover:text-foreground transition-colors">AGB</a></li>
+                <li><a href="#" className="hover:text-foreground transition-colors">DSGVO</a></li>
               </ul>
             </div>
           </div>
           
           {/* Bottom section */}
-          <div className="border-t border-slate-800 mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-6 text-sm text-slate-400">
+          <div className="border-t border-border mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <p>© {new Date().getFullYear()} HandwerkOS GmbH. Alle Rechte vorbehalten.</p>
             </div>
-            
+
             {/* Trust indicators */}
-            <div className="flex items-center gap-4 text-xs text-slate-400">
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 <svg className="h-4 w-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />

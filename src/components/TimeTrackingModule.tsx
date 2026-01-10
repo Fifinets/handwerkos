@@ -775,7 +775,7 @@ const TimeTrackingModule: React.FC = () => {
   return <div className="p-4 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Zeiterfassung</h1>
+        <h1 className="text-4xl font-bold text-foreground">Zeiterfassung</h1>
         <div className="flex items-center gap-4">
           {userRole === 'manager' && <Button 
               variant="outline" 

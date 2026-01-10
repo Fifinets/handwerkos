@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dark Mode Debug Tool</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #fff; }
+        button { padding: 10px 20px; margin: 10px 5px; font-size: 16px; cursor: pointer; }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .info { color: #60a5fa; }
+        code { background: #333; padding: 2px 6px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Dark Mode Debug Tool</h1>
+    <p>Öffne <code>http://localhost:8080</code> in einem anderen Tab, dann nutze diese Buttons:</p>
+
+    <div>
+        <button onclick="checkDarkMode()">✓ Check Dark Mode Status</button>
+        <button onclick="enableDarkMode()">🌙 Dark Mode aktivieren</button>
+        <button onclick="disableDarkMode()">☀️ Light Mode aktivieren</button>
+        <button onclick="clearStorage()">🗑️ LocalStorage leeren</button>
+    </div>
+
+    <div id="output" style="margin-top: 20px; white-space: pre-wrap;"></div>
+
+    <script>
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+            output.innerHTML += `<div class="${className}">${message}</div>`;
+        }
+
+        function clearOutput() {
+            document.getElementById('output').innerHTML = '';
+        }
+
+        function checkDarkMode() {
+            clearOutput();
+            log('=== Dark Mode Status Check ===\n', 'info');
+
+            // Check localStorage
+            const stored = localStorage.getItem('handwerkos-theme');
+            log(`📦 localStorage['handwerkos-theme']: ${stored || 'nicht gesetzt'}`, stored === 'dark' ? 'success' : 'error');
+
+            // Check html class
+            const hasDarkClass = document.documentElement.classList.contains('dark');
+            log(`🏷️  HTML hat 'dark' class: ${hasDarkClass}`, hasDarkClass ? 'success' : 'error');
+
+            // Check computed background color
+            const bg = getComputedStyle(document.body).backgroundColor;
+            log(`🎨 Body background-color: ${bg}`, 'info');
+
+            // Check CSS variable
+            const bgVar = getComputedStyle(document.documentElement).getPropertyValue('--background');
+            log(`🎨 CSS Variable --background: ${bgVar || 'nicht gesetzt'}`, 'info');
+
+            log('\n✅ Wenn Dark Mode aktiv sein sollte, muss:', 'info');
+            log('   • localStorage = "dark"', 'info');
+            log('   • HTML hat "dark" class', 'info');
+            log('   • --background sollte "222 47% 8%" sein', 'info');
+        }
+
+        function enableDarkMode() {
+            clearOutput();
+            localStorage.setItem('handwerkos-theme', 'dark');
+            document.documentElement.classList.remove('light');
+            document.documentElement.classList.add('dark');
+            log('✅ Dark Mode wurde aktiviert!', 'success');
+            log('🔄 Lade die Hauptseite neu (F5) um die Änderungen zu sehen.', 'info');
+        }
+
+        function disableDarkMode() {
+            clearOutput();
+            localStorage.setItem('handwerkos-theme', 'light');
+            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
+            log('✅ Light Mode wurde aktiviert!', 'success');
+            log('🔄 Lade die Hauptseite neu (F5) um die Änderungen zu sehen.', 'info');
+        }
+
+        function clearStorage() {
+            clearOutput();
+            localStorage.removeItem('handwerkos-theme');
+            log('✅ LocalStorage wurde geleert!', 'success');
+            log('🔄 Lade die Hauptseite neu (F5).', 'info');
+        }
+
+        // Auto-check on load
+        window.onload = () => {
+            setTimeout(checkDarkMode, 500);
+        };
+    </script>
+</body>
+</html>

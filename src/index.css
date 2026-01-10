@@ -111,52 +111,52 @@ All colors MUST be HSL.
   }
 
   .dark {
-    /* Modern dark background with subtle blue tint */
-    --background: 222 47% 4%;
-    --foreground: 213 31% 91%;
+    /* Enterprise-grade soft dark background (dark blue/graphite, not pure black) */
+    --background: 222 47% 8%;
+    --foreground: 220 14% 96%;
 
-    /* Cards with elevated feel */
-    --card: 222 47% 5%;
-    --card-foreground: 213 31% 91%;
+    /* Cards with subtle elevation and glassmorphism */
+    --card: 222 40% 11%;
+    --card-foreground: 220 14% 98%;
 
     /* Popovers with better contrast */
-    --popover: 222 47% 6%;
-    --popover-foreground: 213 31% 91%;
+    --popover: 222 40% 12%;
+    --popover-foreground: 220 14% 98%;
 
-    /* Modern blue primary for dark theme */
-    --primary: 214 78% 60%;
-    --primary-foreground: 222 47% 4%;
+    /* Primary blue accent - calm and professional */
+    --primary: 214 88% 55%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Subtle secondary colors */
-    --secondary: 217 19% 12%;
-    --secondary-foreground: 213 31% 91%;
+    /* Subtle secondary colors for hierarchy */
+    --secondary: 217 25% 15%;
+    --secondary-foreground: 220 14% 96%;
 
-    /* Muted elements with better hierarchy */
-    --muted: 217 19% 12%;
-    --muted-foreground: 215 15% 60%;
+    /* Muted elements with clear hierarchy */
+    --muted: 217 25% 16%;
+    --muted-foreground: 215 14% 70%;
 
     /* Accent color for interactive elements */
-    --accent: 217 19% 14%;
-    --accent-foreground: 213 31% 91%;
+    --accent: 217 25% 17%;
+    --accent-foreground: 220 14% 98%;
 
     /* Destructive with appropriate contrast */
-    --destructive: 0 75% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 58%;
+    --destructive-foreground: 0 0% 100%;
 
-    /* Borders and inputs with subtle definition */
-    --border: 217 19% 12%;
-    --input: 217 19% 14%;
-    --ring: 214 78% 60%;
+    /* Borders and inputs with better contrast - mehr sichtbar */
+    --border: 217 25% 25%;
+    --input: 217 25% 22%;
+    --ring: 214 88% 55%;
 
-    /* Sidebar with distinct dark theme */
-    --sidebar-background: 222 47% 3%;
-    --sidebar-foreground: 213 31% 80%;
-    --sidebar-primary: 214 78% 60%;
-    --sidebar-primary-foreground: 222 47% 4%;
-    --sidebar-accent: 217 19% 8%;
-    --sidebar-accent-foreground: 213 31% 91%;
-    --sidebar-border: 217 19% 8%;
-    --sidebar-ring: 214 78% 60%;
+    /* Sidebar with distinct elevated feel */
+    --sidebar-background: 222 47% 7%;
+    --sidebar-foreground: 220 14% 90%;
+    --sidebar-primary: 214 88% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 25% 14%;
+    --sidebar-accent-foreground: 220 14% 96%;
+    --sidebar-border: 217 25% 22%;
+    --sidebar-ring: 214 88% 55%;
   }
 }
 
@@ -179,11 +179,6 @@ All colors MUST be HSL.
   #root {
     margin: 0;
     padding: 0;
-  }
-  
-  /* Force light theme styles */
-  .dark {
-    display: none !important;
   }
 }
 
@@ -215,8 +210,32 @@ All colors MUST be HSL.
   }
 }
 
-/* sanfter Seitenverlauf + softer Schatten */
-.shadow-soft { box-shadow: 0 10px 30px rgba(2,6,23,.06); }     /* Karten */
-.shadow-softer { box-shadow: 0 6px 18px rgba(2,6,23,.05); }    /* kleine Elemente */
-.badge-pill { @apply inline-flex items-center rounded-full border px-2.5 py-1 text-xs; }
-.kpi-card  { @apply bg-card border rounded-lg px-4 py-3 flex items-center justify-between; }
+/* Enterprise-grade glassmorphism & card styles */
+.glass-card {
+  @apply bg-card/80 backdrop-blur-sm border border-border/50 rounded-xl shadow-glass;
+}
+
+.glass-card-hover {
+  @apply glass-card transition-all duration-300 hover:shadow-card-hover hover:bg-card/90;
+}
+
+.enterprise-card {
+  @apply bg-card border border-border/60 rounded-xl shadow-card-light dark:shadow-card-dark p-6 transition-all duration-200;
+}
+
+.enterprise-card-hover {
+  @apply enterprise-card hover:shadow-card-hover hover:border-border/80 cursor-pointer;
+}
+
+/* Soft shadows for different contexts */
+.shadow-soft { box-shadow: 0 10px 30px rgba(2,6,23,.06); }
+.shadow-softer { box-shadow: 0 6px 18px rgba(2,6,23,.05); }
+
+/* Badge & utility styles */
+.badge-pill {
+  @apply inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium;
+}
+
+.kpi-card {
+  @apply enterprise-card flex items-center justify-between;
+}
