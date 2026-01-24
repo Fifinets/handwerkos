@@ -4,14 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import {
-  Clock,
-  Package,
-  MapPin,
-  Map,
-  Camera,
+import { 
+  Clock, 
+  Package, 
+  MapPin, 
+  Camera, 
   CheckCircle,
   Play,
   Pause,
@@ -22,10 +20,9 @@ import {
   Battery,
   Signal,
   Home,
-  FileText,
+  List,
   User,
   Bell,
-  Settings,
   Settings as SettingsIcon,
   Upload,
   MessageSquare,
@@ -33,24 +30,13 @@ import {
   Receipt,
   Plus,
   X,
-  Calendar,
-  Building,
-  AlertTriangle
+  Calendar
 } from "lucide-react";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import MobileOnboarding from "./MobileOnboarding";
 import { VacationRequestDialog } from "../VacationRequestDialog";
-// import MapView from "../MapView";
-import { StatusBar, Style } from '@capacitor/status-bar';
-import { Capacitor } from '@capacitor/core';
-import { TodayScreen } from '../mobile/TodayScreen';
-import { TodayScreenTabs } from '../mobile/TodayScreenTabs';
-import MobileMaterialRecorder from '../mobile/MobileMaterialRecorder';
-import { useTimeTracking } from "@/hooks/useTimeTracking";
-import { useMaterials } from "@/hooks/useMaterials";
-import { InfoView } from './InfoView';
-import { Camera as CapacitorCamera, CameraResultType } from '@capacitor/camera';
 
 interface Project {
   id: string;
@@ -101,11 +87,9 @@ interface ProjectComment {
 const MobileEmployeeApp: React.FC = () => {
   const { user, userRole } = useSupabaseAuth();
   const { toast } = useToast();
-  const { activeTime } = useTimeTracking();
-  const { getProjectMaterialUsage } = useMaterials();
   
-  // State Management - Classic 5-tab navigation
-  const [currentView, setCurrentView] = useState<'home' | 'docs' | 'time' | 'signature' | 'profile'>('home');
+  // State Management
+  const [currentView, setCurrentView] = useState<'home' | 'projects' | 'time' | 'activity' | 'profile' | 'vacation'>('home');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, address: string} | null>(null);
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
@@ -133,20 +117,6 @@ const MobileEmployeeApp: React.FC = () => {
   const [isFirstVisit, setIsFirstVisit] = useState(true);
   const [showVacationDialog, setShowVacationDialog] = useState(false);
   const [vacationBalance, setVacationBalance] = useState({ available: 0, total: 0 });
-  const [nearByProjects, setNearByProjects] = useState<string[]>([]);
-  const [safeAreaInsets, setSafeAreaInsets] = useState({ top: 0, bottom: 0 });
-  const [showMaterialDialog, setShowMaterialDialog] = useState(false);
-  const [projectMaterialUsage, setProjectMaterialUsage] = useState<any[]>([]);
-  const [loadingMaterials, setLoadingMaterials] = useState(false);
-
-  // Documentation dialogs
-  const [showQuickDocDialog, setShowQuickDocDialog] = useState(false);
-  const [showWorkDocDialog, setShowWorkDocDialog] = useState(false);
-  const [showProblemDialog, setShowProblemDialog] = useState(false);
-  const [quickDocPhoto, setQuickDocPhoto] = useState<string | null>(null);
-  const [quickDocDescription, setQuickDocDescription] = useState('');
-  const [problemDescription, setProblemDescription] = useState('');
-  const [workTemplate, setWorkTemplate] = useState('');
 
   // Quick Actions State
   const [quickMaterialEntry, setQuickMaterialEntry] = useState({
@@ -157,32 +127,6 @@ const MobileEmployeeApp: React.FC = () => {
   });
 
   // Effects
-  // Configure status bar and safe areas for fullscreen display
-  useEffect(() => {
-    const configureStatusBar = async () => {
-      try {
-        await StatusBar.setStyle({ style: Style.Dark });
-        await StatusBar.setOverlaysWebView({ overlay: false });
-        await StatusBar.show();
-        
-        // Get safe area insets using CSS environment variables
-        if (Capacitor.isNativePlatform()) {
-          // Use CSS env() variables for safe areas
-          const top = parseInt(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-top)') || '44');
-          const bottom = parseInt(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-bottom)') || '34');
-          setSafeAreaInsets({ top: isNaN(top) ? 44 : top, bottom: isNaN(bottom) ? 34 : bottom });
-        }
-      } catch (error) {
-        console.log('StatusBar or SafeArea not available:', error);
-        // Fallback safe area values
-        if (Capacitor.isNativePlatform()) {
-          setSafeAreaInsets({ top: 44, bottom: 34 });
-        }
-      }
-    };
-    configureStatusBar();
-  }, []);
-
   useEffect(() => {
     // Network status monitoring
     const handleOnline = () => {
@@ -214,21 +158,18 @@ const MobileEmployeeApp: React.FC = () => {
     // Load vacation balance
     loadVacationBalance();
 
-    // Onboarding removed - not needed
-    setIsFirstVisit(false);
+    // Check if first visit
+    const hasSeenOnboarding = localStorage.getItem('handwerkos-onboarding-completed');
+    if (!hasSeenOnboarding) {
+      setShowOnboarding(true);
+    } else {
+      setIsFirstVisit(false);
+    }
 
     // Check for active time entry in localStorage
     const storedActiveEntry = localStorage.getItem('activeTimeEntry');
     if (storedActiveEntry) {
-      const parsed = JSON.parse(storedActiveEntry);
-      // Convert string dates back to Date objects
-      if (parsed.startTime) {
-        parsed.startTime = new Date(parsed.startTime);
-      }
-      if (parsed.endTime) {
-        parsed.endTime = new Date(parsed.endTime);
-      }
-      setActiveTimeEntry(parsed);
+      setActiveTimeEntry(JSON.parse(storedActiveEntry));
     }
 
     return () => {
@@ -238,35 +179,6 @@ const MobileEmployeeApp: React.FC = () => {
       stopCamera();
     };
   }, []);
-
-  // Load material usage when active project changes
-  useEffect(() => {
-    const currentProjectId = activeTime?.segment?.project_id ||
-                           (assignedProjects.length > 0 ? assignedProjects[0].id : null);
-
-    if (currentProjectId) {
-      loadProjectMaterialUsage(currentProjectId);
-    }
-  }, [activeTime?.segment?.project_id, assignedProjects, getProjectMaterialUsage]);
-
-  // Load material usage for current project
-  const loadProjectMaterialUsage = async (projectId: string) => {
-    if (!projectId) {
-      setProjectMaterialUsage([]);
-      return;
-    }
-
-    try {
-      setLoadingMaterials(true);
-      const usage = await getProjectMaterialUsage(projectId);
-      setProjectMaterialUsage(usage || []);
-    } catch (error) {
-      console.error('Error loading project material usage:', error);
-      setProjectMaterialUsage([]);
-    } finally {
-      setLoadingMaterials(false);
-    }
-  };
 
   // Geolocation functions
   const getCurrentLocation = () => {
@@ -414,28 +326,12 @@ const MobileEmployeeApp: React.FC = () => {
 
   // Project management
   const fetchAssignedProjects = async () => {
-    // Add fallback if user is not loaded yet
-    if (!user || !user.id) {
-      // Load mock project for testing
-      const mockProjects: Project[] = [
-        {
-          id: 'mock-1',
-          name: 'Baustelle Musterstraße',
-          status: 'aktiv',
-          location: 'Musterstraße 123, Berlin',
-          priority: 'normal',
-          assignedTo: ['mock-user'],
-          deadline: null
-        }
-      ];
-      setAssignedProjects(mockProjects);
-      return;
-    }
+    if (!user?.id) return;
     
     try {
       // Fetch projects where the current user is assigned
       const { data: teamAssignments, error } = await supabase
-        .from('project_team_members')
+        .from('project_team_assignments')
         .select(`
           project_id,
           projects:project_id (
@@ -444,7 +340,7 @@ const MobileEmployeeApp: React.FC = () => {
             status,
             location,
             start_date,
-            end_date
+            end_date,
             priority
           )
         `)
@@ -453,19 +349,11 @@ const MobileEmployeeApp: React.FC = () => {
 
       if (error) {
         console.error('Error fetching assigned projects:', error);
-        // Add mock project for testing when database fails
-        const mockProjects: Project[] = [
-          {
-            id: 'mock-1',
-            name: 'Baustelle Musterstraße',
-            status: 'aktiv',
-            location: 'Musterstraße 123, Berlin',
-            priority: 'normal',
-            assignedTo: [user?.id || 'mock-user'],
-            deadline: null
-          }
-        ];
-        setAssignedProjects(mockProjects);
+        toast({
+          title: "Fehler",
+          description: "Projekte konnten nicht geladen werden",
+          variant: "destructive"
+        });
         return;
       }
 
@@ -475,28 +363,10 @@ const MobileEmployeeApp: React.FC = () => {
         name: assignment.projects.name,
         status: assignment.projects.status || 'in_bearbeitung',
         location: assignment.projects.location || 'Nicht angegeben',
-        priority: 'normal',
-        assignedTo: [user?.id || 'mock-user'],
+        priority: assignment.projects.priority || 'normal',
+        assignedTo: [user.id],
         deadline: assignment.projects.end_date
       })) || [];
-
-      // If no projects from database, add mock project
-      if (projects.length === 0) {
-        const mockProjects: Project[] = [
-          {
-            id: 'mock-1',
-            name: 'Baustelle Musterstraße', 
-            status: 'aktiv',
-            location: 'Musterstraße 123, Berlin',
-            priority: 'normal',
-            assignedTo: [user?.id || 'mock-user'],
-            deadline: null
-          }
-        ];
-        setAssignedProjects(mockProjects);
-        setNotifications(0);
-        return;
-      }
 
       setAssignedProjects(projects);
       setNotifications(projects.filter(p => p.priority === 'urgent').length);
@@ -509,55 +379,21 @@ const MobileEmployeeApp: React.FC = () => {
   // Camera and photo functions
   const startCamera = async () => {
     try {
-      // First check if mediaDevices is available
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Camera API not available');
-      }
-
-      // Request camera permission with better constraints
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          facingMode: 'environment',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        },
-        audio: false
+        video: { facingMode: 'environment' }
       });
-      
-      setShowCamera(true);
-      
-      // Wait for the next tick to ensure video element is rendered
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play().catch(err => {
-            console.error('Error playing video:', err);
-          });
-        }
-      }, 100);
-      
-    } catch (error: any) {
-      console.error('Error accessing camera:', error);
-      
-      let errorMessage = "Kamera konnte nicht gestartet werden";
-      
-      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-        errorMessage = "Kamera-Zugriff wurde verweigert. Bitte erlauben Sie den Kamera-Zugriff in den Browser-Einstellungen.";
-      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-        errorMessage = "Keine Kamera gefunden. Bitte stellen Sie sicher, dass eine Kamera angeschlossen ist.";
-      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-        errorMessage = "Kamera wird bereits von einer anderen Anwendung verwendet.";
-      } else if (!navigator.mediaDevices) {
-        errorMessage = "Ihr Browser unterstützt keine Kamera-Funktionen. Bitte verwenden Sie einen modernen Browser.";
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
       }
-      
+      setShowCamera(true);
+    } catch (error) {
+      console.error('Error accessing camera:', error);
       toast({
         title: "Kamera Fehler",
-        description: errorMessage,
+        description: "Kamera konnte nicht gestartet werden",
         variant: "destructive"
       });
-      
-      setShowCamera(false);
     }
   };
 
@@ -652,40 +488,7 @@ const MobileEmployeeApp: React.FC = () => {
 
       if (uploadError) throw uploadError;
 
-      // Start OCR processing for the receipt
-      let ocrResult = null;
-      try {
-        // Convert file to base64 for OCR processing
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-
-        // Basic OCR processing - you can extend this with your OCR service
-        ocrResult = {
-          status: 'processed',
-          confidence: 0.85,
-          extracted_text: 'OCR processing completed',
-          processed_at: new Date().toISOString(),
-          file_type: file.type,
-          structured_data: {
-            amount: parseFloat(receiptAmount) || 0,
-            description: receiptDescription,
-            filename: fileName
-          }
-        };
-      } catch (ocrError) {
-        console.warn('OCR processing failed:', ocrError);
-        ocrResult = {
-          status: 'failed',
-          error: 'OCR processing failed',
-          processed_at: new Date().toISOString()
-        };
-      }
-
-      // Save receipt record to database with OCR result and validation status
+      // Save receipt record to database
       const { data, error } = await supabase
         .from('project_documents')
         .insert({
@@ -694,12 +497,9 @@ const MobileEmployeeApp: React.FC = () => {
           document_type: 'receipt',
           file_url: uploadData.path,
           created_by: user?.id,
-          validation_status: 'submitted', // Default status for new receipts
-          ocr_result: ocrResult,
           metadata: {
             amount: parseFloat(receiptAmount) || 0,
-            description: receiptDescription,
-            upload_type: 'mobile_employee'
+            description: receiptDescription
           }
         });
 
@@ -721,8 +521,8 @@ const MobileEmployeeApp: React.FC = () => {
       setShowReceiptDialog(false);
 
       toast({
-        title: "Rechnung eingereicht",
-        description: "Rechnung wurde zur Manager-Validierung eingereicht und wartet auf Genehmigung."
+        title: "Rechnung hochgeladen",
+        description: "Rechnung wurde erfolgreich gespeichert"
       });
     } catch (error) {
       console.error('Error uploading receipt:', error);
@@ -824,14 +624,7 @@ const MobileEmployeeApp: React.FC = () => {
       setActiveTimeEntry(null);
       localStorage.removeItem('activeTimeEntry');
       
-      const endTime = completedEntry.endTime instanceof Date 
-        ? completedEntry.endTime 
-        : new Date(completedEntry.endTime!);
-      const startTime = completedEntry.startTime instanceof Date 
-        ? completedEntry.startTime 
-        : new Date(completedEntry.startTime);
-      
-      const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+      const duration = Math.round((completedEntry.endTime!.getTime() - completedEntry.startTime.getTime()) / (1000 * 60));
       
       toast({
         title: "Zeiterfassung beendet",
@@ -1005,18 +798,23 @@ const MobileEmployeeApp: React.FC = () => {
     }
   };
 
-  // Onboarding functions removed - not needed
+  const completeOnboarding = () => {
+    localStorage.setItem('handwerkos-onboarding-completed', 'true');
+    setShowOnboarding(false);
+    setIsFirstVisit(false);
+  };
+
+  const skipOnboarding = () => {
+    localStorage.setItem('handwerkos-onboarding-completed', 'true');
+    setShowOnboarding(false);
+    setIsFirstVisit(false);
+  };
 
   const getActiveTime = () => {
-    if (!activeTimeEntry || !activeTimeEntry.startTime) return '00:00:00';
+    if (!activeTimeEntry) return '00:00:00';
     
     const now = new Date();
-    // Ensure startTime is a Date object
-    const startTime = activeTimeEntry.startTime instanceof Date 
-      ? activeTimeEntry.startTime 
-      : new Date(activeTimeEntry.startTime);
-    
-    const diff = now.getTime() - startTime.getTime();
+    const diff = now.getTime() - activeTimeEntry.startTime.getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
@@ -1024,152 +822,86 @@ const MobileEmployeeApp: React.FC = () => {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  // Map-First Render Functions (Apple Find My Style)  
-  const renderMapView = () => {
-    // Convert assigned projects to map points with coordinates
-    const projectSites = assignedProjects.map(project => ({
-      id: project.id,
-      name: project.name,
-      lat: 52.520008 + Math.random() * 0.01, // Mock coordinates around Berlin
-      lng: 13.404954 + Math.random() * 0.01, // In real app, get from project.coordinates
-      address: project.location
-    }));
-
-    return (
-      <div className="flex flex-col h-full">
-        {/* Map Container */}
-        <div className="flex-1">
-          <div className="flex items-center justify-center h-full p-4">
-            <div className="text-center">
-              <p className="text-gray-500 mb-2">Kartenansicht vorübergehend nicht verfügbar</p>
-              <p className="text-sm text-gray-400">Bitte verwenden Sie die anderen Tabs</p>
+  // Render functions for different views
+  const renderHomeView = () => (
+    <div className="space-y-4">
+      {/* Status Bar */}
+      <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+        <CardContent className="p-4">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h3 className="font-semibold">Willkommen zurück!</h3>
+              <p className="text-blue-100 text-sm">{user?.email}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <Signal className="h-4 w-4" />
+                <span className="text-xs">4G</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Battery className="h-4 w-4" />
+                <span className="text-xs">{batteryLevel}%</span>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Map-based Time Tracking View (only tab with map access)
-  const renderTimeMapView = () => {
-    // Convert assigned projects to map points with coordinates  
-    const projectSites = assignedProjects.map(project => ({
-      id: project.id,
-      name: project.name,
-      lat: 52.520008 + Math.random() * 0.01, // Mock coordinates around Berlin
-      lng: 13.404954 + Math.random() * 0.01, // In real app, get from project.coordinates
-      address: project.location
-    }));
-
-    return (
-      <div className="flex flex-col h-full">
-        <div className="flex-1">
-          <div className="flex items-center justify-center h-full p-4">
-            <div className="text-center">
-              <p className="text-gray-500 mb-2">Kartenansicht vorübergehend nicht verfügbar</p>
-              <p className="text-sm text-gray-400">Bitte verwenden Sie die anderen Tabs</p>
-            </div>
-          </div>
-        </div>
-        
-        {/* Time Tracking Bottom Sheet */}
-        <div className="bg-white border-t rounded-t-xl p-4 max-h-60 overflow-y-auto">
-          <h3 className="font-semibold mb-3 flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Zeiterfassung
-          </h3>
           
-          {/* Project Info */}
-          {assignedProjects.length > 0 ? (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-              <div className="flex items-center gap-2 mb-1">
-                <MapPin className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium">{assignedProjects[0].name}</span>
-              </div>
-              <div className="text-xs text-gray-600">{assignedProjects[0].location}</div>
-              
-              {nearByProjects.length > 0 && (
-                <div className="mt-2 text-xs text-green-600 font-medium">
-                  ✅ In Reichweite - Einstempeln möglich
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-gray-400" />
-                <span className="text-sm text-gray-500">Kein Projekt vorhanden</span>
-              </div>
+          <div className="flex items-center gap-2 mb-2">
+            {isOnline ? (
+              <><Wifi className="h-4 w-4" /><span className="text-sm">Online</span></>
+            ) : (
+              <><WifiOff className="h-4 w-4" /><span className="text-sm">Offline</span></>
+            )}
+          </div>
+          
+          {currentLocation && (
+            <div className="flex items-center gap-2 text-sm">
+              <MapPin className="h-4 w-4" />
+              <span className="truncate">{currentLocation.address}</span>
             </div>
           )}
+        </CardContent>
+      </Card>
 
-          {/* Active Time Entry */}
-          {activeTimeEntry ? (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium text-sm">Zeit läuft</div>
-                  <div className="text-xs text-gray-500">
-                    Seit {(activeTimeEntry.startTime instanceof Date 
-                      ? activeTimeEntry.startTime 
-                      : new Date(activeTimeEntry.startTime)).toLocaleTimeString()}
-                  </div>
-                </div>
-                <div className="text-lg font-bold text-green-600">
-                  {getActiveTime()}
-                </div>
-              </div>
-              <div className="flex gap-2 mt-3">
-                <Button 
-                  onClick={pauseTimeTracking}
-                  variant="outline" 
-                  size="sm"
-                  className="flex-1"
-                >
-                  <Pause className="h-4 w-4 mr-1" />
-                  Pause
-                </Button>
-                <Button 
-                  onClick={stopTimeTracking}
-                  variant="destructive" 
-                  size="sm"
-                  className="flex-1"
-                >
-                  <Square className="h-4 w-4 mr-1" />
-                  Stop
-                </Button>
+      {/* Active Time Tracking */}
+      {activeTimeEntry && (
+        <Card className="border-2 border-green-400 bg-green-50">
+          <CardContent className="p-4">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-semibold text-green-800">Timer läuft</h3>
+              <div className="text-2xl font-mono font-bold text-green-600">
+                {getActiveTime()}
               </div>
             </div>
-          ) : (
-            <div className="space-y-2">
-              {assignedProjects.map(project => {
-                const isNearBy = nearByProjects.includes(project.id);
-                return (
-                  <Button
-                    key={project.id}
-                    variant="default"
-                    className="w-full justify-center"
-                    onClick={() => startTimeTracking(project.id)}
-                  >
-                    <Play className="h-4 w-4 mr-2" />
-                    STARTEN
-                  </Button>
-                );
-              })}
+            <p className="text-green-700 text-sm mb-3">
+              {assignedProjects.find(p => p.id === activeTimeEntry.projectId)?.name}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={pauseTimeTracking}
+                className="flex-1"
+              >
+                <Pause className="h-4 w-4 mr-2" />
+                Pause
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={stopTimeTracking}
+                className="flex-1"
+              >
+                <Square className="h-4 w-4 mr-2" />
+                Stoppen
+              </Button>
             </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  // Legacy render functions (keeping for now)
-  const renderInfoView = () => (
-    <div className="space-y-4 w-full overflow-hidden">
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick Actions */}
       <Card>
-        <CardHeader className="p-3">
+        <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <span>Schnellaktionen</span>
             {notifications > 0 && (
@@ -1179,9 +911,9 @@ const MobileEmployeeApp: React.FC = () => {
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-2 p-3">
+        <CardContent className="grid grid-cols-2 gap-3">
           <Button
-            className="min-h-[60px] p-2 flex flex-col justify-center gap-1 text-sm"
+            className="h-20 flex flex-col gap-2"
             onClick={() => setCurrentView('time')}
           >
             <Clock className="h-6 w-6" />
@@ -1190,11 +922,8 @@ const MobileEmployeeApp: React.FC = () => {
           
           <Button
             variant="outline"
-            className="min-h-[60px] p-2 flex flex-col justify-center gap-1 text-sm"
-            onClick={() => {
-              setActiveProjectId(assignedProjects[0]?.id || '');
-              startCamera();
-            }}
+            className="h-20 flex flex-col gap-2"
+            onClick={startCamera}
           >
             <Camera className="h-6 w-6" />
             <span className="text-sm">Foto machen</span>
@@ -1202,40 +931,43 @@ const MobileEmployeeApp: React.FC = () => {
           
           <Button
             variant="outline"
-            className="min-h-[60px] p-2 flex flex-col justify-center gap-1 text-sm"
-            onClick={() => setCurrentView('docs')}
+            className="h-20 flex flex-col gap-2"
+            onClick={() => setCurrentView('projects')}
           >
-            <FileText className="h-6 w-6" />
-            <span className="text-sm">Dokumentation</span>
+            <List className="h-6 w-6" />
+            <span className="text-sm">Projekte</span>
           </Button>
           
           <Button
             variant="outline"
-            className="min-h-[60px] p-2 flex flex-col justify-center gap-1 text-sm"
-            onClick={() => setCurrentView('material')}
+            className="h-20 flex flex-col gap-2"
+            onClick={() => setShowVacationDialog(true)}
           >
-            <Package className="h-6 w-6" />
-            <span className="text-sm">Material</span>
+            <Calendar className="h-6 w-6" />
+            <span className="text-sm">Urlaub</span>
+            {vacationBalance.available > 0 && (
+              <span className="text-xs text-green-600">{vacationBalance.available} Tage</span>
+            )}
           </Button>
         </CardContent>
       </Card>
 
       {/* Quick Material Entry */}
-      <Card className="overflow-hidden">
-        <CardHeader className="p-3">
-          <CardTitle className="flex items-center gap-1 text-sm">
-            <Package className="h-4 w-4" />
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
             Schnell-Material
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 p-3">
+        <CardContent className="space-y-3">
           <select
             value={quickMaterialEntry.projectId}
             onChange={(e) => setQuickMaterialEntry(prev => ({
               ...prev,
               projectId: e.target.value
             }))}
-            className="w-full p-1.5 border rounded text-xs"
+            className="w-full p-2 border rounded-md text-sm"
           >
             <option value="">Projekt wählen...</option>
             {assignedProjects.map(project => (
@@ -1245,41 +977,42 @@ const MobileEmployeeApp: React.FC = () => {
             ))}
           </select>
           
-          <input
-            type="text"
-            placeholder="Material..."
-            value={quickMaterialEntry.material}
-            onChange={(e) => setQuickMaterialEntry(prev => ({
-              ...prev,
-              material: e.target.value
-            }))}
-            className="w-full p-1.5 border rounded text-xs"
-          />
-          
-          <div className="flex gap-0.5">
+          <div className="grid grid-cols-2 gap-2">
             <input
-              type="number"
-              placeholder="Menge"
-              value={quickMaterialEntry.quantity}
+              type="text"
+              placeholder="Material..."
+              value={quickMaterialEntry.material}
               onChange={(e) => setQuickMaterialEntry(prev => ({
                 ...prev,
-                quantity: e.target.value
+                material: e.target.value
               }))}
-              className="flex-1 min-w-0 p-1.5 border rounded text-xs"
+              className="p-2 border rounded-md text-sm"
             />
-            <select
-              value={quickMaterialEntry.unit}
-              onChange={(e) => setQuickMaterialEntry(prev => ({
-                ...prev,
-                unit: e.target.value
-              }))}
-              className="p-1.5 border rounded text-xs w-12"
-            >
-              <option value="Stück">Stk</option>
-              <option value="Meter">m</option>
-              <option value="kg">kg</option>
-              <option value="Liter">L</option>
-            </select>
+            <div className="flex gap-1">
+              <input
+                type="number"
+                placeholder="Menge"
+                value={quickMaterialEntry.quantity}
+                onChange={(e) => setQuickMaterialEntry(prev => ({
+                  ...prev,
+                  quantity: e.target.value
+                }))}
+                className="p-2 border rounded-md text-sm flex-1"
+              />
+              <select
+                value={quickMaterialEntry.unit}
+                onChange={(e) => setQuickMaterialEntry(prev => ({
+                  ...prev,
+                  unit: e.target.value
+                }))}
+                className="p-2 border rounded-md text-sm w-20"
+              >
+                <option value="Stück">Stk</option>
+                <option value="Meter">m</option>
+                <option value="kg">kg</option>
+                <option value="Liter">L</option>
+              </select>
+            </div>
           </div>
           
           <Button
@@ -1295,103 +1028,96 @@ const MobileEmployeeApp: React.FC = () => {
     </div>
   );
 
-  const renderDocumentationView = () => (
-    <div className="space-y-4 h-full">
-      <h3 className="text-lg font-semibold mb-4">📄 Dokumentation</h3>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 gap-3">
-        {/* Schnell-Doku */}
-        <Card className="border-2 border-blue-200 bg-blue-50">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Camera className="h-5 w-5 text-blue-600" />
-                <h4 className="font-semibold text-blue-800">Schnell-Doku</h4>
-              </div>
-              <Badge variant="secondary" className="text-xs">Foto + Text</Badge>
-            </div>
-            <p className="text-sm text-blue-700 mb-3">
-              Foto aufnehmen und schnell dokumentieren
-            </p>
-            <Button
-              onClick={() => setShowQuickDocDialog(true)}
-              className="w-full bg-blue-600 hover:bg-blue-700"
-              size="lg"
-            >
-              <Camera className="h-4 w-4 mr-2" />
-              Foto dokumentieren
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Arbeit dokumentieren */}
-        <Card className="border-2 border-green-200 bg-green-50">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-green-600" />
-                <h4 className="font-semibold text-green-800">Arbeit dokumentieren</h4>
-              </div>
-              <Badge variant="secondary" className="text-xs">Template</Badge>
-            </div>
-            <p className="text-sm text-green-700 mb-3">
-              Arbeitsschritte nach Vorlage erfassen
-            </p>
-            <Button
-              onClick={() => setShowWorkDocDialog(true)}
-              className="w-full bg-green-600 hover:bg-green-700"
-              size="lg"
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Arbeitsvorlage auswählen
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Problem melden */}
-        <Card className="border-2 border-red-200 bg-red-50">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
-                <h4 className="font-semibold text-red-800">Problem melden</h4>
-              </div>
-              <Badge variant="secondary" className="text-xs">Direkt an Manager</Badge>
-            </div>
-            <p className="text-sm text-red-700 mb-3">
-              Probleme sofort an Vorgesetzten weiterleiten
-            </p>
-            <Button
-              onClick={() => setShowProblemDialog(true)}
-              className="w-full bg-red-600 hover:bg-red-700"
-              size="lg"
-            >
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              Problem melden
-            </Button>
-          </CardContent>
-        </Card>
+  const renderProjectsView = () => (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">Meine Projekte</h3>
+        <Badge variant="outline">
+          {assignedProjects.length} aktiv
+        </Badge>
       </div>
 
-      {/* Recent Documentation */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Kürzlich dokumentiert</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* TODO: Hier werden die letzten Dokumentationen angezeigt */}
-          <div className="text-center py-4 text-gray-500">
-            <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Noch keine Dokumentationen vorhanden</p>
-          </div>
-        </CardContent>
-      </Card>
+      {assignedProjects.map(project => (
+        <Card key={project.id} className="relative">
+          <CardContent className="p-4">
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <h4 className="font-semibold text-sm">{project.name}</h4>
+                <p className="text-gray-600 text-xs flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  {project.location}
+                </p>
+              </div>
+              <Badge
+                className={`${getPriorityColor(project.priority)} text-white text-xs`}
+              >
+                {getPriorityLabel(project.priority)}
+              </Badge>
+            </div>
+            
+            {project.deadline && (
+              <p className="text-xs text-orange-600 mb-3">
+                Fällig: {new Date(project.deadline).toLocaleDateString('de-DE')}
+              </p>
+            )}
+            
+            <div className="flex gap-1 mb-2">
+              <Button
+                size="sm"
+                onClick={() => startTimeTracking(project.id)}
+                disabled={!!activeTimeEntry}
+                className="flex-1"
+              >
+                <Play className="h-3 w-3 mr-1" />
+                Zeit starten
+              </Button>
+            </div>
+            <div className="flex gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setActiveProjectId(project.id);
+                  startCamera();
+                }}
+                className="flex-1"
+              >
+                <Camera className="h-3 w-3 mr-1" />
+                Foto
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setActiveProjectId(project.id);
+                  setShowReceiptDialog(true);
+                }}
+                className="flex-1"
+              >
+                <Receipt className="h-3 w-3 mr-1" />
+                Rechnung
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setActiveProjectId(project.id);
+                  setShowCommentDialog(true);
+                }}
+                className="flex-1"
+              >
+                <MessageSquare className="h-3 w-3 mr-1" />
+                Notiz
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 
   const renderTimeView = () => (
-    <div className="space-y-2">
+    <div className="space-y-4">
       <h3 className="text-lg font-semibold">Zeiterfassung</h3>
       
       {activeTimeEntry ? (
@@ -1418,25 +1144,25 @@ const MobileEmployeeApp: React.FC = () => {
                 className="flex-1"
               >
                 <Square className="h-4 w-4 mr-2" />
-                Stop
+                Stoppen
               </Button>
             </div>
           </CardContent>
         </Card>
       ) : (
         <Card>
-          <CardContent className="p-3">
+          <CardContent className="p-4">
             <h4 className="font-medium mb-3">Projekt auswählen:</h4>
             <div className="space-y-2">
               {assignedProjects.map(project => (
                 <Button
                   key={project.id}
                   variant="outline"
-                  className="w-full justify-center"
+                  className="w-full justify-start"
                   onClick={() => startTimeTracking(project.id)}
                 >
                   <Play className="h-4 w-4 mr-2" />
-                  STARTEN
+                  {project.name}
                 </Button>
               ))}
             </div>
@@ -1447,26 +1173,26 @@ const MobileEmployeeApp: React.FC = () => {
   );
 
   const renderActivityView = () => (
-    <div className="space-y-2">
+    <div className="space-y-4">
       <h3 className="text-lg font-semibold">Meine Aktivitäten</h3>
       
       {/* Recent Photos */}
       {capturedPhotos.length > 0 && (
         <Card>
-          <CardHeader className="p-3">
+          <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ImageIcon className="h-5 w-5" />
               Fotos ({capturedPhotos.length})
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 p-3">
+          <CardContent className="space-y-2">
             {capturedPhotos.slice(0, 3).map(photo => (
               <div key={photo.id} className="flex justify-between items-center text-sm">
                 <span className="truncate">
                   {assignedProjects.find(p => p.id === photo.projectId)?.name || 'Unbekanntes Projekt'}
                 </span>
                 <span className="text-gray-500">
-                  {photo.createdAt instanceof Date ? photo.createdAt.toLocaleDateString('de-DE') : 'Kein Datum'}
+                  {photo.createdAt.toLocaleDateString('de-DE')}
                 </span>
               </div>
             ))}
@@ -1477,13 +1203,13 @@ const MobileEmployeeApp: React.FC = () => {
       {/* Recent Receipts */}
       {projectReceipts.length > 0 && (
         <Card>
-          <CardHeader className="p-3">
+          <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Receipt className="h-5 w-5" />
               Rechnungen ({projectReceipts.length})
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 p-3">
+          <CardContent className="space-y-2">
             {projectReceipts.slice(0, 3).map(receipt => (
               <div key={receipt.id} className="flex justify-between items-center text-sm">
                 <div>
@@ -1495,7 +1221,7 @@ const MobileEmployeeApp: React.FC = () => {
                   )}
                 </div>
                 <span className="text-gray-500">
-                  {receipt.createdAt instanceof Date ? receipt.createdAt.toLocaleDateString('de-DE') : 'Kein Datum'}
+                  {receipt.createdAt.toLocaleDateString('de-DE')}
                 </span>
               </div>
             ))}
@@ -1506,13 +1232,13 @@ const MobileEmployeeApp: React.FC = () => {
       {/* Recent Comments */}
       {projectComments.length > 0 && (
         <Card>
-          <CardHeader className="p-3">
+          <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MessageSquare className="h-5 w-5" />
               Notizen ({projectComments.length})
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 p-3">
+          <CardContent className="space-y-2">
             {projectComments.slice(0, 3).map(comment => (
               <div key={comment.id} className="text-sm">
                 <div className="flex justify-between items-center mb-1">
@@ -1520,7 +1246,7 @@ const MobileEmployeeApp: React.FC = () => {
                     {assignedProjects.find(p => p.id === comment.projectId)?.name || 'Unbekanntes Projekt'}
                   </span>
                   <span className="text-gray-500">
-                    {comment.createdAt instanceof Date ? comment.createdAt.toLocaleDateString('de-DE') : 'Kein Datum'}
+                    {comment.createdAt.toLocaleDateString('de-DE')}
                   </span>
                 </div>
                 <p className="text-gray-700 truncate">{comment.comment}</p>
@@ -1533,7 +1259,7 @@ const MobileEmployeeApp: React.FC = () => {
       {/* Offline Data */}
       {!isOnline && (
         <Card className="border-orange-400 bg-orange-50">
-          <CardHeader className="p-3">
+          <CardHeader>
             <CardTitle className="text-orange-700">Offline Daten</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
@@ -1561,7 +1287,7 @@ const MobileEmployeeApp: React.FC = () => {
         <Card>
           <CardContent className="p-8 text-center">
             <div className="text-gray-400 mb-4">
-              <Package className="h-12 w-12 mx-auto" />
+              <List className="h-12 w-12 mx-auto" />
             </div>
             <h4 className="font-medium text-gray-700 mb-2">Keine Aktivitäten</h4>
             <p className="text-gray-500 text-sm">
@@ -1574,9 +1300,9 @@ const MobileEmployeeApp: React.FC = () => {
   );
 
   const renderVacationView = () => (
-    <div className="space-y-2">
+    <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-base font-semibold">Urlaub</h3>
+        <h3 className="text-lg font-semibold">Urlaub</h3>
         <Button onClick={() => setShowVacationDialog(true)} size="sm">
           <Plus className="h-4 w-4 mr-2" />
           Antrag
@@ -1585,7 +1311,7 @@ const MobileEmployeeApp: React.FC = () => {
       
       {/* Vacation Balance */}
       <Card>
-        <CardHeader className="p-3">
+        <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
             Mein Urlaubskonto
@@ -1616,7 +1342,7 @@ const MobileEmployeeApp: React.FC = () => {
 
       {/* Info Card */}
       <Card>
-        <CardContent className="p-3">
+        <CardContent className="p-4">
           <h4 className="font-medium mb-2">Hinweise</h4>
           <ul className="text-sm text-gray-600 space-y-1">
             <li>• Anträge werden vom Manager geprüft</li>
@@ -1629,11 +1355,11 @@ const MobileEmployeeApp: React.FC = () => {
   );
 
   const renderProfileView = () => (
-    <div className="space-y-2">
+    <div className="space-y-4">
       <h3 className="text-lg font-semibold">Profil</h3>
-
+      
       <Card>
-        <CardContent className="p-3">
+        <CardContent className="p-4">
           <div className="text-center mb-4">
             <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
               <User className="h-8 w-8 text-white" />
@@ -1641,7 +1367,7 @@ const MobileEmployeeApp: React.FC = () => {
             <h4 className="font-semibold">{user?.email}</h4>
             <p className="text-gray-600 text-sm">Mitarbeiter</p>
           </div>
-
+          
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
               <span>Status:</span>
@@ -1665,41 +1391,9 @@ const MobileEmployeeApp: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Urlaubsverwaltung */}
-      <Card className="overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Urlaubsverwaltung
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{vacationBalance.total}</div>
-              <div className="text-sm text-blue-700">Gesamte Tage</div>
-            </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">{vacationBalance.available}</div>
-              <div className="text-sm text-green-700">Verfügbar</div>
-            </div>
-          </div>
-
-          {/* Urlaub beantragen Button */}
-          <Button
-            onClick={() => setShowVacationDialog(true)}
-            className="w-full mt-4"
-            size="lg"
-          >
-            <Calendar className="h-4 w-4 mr-2" />
-            Urlaub beantragen
-          </Button>
-        </CardContent>
-      </Card>
-
       {!isOnline && (
         <Card className="border-orange-400 bg-orange-50">
-          <CardContent className="p-3">
+          <CardContent className="p-4">
             <div className="flex items-center gap-2 text-orange-700">
               <WifiOff className="h-4 w-4" />
               <span className="font-medium">Offline-Modus</span>
@@ -1713,116 +1407,59 @@ const MobileEmployeeApp: React.FC = () => {
     </div>
   );
 
-  // Onboarding removed - not needed
-  const renderMainView = () => {
+  // Show onboarding for first-time users
+  if (showOnboarding && isFirstVisit) {
+    return (
+      <MobileOnboarding 
+        onComplete={completeOnboarding}
+        onSkip={skipOnboarding}
+      />
+    );
+  }
+
   return (
-    <div
-      className="h-full bg-gradient-to-br from-background to-muted/20 flex flex-col relative overflow-hidden"
-      style={{
-        width: '100vw',
-        maxWidth: 'none',
-        paddingTop: `${Math.max(safeAreaInsets.top, 44)}px`,
-        paddingBottom: `${Math.max(safeAreaInsets.bottom, 0)}px`
-      }}
-    >
+    <div className="min-h-screen bg-gray-50 flex flex-col max-w-md mx-auto">
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
-        {/* Home View - Dashboard mit Quick Actions */}
-        {currentView === 'home' && (
-          <div className="h-full overflow-y-auto pb-24 p-4">
-            {renderInfoView()}
-          </div>
-        )}
-
-        {/* Docs View - Documentation */}
-        {currentView === 'docs' && (
-          <div className="h-full overflow-y-auto pb-24 p-4">
-            {renderDocumentationView()}
-          </div>
-        )}
-
-        {/* Time View - TodayScreen Zeiterfassung */}
-        {currentView === 'time' && (
-          <div className="h-full overflow-y-auto pb-24">
-            <TodayScreenTabs />
-          </div>
-        )}
-
-        {/* Signature View - Delivery Notes */}
-        {currentView === 'signature' && (
-          <div className="h-full overflow-y-auto pb-24">
-            <div className="p-4 space-y-4">
-              <h2 className="mobile-headline">Lieferscheine</h2>
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <Receipt className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                  <h4 className="mobile-subheadline mb-2">Lieferschein-Modul</h4>
-                  <p className="mobile-body">
-                    Hier können Sie Lieferscheine digital unterschreiben
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        )}
-
-        {/* Profile View */}
-        {currentView === 'profile' && (
-          <div className="h-full overflow-y-auto pb-24 p-4">
-            {renderProfileView()}
-          </div>
-        )}
+      <div className="flex-1 p-4 pb-20">
+        {currentView === 'home' && renderHomeView()}
+        {currentView === 'projects' && renderProjectsView()}
+        {currentView === 'time' && renderTimeView()}
+        {currentView === 'vacation' && renderVacationView()}
+        {currentView === 'activity' && renderActivityView()}
+        {currentView === 'profile' && renderProfileView()}
       </div>
 
-      {/* Bottom Navigation - Classic 5-Tab Design */}
-      <div
-        className="fixed left-0 right-0 bottom-0 bg-white border-t shadow-2xl z-40"
-        style={{ paddingBottom: `${Math.max(safeAreaInsets.bottom, 8)}px` }}
-      >
-        <div className="flex">
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white border-t shadow-lg">
+        <div className="grid grid-cols-5 gap-1 p-2">
           {[
-            { id: 'home', icon: Home, label: 'Start', dot: false },
-            { id: 'docs', icon: FileText, label: 'Doku', dot: false },
-            { id: 'time', icon: Clock, label: 'Zeit', dot: activeTime?.active },
-            { id: 'signature', icon: Receipt, label: 'Signatur', dot: false },
-            { id: 'profile', icon: User, label: 'Profil', dot: notifications > 0 }
+            { id: 'home', icon: Home, label: 'Start' },
+            { id: 'projects', icon: List, label: 'Projekte' },
+            { id: 'time', icon: Clock, label: 'Zeit' },
+            { id: 'vacation', icon: Calendar, label: 'Urlaub' },
+            { id: 'profile', icon: User, label: 'Profil' }
           ].map((item) => (
-            <button
+            <Button
               key={item.id}
+              variant={currentView === item.id ? "default" : "ghost"}
+              size="sm"
               onClick={() => setCurrentView(item.id as any)}
-              className={`mobile-tab ${currentView === item.id ? 'active' : 'inactive'}`}
+              className="flex flex-col gap-1 h-16 p-2"
             >
-              <div className="relative">
-                <item.icon className="h-5 w-5 mb-1" />
-                {item.dot && (
-                  <div className="absolute -top-1 -right-1 mobile-status-dot mobile-status-active" />
-                )}
-              </div>
-              <span className="text-xs font-medium">{item.label}</span>
-            </button>
+              <item.icon className="h-5 w-5" />
+              <span className="text-xs">{item.label}</span>
+              {item.id === 'projects' && notifications > 0 && (
+                <Badge
+                  variant="destructive"
+                  className="absolute -top-1 -right-1 rounded-full w-4 h-4 p-0 text-xs"
+                >
+                  {notifications}
+                </Badge>
+              )}
+            </Button>
           ))}
         </div>
       </div>
-
-      {/* Floating Action Button - only on Home view */}
-      {currentView === 'home' && assignedProjects.length > 0 && (
-        <button
-          onClick={() => {
-            if (activeTimeEntry) {
-              stopTimeTracking();
-            } else {
-              startTimeTracking(assignedProjects[0].id);
-            }
-          }}
-          className="mobile-fab"
-        >
-          {activeTimeEntry ? (
-            <Square className="h-6 w-6" />
-          ) : (
-            <Play className="h-6 w-6" />
-          )}
-        </button>
-      )}
 
 
       {/* Camera Modal */}
@@ -1833,7 +1470,6 @@ const MobileEmployeeApp: React.FC = () => {
             className="w-full h-full object-cover"
             autoPlay
             playsInline
-            muted
           />
           <canvas ref={canvasRef} className="hidden" />
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4">
@@ -1860,7 +1496,7 @@ const MobileEmployeeApp: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Rechnung hochladen</DialogTitle>
           </DialogHeader>
-          <div className="space-y-2">
+          <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">
                 Datei auswählen
@@ -1925,7 +1561,7 @@ const MobileEmployeeApp: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Notiz hinzufügen</DialogTitle>
           </DialogHeader>
-          <div className="space-y-2">
+          <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">
                 Kommentar
@@ -1969,268 +1605,8 @@ const MobileEmployeeApp: React.FC = () => {
         onOpenChange={setShowVacationDialog}
         onSuccess={loadVacationBalance}
       />
-
-      {/* Quick Documentation Dialog */}
-      <Dialog open={showQuickDocDialog} onOpenChange={setShowQuickDocDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Camera className="h-5 w-5" />
-              Schnell-Doku
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {!quickDocPhoto ? (
-              <Button
-                onClick={async () => {
-                  try {
-                    const image = await CapacitorCamera.getPhoto({
-                      quality: 70,
-                      allowEditing: false,
-                      resultType: CameraResultType.Base64
-                    });
-                    if (image.base64String) {
-                      setQuickDocPhoto(image.base64String);
-                    }
-                  } catch (error) {
-                    console.error('Camera error:', error);
-                    toast({
-                      title: "Kamera-Fehler",
-                      description: "Kamera konnte nicht geöffnet werden",
-                      variant: "destructive"
-                    });
-                  }
-                }}
-                className="w-full h-24 border-2 border-dashed border-gray-300"
-                variant="outline"
-              >
-                <Camera className="h-8 w-8 mr-2" />
-                Foto aufnehmen
-              </Button>
-            ) : (
-              <div className="relative">
-                <img
-                  src={`data:image/jpeg;base64,${quickDocPhoto}`}
-                  alt="Documentation"
-                  className="w-full h-48 object-cover rounded-lg"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setQuickDocPhoto(null)}
-                  className="absolute top-2 right-2"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-
-            <div>
-              <Label>Beschreibung wählen:</Label>
-              <div className="grid grid-cols-1 gap-2 mt-2">
-                {[
-                  '✅ Arbeit abgeschlossen',
-                  '📄 Zwischenstand dokumentiert',
-                  '⚠️ Besonderheit festgestellt'
-                ].map((option) => (
-                  <Button
-                    key={option}
-                    variant={quickDocDescription === option ? "default" : "outline"}
-                    onClick={() => setQuickDocDescription(option)}
-                    className="justify-start text-left"
-                  >
-                    {option}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                onClick={() => {
-                  if (quickDocPhoto && quickDocDescription) {
-                    // TODO: Save to database
-                    toast({
-                      title: "Dokumentation gespeichert",
-                      description: "Foto und Beschreibung wurden erfasst"
-                    });
-                    setShowQuickDocDialog(false);
-                    setQuickDocPhoto(null);
-                    setQuickDocDescription('');
-                  }
-                }}
-                disabled={!quickDocPhoto || !quickDocDescription}
-                className="flex-1"
-              >
-                Speichern
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowQuickDocDialog(false);
-                  setQuickDocPhoto(null);
-                  setQuickDocDescription('');
-                }}
-              >
-                Abbrechen
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Work Documentation Dialog */}
-      <Dialog open={showWorkDocDialog} onOpenChange={setShowWorkDocDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Arbeitsvorlage
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Vorlage auswählen:</Label>
-              <div className="grid grid-cols-1 gap-2 mt-2">
-                {[
-                  '🔌 Elektroinstallation',
-                  '🔧 Rohbau/Sanitär',
-                  '🎨 Malerarbeiten',
-                  '🚪 Fenster/Türen'
-                ].map((template) => (
-                  <Button
-                    key={template}
-                    variant={workTemplate === template ? "default" : "outline"}
-                    onClick={() => setWorkTemplate(template)}
-                    className="justify-start text-left"
-                  >
-                    {template}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                onClick={() => {
-                  if (workTemplate) {
-                    // TODO: Open template checklist
-                    toast({
-                      title: "Vorlage gewählt",
-                      description: `${workTemplate} Checkliste wird geöffnet`
-                    });
-                    setShowWorkDocDialog(false);
-                    setWorkTemplate('');
-                  }
-                }}
-                disabled={!workTemplate}
-                className="flex-1"
-              >
-                Öffnen
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowWorkDocDialog(false);
-                  setWorkTemplate('');
-                }}
-              >
-                Abbrechen
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Problem Report Dialog */}
-      <Dialog open={showProblemDialog} onOpenChange={setShowProblemDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              Problem melden
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Problem beschreiben:</Label>
-              <Textarea
-                placeholder="Beschreiben Sie das Problem..."
-                value={problemDescription}
-                onChange={(e) => setProblemDescription(e.target.value)}
-                rows={4}
-                className="mt-2"
-              />
-            </div>
-
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-              <div className="flex items-center gap-2 text-yellow-800">
-                <AlertTriangle className="h-4 w-4" />
-                <span className="text-sm font-medium">Hinweis</span>
-              </div>
-              <p className="text-sm text-yellow-700 mt-1">
-                Diese Meldung wird direkt an Ihren Vorgesetzten gesendet.
-              </p>
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                onClick={() => {
-                  if (problemDescription.trim()) {
-                    // TODO: Send to manager
-                    toast({
-                      title: "Problem gemeldet",
-                      description: "Ihr Vorgesetzter wurde benachrichtigt"
-                    });
-                    setShowProblemDialog(false);
-                    setProblemDescription('');
-                  }
-                }}
-                disabled={!problemDescription.trim()}
-                className="flex-1 bg-red-600 hover:bg-red-700"
-              >
-                Melden
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowProblemDialog(false);
-                  setProblemDescription('');
-                }}
-              >
-                Abbrechen
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Material Recorder Dialog */}
-      {assignedProjects.length > 0 && (
-        <MobileMaterialRecorder
-          projectId={assignedProjects[0].id}
-          projectName={assignedProjects[0].name}
-          isOpen={showMaterialDialog}
-          onClose={() => setShowMaterialDialog(false)}
-          onMaterialAdded={() => {
-            toast({
-              title: "Material erfasst",
-              description: "Material wurde erfolgreich hinzugefügt"
-            });
-            // Reload material usage for current project
-            const currentProjectId = activeTime?.segment?.project_id ||
-                                   (assignedProjects.length > 0 ? assignedProjects[0].id : null);
-            if (currentProjectId) {
-              loadProjectMaterialUsage(currentProjectId);
-            }
-          }}
-        />
-      )}
     </div>
   );
-  };
-
-  return renderMainView();
 };
 
 export default MobileEmployeeApp;

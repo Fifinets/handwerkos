@@ -89,7 +89,7 @@ const CustomerModule = () => {
     <div className="p-4 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-4xl font-bold text-foreground">Kunden & Aufträge</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Kunden & Aufträge</h1>
         <Button
           onClick={() => setIsAddCustomerOpen(true)}
           className="bg-blue-600 hover:bg-blue-700 rounded-full"
@@ -371,8 +371,8 @@ const CustomerModule = () => {
       <EditCustomerDialog
         isOpen={isEditCustomerOpen}
         onClose={() => setIsEditCustomerOpen(false)}
-        customer={selectedCustomer as any}
-        onCustomerUpdated={handleUpdateCustomer as any}
+        customer={selectedCustomer}
+        onCustomerUpdated={handleUpdateCustomer}
       />
     </div>
   );

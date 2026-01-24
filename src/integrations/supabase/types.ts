@@ -1273,7 +1273,6 @@ export type Database = {
       }
       projects: {
         Row: {
-          budget: number | null
           color: string | null
           company_id: string | null
           created_at: string
@@ -1288,7 +1287,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          budget?: number | null
           color?: string | null
           company_id?: string | null
           created_at?: string
@@ -1303,7 +1301,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          budget?: number | null
           color?: string | null
           company_id?: string | null
           created_at?: string

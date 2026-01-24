@@ -195,10 +195,10 @@ const PersonalModule = () => {
   const totalHours = mappedEmployees.reduce((sum, emp) => sum + emp.hoursThisMonth, 0);
 
   return (
-    <div className="p-6 bg-background min-h-screen">
+    <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-4xl font-bold text-foreground">Personalverwaltung</h1>
+        <h1 className="text-4xl font-bold text-gray-900">Personalverwaltung</h1>
       </div>
 
       <Tabs defaultValue="overview" className="w-full">

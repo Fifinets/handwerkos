@@ -22,7 +22,7 @@ import { ApiError } from '@/utils/api';
 import { customerService, CustomerService } from '@/services/customerService';
 import { quoteService } from '@/services/quoteService';
 import { orderService } from '@/services/orderService';
-import { ProjectService } from '@/services/projectService';
+import { ProjectService } from '@/services/ProjectService';
 import { timesheetService } from '@/services/timesheetService';
 import { materialService } from '@/services/materialService';
 import { stockService } from '@/services/stockService';
@@ -39,7 +39,6 @@ import { germanAccountingService } from '@/services/germanAccountingService';
 import { aiRAGService } from '@/services/aiRAGService';
 import { aiIntentService } from '@/services/aiIntentService';
 import { aiEstimationService } from '@/services/aiEstimationService';
-import { OCRService } from '@/services/ocrService';
 import { eventBus } from '@/services/eventBus';
 
 // Query keys for consistent caching and invalidation
@@ -66,18 +65,11 @@ export const QUERY_KEYS = {
   AI_INTENT_ANALYSES: 'ai-intent-analyses',
   AI_ESTIMATIONS: 'ai-estimations',
   AI_INDEXING_STATUS: 'ai-indexing-status',
-  // OCR keys
-  OCR_RESULTS: 'ocr-results',
-  OCR_RESULT: (id: string) => ['ocr-results', id] as const,
-  OCR_PENDING: 'ocr-pending',
   // Customer keys
   customers: ['customers'] as const,
   customer: (id: string) => ['customers', id] as const,
   customerStats: (id: string) => ['customers', id, 'stats'] as const,
   customerProjects: (id: string) => ['customers', id, 'projects'] as const,
-  // Project keys
-  projects: ['projects'] as const,
-  project: (id: string) => ['projects', id] as const,
   customerQuotes: (id: string) => ['customers', id, 'quotes'] as const,
   customerInvoices: (id: string) => ['customers', id, 'invoices'] as const,
   
@@ -1509,7 +1501,7 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
             company_id
           `)
           .not('user_id', 'is', null)  // Only employees who have registered
-          .in('status', ['active', 'Active', 'aktiv', 'Aktiv'])  // Support all status variations
+          .neq('status', 'eingeladen')  // Exclude invited but not registered
           .order('created_at', { ascending: false });
         
         console.log('useEmployees: Raw query (no company filter):', employeesData);
@@ -2731,123 +2723,6 @@ export const useEstimationStatistics = (
     ...options,
   });
 };
-
-// ==========================================
-// OCR HOOKS
-// ==========================================
-
-/**
- * Process invoice image with OCR
- */
-export const useProcessInvoiceOCR = (options?: UseMutationOptions<any, Error, File>) => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: (file: File) => OCRService.processInvoiceImage(file),
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.OCR_RESULTS] });
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.OCR_PENDING] });
-      toast({
-        title: 'OCR-Verarbeitung abgeschlossen',
-        description: `Rechnung von "${result.structured_data.supplierName}" wurde verarbeitet.`,
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'OCR-Verarbeitung fehlgeschlagen',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-    ...options,
-  });
-};
-
-/**
- * Get OCR results
- */
-export const useOCRResults = (
-  status?: 'pending' | 'validated' | 'rejected',
-  options?: UseQueryOptions<any[], Error>
-) => {
-  return useQuery({
-    queryKey: [QUERY_KEYS.OCR_RESULTS, status],
-    queryFn: () => OCRService.getOCRResults(status),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    ...options,
-  });
-};
-
-/**
- * Get pending OCR results
- */
-export const usePendingOCRResults = (options?: UseQueryOptions<any[], Error>) => {
-  return useOCRResults('pending', options);
-};
-
-/**
- * Validate OCR result and create invoice
- */
-export const useValidateOCRResult = (
-  options?: UseMutationOptions<any, Error, { ocrId: string; validatedData: any; notes?: string }>
-) => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: ({ ocrId, validatedData, notes }) => 
-      OCRService.validateAndCreateInvoice(ocrId, validatedData, notes),
-    onSuccess: (result, { ocrId }) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.OCR_RESULTS] });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.OCR_RESULT(ocrId) });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.invoices });
-      toast({
-        title: 'Rechnung erstellt',
-        description: `Rechnung wurde erfolgreich aus OCR-Daten erstellt.`,
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Validierung fehlgeschlagen',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-    ...options,
-  });
-};
-
-/**
- * Reject OCR result
- */
-export const useRejectOCRResult = (
-  options?: UseMutationOptions<void, Error, { ocrId: string; reason: string }>
-) => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: ({ ocrId, reason }) => OCRService.rejectOCRResult(ocrId, reason),
-    onSuccess: (_, { ocrId }) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.OCR_RESULTS] });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.OCR_RESULT(ocrId) });
-      toast({
-        title: 'OCR-Ergebnis abgelehnt',
-        description: 'Das OCR-Ergebnis wurde abgelehnt und markiert.',
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Ablehnung fehlgeschlagen',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-    ...options,
-  });
-};
-
 
 // Export all hooks as default export (moved to end to avoid hoisting issues)
 export default {

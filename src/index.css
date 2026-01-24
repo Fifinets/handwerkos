@@ -1,68 +1,6 @@
-/* Leaflet CSS */
-@import 'leaflet/dist/leaflet.css';
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Mobile Safe Area Support */
-@layer base {
-  /* Support for mobile safe areas (notch, status bar, etc.) */
-  html, body {
-    height: 100vh;
-    height: 100dvh; /* Dynamic viewport height */
-    overflow-x: hidden;
-    margin: 0;
-    padding: 0;
-  }
-  
-  #root {
-    height: 100vh;
-    height: 100dvh;
-    overflow-x: hidden;
-  }
-  
-  /* Mobile viewport fixes */
-  body {
-    touch-action: pan-x pan-y;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-  }
-  
-  /* Prevent zoom on input focus */
-  input, textarea, select {
-    font-size: 16px !important;
-  }
-}
-
-/* Custom Tailwind utilities for safe areas */
-@layer utilities {
-  .px-safe {
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
-  }
-  
-  .py-safe {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-  
-  .pt-safe {
-    padding-top: env(safe-area-inset-top);
-  }
-  
-  .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-  
-  .h-screen-safe {
-    height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-  }
-  
-  .min-h-screen-safe {
-    min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-  }
-}
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
@@ -71,92 +9,99 @@ All colors MUST be HSL.
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 0 0% 10%;
+    --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 10%;
+    --card-foreground: 222.2 84% 4.9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
+    --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 0 0% 10%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 0 0% 40%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 96%;
-    --accent-foreground: 0 0% 10%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 217 91% 60%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
 
     --radius: 14px;
 
     --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 0 0% 10%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 40% 96%;
-    --sidebar-accent-foreground: 0 0% 10%;
-    --sidebar-border: 214 32% 91%;
-    --sidebar-ring: 217 91% 60%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    /* Enterprise-grade soft dark background (dark blue/graphite, not pure black) */
-    --background: 222 47% 8%;
-    --foreground: 220 14% 96%;
+    /* Modern dark background with subtle blue tint */
+    --background: 222 47% 4%;
+    --foreground: 213 31% 91%;
 
-    /* Cards with subtle elevation and glassmorphism */
-    --card: 222 40% 11%;
-    --card-foreground: 220 14% 98%;
+    /* Cards with elevated feel */
+    --card: 222 47% 5%;
+    --card-foreground: 213 31% 91%;
 
     /* Popovers with better contrast */
-    --popover: 222 40% 12%;
-    --popover-foreground: 220 14% 98%;
+    --popover: 222 47% 6%;
+    --popover-foreground: 213 31% 91%;
 
-    /* Primary blue accent - calm and professional */
-    --primary: 214 88% 55%;
-    --primary-foreground: 0 0% 100%;
+    /* Modern blue primary for dark theme */
+    --primary: 214 78% 60%;
+    --primary-foreground: 222 47% 4%;
 
-    /* Subtle secondary colors for hierarchy */
-    --secondary: 217 25% 15%;
-    --secondary-foreground: 220 14% 96%;
+    /* Subtle secondary colors */
+    --secondary: 217 19% 12%;
+    --secondary-foreground: 213 31% 91%;
 
-    /* Muted elements with clear hierarchy */
-    --muted: 217 25% 16%;
-    --muted-foreground: 215 14% 70%;
+    /* Muted elements with better hierarchy */
+    --muted: 217 19% 12%;
+    --muted-foreground: 215 15% 60%;
 
     /* Accent color for interactive elements */
-    --accent: 217 25% 17%;
-    --accent-foreground: 220 14% 98%;
+    --accent: 217 19% 14%;
+    --accent-foreground: 213 31% 91%;
 
     /* Destructive with appropriate contrast */
-    --destructive: 0 72% 58%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 75% 60%;
+    --destructive-foreground: 210 40% 98%;
 
-    /* Borders and inputs with better contrast - mehr sichtbar */
-    --border: 217 25% 25%;
-    --input: 217 25% 22%;
-    --ring: 214 88% 55%;
+    /* Borders and inputs with subtle definition */
+    --border: 217 19% 12%;
+    --input: 217 19% 14%;
+    --ring: 214 78% 60%;
 
-    /* Sidebar with distinct elevated feel */
-    --sidebar-background: 222 47% 7%;
-    --sidebar-foreground: 220 14% 90%;
-    --sidebar-primary: 214 88% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 25% 14%;
-    --sidebar-accent-foreground: 220 14% 96%;
-    --sidebar-border: 217 25% 22%;
-    --sidebar-ring: 214 88% 55%;
+    /* Sidebar with distinct dark theme */
+    --sidebar-background: 222 47% 3%;
+    --sidebar-foreground: 213 31% 80%;
+    --sidebar-primary: 214 78% 60%;
+    --sidebar-primary-foreground: 222 47% 4%;
+    --sidebar-accent: 217 19% 8%;
+    --sidebar-accent-foreground: 213 31% 91%;
+    --sidebar-border: 217 19% 8%;
+    --sidebar-ring: 214 78% 60%;
   }
 }
 
@@ -167,75 +112,12 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
-    margin: 0;
-    padding: 0;
-  }
-  
-  html {
-    margin: 0;
-    padding: 0;
-  }
-  
-  #root {
-    margin: 0;
-    padding: 0;
+    background-image: radial-gradient(60% 40% at 70% -10%, rgba(99,102,241,.08), transparent 60%);
   }
 }
 
-/* Mobile app specific styles */
-@media (max-width: 768px) {
-  html, body {
-    height: 100vh;
-    overflow: hidden;
-    overscroll-behavior: none;
-    margin: 0;
-    padding: 0;
-  }
-  
-  #root {
-    height: 100vh;
-    width: 100vw;
-    overflow: hidden;
-    margin: 0;
-    padding: 0;
-    /* Use full screen including status bar area */
-    position: fixed;
-    top: 0;
-    left: 0;
-  }
-  
-  .mobile-container {
-    height: 100vh;
-    width: 100vw;
-  }
-}
-
-/* Enterprise-grade glassmorphism & card styles */
-.glass-card {
-  @apply bg-card/80 backdrop-blur-sm border border-border/50 rounded-xl shadow-glass;
-}
-
-.glass-card-hover {
-  @apply glass-card transition-all duration-300 hover:shadow-card-hover hover:bg-card/90;
-}
-
-.enterprise-card {
-  @apply bg-card border border-border/60 rounded-xl shadow-card-light dark:shadow-card-dark p-6 transition-all duration-200;
-}
-
-.enterprise-card-hover {
-  @apply enterprise-card hover:shadow-card-hover hover:border-border/80 cursor-pointer;
-}
-
-/* Soft shadows for different contexts */
-.shadow-soft { box-shadow: 0 10px 30px rgba(2,6,23,.06); }
-.shadow-softer { box-shadow: 0 6px 18px rgba(2,6,23,.05); }
-
-/* Badge & utility styles */
-.badge-pill {
-  @apply inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium;
-}
-
-.kpi-card {
-  @apply enterprise-card flex items-center justify-between;
-}
+/* sanfter Seitenverlauf + softer Schatten */
+.shadow-soft { box-shadow: 0 10px 30px rgba(2,6,23,.06); }     /* Karten */
+.shadow-softer { box-shadow: 0 6px 18px rgba(2,6,23,.05); }    /* kleine Elemente */
+.badge-pill { @apply inline-flex items-center rounded-full border px-2.5 py-1 text-xs; }
+.kpi-card  { @apply bg-card border rounded-lg px-4 py-3 flex items-center justify-between; }

@@ -46,7 +46,7 @@ const DashboardStats = () => {
     buttonText: "Zur Buchhaltung"
   }, {
     title: "Mitarbeiterverwaltung",
-    description: "Verwalten Sie Mitarbeiter und deren Arbeitszeiten",
+    description: isLoading ? "Lade Mitarbeiterdaten..." : `${pendingTimeEntries} Arbeitszeitleitträge zur Entscheidung`,
     icon: UserCheck,
     buttonText: "Mitarbeiter anzeigen"
   },

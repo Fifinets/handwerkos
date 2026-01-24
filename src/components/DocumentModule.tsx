@@ -14,8 +14,7 @@ import {
   Eye,
   Edit,
   Download,
-  Mail,
-  Scan
+  Mail
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AddQuoteDialog } from './AddQuoteDialog';
@@ -27,15 +26,9 @@ import {
   useDocuments,
   useCreateQuote,
   useCreateInvoice,
-  useUpdateQuote,
-  usePendingOCRResults
+  useUpdateQuote
 } from '@/hooks/useApi';
 import { useQueryClient } from '@tanstack/react-query';
-import { OCRUploadZone } from './OCRUploadZone';
-import { OCRInvoiceValidator } from './OCRInvoiceValidator';
-import { ComprehensiveOCRValidator } from './ComprehensiveOCRValidator';
-import { OCRResult } from '@/services/ocrService';
-import { SupplierInvoiceList } from './SupplierInvoiceList';
 // TODO: Re-enable when DocumentTemplateManager is implemented
 // import DocumentTemplateManager from './documents/DocumentTemplateManager';
 
@@ -75,14 +68,12 @@ export function DocumentModule() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddQuote, setShowAddQuote] = useState(false);
   const [showAddInvoice, setShowAddInvoice] = useState(false);
-  const [activeOCRResult, setActiveOCRResult] = useState<OCRResult | null>(null);
   const { toast } = useToast();
 
   // React Query hooks
   const { data: quotesResponse, isLoading: quotesLoading } = useQuotes();
   const { data: invoicesResponse, isLoading: invoicesLoading } = useInvoices();
   const { data: documentsResponse, isLoading: documentsLoading } = useDocuments();
-  const { data: pendingOCRResults, isLoading: ocrLoading } = usePendingOCRResults();
   
   const queryClient = useQueryClient();
   const createQuoteMutation = useCreateQuote();
@@ -155,7 +146,7 @@ export function DocumentModule() {
     <div className="p-4 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Dokumente</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Dokumente</h1>
         <div className="flex items-center gap-4">
           <Button 
             onClick={() => setShowAddQuote(true)}
@@ -200,14 +191,6 @@ export function DocumentModule() {
           <TabsTrigger value="invoices" className="flex items-center gap-2">
             <Receipt className="h-4 w-4" />
             Rechnungen ({invoices.length})
-          </TabsTrigger>
-          <TabsTrigger value="ocr" className="flex items-center gap-2">
-            <Scan className="h-4 w-4" />
-            OCR-Import {pendingOCRResults && pendingOCRResults.length > 0 && (
-              <Badge variant="destructive" className="ml-1 px-1.5 py-0.5 text-xs">
-                {pendingOCRResults.length}
-              </Badge>
-            )}
           </TabsTrigger>
           <TabsTrigger value="templates" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
@@ -327,226 +310,100 @@ export function DocumentModule() {
         </TabsContent>
 
         <TabsContent value="invoices" className="space-y-4">
-          <Tabs defaultValue="customer" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="customer">Kundenrechnungen ({invoices.length})</TabsTrigger>
-              <TabsTrigger value="supplier">Lieferantenrechnungen</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="customer" className="space-y-4">
-              {isLoading ? (
-                <div className="space-y-4">
-                  {Array(3).fill(0).map((_, i) => (
-                    <Card key={i} className="shadow-soft rounded-2xl">
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <Skeleton className="h-5 w-32" />
-                              <Skeleton className="h-6 w-20" />
-                            </div>
-                            <Skeleton className="h-4 w-48 mb-2" />
-                            <Skeleton className="h-4 w-24" />
-                          </div>
-                          <div className="text-right">
-                            <Skeleton className="h-6 w-20 mb-2" />
-                            <div className="flex gap-2">
-                              <Skeleton className="h-8 w-16" />
-                              <Skeleton className="h-8 w-16" />
-                            </div>
-                          </div>
+          {isLoading ? (
+            <div className="space-y-4">
+              {Array(3).fill(0).map((_, i) => (
+                <Card key={i} className="shadow-soft rounded-2xl">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <Skeleton className="h-5 w-32" />
+                          <Skeleton className="h-6 w-20" />
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : filteredInvoices.length === 0 ? (
-                <Card>
-                  <CardContent className="py-8 text-center">
-                    <Receipt className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Keine Kundenrechnungen gefunden</h3>
-                    <p className="text-muted-foreground mb-4">
-                      {searchTerm ? 'Keine Kundenrechnungen entsprechen Ihren Suchkriterien.' : 'Erstellen Sie Ihre erste Kundenrechnung.'}
-                    </p>
-                    <Button onClick={() => setShowAddInvoice(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Kundenrechnung erstellen
-                    </Button>
+                        <Skeleton className="h-4 w-48 mb-2" />
+                        <Skeleton className="h-4 w-24" />
+                      </div>
+                      <div className="text-right">
+                        <Skeleton className="h-6 w-20 mb-2" />
+                        <div className="flex gap-2">
+                          <Skeleton className="h-8 w-16" />
+                          <Skeleton className="h-8 w-16" />
+                        </div>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
-              ) : (
-                <div className="grid gap-4">
-                  {filteredInvoices.map((invoice) => (
-                    <Card key={invoice.id} className="hover:shadow-lg transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="font-semibold">{invoice.invoice_number}</h3>
-                              <Badge variant={getStatusBadgeVariant(invoice.status)}>
-                                {invoice.status}
-                              </Badge>
-                            </div>
-                            <h4 className="text-lg font-medium mb-1">{invoice.title}</h4>
-                            <p className="text-sm text-muted-foreground mb-2">
-                              {invoice.customer.company_name} • {invoice.customer.contact_person}
-                            </p>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <span>Erstellt: {formatDate(invoice.invoice_date)}</span>
-                              <span>Fällig: {formatDate(invoice.due_date)}</span>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xl font-bold mb-2">
-                              {formatCurrency(invoice.total_amount, invoice.currency)}
-                            </div>
-                            <div className="flex gap-1">
-                              <Button variant="ghost" size="sm" title="Ansehen">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" title="Bearbeiten">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost" 
-                                size="sm" 
-                                title="Per E-Mail versenden"
-                                onClick={() => handleSendEmail('invoice', invoice.id, invoice)}
-                                disabled={false}
-                              >
-                                <Mail className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" title="Herunterladen">
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="supplier" className="space-y-4">
-              <SupplierInvoiceList />
-            </TabsContent>
-          </Tabs>
-        </TabsContent>
-
-        <TabsContent value="ocr" className="space-y-4">
-          {activeOCRResult ? (
-            <ComprehensiveOCRValidator
-              ocrResult={activeOCRResult}
-              onValidated={(validatedData) => {
-                setActiveOCRResult(null);
-                toast({
-                  title: 'Rechnung validiert',
-                  description: 'Die Rechnungsdaten wurden erfolgreich validiert und können übernommen werden.',
-                });
-                // Hier können Sie die validierten Daten weiterverarbeiten
-                console.log('Validated invoice data:', validatedData);
-              }}
-              onRejected={() => {
-                setActiveOCRResult(null);
-                toast({
-                  title: 'OCR-Ergebnis abgelehnt',
-                  description: 'Das OCR-Ergebnis wurde abgelehnt.',
-                });
-              }}
-              onCancel={() => setActiveOCRResult(null)}
-            />
+              ))}
+            </div>
+          ) : filteredInvoices.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <Receipt className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Keine Rechnungen gefunden</h3>
+                <p className="text-muted-foreground mb-4">
+                  {searchTerm ? 'Keine Rechnungen entsprechen Ihren Suchkriterien.' : 'Erstellen Sie Ihre erste Rechnung.'}
+                </p>
+                <Button onClick={() => setShowAddInvoice(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Rechnung erstellen
+                </Button>
+              </CardContent>
+            </Card>
           ) : (
-            <div className="space-y-6">
-              {/* OCR Upload Zone */}
-              <OCRUploadZone
-                onOCRComplete={(result) => {
-                  setActiveOCRResult(result);
-                }}
-                onError={(error) => {
-                  toast({
-                    title: 'OCR-Fehler',
-                    description: error,
-                    variant: 'destructive',
-                  });
-                }}
-              />
-
-              {/* Pending OCR Results */}
-              {pendingOCRResults && pendingOCRResults.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Scan className="h-5 w-5" />
-                      Ausstehende Validierungen ({pendingOCRResults.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {pendingOCRResults.map((result) => (
-                        <Card key={result.id} className="border-orange-200 bg-orange-50">
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-2">
-                                  <h4 className="font-medium">
-                                    {result.structured_data.supplierName}
-                                  </h4>
-                                  <Badge variant="outline" className="bg-orange-100 text-orange-800">
-                                    Ausstehend
-                                  </Badge>
-                                  <Badge variant="outline">
-                                    {Math.round(result.confidence_scores.overall * 100)}% Konfidenz
-                                  </Badge>
-                                </div>
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                  <span>Rechnung: {result.structured_data.invoiceNumber}</span>
-                                  <span>Betrag: {result.structured_data.totalAmount.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}</span>
-                                  <span>Datum: {new Date(result.structured_data.date).toLocaleDateString('de-DE')}</span>
-                                  <span>Verarbeitet: {new Date(result.created_at).toLocaleString('de-DE')}</span>
-                                </div>
-                              </div>
-                              <Button
-                                onClick={() => setActiveOCRResult(result)}
-                                size="sm"
-                              >
-                                Validieren
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+            <div className="grid gap-4">
+              {filteredInvoices.map((invoice) => (
+                <Card key={invoice.id} className="hover:shadow-lg transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-semibold">{invoice.invoice_number}</h3>
+                          <Badge variant={getStatusBadgeVariant(invoice.status)}>
+                            {invoice.status}
+                          </Badge>
+                        </div>
+                        <h4 className="text-lg font-medium mb-1">{invoice.title}</h4>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {invoice.customer.company_name} • {invoice.customer.contact_person}
+                        </p>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span>Erstellt: {formatDate(invoice.invoice_date)}</span>
+                          <span>Fällig: {formatDate(invoice.due_date)}</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xl font-bold mb-2">
+                          {formatCurrency(invoice.total_amount, invoice.currency)}
+                        </div>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" title="Ansehen">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" title="Bearbeiten">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost" 
+                            size="sm" 
+                            title="Per E-Mail versenden"
+                            onClick={() => handleSendEmail('invoice', invoice.id, invoice)}
+                            disabled={false}
+                          >
+                            <Mail className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" title="Herunterladen">
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
-              )}
-
-              {/* OCR Info */}
-              <Card className="bg-blue-50 border-blue-200">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Scan className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-blue-900 mb-2">
-                        Automatische Rechnungserfassung mit OCR
-                      </h3>
-                      <ul className="text-sm text-blue-800 space-y-1">
-                        <li>• Laden Sie Bilder oder PDFs von Lieferantenrechnungen hoch</li>
-                        <li>• OCR erkennt automatisch Rechnungsnummer, Betrag, Lieferant und Datum</li>
-                        <li>• Validieren Sie die erkannten Daten vor der Übernahme</li>
-                        <li>• Rechnungen werden automatisch in Ihrem System angelegt</li>
-                      </ul>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              ))}
             </div>
           )}
         </TabsContent>
-
         <TabsContent value="templates" className="space-y-4">
           <Card>
             <CardContent className="py-8 text-center">

@@ -290,11 +290,7 @@ export function AddInvoiceDialog({ open, onOpenChange }: AddInvoiceDialogProps) 
       return;
     }
 
-    createInvoiceMutation.mutate({
-      title,
-      description: title,
-      customerId
-    });
+    createInvoiceMutation.mutate({});
   };
 
   return (

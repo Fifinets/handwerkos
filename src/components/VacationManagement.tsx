@@ -190,32 +190,17 @@ export function VacationManagement() {
   };
 
   const handleApproveRequest = async (requestId: string, approve: boolean) => {
-    // Sofort UI aktualisieren - BEVOR der API Call
-    const originalRequests = [...requests];
-    
-    // Entferne den Request sofort aus der UI
-    setRequests(prevRequests => 
-      prevRequests.filter(req => req.id !== requestId)
-    );
-
     try {
-      // Direkte Ablehnung ohne Begründung
-      const updateData: any = {
-        status: approve ? 'approved' : 'rejected',
-        approved_by: user?.id,
-        approved_at: new Date().toISOString()
-      };
-
       const { error } = await supabase
         .from('vacation_requests')
-        .update(updateData)
+        .update({
+          status: approve ? 'approved' : 'rejected',
+          approved_by: user?.id,
+          approved_at: new Date().toISOString()
+        })
         .eq('id', requestId);
 
-      if (error) {
-        // Bei Fehler: Stelle die ursprüngliche Liste wieder her
-        setRequests(originalRequests);
-        throw error;
-      }
+      if (error) throw error;
 
       // If approved, update employee vacation days used
       if (approve) {
@@ -232,16 +217,12 @@ export function VacationManagement() {
         }
       }
 
-      // Erfolg! Der Request wurde bereits aus der UI entfernt
       toast({
         title: approve ? "Antrag genehmigt" : "Antrag abgelehnt",
-        description: `Der Urlaubsantrag wurde erfolgreich ${approve ? 'genehmigt' : 'abgelehnt'}`,
+        description: `Der Urlaubsantrag wurde ${approve ? 'genehmigt' : 'abgelehnt'}`,
       });
 
-      // Optional: Lade Daten nach einer Sekunde neu für Synchronisation
-      setTimeout(() => {
-        loadVacationData();
-      }, 1000);
+      loadVacationData(); // Reload data
     } catch (error: any) {
       console.error('Error updating vacation request:', error);
       toast({
@@ -290,8 +271,8 @@ export function VacationManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold text-foreground flex items-center gap-3">
-            <Calendar className="h-8 w-8 text-primary" />
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-gray-600 bg-clip-text text-transparent flex items-center gap-3">
+            <Calendar className="h-8 w-8 text-gray-600" />
             Urlaubsverwaltung
           </h1>
           <p className="text-muted-foreground">
@@ -414,12 +395,7 @@ export function VacationManagement() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          // Direkte Ablehnung ohne Dialog oder Begründung
-                          handleApproveRequest(request.id, false);
-                        }}
+                        onClick={() => handleApproveRequest(request.id, false)}
                         className="border-red-600 text-red-600 hover:bg-red-50"
                       >
                         <XCircle className="h-4 w-4 mr-1" />

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, differenceInMinutes, startOfDay, endOfDay } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { formatMinutesToTime } from '@/utils/timeUtils';
 import { Play, Pause, Square, Clock, Calendar, User, MapPin, Filter, Plus, Settings, Users, Wifi, WifiOff, Edit } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -775,7 +774,7 @@ const TimeTrackingModule: React.FC = () => {
   return <div className="p-4 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-4xl font-bold text-foreground">Zeiterfassung</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Zeiterfassung</h1>
         <div className="flex items-center gap-4">
           {userRole === 'manager' && <Button 
               variant="outline" 

@@ -201,11 +201,7 @@ export function AddQuoteDialog({ open, onOpenChange }: AddQuoteDialogProps) {
       return;
     }
 
-    createQuoteMutation.mutate({
-      title,
-      description: title,
-      customerId
-    });
+    createQuoteMutation.mutate({});
   };
 
   return (

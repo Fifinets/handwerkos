@@ -11,11 +11,11 @@ interface KpiCardProps {
 export function KpiCard({ title, value, className, valueClassName }: KpiCardProps) {
   return (
     <div className={cn(
-      "bg-card/80 backdrop-blur-sm border border-border/50 rounded-xl px-4 py-4 flex items-center justify-between shadow-card-light dark:shadow-card-dark hover:shadow-card-hover transition-all duration-200",
+      "bg-card border rounded-xl px-4 py-4 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow",
       className
     )}>
       <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">{title}</div>
-      <div className={cn("text-2xl font-bold text-card-foreground", valueClassName)}>{value}</div>
+      <div className={cn("text-2xl font-bold", valueClassName)}>{value}</div>
     </div>
   );
 }
@@ -30,8 +30,8 @@ export function KpiContainer({ children, className }: KpiContainerProps) {
     <section
       aria-label="Kennzahlen"
       className={cn(
-        "grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4",
-        "bg-muted/20 backdrop-blur-sm border border-border/30 rounded-2xl p-6 shadow-soft",
+        "grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4",
+        "bg-background/95 backdrop-blur-sm border rounded-2xl p-4 shadow-lg",
         className
       )}
     >

@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -13,19 +13,10 @@ import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
 import MitarbeiterSetupPage from "./pages/MitarbeiterSetupPage";
 import HandwerkerSoftware from "./pages/HandwerkerSoftware";
-import MobileApp from "./pages/MobileApp";
-import MobileOnlyApp from "./pages/MobileOnlyApp";
-import MobileAuth from "./pages/MobileAuth";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { eventBus } from "./services/eventBus";
-import { Capacitor } from '@capacitor/core';
-import { initGA, trackPageView } from "./utils/analytics";
-import { GoogleAnalytics } from "./components/GoogleAnalytics";
 import "./styles/animations.css";
-import "./styles/safearea.css";
-import "./styles/scroll-snap.css";
-import "./styles/cookie-banner-fix.css";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -130,15 +121,8 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <GoogleAnalytics />
             <Routes>
-              <Route path="/" element={
-                Capacitor.isNativePlatform() ? <MobileAuth /> : <HandwerkerSoftware />
-              } />
-              <Route path="/app" element={<MobileOnlyApp />} />
-              <Route path="/mobile" element={<MobileApp />} />
-              <Route path="/mobile-auth" element={<MobileAuth />} />
-              <Route path="/handwerkersoftware" element={<HandwerkerSoftware />} />
+              <Route path="/" element={<HandwerkerSoftware />} />
               <Route path="/login" element={<Auth />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/manager" element={<Index />} />
@@ -146,6 +130,7 @@ const App = () => (
               <Route path="/auth/callback" element={<GmailCallback />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/mitarbeiter-setup" element={<MitarbeiterSetupPage />} />
+              <Route path="/handwerkersoftware" element={<HandwerkerSoftware />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

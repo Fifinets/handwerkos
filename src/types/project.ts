@@ -306,7 +306,6 @@ export const PROJECT_STATUS_CONFIG: Record<ProjectStatus, {
   icon: string;
   description: string;
   nextStates: ProjectStatus[];
-  previousStates?: ProjectStatus[];
 }> = {
   anfrage: {
     label: 'Anfrage',
@@ -314,8 +313,7 @@ export const PROJECT_STATUS_CONFIG: Record<ProjectStatus, {
     bgColor: 'bg-purple-100',
     icon: '📋',
     description: 'Projekt-Anfrage eingegangen',
-    nextStates: ['besichtigung'],
-    previousStates: []
+    nextStates: ['besichtigung']
   },
   besichtigung: {
     label: 'Termin ausmachen',
@@ -323,8 +321,7 @@ export const PROJECT_STATUS_CONFIG: Record<ProjectStatus, {
     bgColor: 'bg-orange-100',
     icon: '📅',
     description: 'Besichtigungstermin vereinbaren',
-    nextStates: ['geplant'],
-    previousStates: ['anfrage']
+    nextStates: ['geplant']
   },
   geplant: {
     label: 'In Planung',
@@ -332,8 +329,7 @@ export const PROJECT_STATUS_CONFIG: Record<ProjectStatus, {
     bgColor: 'bg-blue-100',
     icon: '📝',
     description: 'Projekt ist in Planung',
-    nextStates: ['in_bearbeitung'],
-    previousStates: ['besichtigung']
+    nextStates: ['in_bearbeitung']
   },
   in_bearbeitung: {
     label: 'In Arbeit',
@@ -341,8 +337,7 @@ export const PROJECT_STATUS_CONFIG: Record<ProjectStatus, {
     bgColor: 'bg-yellow-100',
     icon: '🔨',
     description: 'Projekt läuft aktiv',
-    nextStates: ['abgeschlossen'],
-    previousStates: ['geplant']
+    nextStates: ['abgeschlossen']
   },
   abgeschlossen: {
     label: 'Erledigt',
@@ -350,7 +345,6 @@ export const PROJECT_STATUS_CONFIG: Record<ProjectStatus, {
     bgColor: 'bg-green-100',
     icon: '✅',
     description: 'Projekt ist abgeschlossen',
-    nextStates: [],
-    previousStates: ['in_bearbeitung']
+    nextStates: []
   }
 };

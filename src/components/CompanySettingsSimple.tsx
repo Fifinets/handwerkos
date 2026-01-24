@@ -264,8 +264,8 @@ export function CompanySettingsSimple() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold text-foreground flex items-center gap-3">
-            <Settings className="h-8 w-8 text-primary" />
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-gray-600 bg-clip-text text-transparent flex items-center gap-3">
+            <Settings className="h-8 w-8 text-gray-600" />
             Firmeneinstellungen
           </h1>
           <p className="text-muted-foreground">
