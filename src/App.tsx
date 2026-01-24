@@ -12,7 +12,7 @@ import GmailCallback from "./pages/GmailCallback";
 import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
 import MitarbeiterSetupPage from "./pages/MitarbeiterSetupPage";
-import HandwerkerSoftware from "./pages/HandwerkerSoftware";
+import HandwerkerSoftwarePremium from "./pages/HandwerkerSoftwarePremium";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { eventBus } from "./services/eventBus";
@@ -68,7 +68,41 @@ const EventBusQueryInvalidation = () => {
         queryClient.invalidateQueries({ queryKey: ['quotes'] });
         queryClient.invalidateQueries({ queryKey: ['financial-kpis'] });
       }),
-      
+
+      // Offer events
+      eventBus.on('OFFER_CREATED', () => {
+        queryClient.invalidateQueries({ queryKey: ['offers'] });
+      }),
+      eventBus.on('OFFER_UPDATED', () => {
+        queryClient.invalidateQueries({ queryKey: ['offers'] });
+      }),
+      eventBus.on('OFFER_DELETED', () => {
+        queryClient.invalidateQueries({ queryKey: ['offers'] });
+      }),
+      eventBus.on('OFFER_SENT', () => {
+        queryClient.invalidateQueries({ queryKey: ['offers'] });
+      }),
+      eventBus.on('OFFER_ACCEPTED', () => {
+        queryClient.invalidateQueries({ queryKey: ['offers'] });
+        queryClient.invalidateQueries({ queryKey: ['projects'] });
+        queryClient.invalidateQueries({ queryKey: ['financial-kpis'] });
+      }),
+      eventBus.on('OFFER_REJECTED', () => {
+        queryClient.invalidateQueries({ queryKey: ['offers'] });
+      }),
+      eventBus.on('OFFER_ITEM_ADDED', () => {
+        queryClient.invalidateQueries({ queryKey: ['offers'] });
+      }),
+      eventBus.on('OFFER_ITEM_UPDATED', () => {
+        queryClient.invalidateQueries({ queryKey: ['offers'] });
+      }),
+      eventBus.on('OFFER_ITEM_DELETED', () => {
+        queryClient.invalidateQueries({ queryKey: ['offers'] });
+      }),
+      eventBus.on('OFFER_TARGETS_UPDATED', () => {
+        queryClient.invalidateQueries({ queryKey: ['offers'] });
+      }),
+
       // Invoice events
       eventBus.on('INVOICE_CREATED', () => {
         queryClient.invalidateQueries({ queryKey: ['invoices'] });
@@ -122,7 +156,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<HandwerkerSoftware />} />
+              <Route path="/" element={<HandwerkerSoftwarePremium />} />
               <Route path="/login" element={<Auth />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/manager" element={<Index />} />
@@ -130,7 +164,7 @@ const App = () => (
               <Route path="/auth/callback" element={<GmailCallback />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/mitarbeiter-setup" element={<MitarbeiterSetupPage />} />
-              <Route path="/handwerkersoftware" element={<HandwerkerSoftware />} />
+              <Route path="/handwerkersoftware" element={<HandwerkerSoftwarePremium />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
