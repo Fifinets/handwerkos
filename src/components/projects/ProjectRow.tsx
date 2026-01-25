@@ -15,7 +15,7 @@ type Props = {
   onEdit?: () => void;
 };
 
-const STYLES: Record<Props["status"], { label: string; cls: string }> = {
+const STYLES: Record<string, { label: string; cls: string }> = {
   anfrage:        { label: "Anfrage",         cls: "bg-indigo-100 text-indigo-800 border-indigo-200" },
   besichtigung:   { label: "Termin ausmachen", cls: "bg-amber-100  text-amber-800  border-amber-200" },
   geplant:        { label: "In Planung",      cls: "bg-blue-100   text-blue-800   border-blue-200" },
@@ -23,17 +23,19 @@ const STYLES: Record<Props["status"], { label: string; cls: string }> = {
   abgeschlossen:  { label: "Erledigt",       cls: "bg-green-100  text-green-800  border-green-200" }
 };
 
-// Temporary function to generate project numbers until migration is applied
-const generateTempProjectNumber = (id: string): string => {
+const DEFAULT_STYLE = { label: "Unbekannt", cls: "bg-gray-100 text-gray-800 border-gray-200" };
+
+// Generate a consistent project number from UUID (until DB field exists)
+const generateProjectNumber = (id: string): string => {
   const currentYear = new Date().getFullYear();
-  // Use a hash of the UUID to create a consistent number
   const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const number = ((hash % 9999) + 1).toString().padStart(4, '0');
-  return `${currentYear}-${number}`;
+  return `P-${currentYear}-${number}`;
 };
 
 export default function ProjectRow(p: Props) {
-  const st = STYLES[p.status];
+  const status = p.status || 'geplant'; // Fallback to 'geplant' if empty
+  const st = STYLES[status] || DEFAULT_STYLE;
   
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return "—";
@@ -43,25 +45,49 @@ export default function ProjectRow(p: Props) {
   // Calculate real progress based on date range
   const calculateRealProgress = () => {
     if (!p.start || !p.end) return 0;
-    
+
     const startDate = new Date(p.start);
     const endDate = new Date(p.end);
     const today = new Date();
-    
+
     // If project hasn't started yet
     if (today < startDate) return 0;
-    
+
     // If project is finished
-    if (today >= endDate || p.status === 'abgeschlossen') return 100;
-    
+    if (today >= endDate || status === 'abgeschlossen') return 100;
+
     // Calculate progress based on elapsed days
     const totalDays = Math.max(1, (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     const elapsedDays = (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
-    
+
     return Math.min(100, Math.max(0, (elapsedDays / totalDays) * 100));
   };
 
+  // Calculate days remaining until end date
+  const getDaysRemaining = () => {
+    if (!p.end) return null;
+    const endDate = new Date(p.end);
+    const today = new Date();
+    // Reset time to compare just dates
+    endDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    const diffTime = endDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  // Get progress bar color based on days remaining
+  const getProgressBarColor = () => {
+    if (status === 'abgeschlossen') return 'bg-green-500';
+    const daysRemaining = getDaysRemaining();
+    if (daysRemaining === null) return 'bg-blue-500';
+    if (daysRemaining <= 0) return 'bg-red-500'; // Ende erreicht oder überschritten
+    if (daysRemaining === 1) return 'bg-yellow-500'; // 1 Tag vor Ende
+    return 'bg-blue-500'; // Normal
+  };
+
   const realProgress = calculateRealProgress();
+  const progressBarColor = getProgressBarColor();
 
   return (
     <div 
@@ -78,7 +104,7 @@ export default function ProjectRow(p: Props) {
 
           {/* Project Number Pill */}
           <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-blue-50 text-blue-700 border-blue-200">
-            ID: {p.project_number || generateTempProjectNumber(p.id)}
+            {p.project_number || generateProjectNumber(p.id)}
           </span>
         </div>
         
@@ -111,7 +137,7 @@ export default function ProjectRow(p: Props) {
       {(p.start && p.end) && (
         <div className="h-2 w-full rounded-full bg-neutral-200 overflow-hidden">
           <div
-            className="h-full rounded-full bg-blue-500 transition-all"
+            className={`h-full rounded-full ${progressBarColor} transition-all`}
             style={{ width: `${realProgress}%` }}
             aria-valuenow={realProgress}
             aria-valuemin={0}
