@@ -1,8 +1,7 @@
-
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
-import MobileEmployeeApp from "@/components/employee/MobileEmployeeApp";
+import DesktopEmployeePage from "@/components/employee/DesktopEmployeePage";
 
 const Employee = () => {
   const { user, loading } = useSupabaseAuth();
@@ -35,8 +34,8 @@ const Employee = () => {
     );
   }
 
-  // Always use mobile app interface
-  return <MobileEmployeeApp />;
+  // Desktop Employee Page
+  return <DesktopEmployeePage />;
 };
 
 export default Employee;
