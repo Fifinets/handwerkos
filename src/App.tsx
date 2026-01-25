@@ -13,6 +13,8 @@ import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
 import MitarbeiterSetupPage from "./pages/MitarbeiterSetupPage";
 import HandwerkerSoftwarePremium from "./pages/HandwerkerSoftwarePremium";
+import Impressum from "./pages/Impressum";
+import Datenschutz from "./pages/Datenschutz";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { eventBus } from "./services/eventBus";
@@ -163,6 +165,8 @@ const App = () => (
               <Route path="/employee" element={<Employee />} />
               <Route path="/auth/callback" element={<GmailCallback />} />
               <Route path="/privacy" element={<Privacy />} />
+              <Route path="/impressum" element={<Impressum />} />
+              <Route path="/datenschutz" element={<Datenschutz />} />
               <Route path="/mitarbeiter-setup" element={<MitarbeiterSetupPage />} />
               <Route path="/handwerkersoftware" element={<HandwerkerSoftwarePremium />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

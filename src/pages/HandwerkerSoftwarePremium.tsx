@@ -387,15 +387,29 @@ export default function HandwerkerSoftwarePremium() {
             {[
               {
                 title: "Produkt",
-                links: ["Funktionen", "Preise", "Integrationen", "Roadmap"],
+                links: [
+                  { label: "Funktionen", href: "#features" },
+                  { label: "Preise", href: "#" },
+                  { label: "Integrationen", href: "#" },
+                  { label: "Roadmap", href: "#" },
+                ],
               },
               {
                 title: "Ressourcen",
-                links: ["Hilfe-Center", "Blog", "Webinare", "API Docs"],
+                links: [
+                  { label: "Hilfe-Center", href: "#" },
+                  { label: "Blog", href: "#" },
+                  { label: "Webinare", href: "#" },
+                  { label: "API Docs", href: "#" },
+                ],
               },
               {
                 title: "Rechtliches",
-                links: ["Datenschutz", "Impressum", "AGB", "DSGVO"],
+                links: [
+                  { label: "Datenschutz", href: "/datenschutz" },
+                  { label: "Impressum", href: "/impressum" },
+                  { label: "Cookie-Einstellungen", href: "#", onClick: "openCookieSettings" },
+                ],
               },
             ].map((col) => (
               <div key={col.title} className="space-y-4">
@@ -405,10 +419,23 @@ export default function HandwerkerSoftwarePremium() {
                   style={{ color: "var(--premium-text-dim)" }}
                 >
                   {col.links.map((link) => (
-                    <li key={link}>
-                      <a href="#" className="hover:text-white transition-colors">
-                        {link}
-                      </a>
+                    <li key={link.label}>
+                      {link.label === "Cookie-Einstellungen" ? (
+                        <a
+                          href="#"
+                          className="iubenda-cs-preferences-link hover:text-white transition-colors"
+                        >
+                          {link.label}
+                        </a>
+                      ) : link.href.startsWith("#") ? (
+                        <a href={link.href} className="hover:text-white transition-colors">
+                          {link.label}
+                        </a>
+                      ) : (
+                        <Link to={link.href} className="hover:text-white transition-colors">
+                          {link.label}
+                        </Link>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -424,7 +451,7 @@ export default function HandwerkerSoftwarePremium() {
               color: "var(--premium-text-dim)",
             }}
           >
-            <p>© {new Date().getFullYear()} HandwerkOS GmbH. Alle Rechte vorbehalten.</p>
+            <p>© {new Date().getFullYear()} HandwerkOS – Filip Bosz. Alle Rechte vorbehalten.</p>
             <div className="flex items-center gap-6">
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-green-400" />
