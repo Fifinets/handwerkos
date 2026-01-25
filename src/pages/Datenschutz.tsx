@@ -236,10 +236,21 @@ export default function Datenschutz() {
             </p>
           </section>
 
-          {/* 9. Beschwerderecht */}
+          {/* 9. Speicherdauer */}
           <section className="space-y-4">
             <h2 className="text-2xl font-semibold" style={{ color: "var(--premium-text)" }}>
-              9. Beschwerderecht bei der Aufsichtsbehörde
+              9. Speicherdauer
+            </h2>
+            <p>
+              Personenbezogene Daten werden nur so lange gespeichert, wie dies zur Erfüllung der jeweiligen Zwecke
+              erforderlich ist oder gesetzliche Aufbewahrungspflichten bestehen.
+            </p>
+          </section>
+
+          {/* 10. Beschwerderecht */}
+          <section className="space-y-4">
+            <h2 className="text-2xl font-semibold" style={{ color: "var(--premium-text)" }}>
+              10. Beschwerderecht bei der Aufsichtsbehörde
             </h2>
             <p>
               Sie haben das Recht, sich bei einer Datenschutz-Aufsichtsbehörde zu beschweren. Die für uns zuständige Behörde ist:
@@ -273,10 +284,10 @@ export default function Datenschutz() {
             </div>
           </section>
 
-          {/* 10. Änderungen */}
+          {/* 11. Änderungen */}
           <section className="space-y-4">
             <h2 className="text-2xl font-semibold" style={{ color: "var(--premium-text)" }}>
-              10. Änderungen dieser Datenschutzerklärung
+              11. Änderungen dieser Datenschutzerklärung
             </h2>
             <p>
               Wir behalten uns vor, diese Datenschutzerklärung bei Bedarf anzupassen, um sie an geänderte rechtliche Anforderungen
