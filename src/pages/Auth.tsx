@@ -159,12 +159,32 @@ const Auth: React.FC = () => {
               .update({ status: 'accepted' })
               .eq('invite_token', invitationData.invite_token);
 
+            // Link employee record to user
+            await supabase
+              .from('employees')
+              .update({
+                user_id: authData.user.id,
+                status: 'active'
+              })
+              .eq('email', invitationData.email.toLowerCase());
+
             // Create user role as employee
             await supabase
               .from('user_roles')
               .insert({
                 user_id: authData.user.id,
                 role: 'employee'
+              });
+
+            // Create profile for employee
+            await supabase
+              .from('profiles')
+              .upsert({
+                id: authData.user.id,
+                email: invitationData.email,
+                first_name: invitationData.employee_data?.firstName || '',
+                last_name: invitationData.employee_data?.lastName || '',
+                company_id: invitationData.company_id
               });
 
             console.log('Employee account created successfully');

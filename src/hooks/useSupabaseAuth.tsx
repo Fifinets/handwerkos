@@ -140,11 +140,11 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         .from('employees')
         .upsert({
           email: email.toLowerCase(),
-          first_name: employeeData.firstName,
-          last_name: employeeData.lastName,
-          position: employeeData.position,
-          phone: employeeData.phone,
-          qualifications: Array.isArray(employeeData.qualifications) ? employeeData.qualifications : [],
+          first_name: employeeData.firstName || '',
+          last_name: employeeData.lastName || '',
+          position: employeeData.position || '',
+          phone: employeeData.phone || '',
+          qualifications: JSON.stringify(Array.isArray(employeeData.qualifications) ? employeeData.qualifications : []),
           license: employeeData.license || '',
           company_id: companyId,
           status: 'eingeladen'
