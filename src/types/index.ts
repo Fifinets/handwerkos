@@ -5,6 +5,12 @@
 export * from './core';
 export * from './ai';
 export * from './gobd';
+export * from './offer';
+
+// Workflow entities (Angebot → Auftrag → Projekt → Lieferschein → Rechnung)
+export * from './order';
+export * from './delivery-note';
+export * from './invoice';
 
 // Legacy types (for backward compatibility during migration)
 export * from './project';
@@ -70,6 +76,15 @@ export enum InvoiceStatus {
   PAID = 'paid',
   OVERDUE = 'overdue',
   VOID = 'void',
+  CANCELLED = 'cancelled',
+}
+
+export enum OfferStatus {
+  DRAFT = 'draft',
+  SENT = 'sent',
+  ACCEPTED = 'accepted',
+  REJECTED = 'rejected',
+  EXPIRED = 'expired',
   CANCELLED = 'cancelled',
 }
 
