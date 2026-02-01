@@ -3,12 +3,12 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-export type EventType = 
+export type EventType =
   // Customer events
   | 'CUSTOMER_CREATED'
   | 'CUSTOMER_UPDATED'
   | 'CUSTOMER_DELETED'
-  
+
   // Quote events
   | 'QUOTE_CREATED'
   | 'QUOTE_UPDATED'
@@ -16,7 +16,20 @@ export type EventType =
   | 'QUOTE_ACCEPTED'
   | 'QUOTE_REJECTED'
   | 'QUOTE_DELETED'
-  
+
+  // Offer events
+  | 'OFFER_CREATED'
+  | 'OFFER_UPDATED'
+  | 'OFFER_SENT'
+  | 'OFFER_ACCEPTED'
+  | 'OFFER_REJECTED'
+  | 'OFFER_CANCELLED'
+  | 'OFFER_DELETED'
+  | 'OFFER_ITEM_ADDED'
+  | 'OFFER_ITEM_UPDATED'
+  | 'OFFER_ITEM_DELETED'
+  | 'OFFER_TARGETS_UPDATED'
+
   // Order events
   | 'ORDER_CREATED'
   | 'ORDER_CREATED_FROM_QUOTE'
@@ -25,20 +38,20 @@ export type EventType =
   | 'ORDER_COMPLETED'
   | 'ORDER_CANCELLED'
   | 'ORDER_DELETED'
-  
+
   // Project events
   | 'PROJECT_CREATED'
   | 'PROJECT_UPDATED'
   | 'PROJECT_STATUS_CHANGED'
   | 'PROJECT_DELETED'
-  
+
   // Timesheet events
   | 'TIMESHEET_CREATED'
   | 'TIMESHEET_UPDATED'
   | 'TIMESHEET_APPROVED'
   | 'TIMESHEET_REJECTED'
   | 'TIMESHEET_DELETED'
-  
+
   // Material & Stock events
   | 'MATERIAL_CREATED'
   | 'MATERIAL_UPDATED'
@@ -52,7 +65,7 @@ export type EventType =
   | 'STOCK_TRANSFER_COMPLETED'
   | 'INVENTORY_COUNT_CREATED'
   | 'INVENTORY_COUNT_COMPLETED'
-  
+
   // Finance events
   | 'INVOICE_CREATED'
   | 'INVOICE_UPDATED'
@@ -60,13 +73,13 @@ export type EventType =
   | 'INVOICE_PAID'
   | 'EXPENSE_CREATED'
   | 'EXPENSE_APPROVED'
-  
+
   // Document events
   | 'DOCUMENT_UPLOADED'
   | 'DOCUMENT_UPDATED'
   | 'DOCUMENT_DOWNLOADED'
   | 'DOCUMENT_DELETED'
-  
+
   // System events
   | 'USER_LOGIN'
   | 'USER_LOGOUT'
@@ -96,8 +109,8 @@ class EventBus {
 
   // Subscribe to an event
   on<T extends EventData = EventData>(
-    event: EventType, 
-    handler: EventHandler<T>, 
+    event: EventType,
+    handler: EventHandler<T>,
     once = false
   ): string {
     const subscription: EventSubscription = {
@@ -118,7 +131,7 @@ class EventBus {
 
   // Subscribe to an event only once
   once<T extends EventData = EventData>(
-    event: EventType, 
+    event: EventType,
     handler: EventHandler<T>
   ): string {
     return this.on(event, handler, true);
@@ -155,7 +168,7 @@ class EventBus {
 
     // Get subscribers for this event
     const subscriptions = this.subscriptions.get(event) || [];
-    
+
     // Execute handlers
     const promises = subscriptions.map(async (subscription) => {
       try {
@@ -167,7 +180,7 @@ class EventBus {
         }
       } catch (error) {
         console.error(`Event handler error for ${event}:`, error);
-        
+
         // Emit system error event (but avoid infinite loops)
         if (event !== 'SYSTEM_ERROR') {
           this.emit('SYSTEM_ERROR', {
@@ -187,7 +200,7 @@ class EventBus {
 
   // Get event history
   getHistory(event?: EventType, limit?: number): Array<{ event: EventType; data: EventData; timestamp: string }> {
-    let history = event 
+    let history = event
       ? this.eventHistory.filter(item => item.event === event)
       : this.eventHistory;
 
@@ -260,7 +273,7 @@ class EventBus {
       // Extract relevant information for audit log
       const auditData = this.extractAuditData(event, data);
 
-      await supabase.from('audit_logs').insert({
+      await supabase.from('audit_logs' as any).insert({
         action: this.mapEventToAuditAction(event),
         table_name: this.extractTableName(event),
         record_id: auditData.recordId,
@@ -311,8 +324,8 @@ class EventBus {
       case 'STOCK_ADJUSTED':
         return {
           recordId: data.material?.id,
-          metadata: { 
-            adjustment: data.adjustment, 
+          metadata: {
+            adjustment: data.adjustment,
             reason: data.reason,
             reference: data.reference,
           },
@@ -452,4 +465,4 @@ eventBus.on('USER_LOGOUT', (data) => {
 });
 
 // Export types for external use
-export type { EventHandler, EventSubscription };
+// export type { EventHandler, EventSubscription }; // Removed duplicate export

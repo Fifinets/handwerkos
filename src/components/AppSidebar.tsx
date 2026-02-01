@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect } from "react";
-import { 
-  TrendingUp, 
-  Users, 
-  Building2, 
-  UserCheck, 
-  Package, 
-  Settings, 
-  Calculator, 
+import {
+  TrendingUp,
+  Users,
+  Building2,
+  UserCheck,
+  Package,
+  Settings,
+  Calculator,
   Calendar,
   Clock,
   LogOut,
@@ -26,10 +26,10 @@ import { toast } from "@/hooks/use-toast";
 
 const navigationItems = [
   { id: 'dashboard', name: 'Dashboard', icon: TrendingUp, color: 'text-blue-500' },
-  { 
-    id: 'stammdaten', 
-    name: 'Stammdaten', 
-    icon: Database, 
+  {
+    id: 'stammdaten',
+    name: 'Stammdaten',
+    icon: Database,
     color: 'text-gray-500',
     children: [
       { id: 'customers', name: 'Kunden & Aufträge', icon: Users, color: 'text-green-500' },
@@ -37,6 +37,7 @@ const navigationItems = [
     ]
   },
   { id: 'projects', name: 'Projekte & Baustellen', icon: Building2, color: 'text-orange-500' },
+  { id: 'offers', name: 'Angebote', icon: FileText, color: 'text-purple-500' },
   { id: 'timetracking', name: 'Zeiterfassung', icon: Clock, color: 'text-yellow-500' },
   { id: 'vacation', name: 'Urlaubsverwaltung', icon: Plane, color: 'text-sky-500' },
   { id: 'emails', name: 'E-Mails', icon: Mail, color: 'text-pink-500' },
@@ -87,15 +88,15 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
   }, [isExpanded]);
 
   const toggleGroup = (groupId: string) => {
-    setExpandedGroups(prev => 
-      prev.includes(groupId) 
+    setExpandedGroups(prev =>
+      prev.includes(groupId)
         ? prev.filter(id => id !== groupId)
         : [...prev, groupId]
     );
   };
 
   return (
-    <div 
+    <div
       className={`fixed left-0 top-0 h-full z-50 transition-all duration-500 ease-in-out ${isExpanded ? "w-64" : "w-16"} 
       bg-gradient-to-b from-blue-900 via-blue-800 to-blue-950 shadow-2xl`}
       onMouseEnter={() => {
@@ -116,9 +117,8 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
           <div className="h-8 w-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
             <span className="text-white font-bold text-sm">H</span>
           </div>
-          <span className={`font-bold text-white transition-all duration-300 ${
-            isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
-          }`}>
+          <span className={`font-bold text-white transition-all duration-300 ${isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
+            }`}>
             HandwerkOS
           </span>
         </div>
@@ -141,9 +141,8 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
                       <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
                         <item.icon className={`h-5 w-5 ${item.color} group-hover:scale-110 transition-transform duration-200`} />
                       </div>
-                      <span className={`ml-3 whitespace-nowrap transition-all duration-300 font-medium ${
-                        isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
-                      }`}>
+                      <span className={`ml-3 whitespace-nowrap transition-all duration-300 font-medium ${isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
+                        }`}>
                         {item.name}
                       </span>
                       {isExpanded && (
@@ -156,7 +155,7 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
                         </div>
                       )}
                     </button>
-                    
+
                     {/* Unterelemente */}
                     {expandedGroups.includes(item.id) && isExpanded && (
                       <div className="ml-6 mt-1 space-y-1">
@@ -164,11 +163,10 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
                           <button
                             key={child.id}
                             onClick={() => onModuleChange(child.id)}
-                            className={`group w-full flex items-center p-2.5 rounded-lg transition-all duration-200 text-sm ${
-                              activeModule === child.id
-                                ? "bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30"
-                                : "text-white/70 hover:text-white hover:bg-white/10"
-                            }`}
+                            className={`group w-full flex items-center p-2.5 rounded-lg transition-all duration-200 text-sm ${activeModule === child.id
+                              ? "bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30"
+                              : "text-white/70 hover:text-white hover:bg-white/10"
+                              }`}
                           >
                             <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
                               <child.icon className={`h-4 w-4 ${child.color} group-hover:scale-110 transition-transform duration-200`} />
@@ -188,19 +186,17 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
                   // Einzelnes Menüelement
                   <button
                     onClick={() => onModuleChange(item.id)}
-                    className={`group w-full flex items-center p-3 rounded-lg transition-all duration-300 relative ${
-                      activeModule === item.id
-                        ? "bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30"
-                        : "text-white/80 hover:text-white hover:bg-white/10"
-                    }`}
+                    className={`group w-full flex items-center p-3 rounded-lg transition-all duration-300 relative ${activeModule === item.id
+                      ? "bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30"
+                      : "text-white/80 hover:text-white hover:bg-white/10"
+                      }`}
                     title={!isExpanded ? item.name : undefined}
                   >
                     <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
                       <item.icon className={`h-5 w-5 ${item.color} group-hover:scale-110 transition-transform duration-200`} />
                     </div>
-                    <span className={`ml-3 whitespace-nowrap transition-all duration-300 font-medium ${
-                      isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
-                    }`}>
+                    <span className={`ml-3 whitespace-nowrap transition-all duration-300 font-medium ${isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
+                      }`}>
                       {item.name}
                     </span>
                     {activeModule === item.id && (
@@ -222,9 +218,8 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
             <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
               <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
             </div>
-            <span className={`ml-3 whitespace-nowrap transition-all duration-300 font-medium ${
-              isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
-            }`}>
+            <span className={`ml-3 whitespace-nowrap transition-all duration-300 font-medium ${isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
+              }`}>
               Abmelden
             </span>
           </button>

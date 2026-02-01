@@ -22,7 +22,10 @@ export const OfferItemTypeEnum = z.enum([
   'labor',
   'material',
   'lump_sum',
-  'other'
+  'text',
+  'title',
+  'other',
+  'page_break'
 ]);
 
 export type OfferItemType = z.infer<typeof OfferItemTypeEnum>;
@@ -254,7 +257,10 @@ export const OFFER_ITEM_TYPE_LABELS: Record<OfferItemType, string> = {
   labor: 'Arbeitsleistung',
   material: 'Material',
   lump_sum: 'Pauschale',
+  text: 'Text',
+  title: 'Titel',
   other: 'Sonstiges',
+  page_break: 'Seitenumbruch',
 };
 
 export const OFFER_ITEM_UNITS = [

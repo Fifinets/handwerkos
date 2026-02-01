@@ -6,6 +6,7 @@ import ThreeStepFlow from "@/components/marketing/ThreeStepFlow";
 import Testimonials from "@/components/marketing/Testimonials";
 import FAQ from "@/components/marketing/FAQ";
 import "@/styles/premium-landing.css";
+import { QualifyDialog } from "@/components/marketing/QualifyDialog";
 
 export default function HandwerkerSoftwarePremium() {
   useEffect(() => {
@@ -83,7 +84,7 @@ export default function HandwerkerSoftwarePremium() {
                   Anmelden
                 </button>
               </Link>
-              <Link to="/login">
+              <QualifyDialog>
                 <button
                   className="text-sm px-5 py-2.5 rounded-lg font-medium"
                   style={{
@@ -91,9 +92,9 @@ export default function HandwerkerSoftwarePremium() {
                     color: "var(--premium-bg)",
                   }}
                 >
-                  Kostenlos testen
+                  Auf die Warteliste
                 </button>
-              </Link>
+              </QualifyDialog>
             </div>
           </div>
         </div>
@@ -314,11 +315,11 @@ export default function HandwerkerSoftwarePremium() {
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-                  <Link to="/login">
+                  <QualifyDialog>
                     <button className="premium-btn-primary text-lg">
-                      Jetzt kostenlos starten
+                      Jetzt auf die Warteliste
                     </button>
-                  </Link>
+                  </QualifyDialog>
                   <button className="premium-btn-secondary text-lg">
                     Demo-Termin buchen
                   </button>

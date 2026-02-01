@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { QualifyDialog } from "@/components/marketing/QualifyDialog";
 
 // Magnetic Button Component
 function MagneticButton({
@@ -120,9 +121,9 @@ export default function PremiumHero() {
 
             {/* Headline */}
             <h1 className="premium-headline">
-              Weniger Papierkrieg.
+              Möchtest du profitablere Baustellen,
               <br />
-              <span className="premium-headline-accent">Mehr Marge.</span>
+              <span className="premium-headline-accent">ohne Büro-Chaos?</span>
             </h1>
 
             {/* Subline */}
@@ -133,9 +134,9 @@ export default function PremiumHero() {
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <Link to="/login">
+              <QualifyDialog>
                 <MagneticButton className="premium-btn-primary text-lg">
-                  Demo ansehen
+                  Jetzt auf die Warteliste
                   <svg
                     className="inline-block ml-2 w-5 h-5"
                     fill="none"
@@ -156,7 +157,7 @@ export default function PremiumHero() {
                     />
                   </svg>
                 </MagneticButton>
-              </Link>
+              </QualifyDialog>
               <MagneticButton className="premium-btn-secondary text-lg">
                 15-Min Setup-Check
                 <svg

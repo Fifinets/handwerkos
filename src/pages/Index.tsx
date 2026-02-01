@@ -18,6 +18,7 @@ import TimeTrackingModule from "@/components/TimeTrackingModule";
 import { DocumentModule } from "@/components/DocumentModule";
 import { CompanySettingsSimple as CompanySettingsModule } from "@/components/CompanySettingsSimple";
 import EmailModule from "@/components/EmailModule";
+import OfferModule from "@/components/OfferModule";
 import { VacationManagement } from "@/components/VacationManagement";
 import DashboardCalendar from "@/components/DashboardCalendar";
 import DashboardStatsWithKpis from "@/components/DashboardStatsWithKpis";
@@ -37,8 +38,8 @@ const Index = () => {
 
   // Check if device is mobile
   const isMobile = () => {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-           window.innerWidth <= 768;
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+      window.innerWidth <= 768;
   };
 
   // Handle navigation in useEffect to avoid setState during render
@@ -59,8 +60,8 @@ const Index = () => {
   }, [user, userRole, loading]); // Removed navigate from dependency array
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>;
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    </div>;
   }
   if (!user || userRole === 'employee') {
     return null;
@@ -94,62 +95,64 @@ const Index = () => {
         return <VacationManagement />;
       case 'company-settings':
         return <CompanySettingsModule />;
+      case 'offers':
+        return <OfferModule />;
       default:
         return <ExecutiveDashboard onNavigate={setActiveModule} />;
     }
   };
   return <div className="min-h-screen w-full bg-gray-50">
-      <AppSidebar activeModule={activeModule} onModuleChange={setActiveModule} />
-      
-      <div className="ml-16 lg:ml-16 flex flex-col min-h-screen">
-        {/* Header wie ursprünglich mit Logo */}
-        <header className="h-20 border-b border-white/20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl sticky top-0 z-30 shadow-lg shadow-blue-500/10">
-          <div className="flex items-center justify-between h-full px-8">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center gap-3">
-                <img 
-                  src="/handwerkos-logo.svg" 
-                  alt="HandwerkOS Logo" 
-                  className="h-10 w-10 object-contain"
-                />
-                <h1 className="font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent text-3xl">
-                  HandwerkOS
-                </h1>
-              </div>
-              <Badge 
-                variant="secondary" 
-                className="hidden sm:inline-flex bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 border-0 shadow-sm"
-              >
-                Manager Dashboard
-              </Badge>
+    <AppSidebar activeModule={activeModule} onModuleChange={setActiveModule} />
+
+    <div className="ml-16 lg:ml-16 flex flex-col min-h-screen">
+      {/* Header wie ursprünglich mit Logo */}
+      <header className="h-20 border-b border-white/20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl sticky top-0 z-30 shadow-lg shadow-blue-500/10">
+        <div className="flex items-center justify-between h-full px-8">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-3">
+              <img
+                src="/handwerkos-logo.svg"
+                alt="HandwerkOS Logo"
+                className="h-10 w-10 object-contain"
+              />
+              <h1 className="font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent text-3xl">
+                HandwerkOS
+              </h1>
             </div>
-            
-            <div className="flex items-center space-x-4">
-              <ThemeToggle />
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => navigate('/employee')} 
-                className="hidden sm:flex bg-white/50 hover:bg-white/80 border-white/30 backdrop-blur-sm shadow-lg transition-all duration-200 hover:scale-105"
-              >
-                <UserCheck className="w-4 h-4 mr-2" />
-                Mitarbeiter-Ansicht
-              </Button>
-              <div className="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 bg-white/30 dark:bg-slate-800/30 px-3 py-2 rounded-full backdrop-blur-sm">
-                <User className="w-4 h-4" />
-                <span className="hidden sm:inline font-medium">
-                  {user?.email?.split('@')[0] || 'Admin'}
-                </span>
-              </div>
+            <Badge
+              variant="secondary"
+              className="hidden sm:inline-flex bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 border-0 shadow-sm"
+            >
+              Manager Dashboard TEST
+            </Badge>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <ThemeToggle />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/employee')}
+              className="hidden sm:flex bg-white/50 hover:bg-white/80 border-white/30 backdrop-blur-sm shadow-lg transition-all duration-200 hover:scale-105"
+            >
+              <UserCheck className="w-4 h-4 mr-2" />
+              Mitarbeiter-Ansicht
+            </Button>
+            <div className="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 bg-white/30 dark:bg-slate-800/30 px-3 py-2 rounded-full backdrop-blur-sm">
+              <User className="w-4 h-4" />
+              <span className="hidden sm:inline font-medium">
+                {user?.email?.split('@')[0] || 'Admin'}
+              </span>
             </div>
           </div>
-        </header>
+        </div>
+      </header>
 
-        {/* Main Content - Module haben jetzt ihr eigenes Styling */}
-        <main className="flex-1 overflow-auto">
-          {renderModule()}
-        </main>
-      </div>
-    </div>;
+      {/* Main Content - Module haben jetzt ihr eigenes Styling */}
+      <main className="flex-1 overflow-auto">
+        {renderModule()}
+      </main>
+    </div>
+  </div>;
 };
 export default Index;

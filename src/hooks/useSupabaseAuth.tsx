@@ -8,12 +8,12 @@ interface SupabaseAuthContextType {
   session: Session | null;
   userRole: string | null;
   loading: boolean;
-  
+
   // Organization/Company info
   isManager: boolean;
   canInviteMembers: boolean;
   companyId: string | null;
-  
+
   // Actions
   signOut: () => Promise<void>;
   inviteEmployee: (email: string, employeeData: any) => Promise<{ success: boolean; error?: string }>;
@@ -77,6 +77,9 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       if (data.session?.user) {
         fetchUserData(data.session.user.id);
       }
+      setLoading(false);
+    }).catch(err => {
+      console.error('Auth session init error:', err);
       setLoading(false);
     });
 
@@ -157,7 +160,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
 
       // Send invitation email via Edge Function
       const registrationUrl = `${window.location.origin}/mitarbeiter-setup?token=${inviteToken}`;
-      
+
       const { data: profile } = await supabase
         .from('profiles')
         .select('email, first_name, last_name')
@@ -206,9 +209,9 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       return { success: true };
     } catch (error) {
       console.error('Invitation error:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unbekannter Fehler bei der Einladung' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unbekannter Fehler bei der Einladung'
       };
     }
   };
@@ -221,17 +224,17 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     try {
       const { error } = await supabase
         .from('user_roles')
-        .upsert({ 
-          user_id: userId, 
+        .upsert({
+          user_id: userId,
           role: role as 'manager' | 'employee'
         });
 
       if (error) throw error;
       return { success: true };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Rolle konnte nicht aktualisiert werden' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Rolle konnte nicht aktualisiert werden'
       };
     }
   };

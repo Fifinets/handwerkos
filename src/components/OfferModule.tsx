@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ import {
   Eye,
   Edit,
   Trash2,
+  User,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -60,6 +62,8 @@ interface OfferModuleProps {
 }
 
 const OfferModule: React.FC<OfferModuleProps> = ({ customerId }) => {
+  console.log('OfferModule loaded - v2 with Wizard');
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<OfferStatus | 'all'>('all');
@@ -342,13 +346,15 @@ const OfferModule: React.FC<OfferModuleProps> = ({ customerId }) => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Angebote</h1>
-        <Button
-          onClick={() => setIsAddDialogOpen(true)}
-          className="bg-blue-600 hover:bg-blue-700 rounded-full"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Neues Angebot
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => navigate('/offers/wizard')}
+            className="bg-purple-600 hover:bg-purple-700 rounded-full shadow-lg hover:shadow-xl transition-all"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Neues Angebot
+          </Button>
+        </div>
       </div>
 
       {/* KPI Bar */}
@@ -477,14 +483,115 @@ const OfferModule: React.FC<OfferModuleProps> = ({ customerId }) => {
                   {searchTerm
                     ? 'Keine Angebote gefunden.'
                     : statusFilter !== 'all'
-                    ? `Keine ${OFFER_STATUS_LABELS[statusFilter as OfferStatus]} Angebote vorhanden.`
-                    : 'Noch keine Angebote vorhanden. Erstellen Sie Ihr erstes Angebot!'}
+                      ? `Keine ${OFFER_STATUS_LABELS[statusFilter as OfferStatus]} Angebote vorhanden.`
+                      : 'Noch keine Angebote vorhanden. Erstellen Sie Ihr erstes Angebot!'}
                 </p>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4">
-              {filteredOffers.map(renderOfferCard)}
+            // Table View as default for better overview
+            <div className="rounded-md border bg-white shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-gray-50 text-gray-700 font-medium border-b">
+                    <tr>
+                      <th className="px-4 py-3">Nummer</th>
+                      <th className="px-4 py-3">Datum</th>
+                      <th className="px-4 py-3">Kunde</th>
+                      <th className="px-4 py-3">Projekt</th>
+                      <th className="px-4 py-3 text-right">Betrag (Brutto)</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3 text-right">Aktionen</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {filteredOffers.map((offer) => (
+                      <tr
+                        key={offer.id}
+                        className="hover:bg-gray-50/80 transition-colors cursor-pointer"
+                        onClick={() => openDetailView(offer)}
+                      >
+                        <td className="px-4 py-3 font-medium text-blue-600">
+                          {offer.offer_number}
+                        </td>
+                        <td className="px-4 py-3 text-gray-500">
+                          {formatDate(offer.offer_date)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <User className="h-3 w-3 text-gray-400" />
+                            {offer.customer_name}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-3 w-3 text-gray-400" />
+                            <span className="truncate max-w-[200px]">{offer.project_name}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right font-semibold text-gray-900">
+                          {formatCurrency(offer.snapshot_gross_total || 0)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <OfferStatusBadge status={offer.status} />
+                        </td>
+                        <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openDetailView(offer)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Details anzeigen
+                              </DropdownMenuItem>
+                              {offer.status === 'draft' && !offer.is_locked && (
+                                <>
+                                  <DropdownMenuItem onClick={() => openEditDialog(offer)}>
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Bearbeiten
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleSendOffer(offer)}>
+                                    <Send className="h-4 w-4 mr-2" />
+                                    Versenden
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {offer.status === 'sent' && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => openAcceptDialog(offer)}>
+                                    <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                                    Angenommen
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => openRejectDialog(offer)}>
+                                    <XCircle className="h-4 w-4 mr-2 text-red-600" />
+                                    Abgelehnt
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {offer.status === 'draft' && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => openDeleteDialog(offer)}
+                                    className="text-red-600"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Löschen
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </TabsContent>

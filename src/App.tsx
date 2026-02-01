@@ -15,6 +15,10 @@ import MitarbeiterSetupPage from "./pages/MitarbeiterSetupPage";
 import HandwerkerSoftwarePremium from "./pages/HandwerkerSoftwarePremium";
 import Impressum from "./pages/Impressum";
 import Datenschutz from "./pages/Datenschutz";
+import OfferCreationWizard from "./pages/offers/OfferCreationWizard";
+import OfferEditorPage from "./pages/offers/OfferEditorPage";
+import HandwerkerSoftwareLandingV2 from "./pages/HandwerkerSoftwareLandingV2";
+
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { eventBus } from "./services/eventBus";
@@ -44,7 +48,7 @@ const EventBusQueryInvalidation = () => {
       eventBus.on('CUSTOMER_DELETED', () => {
         queryClient.invalidateQueries({ queryKey: ['customers'] });
       }),
-      
+
       // Project events
       eventBus.on('PROJECT_CREATED', () => {
         queryClient.invalidateQueries({ queryKey: ['projects'] });
@@ -58,7 +62,7 @@ const EventBusQueryInvalidation = () => {
         queryClient.invalidateQueries({ queryKey: ['projects'] });
         queryClient.invalidateQueries({ queryKey: ['financial-kpis'] });
       }),
-      
+
       // Quote events
       eventBus.on('QUOTE_CREATED', () => {
         queryClient.invalidateQueries({ queryKey: ['quotes'] });
@@ -118,7 +122,7 @@ const EventBusQueryInvalidation = () => {
         queryClient.invalidateQueries({ queryKey: ['invoices'] });
         queryClient.invalidateQueries({ queryKey: ['financial-kpis'] });
       }),
-      
+
       // Time entry events
       eventBus.on('TIMESHEET_CREATED', () => {
         queryClient.invalidateQueries({ queryKey: ['time-entries'] });
@@ -126,7 +130,7 @@ const EventBusQueryInvalidation = () => {
       eventBus.on('TIMESHEET_UPDATED', () => {
         queryClient.invalidateQueries({ queryKey: ['time-entries'] });
       }),
-      
+
       // Material/Stock events
       eventBus.on('STOCK_ADJUSTED', () => {
         queryClient.invalidateQueries({ queryKey: ['materials'] });
@@ -138,13 +142,13 @@ const EventBusQueryInvalidation = () => {
         queryClient.invalidateQueries({ queryKey: ['stock-counts'] });
       })
     ];
-    
+
     // Cleanup subscriptions on unmount
     return () => {
       subscriptions.forEach(subscriptionId => eventBus.off(subscriptionId));
     };
   }, []);
-  
+
   return null;
 };
 
@@ -168,7 +172,15 @@ const App = () => (
               <Route path="/impressum" element={<Impressum />} />
               <Route path="/datenschutz" element={<Datenschutz />} />
               <Route path="/mitarbeiter-setup" element={<MitarbeiterSetupPage />} />
+              <Route path="/mitarbeiter-setup" element={<MitarbeiterSetupPage />} />
               <Route path="/handwerkersoftware" element={<HandwerkerSoftwarePremium />} />
+              <Route path="/v2" element={<HandwerkerSoftwareLandingV2 />} />
+
+              {/* Offer Module Routes */}
+              <Route path="/offers/wizard" element={<OfferCreationWizard />} />
+              <Route path="/offers/:id/edit" element={<OfferEditorPage />} />
+              <Route path="/offers/new/edit" element={<OfferEditorPage />} />
+
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
