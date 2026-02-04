@@ -426,6 +426,11 @@ export function OfferItemsEditor({
       }
     }
 
+    // Ensure at least one page exists (for empty state)
+    if (_pages.length === 0) {
+      _pages.push({ items: [] });
+    }
+
     return _pages;
   }, [items, itemHeights, headerHeight, footerHeight]);
 
@@ -440,116 +445,110 @@ export function OfferItemsEditor({
     >
       <div className="space-y-8">
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-          {items.length === 0 ? (
-            <Card className="border-dashed border-2 shadow-none bg-gray-50/50">
-              <div className="p-12 text-center text-muted-foreground">Noch keine Positionen</div>
-            </Card>
-          ) : (
-            pages.map((page, pageIndex) => (
-              <React.Fragment key={pageIndex}>
-                {/* Page Container */}
-                <div
-                  className="bg-white shadow-lg rounded-xl flex flex-col relative print:shadow-none print:break-after-page overflow-hidden transition-all duration-300 mx-auto"
-                  style={{ height: `${A4_HEIGHT_PX}px`, width: '100%' }}
-                >
+          {pages.map((page, pageIndex) => (
+            <React.Fragment key={pageIndex}>
+              {/* Page Container */}
+              <div
+                className="bg-white shadow-lg rounded-xl flex flex-col relative print:shadow-none print:break-after-page overflow-hidden transition-all duration-300 mx-auto"
+                style={{ height: `${A4_HEIGHT_PX}px`, width: '100%' }}
+              >
 
-                  {/* Header (Page 1 only) */}
-                  {pageIndex === 0 && header && (
-                    <div className="px-12 pt-12">
-                      <MeasurableItem id="header-wrapper" onHeightChange={setHeaderHeight}>
-                        <div>{header}</div>
-                      </MeasurableItem>
-                    </div>
-                  )}
-
-                  {/* Page Content Area */}
-                  <div className="px-12 py-4 flex-1">
-                    <div className="space-y-4">
-                      {page.items.map(({ item, index }) => {
-                        const itemId = item.id || item.temp_id || `temp_${index}`;
-                        return (
-                          <SortableItemWrapper
-                            key={itemId}
-                            id={itemId}
-                            onHeightChange={(h) => {
-                              if (Math.abs((itemHeights[itemId] || 0) - h) > 1) {
-                                setItemHeights(prev => ({ ...prev, [itemId]: h }));
-                              }
-                            }}
-                          >
-                            <ItemRender
-                              item={item}
-                              index={index}
-                              displayNumber={getItemDisplayNumber(index)}
-                              updateItem={updateItem}
-                              removeItem={removeItem}
-                              disabled={disabled}
-                            />
-                          </SortableItemWrapper>
-                        );
-                      })}
-                    </div>
-
-                    {/* Summary / Footer (Last Page) */}
-                    {pageIndex === pages.length - 1 && (
-                      <MeasurableItem id={`footer-${pageIndex}`} onHeightChange={setFooterHeight}>
-                        <div className="mt-8">
-                          <div className="flex justify-end pt-6">
-                            <div className="bg-gray-900 text-white p-6 rounded-xl min-w-[300px] shadow-lg">
-                              <div className="flex justify-between items-center mb-2 text-gray-400 text-sm"><span>Netto</span><span>{formatCurrency(totalNet)}</span></div>
-                              <div className="flex justify-between items-center mb-4 text-gray-400 text-sm"><span>MwSt (19%)</span><span>{formatCurrency(totalNet * 0.19)}</span></div>
-                              <div className="h-px bg-gray-700 my-4" />
-                              <div className="flex justify-between items-end"><span className="text-lg font-semibold">Gesamtsumme</span><span className="text-3xl font-bold text-white">{formatCurrency(totalNet * 1.19)}</span></div>
-                            </div>
-                          </div>
-
-                          {footer && (
-                            <div className="pt-8 text-sm text-gray-500">
-                              {footer}
-                            </div>
-                          )}
-                        </div>
-                      </MeasurableItem>
-                    )}
+                {/* Header (Page 1 only) */}
+                {pageIndex === 0 && header && (
+                  <div className="px-12 pt-12">
+                    <MeasurableItem id="header-wrapper" onHeightChange={setHeaderHeight}>
+                      <div>{header}</div>
+                    </MeasurableItem>
                   </div>
-                </div>
+                )}
 
-                {/* Page Break Control */}
-                {pageIndex < pages.length - 1 && (
-                  /* Page break UI logic */
-                  (() => {
-                    const lastItemOfPage = page.items[page.items.length - 1];
-                    const nextItemIndex = lastItemOfPage ? lastItemOfPage.index + 1 : -1;
-                    const nextItem = items[nextItemIndex];
+                {/* Page Content Area */}
+                <div className="px-12 py-4 flex-1">
+                  <div className="space-y-4">
+                    {page.items.map(({ item, index }) => {
+                      const itemId = item.id || item.temp_id || `temp_${index}`;
+                      return (
+                        <SortableItemWrapper
+                          key={itemId}
+                          id={itemId}
+                          onHeightChange={(h) => {
+                            if (Math.abs((itemHeights[itemId] || 0) - h) > 1) {
+                              setItemHeights(prev => ({ ...prev, [itemId]: h }));
+                            }
+                          }}
+                        >
+                          <ItemRender
+                            item={item}
+                            index={index}
+                            displayNumber={getItemDisplayNumber(index)}
+                            updateItem={updateItem}
+                            removeItem={removeItem}
+                            disabled={disabled}
+                          />
+                        </SortableItemWrapper>
+                      );
+                    })}
+                  </div>
 
-                    const isManualBreak = nextItem && nextItem.item_type === 'page_break';
-
-                    return (
-                      <div className="flex items-center justify-center gap-4 py-4 group">
-                        <div className="h-px bg-gray-300 flex-1 border-dashed border-t-2 border-gray-300"></div>
-
-                        {isManualBreak ? (
-                          <div className="flex items-center gap-2 bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-medium border border-purple-200">
-                            <Scissors className="h-3 w-3" />
-                            Manueller Seitenumbruch
-                            <Button variant="ghost" size="icon" className="h-4 w-4 ml-1 hover:text-red-500 hover:bg-purple-200" onClick={() => removeItem(nextItemIndex)}>
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
+                  {/* Summary / Footer (Last Page) */}
+                  {pageIndex === pages.length - 1 && (
+                    <MeasurableItem id={`footer-${pageIndex}`} onHeightChange={setFooterHeight}>
+                      <div className="mt-8">
+                        <div className="flex justify-end pt-6">
+                          <div className="bg-gray-900 text-white p-6 rounded-xl min-w-[300px] shadow-lg">
+                            <div className="flex justify-between items-center mb-2 text-gray-400 text-sm"><span>Netto</span><span>{formatCurrency(totalNet)}</span></div>
+                            <div className="flex justify-between items-center mb-4 text-gray-400 text-sm"><span>MwSt (19%)</span><span>{formatCurrency(totalNet * 0.19)}</span></div>
+                            <div className="h-px bg-gray-700 my-4" />
+                            <div className="flex justify-between items-end"><span className="text-lg font-semibold">Gesamtsumme</span><span className="text-3xl font-bold text-white">{formatCurrency(totalNet * 1.19)}</span></div>
                           </div>
-                        ) : (
-                          <div className="flex items-center gap-2 bg-gray-50 text-gray-400 px-3 py-1 rounded-full text-[10px] font-medium border border-gray-100 uppercase tracking-wider">
-                            Automatischer Umbruch
+                        </div>
+
+                        {footer && (
+                          <div className="pt-8 text-sm text-gray-500">
+                            {footer}
                           </div>
                         )}
-
-                        <div className="h-px bg-gray-300 flex-1 border-dashed border-t-2 border-gray-300"></div>
                       </div>
-                    );
-                  })()
-                )}
-              </React.Fragment>
-            ))
-          )}
+                    </MeasurableItem>
+                  )}
+                </div>
+              </div>
+
+              {/* Page Break Control */}
+              {pageIndex < pages.length - 1 && (
+                /* Page break UI logic */
+                (() => {
+                  const lastItemOfPage = page.items[page.items.length - 1];
+                  const nextItemIndex = lastItemOfPage ? lastItemOfPage.index + 1 : -1;
+                  const nextItem = items[nextItemIndex];
+
+                  const isManualBreak = nextItem && nextItem.item_type === 'page_break';
+
+                  return (
+                    <div className="flex items-center justify-center gap-4 py-4 group">
+                      <div className="h-px bg-gray-300 flex-1 border-dashed border-t-2 border-gray-300"></div>
+
+                      {isManualBreak ? (
+                        <div className="flex items-center gap-2 bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-medium border border-purple-200">
+                          <Scissors className="h-3 w-3" />
+                          Manueller Seitenumbruch
+                          <Button variant="ghost" size="icon" className="h-4 w-4 ml-1 hover:text-red-500 hover:bg-purple-200" onClick={() => removeItem(nextItemIndex)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 bg-gray-50 text-gray-400 px-3 py-1 rounded-full text-[10px] font-medium border border-gray-100 uppercase tracking-wider">
+                          Automatischer Umbruch
+                        </div>
+                      )}
+
+                      <div className="h-px bg-gray-300 flex-1 border-dashed border-t-2 border-gray-300"></div>
+                    </div>
+                  );
+                })()
+              )}
+            </React.Fragment>
+          ))}
         </SortableContext>
       </div>
 

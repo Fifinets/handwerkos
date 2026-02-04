@@ -20,6 +20,7 @@ import OfferEditorPage from "./pages/offers/OfferEditorPage";
 import HandwerkerSoftwareLandingV2 from "./pages/HandwerkerSoftwareLandingV2";
 
 import ErrorBoundary from "./components/ErrorBoundary";
+import { GoogleAnalytics } from "./components/GoogleAnalytics";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { eventBus } from "./services/eventBus";
 import "./styles/animations.css";
@@ -161,6 +162,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <GoogleAnalytics />
             <Routes>
               <Route path="/" element={<HandwerkerSoftwarePremium />} />
               <Route path="/login" element={<Auth />} />
