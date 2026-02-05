@@ -17,7 +17,7 @@ import Impressum from "./pages/Impressum";
 import Datenschutz from "./pages/Datenschutz";
 import OfferCreationWizard from "./pages/offers/OfferCreationWizard";
 import OfferEditorPage from "./pages/offers/OfferEditorPage";
-import HandwerkerSoftwareLandingV2 from "./pages/HandwerkerSoftwareLandingV2";
+
 
 import ErrorBoundary from "./components/ErrorBoundary";
 import { GoogleAnalytics } from "./components/GoogleAnalytics";
@@ -176,7 +176,7 @@ const App = () => (
               <Route path="/mitarbeiter-setup" element={<MitarbeiterSetupPage />} />
               <Route path="/mitarbeiter-setup" element={<MitarbeiterSetupPage />} />
               <Route path="/handwerkersoftware" element={<HandwerkerSoftwarePremium />} />
-              <Route path="/v2" element={<HandwerkerSoftwareLandingV2 />} />
+
 
               {/* Offer Module Routes */}
               <Route path="/offers/wizard" element={<OfferCreationWizard />} />
