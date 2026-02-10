@@ -1,0 +1,2 @@
+-- Migration content cleared to prevent constraint violation on fresh install
+-- Original content was inserting example absence data for non-existent employees

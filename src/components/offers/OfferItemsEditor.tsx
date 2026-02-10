@@ -56,6 +56,8 @@ interface OfferItemsEditorProps {
   disabled?: boolean;
   header?: React.ReactNode;
   footer?: React.ReactNode;
+  isReverseCharge?: boolean;
+  showLaborShare?: boolean;
 }
 
 function formatCurrency(value: number): string {
@@ -193,22 +195,30 @@ const ItemRender = ({
   if (item.item_type === 'title') {
     return (
       <div className="group relative py-2">
-        <div className="flex items-center gap-2">
-          <div className="w-8 flex justify-center text-gray-400 print:hidden" {...dragHandleProps}>
-            {!disabled && <GripVertical className="h-4 w-4 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity" />}
+        <div className={`grid ${GRID_COLS} ${GAP} items-center`}>
+          {/* 1. Pos */}
+          <div className="flex flex-col items-center gap-1">
+            <span className="font-semibold text-gray-900 print:text-black">{displayNumber}</span>
+            <div className="text-gray-400 print:hidden cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100" {...dragHandleProps}>
+              {!disabled && <GripVertical className="h-4 w-4" />}
+            </div>
           </div>
-          <Input
-            value={item.description.replace(/<\/?b>/g, '')}
-            onChange={(e) => updateItem && updateItem(index, 'description', `<b>${e.target.value}</b>`)}
-            className="font-bold text-lg border-none shadow-none bg-transparent px-0 h-auto focus-visible:ring-0 placeholder:text-gray-300 text-gray-900 print:text-black w-full"
-            placeholder="Überschrift eingeben..."
-            disabled={disabled}
-          />
-          {!disabled && removeItem && (
-            <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(index)} className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-500 hover:bg-red-50 ml-auto print:hidden">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
+
+          {/* Content Spanning Remaining Cols */}
+          <div className="col-span-6 flex items-center gap-2">
+            <Input
+              value={item.description.replace(/<\/?b>/g, '')}
+              onChange={(e) => updateItem && updateItem(index, 'description', `<b>${e.target.value}</b>`)}
+              className="font-bold text-lg border-none shadow-none bg-transparent px-0 h-auto focus-visible:ring-0 placeholder:text-gray-300 text-gray-900 print:text-black w-full"
+              placeholder="Überschrift eingeben..."
+              disabled={disabled}
+            />
+            {!disabled && removeItem && (
+              <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(index)} className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-500 hover:bg-red-50 ml-auto print:hidden">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -218,24 +228,32 @@ const ItemRender = ({
   if (item.item_type === 'text') {
     return (
       <div className="group relative py-2">
-        <div className="flex items-start gap-2">
-          <div className="w-8 flex justify-center text-gray-400 print:hidden pt-2" {...dragHandleProps}>
-            {!disabled && <GripVertical className="h-4 w-4 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity" />}
+        <div className={`grid ${GRID_COLS} ${GAP} items-start`}>
+          {/* 1. Pos */}
+          <div className="flex flex-col items-center gap-1 pt-2">
+            <span className="font-semibold text-gray-900 print:text-black">{displayNumber}</span>
+            <div className="text-gray-400 print:hidden cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100" {...dragHandleProps}>
+              {!disabled && <GripVertical className="h-4 w-4" />}
+            </div>
           </div>
-          <div className="flex-1">
-            <Textarea
-              placeholder="Textbaustein hier eingeben..."
-              value={item.description}
-              onChange={(e) => updateItem && updateItem(index, 'description', e.target.value)}
-              disabled={disabled}
-              className="bg-transparent border-none shadow-none focus-visible:ring-0 resize-y min-h-[40px] px-0 py-1 text-gray-700 w-full print:text-black"
-            />
+
+          {/* Content Spanning Remaining Cols */}
+          <div className="col-span-6 flex items-start gap-2">
+            <div className="flex-1">
+              <Textarea
+                placeholder="Textbaustein hier eingeben..."
+                value={item.description}
+                onChange={(e) => updateItem && updateItem(index, 'description', e.target.value)}
+                disabled={disabled}
+                className="bg-transparent border-none shadow-none focus-visible:ring-0 resize-y min-h-[40px] px-0 py-1 text-gray-700 w-full print:text-black"
+              />
+            </div>
+            {!disabled && removeItem && (
+              <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(index)} className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-500 hover:bg-red-50 print:hidden">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
-          {!disabled && removeItem && (
-            <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(index)} className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-500 hover:bg-red-50 print:hidden">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
         </div>
       </div>
     );
@@ -352,6 +370,8 @@ export function OfferItemsEditor({
   disabled = false,
   header,
   footer,
+  isReverseCharge = false,
+  showLaborShare = true,
 }: OfferItemsEditorProps) {
 
   const [itemHeights, setItemHeights] = useState<Record<string, number>>({});
@@ -411,6 +431,7 @@ export function OfferItemsEditor({
         else { if (major === 0) major = 1; minor++; }
       }
       if (item.item_type !== 'title') return `${major}.${minor}`;
+      return `${major}`; // Return major number for titles
     } else {
       let count = 0;
       for (let i = 0; i <= index; i++) {
@@ -440,11 +461,15 @@ export function OfferItemsEditor({
         return acc;
       }, {} as Record<number, { net: number; vat: number }>);
 
-    const totalVat = Object.values(vatGroups).reduce((sum, group) => sum + group.vat, 0);
+    const totalVat = isReverseCharge ? 0 : Object.values(vatGroups).reduce((sum, group) => sum + group.vat, 0);
     const grossTotal = netTotal + totalVat;
 
-    return { netTotal, vatGroups, totalVat, grossTotal };
-  }, [items]);
+    const laborTotal = items
+      .filter(item => item.item_type === 'labor' && !item.is_optional)
+      .reduce((sum, item) => sum + calculateItemTotal(item), 0);
+
+    return { netTotal, vatGroups, totalVat, grossTotal, laborTotal };
+  }, [items, isReverseCharge]);
 
   // --- Pagination Logic ---
   const pages = useMemo(() => {
@@ -590,6 +615,20 @@ export function OfferItemsEditor({
                               <span className="font-bold text-lg">Gesamtsumme</span>
                               <span className="text-xl font-bold bg-gray-100 print:bg-transparent px-2 py-0.5 rounded text-gray-900 print:text-black">{formatCurrency(totals.grossTotal)}</span>
                             </div>
+
+                            {/* Reverse Charge Note */}
+                            {isReverseCharge && (
+                              <div className="mt-4 text-xs italic text-gray-600 print:text-black border-t pt-2">
+                                Hinweis: Steuerschuldnerschaft des Leistungsempfängers nach §13b UStG (Reverse Charge).
+                              </div>
+                            )}
+
+                            {/* Labor Share Note */}
+                            {showLaborShare && totals.laborTotal > 0 && (
+                              <div className="mt-2 text-xs text-gray-500 print:text-black">
+                                Darin enthaltene Lohnkosten: {formatCurrency(totals.laborTotal)} (netto)
+                              </div>
+                            )}
                           </div>
                         </div>
 

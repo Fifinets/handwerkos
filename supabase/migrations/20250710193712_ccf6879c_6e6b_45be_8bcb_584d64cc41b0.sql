@@ -1,0 +1,2 @@
+-- Migration content cleared to prevent foreign key violation on fresh install
+-- Original content was altering employee_absences to reference profiles, but failed due to missing data or structure mismatch

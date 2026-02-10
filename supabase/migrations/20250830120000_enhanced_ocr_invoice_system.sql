@@ -40,6 +40,41 @@ CREATE TABLE IF NOT EXISTS public.suppliers (
     created_by UUID REFERENCES auth.users(id)
 );
 
+-- Ensure suppliers table has all required columns (idempotency for existing table)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'vat_id') THEN
+        ALTER TABLE public.suppliers ADD COLUMN vat_id TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'tax_number') THEN
+        ALTER TABLE public.suppliers ADD COLUMN tax_number TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'iban') THEN
+        ALTER TABLE public.suppliers ADD COLUMN iban TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'bic') THEN
+        ALTER TABLE public.suppliers ADD COLUMN bic TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'address') THEN
+        ALTER TABLE public.suppliers ADD COLUMN address JSONB;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'payment_terms') THEN
+        ALTER TABLE public.suppliers ADD COLUMN payment_terms TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'contact_info') THEN
+        ALTER TABLE public.suppliers ADD COLUMN contact_info JSONB;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'notes') THEN
+        ALTER TABLE public.suppliers ADD COLUMN notes TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'is_active') THEN
+        ALTER TABLE public.suppliers ADD COLUMN is_active BOOLEAN DEFAULT true;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'suppliers' AND column_name = 'created_by') THEN
+        ALTER TABLE public.suppliers ADD COLUMN created_by UUID REFERENCES auth.users(id);
+    END IF;
+END $$;
+
 -- Indexes for supplier search and matching
 CREATE INDEX IF NOT EXISTS suppliers_company_name_idx 
     ON public.suppliers(company_id, lower(name));
@@ -189,6 +224,14 @@ DROP POLICY IF EXISTS "Users can view their own supplier invoices" ON public.sup
 DROP POLICY IF EXISTS "Users can insert their own supplier invoices" ON public.supplier_invoices;
 DROP POLICY IF EXISTS "Users can update their own supplier invoices" ON public.supplier_invoices;
 
+-- Drop new policies to ensure idempotency
+DROP POLICY IF EXISTS "Company members can view OCR results" ON public.ocr_results;
+DROP POLICY IF EXISTS "Company members can insert OCR results" ON public.ocr_results;
+DROP POLICY IF EXISTS "Company members can update OCR results" ON public.ocr_results;
+DROP POLICY IF EXISTS "Company members can view supplier invoices" ON public.supplier_invoices;
+DROP POLICY IF EXISTS "Company members can insert supplier invoices" ON public.supplier_invoices;
+DROP POLICY IF EXISTS "Company members can update supplier invoices" ON public.supplier_invoices;
+
 -- New RLS policies with company_id support
 CREATE POLICY "Company members can view OCR results" ON public.ocr_results
     FOR SELECT USING (
@@ -239,6 +282,11 @@ ALTER TABLE public.suppliers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_invoice_taxes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_invoice_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_invoice_payments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Company members can manage suppliers" ON public.suppliers;
+DROP POLICY IF EXISTS "Company members can manage invoice taxes" ON public.supplier_invoice_taxes;
+DROP POLICY IF EXISTS "Company members can manage invoice items" ON public.supplier_invoice_items;
+DROP POLICY IF EXISTS "Company members can manage invoice payments" ON public.supplier_invoice_payments;
 
 CREATE POLICY "Company members can manage suppliers" ON public.suppliers
     FOR ALL USING (

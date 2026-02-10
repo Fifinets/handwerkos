@@ -1,5 +1,11 @@
 -- Add budget column to projects table
-ALTER TABLE projects ADD COLUMN budget DECIMAL(10,2) DEFAULT 0;
+-- Add budget column to projects table if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'projects' AND column_name = 'budget') THEN
+        ALTER TABLE projects ADD COLUMN budget DECIMAL(10,2) DEFAULT 0;
+    END IF;
+END $$;
 
 -- Add progress_percentage column to projects table if it doesn't exist
 DO $$ 

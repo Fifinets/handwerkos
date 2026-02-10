@@ -1,6 +1,9 @@
 -- Validation Functions and Business Logic - Phase 2
 -- Implements comprehensive validation, duplicate detection, and business rules
 
+-- Enable pg_trgm extension for similarity() function
+CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA extensions;
+
 -- 1. Sum validation trigger for supplier invoices
 CREATE OR REPLACE FUNCTION public.fn_enforce_invoice_totals()
 RETURNS TRIGGER AS $$
@@ -406,7 +409,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE VIEW public.v_overdue_invoices AS
 SELECT 
     i.*,
-    s.name as supplier_name,
+    s.name as normalized_supplier_name,
     GREATEST(0, (CURRENT_DATE - i.due_date)) AS days_overdue,
     COALESCE(paid.total_paid, 0) as total_paid,
     (i.gross_total - COALESCE(paid.total_paid, 0)) as outstanding_amount

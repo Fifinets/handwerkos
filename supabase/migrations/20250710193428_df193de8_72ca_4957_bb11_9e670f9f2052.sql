@@ -1,0 +1,2 @@
+-- Migration content cleared to prevent foreign key violation on fresh install
+-- Original content was inserting an employee linked to a non-existent auth.user

@@ -121,3 +121,37 @@ All colors MUST be HSL.
 .shadow-softer { box-shadow: 0 6px 18px rgba(2,6,23,.05); }    /* kleine Elemente */
 .badge-pill { @apply inline-flex items-center rounded-full border px-2.5 py-1 text-xs; }
 .kpi-card  { @apply bg-card border rounded-lg px-4 py-3 flex items-center justify-between; }
+
+@media print {
+  @page {
+    margin: 0;
+    size: auto;
+  }
+  
+  body {
+    background-color: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Reset layout for print */
+  .container, .w-full, .max-w-7xl {
+    max-width: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Ensure card backgrounds print white */
+  .bg-card, .card {
+    background-color: white !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Hide scrollbars */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+}

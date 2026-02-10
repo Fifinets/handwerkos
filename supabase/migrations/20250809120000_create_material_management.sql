@@ -1,6 +1,22 @@
 -- Material Management System Tables
 
--- 1. Materials Master Table
+-- 1. Suppliers Table (Moved up to satisfy FK in materials)
+CREATE TABLE IF NOT EXISTS suppliers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  contact_person VARCHAR(255),
+  email VARCHAR(255),
+  phone VARCHAR(50),
+  address TEXT,
+  tax_number VARCHAR(100),
+  payment_terms INTEGER DEFAULT 30, -- Days
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  created_by UUID REFERENCES auth.users(id)
+);
+
+-- 2. Materials Master Table
 CREATE TABLE IF NOT EXISTS materials (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
@@ -21,22 +37,6 @@ CREATE TABLE IF NOT EXISTS materials (
   created_by UUID REFERENCES auth.users(id),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   updated_by UUID REFERENCES auth.users(id)
-);
-
--- 2. Suppliers Table (if not exists)
-CREATE TABLE IF NOT EXISTS suppliers (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL,
-  contact_person VARCHAR(255),
-  email VARCHAR(255),
-  phone VARCHAR(50),
-  address TEXT,
-  tax_number VARCHAR(100),
-  payment_terms INTEGER DEFAULT 30, -- Days
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  created_by UUID REFERENCES auth.users(id)
 );
 
 -- 3. Material Purchase Orders
@@ -151,7 +151,7 @@ BEGIN
     reference_id, 
     quantity, 
     employee_id, 
-    project_id,
+    project_id, 
     created_by
   ) VALUES (
     NEW.material_id,
@@ -226,12 +226,12 @@ ALTER TABLE project_material_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE employee_material_usage ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
+-- Removed checks for 'owner_id' as it does not exist on companies table
+
 CREATE POLICY "Users can view materials from their company" ON materials
   FOR SELECT USING (
     company_id IN (
       SELECT company_id FROM employees WHERE user_id = auth.uid()
-      UNION
-      SELECT id FROM companies WHERE owner_id = auth.uid()
     )
   );
 
@@ -239,8 +239,6 @@ CREATE POLICY "Users can manage materials in their company" ON materials
   FOR ALL USING (
     company_id IN (
       SELECT company_id FROM employees WHERE user_id = auth.uid()
-      UNION
-      SELECT id FROM companies WHERE owner_id = auth.uid()
     )
   );
 
@@ -248,8 +246,6 @@ CREATE POLICY "Users can view suppliers from their company" ON suppliers
   FOR SELECT USING (
     company_id IN (
       SELECT company_id FROM employees WHERE user_id = auth.uid()
-      UNION
-      SELECT id FROM companies WHERE owner_id = auth.uid()
     )
   );
 
@@ -257,8 +253,6 @@ CREATE POLICY "Users can manage suppliers in their company" ON suppliers
   FOR ALL USING (
     company_id IN (
       SELECT company_id FROM employees WHERE user_id = auth.uid()
-      UNION
-      SELECT id FROM companies WHERE owner_id = auth.uid()
     )
   );
 
@@ -267,8 +261,6 @@ CREATE POLICY "Users can access material orders from their company" ON material_
   FOR ALL USING (
     company_id IN (
       SELECT company_id FROM employees WHERE user_id = auth.uid()
-      UNION
-      SELECT id FROM companies WHERE owner_id = auth.uid()
     )
   );
 
@@ -277,8 +269,6 @@ CREATE POLICY "Users can access order items from their company" ON material_orde
     order_id IN (
       SELECT id FROM material_orders WHERE company_id IN (
         SELECT company_id FROM employees WHERE user_id = auth.uid()
-        UNION
-        SELECT id FROM companies WHERE owner_id = auth.uid()
       )
     )
   );
@@ -288,8 +278,6 @@ CREATE POLICY "Users can access stock movements from their company" ON material_
     material_id IN (
       SELECT id FROM materials WHERE company_id IN (
         SELECT company_id FROM employees WHERE user_id = auth.uid()
-        UNION
-        SELECT id FROM companies WHERE owner_id = auth.uid()
       )
     )
   );
@@ -299,8 +287,6 @@ CREATE POLICY "Users can access project material assignments" ON project_materia
     project_id IN (
       SELECT id FROM projects WHERE company_id IN (
         SELECT company_id FROM employees WHERE user_id = auth.uid()
-        UNION
-        SELECT id FROM companies WHERE owner_id = auth.uid()
       )
     )
   );
@@ -314,13 +300,12 @@ CREATE POLICY "Employees can record their material usage" ON employee_material_u
     project_id IN (
       SELECT id FROM projects WHERE company_id IN (
         SELECT company_id FROM employees WHERE user_id = auth.uid()
-        UNION
-        SELECT id FROM companies WHERE owner_id = auth.uid()
       )
     )
   );
 
 -- Insert some sample data
+-- Wrap in DO block or check constraint? Already has ON CONFLICT DO NOTHING
 INSERT INTO suppliers (company_id, name, contact_person, email, phone, address) VALUES
   ((SELECT id FROM companies WHERE name = 'Demo Company' LIMIT 1), 'ElektroGroßhandel GmbH', 'Thomas Müller', 'mueller@elektro-gh.de', '+49 30 12345678', 'Industriestr. 123, 10115 Berlin'),
   ((SELECT id FROM companies WHERE name = 'Demo Company' LIMIT 1), 'Jung Vertrieb', 'Sandra Weber', 'weber@jung.de', '+49 30 87654321', 'Elektronikweg 456, 10117 Berlin'),

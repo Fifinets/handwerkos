@@ -85,7 +85,7 @@ export const QUERY_KEYS = {
   customerProjects: (id: string) => ['customers', id, 'projects'] as const,
   customerQuotes: (id: string) => ['customers', id, 'quotes'] as const,
   customerInvoices: (id: string) => ['customers', id, 'invoices'] as const,
-  
+
   // Quote keys
   quotes: ['quotes'] as const,
   quote: (id: string) => ['quotes', id] as const,
@@ -98,24 +98,24 @@ export const QUERY_KEYS = {
   offerTargets: (id: string) => ['offers', id, 'targets'] as const,
   offerStats: ['offers', 'stats'] as const,
   customerOffers: (customerId: string) => ['customers', customerId, 'offers'] as const,
-  
+
   // Order keys
   orders: ['orders'] as const,
   order: (id: string) => ['orders', id] as const,
   orderStats: ['orders', 'stats'] as const,
-  
+
   // Project keys
   projects: ['projects'] as const,
   project: (id: string) => ['projects', id] as const,
   projectStats: (id: string) => ['projects', id, 'stats'] as const,
   projectTimeline: (id: string) => ['projects', id, 'timeline'] as const,
-  
+
   // Timesheet keys
   timesheets: ['timesheets'] as const,
   timesheet: (id: string) => ['timesheets', id] as const,
   employeeTimesheetStats: (employeeId: string) => ['timesheets', 'employee', employeeId, 'stats'] as const,
   projectTimesheetSummary: (projectId: string) => ['timesheets', 'project', projectId, 'summary'] as const,
-  
+
   // Material & Stock keys
   materials: ['materials'] as const,
   material: (id: string) => ['materials', id] as const,
@@ -124,7 +124,7 @@ export const QUERY_KEYS = {
   stockMovements: ['stock-movements'] as const,
   stockValuation: ['stock', 'valuation'] as const,
   stockAnalytics: ['stock', 'analytics'] as const,
-  
+
   // Finance keys
   invoices: ['invoices'] as const,
   invoice: (id: string) => ['invoices', id] as const,
@@ -134,13 +134,13 @@ export const QUERY_KEYS = {
   revenueByMonth: ['finance', 'revenue-by-month'] as const,
   expensesByCategory: ['finance', 'expenses-by-category'] as const,
   profitLossReport: ['finance', 'profit-loss'] as const,
-  
+
   // Document keys
   documents: ['documents'] as const,
   document: (id: string) => ['documents', id] as const,
   documentStats: ['documents', 'stats'] as const,
   expiringDocuments: ['documents', 'expiring'] as const,
-  
+
   // Employee keys
   employees: ['employees'] as const,
   employee: (id: string) => ['employees', id] as const,
@@ -187,7 +187,7 @@ export const useCustomerStats = (id: string, options?: UseApiQueryOptions<any>) 
 export const useCreateCustomer = (options?: UseApiMutationOptions<Customer, CustomerCreate>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: (data: CustomerCreate) => CustomerService.createCustomer(data),
     onSuccess: (data) => {
@@ -211,7 +211,7 @@ export const useCreateCustomer = (options?: UseApiMutationOptions<Customer, Cust
 export const useUpdateCustomer = (options?: UseApiMutationOptions<Customer, { id: string; data: CustomerUpdate }>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: ({ id, data }) => customerService.updateCustomer(id, data),
     onSuccess: (data, { id }) => {
@@ -237,7 +237,7 @@ export const useUpdateCustomer = (options?: UseApiMutationOptions<Customer, { id
 export const useDeleteCustomer = (options?: UseApiMutationOptions<void, string>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: (id: string) => CustomerService.deleteCustomer(id),
     onSuccess: (_, id) => {
@@ -296,7 +296,7 @@ export const useQuote = (id: string, options?: UseApiQueryOptions<Quote>) => {
 export const useCreateQuote = (options?: UseApiMutationOptions<Quote, QuoteCreate>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: quoteService.createQuote,
     onSuccess: (data) => {
@@ -321,7 +321,7 @@ export const useCreateQuote = (options?: UseApiMutationOptions<Quote, QuoteCreat
 export const useUpdateQuote = (options?: UseApiMutationOptions<Quote, { id: string; data: QuoteUpdate }>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: ({ id, data }) => quoteService.updateQuote(id, data),
     onSuccess: (data, { id }) => {
@@ -346,7 +346,7 @@ export const useUpdateQuote = (options?: UseApiMutationOptions<Quote, { id: stri
 export const useSendQuote = (options?: UseApiMutationOptions<Quote, string>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: quoteService.sendQuote,
     onSuccess: (data, id) => {
@@ -371,7 +371,7 @@ export const useSendQuote = (options?: UseApiMutationOptions<Quote, string>) => 
 export const useAcceptQuote = (options?: UseApiMutationOptions<{ quote: Quote; order: any }, string>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: quoteService.acceptQuote,
     onSuccess: (data, id) => {
@@ -397,7 +397,7 @@ export const useAcceptQuote = (options?: UseApiMutationOptions<{ quote: Quote; o
 export const useRejectQuote = (options?: UseApiMutationOptions<Quote, { id: string; reason?: string }>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: ({ id, reason }) => quoteService.rejectQuote(id, reason),
     onSuccess: (data, { id }) => {
@@ -455,7 +455,7 @@ export const useOrder = (id: string, options?: UseApiQueryOptions<Order>) => {
 export const useCreateOrder = (options?: UseApiMutationOptions<Order, OrderCreate>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: orderService.createOrder,
     onSuccess: (data) => {
@@ -479,7 +479,7 @@ export const useCreateOrder = (options?: UseApiMutationOptions<Order, OrderCreat
 export const useStartOrder = (options?: UseApiMutationOptions<Order, string>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: orderService.startOrder,
     onSuccess: (data, id) => {
@@ -505,7 +505,7 @@ export const useStartOrder = (options?: UseApiMutationOptions<Order, string>) =>
 export const useCompleteOrder = (options?: UseApiMutationOptions<Order, string>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: orderService.completeOrder,
     onSuccess: (data, id) => {
@@ -531,7 +531,7 @@ export const useCompleteOrder = (options?: UseApiMutationOptions<Order, string>)
 export const useCancelOrder = (options?: UseApiMutationOptions<Order, { id: string; reason?: string }>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: ({ id, reason }) => orderService.cancelOrder(id, reason),
     onSuccess: (data, { id }) => {
@@ -607,7 +607,7 @@ export const useProjectTimeline = (id: string, limit?: number, options?: UseApiQ
 export const useCreateProject = (options?: UseApiMutationOptions<Project, ProjectCreate>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: ProjectService.createProject,
     onSuccess: (data) => {
@@ -632,7 +632,7 @@ export const useCreateProject = (options?: UseApiMutationOptions<Project, Projec
 export const useUpdateProject = (options?: UseApiMutationOptions<Project, { id: string; data: ProjectUpdate }>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: ({ id, data }) => ProjectService.updateProject(id, data),
     onSuccess: (data, { id }) => {
@@ -658,7 +658,7 @@ export const useUpdateProject = (options?: UseApiMutationOptions<Project, { id: 
 export const useStartProject = (options?: UseApiMutationOptions<Project, string>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: ProjectService.startProject,
     onSuccess: (data, id) => {
@@ -683,7 +683,7 @@ export const useStartProject = (options?: UseApiMutationOptions<Project, string>
 export const useCompleteProject = (options?: UseApiMutationOptions<Project, string>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: ProjectService.completeProject,
     onSuccess: (data, id) => {
@@ -708,7 +708,7 @@ export const useCompleteProject = (options?: UseApiMutationOptions<Project, stri
 export const useBlockProject = (options?: UseApiMutationOptions<Project, { id: string; reason?: string }>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: ({ id, reason }) => ProjectService.blockProject(id, reason),
     onSuccess: (data, { id }) => {
@@ -773,7 +773,7 @@ export const useTimesheet = (id: string, options?: UseApiQueryOptions<Timesheet>
 export const useCreateTimesheet = (options?: UseApiMutationOptions<Timesheet, TimesheetCreate>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: timesheetService.createTimesheet,
     onSuccess: (data) => {
@@ -799,7 +799,7 @@ export const useCreateTimesheet = (options?: UseApiMutationOptions<Timesheet, Ti
 export const useUpdateTimesheet = (options?: UseApiMutationOptions<Timesheet, { id: string; data: TimesheetUpdate }>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: ({ id, data }) => timesheetService.updateTimesheet(id, data),
     onSuccess: (data, { id }) => {
@@ -824,7 +824,7 @@ export const useUpdateTimesheet = (options?: UseApiMutationOptions<Timesheet, { 
 export const useApproveTimesheet = (options?: UseApiMutationOptions<Timesheet, string>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: timesheetService.approveTimesheet,
     onSuccess: (data, id) => {
@@ -849,7 +849,7 @@ export const useApproveTimesheet = (options?: UseApiMutationOptions<Timesheet, s
 export const useBulkApproveTimesheets = (options?: UseApiMutationOptions<Timesheet[], string[]>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: timesheetService.bulkApproveTimesheets,
     onSuccess: (data) => {
@@ -921,7 +921,7 @@ export const useMaterial = (id: string, options?: UseApiQueryOptions<Material>) 
 export const useCreateMaterial = (options?: UseApiMutationOptions<Material, MaterialCreate>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: materialService.createMaterial,
     onSuccess: (data) => {
@@ -946,7 +946,7 @@ export const useCreateMaterial = (options?: UseApiMutationOptions<Material, Mate
 export const useUpdateMaterial = (options?: UseApiMutationOptions<Material, { id: string; data: MaterialUpdate }>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: ({ id, data }) => materialService.updateMaterial(id, data),
     onSuccess: (data, { id }) => {
@@ -972,7 +972,7 @@ export const useUpdateMaterial = (options?: UseApiMutationOptions<Material, { id
 export const useAdjustStock = (options?: UseApiMutationOptions<Material, { id: string; adjustment: number; reason: string; reference?: string }>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: ({ id, adjustment, reason, reference }) => materialService.adjustStock(id, adjustment, reason, reference),
     onSuccess: (data, { id }) => {
@@ -999,9 +999,9 @@ export const useAdjustStock = (options?: UseApiMutationOptions<Material, { id: s
 export const useAddStock = (options?: UseApiMutationOptions<Material, { id: string; quantity: number; unitCost?: number; supplier?: string; invoiceReference?: string }>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
-    mutationFn: ({ id, quantity, unitCost, supplier, invoiceReference }) => 
+    mutationFn: ({ id, quantity, unitCost, supplier, invoiceReference }) =>
       materialService.addStock(id, quantity, unitCost, supplier, invoiceReference),
     onSuccess: (data, { id }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materials });
@@ -1026,9 +1026,9 @@ export const useAddStock = (options?: UseApiMutationOptions<Material, { id: stri
 export const useRemoveStock = (options?: UseApiMutationOptions<Material, { id: string; quantity: number; projectId?: string; reason?: string }>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
-    mutationFn: ({ id, quantity, projectId, reason }) => 
+    mutationFn: ({ id, quantity, projectId, reason }) =>
       materialService.removeStock(id, quantity, projectId, reason),
     onSuccess: (data, { id }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materials });
@@ -1146,7 +1146,7 @@ export const useInvoice = (id: string, options?: UseApiQueryOptions<Invoice>) =>
 export const useCreateInvoice = (options?: UseApiMutationOptions<Invoice, InvoiceCreate>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: financeService.createInvoice,
     onSuccess: (data) => {
@@ -1171,7 +1171,7 @@ export const useCreateInvoice = (options?: UseApiMutationOptions<Invoice, Invoic
 export const useSendInvoice = (options?: UseApiMutationOptions<Invoice, string>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: financeService.sendInvoice,
     onSuccess: (data, id) => {
@@ -1196,7 +1196,7 @@ export const useSendInvoice = (options?: UseApiMutationOptions<Invoice, string>)
 export const useMarkInvoicePaid = (options?: UseApiMutationOptions<Invoice, { id: string; paymentDate?: string; notes?: string }>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: ({ id, paymentDate, notes }) => financeService.markInvoicePaid(id, paymentDate, notes),
     onSuccess: (data, { id }) => {
@@ -1241,7 +1241,7 @@ export const useExpenses = (
 export const useCreateExpense = (options?: UseApiMutationOptions<Expense, ExpenseCreate>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: financeService.createExpense,
     onSuccess: (data) => {
@@ -1269,7 +1269,7 @@ export const useCreateExpense = (options?: UseApiMutationOptions<Expense, Expens
 export const useApproveExpense = (options?: UseApiMutationOptions<Expense, string>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: financeService.approveExpense,
     onSuccess: (data, id) => {
@@ -1363,7 +1363,7 @@ export const useDocument = (id: string, options?: UseApiQueryOptions<any>) => {
 export const useUploadDocument = (options?: UseApiMutationOptions<any, any>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: documentService.uploadDocument,
     onSuccess: (data) => {
@@ -1388,7 +1388,7 @@ export const useUploadDocument = (options?: UseApiMutationOptions<any, any>) => 
 export const useUpdateDocument = (options?: UseApiMutationOptions<any, { id: string; data: any }>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: ({ id, data }) => documentService.updateDocument(id, data),
     onSuccess: (data, { id }) => {
@@ -1413,7 +1413,7 @@ export const useUpdateDocument = (options?: UseApiMutationOptions<any, { id: str
 export const useDeleteDocument = (options?: UseApiMutationOptions<void, string>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: documentService.deleteDocument,
     onSuccess: (_, id) => {
@@ -1484,10 +1484,10 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
         }
 
         // Try multiple ways to get company_id like PersonalModule does
-        const companyId = session.user.user_metadata?.company_id || 
-                         session.user.app_metadata?.company_id || 
-                         session.user.id;
-        
+        const companyId = session.user.user_metadata?.company_id ||
+          session.user.app_metadata?.company_id ||
+          session.user.id;
+
         console.log('useEmployees: Using company_id:', companyId);
         console.log('useEmployees: Session user:', session.user);
 
@@ -1501,9 +1501,9 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
           .from('employees')
           .select('id, email, status, user_id, company_id')
           .eq('company_id', companyId);
-        
+
         console.log('useEmployees: DEBUG - All employees for company:', allEmployeesData);
-        
+
         // Main employees query - only get employees who have registered (have user_id)
         // RLS should handle the company filtering automatically
         const { data: employeesData, error: employeesError } = await supabase
@@ -1524,7 +1524,7 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
           .not('user_id', 'is', null)  // Only employees who have registered
           .neq('status', 'eingeladen')  // Exclude invited but not registered
           .order('created_at', { ascending: false });
-        
+
         console.log('useEmployees: Raw query (no company filter):', employeesData);
 
         console.log('useEmployees: Employees query result:', employeesData, employeesError);
@@ -1537,13 +1537,13 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
         // Fetch profile names separately for employees with user_id
         const userIds = employeesData?.filter(emp => emp.user_id).map(emp => emp.user_id) || [];
         let profilesData = [];
-        
+
         if (userIds.length > 0) {
           const { data, error } = await supabase
             .from('profiles')
             .select('id, first_name, last_name')
             .in('id', userIds);
-          
+
           if (!error) {
             profilesData = data || [];
           }
@@ -1554,7 +1554,7 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
           const profile = profilesData.find(p => p.id === employee.user_id);
           const firstName = profile?.first_name || employee.first_name || '';
           const lastName = profile?.last_name || employee.last_name || '';
-          
+
           return {
             id: employee.id,
             first_name: firstName,
@@ -1571,7 +1571,7 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
 
         console.log('useEmployees: Final employee list:', employeeList);
         return { items: employeeList };
-        
+
       } catch (error) {
         console.error('useEmployees: Catch block error:', error);
         return { items: [] };
@@ -1584,7 +1584,7 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
 export const useDeleteEmployee = (options?: UseApiMutationOptions<void, string>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: async (employeeId: string) => {
       const { error } = await supabase
@@ -1609,7 +1609,7 @@ export const useDeleteEmployee = (options?: UseApiMutationOptions<void, string>)
 
 export const useInvalidateQueries = () => {
   const queryClient = useQueryClient();
-  
+
   return {
     invalidateAll: () => queryClient.invalidateQueries(),
     invalidateCustomers: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers }),
@@ -1632,17 +1632,17 @@ export const useInvalidateQueries = () => {
 // Hook to initialize query invalidation based on events
 export const useQueryInvalidation = () => {
   const queryClient = useQueryClient();
-  
+
   React.useEffect(() => {
     // Customer events
     const customerCreatedUnsubscribe = eventBus.on('CUSTOMER_CREATED', () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers });
     });
-    
+
     const customerUpdatedUnsubscribe = eventBus.on('CUSTOMER_UPDATED', () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers });
     });
-    
+
     // Quote events
     const quoteAcceptedUnsubscribe = eventBus.on('QUOTE_ACCEPTED', (data) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes });
@@ -1651,14 +1651,14 @@ export const useQueryInvalidation = () => {
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quote(data.quote.id) });
       }
     });
-    
+
     const quoteSentUnsubscribe = eventBus.on('QUOTE_SENT', (data) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes });
       if (data.quote?.id) {
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quote(data.quote.id) });
       }
     });
-    
+
     // Order events
     const orderStartedUnsubscribe = eventBus.on('ORDER_STARTED', (data) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders });
@@ -1667,7 +1667,7 @@ export const useQueryInvalidation = () => {
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.order(data.order.id) });
       }
     });
-    
+
     const orderCompletedUnsubscribe = eventBus.on('ORDER_COMPLETED', (data) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
@@ -1676,7 +1676,7 @@ export const useQueryInvalidation = () => {
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.order(data.order.id) });
       }
     });
-    
+
     // Project events
     const projectStatusChangedUnsubscribe = eventBus.on('PROJECT_STATUS_CHANGED', (data) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects });
@@ -1685,7 +1685,7 @@ export const useQueryInvalidation = () => {
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projectStats(data.project.id) });
       }
     });
-    
+
     // Timesheet events
     const timesheetApprovedUnsubscribe = eventBus.on('TIMESHEET_APPROVED', (data) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timesheets });
@@ -1696,29 +1696,29 @@ export const useQueryInvalidation = () => {
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projectStats(data.timesheet.project_id) });
       }
     });
-    
+
     // Stock events
     const stockAdjustedUnsubscribe = eventBus.on('STOCK_ADJUSTED', () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materials });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stockMovements });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materialStats });
     });
-    
+
     const materialLowStockUnsubscribe = eventBus.on('MATERIAL_LOW_STOCK', () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.lowStockMaterials });
     });
-    
+
     // Finance events
     const invoicePaidUnsubscribe = eventBus.on('INVOICE_PAID', () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.invoices });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.financialKpis });
     });
-    
+
     const expenseApprovedUnsubscribe = eventBus.on('EXPENSE_APPROVED', () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.expenses });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.financialKpis });
     });
-    
+
     // Document events
     const documentUploadedUnsubscribe = eventBus.on('DOCUMENT_UPLOADED', () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.documents });
@@ -1844,7 +1844,7 @@ export const useCreateNotification = (
       // Invalidate notifications queries
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATION_STATS] });
-      
+
       toast({
         title: 'Benachrichtigung erstellt',
         description: 'Die Benachrichtigung wurde erfolgreich erstellt.',
@@ -1894,7 +1894,7 @@ export const useMarkAllNotificationsRead = (
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATION_STATS] });
-      
+
       toast({
         title: 'Alle als gelesen markiert',
         description: 'Alle Benachrichtigungen wurden als gelesen markiert.',
@@ -1963,7 +1963,7 @@ export const useRunWorkerJob = (
       // Also invalidate related data that might have been updated
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.PROJECT_KPIS] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
-      
+
       toast({
         title: 'Worker Job ausgeführt',
         description: `Der Job "${jobName}" wurde erfolgreich ausgeführt.`,
@@ -2082,7 +2082,7 @@ export const useGetNextNumber = (
     onSuccess: (data, variables) => {
       // Invalidate number sequences
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NUMBER_SEQUENCES] });
-      
+
       toast({
         title: 'Nummer generiert',
         description: `Nächste Nummer: ${data.number}`,
@@ -2117,7 +2117,7 @@ export const useMakeImmutable = (
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.IMMUTABILITY_CHECK] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.AUDIT_TRAIL, variables.entityType, variables.entityId] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.AUDIT_LOGS] });
-      
+
       toast({
         title: 'Unveränderlich gemacht',
         description: `${variables.entityType} ${variables.entityId} ist jetzt unveränderlich.`,
@@ -2157,7 +2157,7 @@ export const useCreateDocumentHash = (
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GOBD_DOCUMENTS] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.AUDIT_LOGS] });
-      
+
       toast({
         title: 'Dokument-Hash erstellt',
         description: `Hash für ${variables.fileName} wurde erstellt (GoBD-Compliance).`,
@@ -2188,7 +2188,7 @@ export const useVerifyDocumentIntegrity = (
     onSuccess: (verification) => {
       toast({
         title: verification.integrity_maintained ? 'Integrität bestätigt' : 'Integrität verletzt',
-        description: verification.integrity_maintained 
+        description: verification.integrity_maintained
           ? 'Das Dokument ist unverändert und integer.'
           : 'Das Dokument wurde verändert! GoBD-Verletzung!',
         variant: verification.integrity_maintained ? 'default' : 'destructive',
@@ -2229,7 +2229,7 @@ export const useGenerateDATEVExport = (
     onSuccess: (exportData, variables) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.DATEV_EXPORTS] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.AUDIT_LOGS] });
-      
+
       toast({
         title: 'DATEV Export erstellt',
         description: `CSV Export für Periode ${variables.period.start_date} - ${variables.period.end_date} wurde generiert. ${exportData.total_transactions} Transaktionen exportiert.`,
@@ -2285,7 +2285,7 @@ export const useSetDATEVAccountMapping = (
       datevService.setAccountMapping(entityType, entityId, datevAccount, accountType, accountName, vatTreatment),
     onSuccess: (mapping, variables) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.DATEV_ACCOUNT_MAPPINGS] });
-      
+
       toast({
         title: 'Kontozuordnung gespeichert',
         description: `${variables.entityType} wurde Konto ${variables.datevAccount} zugeordnet.`,
@@ -2316,7 +2316,7 @@ export const useGenerateGermanVATReturn = (
     onSuccess: (vatReturn, period) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GERMAN_VAT_RETURNS] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.AUDIT_LOGS] });
-      
+
       toast({
         title: 'UStVA generiert',
         description: `Umsatzsteuervoranmeldung für ${period.start_date} - ${period.end_date} erstellt. Zahllast: €${vatReturn.vat_payable.toFixed(2)}`,
@@ -2358,7 +2358,7 @@ export const useCalculateGermanDepreciation = (
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: ({ assetId, calculationDate }) => 
+    mutationFn: ({ assetId, calculationDate }) =>
       germanAccountingService.calculateDepreciation(assetId, calculationDate),
     onSuccess: (depreciation) => {
       toast({
@@ -2411,7 +2411,7 @@ export const useCreateGermanAccountingPeriod = (
       germanAccountingService.createAccountingPeriod(year, periodType, periodNumber),
     onSuccess: (period, variables) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GERMAN_PERIODS] });
-      
+
       toast({
         title: 'Buchungsperiode erstellt',
         description: `${variables.periodType} ${variables.year}${variables.periodNumber ? `/${variables.periodNumber}` : ''} wurde erstellt.`,
@@ -2445,7 +2445,7 @@ export const useAISearchDocuments = (
     mutationFn: (searchQuery: any) => aiRAGService.searchDocuments(searchQuery),
     onSuccess: (searchResult) => {
       queryClient.setQueryData([QUERY_KEYS.AI_SEARCH_RESULTS, searchResult.query_context.query], searchResult);
-      
+
       toast({
         title: 'AI-Suche abgeschlossen',
         description: `${searchResult.results.length} relevante Dokumente gefunden.`,
@@ -2485,7 +2485,7 @@ export const useIndexDocument = (
     onSuccess: (document) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.AI_DOCUMENTS] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.AI_INDEXING_STATUS] });
-      
+
       toast({
         title: 'Dokument indexiert',
         description: `"${document.title}" wurde für AI-Suche indexiert.`,
@@ -2547,7 +2547,7 @@ export const useAnalyzeIntent = (
     mutationFn: (userInput: string) => aiIntentService.analyzeIntent(userInput),
     onSuccess: (analysis) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.AI_INTENT_ANALYSES] });
-      
+
       if (analysis.confidence_score < 0.6) {
         toast({
           title: 'Intent-Analyse abgeschlossen',
@@ -2616,7 +2616,7 @@ export const useCreateAIEstimation = (
     mutationFn: (estimationRequest: any) => aiEstimationService.createProjectEstimation(estimationRequest),
     onSuccess: (estimation) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.AI_ESTIMATIONS] });
-      
+
       toast({
         title: 'AI-Schätzung erstellt',
         description: `Projektkosten: €${estimation.estimated_costs.total.toLocaleString()} (${(estimation.confidence_score * 100).toFixed(1)}% Konfidenz)`,
@@ -2679,7 +2679,7 @@ export const useBulkIndexEntities = (
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.AI_INDEXING_STATUS] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.AI_DOCUMENTS] });
-      
+
       toast({
         title: 'Bulk-Indexierung abgeschlossen',
         description: `${result.indexed_count} Dokumente indexiert, ${result.errors.length} Fehler.`,
@@ -3058,6 +3058,21 @@ export const useDeleteOfferItem = (
   });
 };
 
+export const useSyncOfferItems = (
+  options?: UseApiMutationOptions<OfferItem[], { offerId: string; items: (OfferItemCreate & { id?: string })[] }>
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ offerId, items }) => OfferService.syncOfferItems(offerId, items),
+    onSuccess: (_, { offerId }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.offer(offerId) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.offerItems(offerId) });
+    },
+    ...options,
+  });
+};
+
 // Offer Target Hooks
 export const useUpdateOfferTargets = (
   options?: UseApiMutationOptions<OfferTarget, { offerId: string; data: OfferTargetUpdate }>
@@ -3091,7 +3106,7 @@ export default {
   useInvalidateQueries, useQueryInvalidation,
   // KPI, Notification, and Worker hooks
   useProjectKPIs, useProjectKPIsSummary, useCriticalBudgetProjects,
-  useNotifications, useNotificationStats, useMarkNotificationRead, useMarkAllNotificationsRead, 
+  useNotifications, useNotificationStats, useMarkNotificationRead, useMarkAllNotificationsRead,
   useArchiveNotification, useCreateNotification,
   useWorkerStatus, useRunWorkerJob,
   // GoBD and Audit hooks
@@ -3110,6 +3125,6 @@ export default {
   useOffers, useOffer, useOfferItems, useOfferTargets, useOfferStats,
   useCreateOffer, useUpdateOffer, useDeleteOffer,
   useSendOffer, useAcceptOffer, useRejectOffer, useCancelOffer, useDuplicateOffer,
-  useAddOfferItem, useUpdateOfferItem, useDeleteOfferItem, useUpdateOfferTargets,
+  useAddOfferItem, useUpdateOfferItem, useDeleteOfferItem, useUpdateOfferTargets, useSyncOfferItems,
 };
 

@@ -156,83 +156,77 @@ export class OfferService {
     items?: OfferItemCreate[]
   ): Promise<OfferWithRelations> {
     return apiCall(async () => {
-      // Use the DB function to create offer with targets
-      const { data: offerId, error: createError } = await supabase.rpc(
+      // Construct JSON payloads for the RPC
+      const companyId = await this.getCompanyId();
+
+      const offer_data = {
+        company_id: companyId,
+        customer_id: data.customer_id,
+        customer_name: data.customer_name,
+        customer_address: data.customer_address,
+        contact_person: data.contact_person,
+        project_name: data.project_name,
+        project_location: data.project_location,
+        valid_until: data.valid_until,
+        payment_terms: data.payment_terms,
+        notes: data.notes,
+        intro_text: data.intro_text,
+        final_text: data.final_text,
+        is_reverse_charge: data.is_reverse_charge,
+        show_labor_share: data.show_labor_share,
+      };
+
+      const items_data = items?.map(item => ({
+        position_number: item.position_number,
+        description: item.description,
+        quantity: item.quantity,
+        unit: item.unit,
+        unit_price_net: item.unit_price_net,
+        vat_rate: item.vat_rate,
+        item_type: item.item_type,
+        is_optional: item.is_optional,
+        planned_hours_item: item.planned_hours_item,
+        material_purchase_cost: item.material_purchase_cost,
+        internal_notes: item.internal_notes,
+      })) || null;
+
+      const targets_data = targets ? {
+        planned_hours_total: targets.planned_hours_total,
+        internal_hourly_rate: targets.internal_hourly_rate,
+        billable_hourly_rate: targets.billable_hourly_rate,
+        planned_material_cost_total: targets.planned_material_cost_total,
+        planned_other_cost: targets.planned_other_cost,
+        target_start_date: targets.target_start_date,
+        target_end_date: targets.target_end_date,
+        project_manager_id: targets.project_manager_id,
+        complexity: targets.complexity,
+      } : null;
+
+      // Call RPC
+      // @ts-ignore
+      const { data: result, error: createError } = await supabase.rpc(
         'create_offer_with_targets',
         {
-          p_company_id: (await this.getCompanyId()),
-          p_customer_id: data.customer_id,
-          p_customer_name: data.customer_name,
-          p_project_name: data.project_name,
-          p_customer_address: data.customer_address || null,
-          p_project_location: data.project_location || null,
-          p_planned_hours: targets?.planned_hours_total || null,
-          p_internal_hourly_rate: targets?.internal_hourly_rate || null,
-          p_target_start_date: targets?.target_start_date || null,
-          p_target_end_date: targets?.target_end_date || null,
-          p_project_manager_id: targets?.project_manager_id || null,
+          offer_data,
+          items_data,
+          targets_data
         }
       );
 
       if (createError) throw createError;
 
-      // Update offer with additional fields
-      if (data.valid_until || data.payment_terms || data.notes) {
-        await supabase
-          .from('offers')
-          .update({
-            valid_until: data.valid_until,
-            contact_person: data.contact_person,
-            customer_reference: data.customer_reference,
-            execution_period_text: data.execution_period_text,
-            execution_notes: data.execution_notes,
-            payment_terms: data.payment_terms,
-            skonto_percent: data.skonto_percent,
-            skonto_days: data.skonto_days,
-            terms_text: data.terms_text,
-            warranty_text: data.warranty_text,
-            notes: data.notes,
-            created_by: data.created_by,
-          })
-          .eq('id', offerId);
-      }
+      // Result is { id: "...", offer_number: "..." }
+      // The RPC result comes as JSONB, so we might need to cast or access it?
+      // Supabase JS client creates 'data' as the return type.
+      // My RPC returns JSONB object.
 
-      // Update targets with additional fields
-      if (targets && (targets.billable_hourly_rate || targets.planned_material_cost_total || targets.complexity)) {
-        await supabase
-          .from('offer_targets')
-          .update({
-            billable_hourly_rate: targets.billable_hourly_rate,
-            planned_material_cost_total: targets.planned_material_cost_total,
-            planned_other_cost: targets.planned_other_cost,
-            complexity: targets.complexity,
-          })
-          .eq('offer_id', offerId);
-      }
+      // We can assume result.id exists.
+      // Let's type-cast strictly if needed, but 'result' is any here.
+      // Access id properly:
+      // @ts-ignore
+      const offerId = result?.id;
 
-      // Add items if provided
-      if (items && items.length > 0) {
-        const itemsToInsert = items.map((item, index) => ({
-          offer_id: offerId,
-          position_number: item.position_number || index + 1,
-          description: item.description,
-          quantity: item.quantity,
-          unit: item.unit,
-          unit_price_net: item.unit_price_net,
-          vat_rate: item.vat_rate,
-          item_type: item.item_type,
-          is_optional: item.is_optional || false,
-          planned_hours_item: item.planned_hours_item,
-          material_purchase_cost: item.material_purchase_cost,
-          internal_notes: item.internal_notes,
-        }));
-
-        const { error: itemsError } = await supabase
-          .from('offer_items')
-          .insert(itemsToInsert);
-
-        if (itemsError) throw itemsError;
-      }
+      if (!offerId) throw new Error('Failed to retrieve Created Offer ID');
 
       const offer = await this.getOffer(offerId);
 
@@ -388,6 +382,66 @@ export class OfferService {
     }, `Delete offer item ${itemId}`);
   }
 
+  // Sync all offer items (Delete missing, Update existing, Create new)
+  static async syncOfferItems(offerId: string, items: (OfferItemCreate & { id?: string })[]): Promise<OfferItem[]> {
+    return apiCall(async () => {
+      // 1. Get existing items
+      const existingItems = await this.getOfferItems(offerId);
+      const incomingIds = new Set(items.filter(i => i.id).map(i => i.id as string));
+
+      // 2. Identify deletions
+      const toDelete = existingItems.filter(i => !incomingIds.has(i.id));
+      if (toDelete.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('offer_items')
+          .delete()
+          .in('id', toDelete.map(i => i.id));
+        if (deleteError) throw deleteError;
+      }
+
+      // 3. Process Upserts (Create or Update)
+      const toUpsert = items.map((item, index) => ({
+        id: item.id, // If present, it's an update
+        offer_id: offerId,
+        position_number: index + 1,
+        description: item.description,
+        quantity: item.quantity,
+        unit: item.unit,
+        unit_price_net: item.unit_price_net,
+        vat_rate: item.vat_rate,
+        item_type: item.item_type,
+        is_optional: item.is_optional || false,
+        planned_hours_item: item.planned_hours_item,
+        material_purchase_cost: item.material_purchase_cost,
+        internal_notes: item.internal_notes,
+      }));
+
+      const newItems = toUpsert.filter(i => !i.id).map(({ id, ...rest }) => rest);
+      const updateItems = toUpsert.filter(i => i.id).map(i => i as any);
+
+      // Perform Inserts
+      if (newItems.length > 0) {
+        const { error: insertError } = await supabase
+          .from('offer_items')
+          .insert(newItems);
+        if (insertError) throw insertError;
+      }
+
+      // Perform Updates
+      if (updateItems.length > 0) {
+        // We use upsert for batch updates on primary key
+        const { error: updateError } = await supabase
+          .from('offer_items')
+          .upsert(updateItems);
+        if (updateError) throw updateError;
+      }
+
+      // Return fresh state
+      return this.getOfferItems(offerId);
+
+    }, `Sync offer items ${offerId}`);
+  }
+
   // ============================================================================
   // OFFER TARGETS
   // ============================================================================
@@ -505,6 +559,7 @@ export class OfferService {
       }
 
       // Use DB function to accept and create project
+      // @ts-ignore
       const { data: projectId, error } = await supabase.rpc(
         'accept_offer_and_create_project',
         {
@@ -600,6 +655,7 @@ export class OfferService {
     gross_total: number;
   }> {
     return apiCall(async () => {
+      // @ts-ignore
       const { data, error } = await supabase.rpc(
         'calculate_offer_totals',
         { p_offer_id: offerId }
@@ -621,6 +677,7 @@ export class OfferService {
     target_margin: number;
   }> {
     return apiCall(async () => {
+      // @ts-ignore
       const { data, error } = await supabase.rpc(
         'calculate_offer_target_totals',
         { p_offer_id: offerId }

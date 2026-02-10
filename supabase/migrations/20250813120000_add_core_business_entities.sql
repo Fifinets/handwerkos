@@ -21,6 +21,29 @@ CREATE TABLE IF NOT EXISTS public.quotes (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- Ensure quotes table has necessary columns
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'quotes' AND column_name = 'company_id') THEN
+        ALTER TABLE public.quotes ADD COLUMN company_id UUID;
+    END IF;
+    -- Add other columns if they differ from original schema, e.g. body
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'quotes' AND column_name = 'body') THEN
+        ALTER TABLE public.quotes ADD COLUMN body JSONB;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'quotes' AND column_name = 'total_net') THEN
+        ALTER TABLE public.quotes ADD COLUMN total_net DECIMAL(12,2);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'quotes' AND column_name = 'total_gross') THEN
+        ALTER TABLE public.quotes ADD COLUMN total_gross DECIMAL(12,2);
+    END IF;
+    -- Drop old status check if exists to allow new status values
+    BEGIN
+        ALTER TABLE public.quotes DROP CONSTRAINT IF EXISTS quotes_status_check;
+    EXCEPTION WHEN OTHERS THEN NULL;
+    END;
+END $$;
+
 -- Orders table (generated from accepted quotes)
 CREATE TABLE IF NOT EXISTS public.orders (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -35,6 +58,18 @@ CREATE TABLE IF NOT EXISTS public.orders (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Ensure orders table has necessary columns (if table already existed from previous migration)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'quote_id') THEN
+        ALTER TABLE public.orders ADD COLUMN quote_id UUID REFERENCES public.quotes(id) ON DELETE SET NULL;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'company_id') THEN
+        ALTER TABLE public.orders ADD COLUMN company_id UUID;
+    END IF;
+END $$;
 
 -- Extend projects table to link to orders (if not already linked)
 ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS order_id UUID REFERENCES public.orders(id) ON DELETE SET NULL;
@@ -138,6 +173,66 @@ ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS company_id UUID;
 -- Create company_id update triggers (will be set by application logic or separate migration)
 -- This ensures proper multi-tenant isolation for the AI features
 
+-- Ensure invoices table has necessary columns
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'invoices' AND column_name = 'project_id') THEN
+        ALTER TABLE public.invoices ADD COLUMN project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'invoices' AND column_name = 'company_id') THEN
+        ALTER TABLE public.invoices ADD COLUMN company_id UUID;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'invoices' AND column_name = 'amount') THEN
+        ALTER TABLE public.invoices ADD COLUMN amount DECIMAL(12,2);
+    END IF;
+    -- Drop old status check if exists to allow new status values
+    BEGIN
+        ALTER TABLE public.invoices DROP CONSTRAINT IF EXISTS invoices_status_check;
+    EXCEPTION WHEN OTHERS THEN NULL;
+    END;
+END $$;
+
+-- Ensure materials table has necessary columns
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'materials' AND column_name = 'company_id') THEN
+        ALTER TABLE public.materials ADD COLUMN company_id UUID;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'materials' AND column_name = 'sku') THEN
+        ALTER TABLE public.materials ADD COLUMN sku TEXT UNIQUE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'materials' AND column_name = 'supplier') THEN
+        ALTER TABLE public.materials ADD COLUMN supplier TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'materials' AND column_name = 'reorder_min') THEN
+         ALTER TABLE public.materials ADD COLUMN reorder_min INTEGER DEFAULT 0;
+    END IF;
+END $$;
+
+-- Ensure stock_movements table has necessary columns
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'stock_movements' AND column_name = 'company_id') THEN
+        ALTER TABLE public.stock_movements ADD COLUMN company_id UUID;
+    END IF;
+END $$;
+
+-- Ensure timesheets table has necessary columns
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'timesheets' AND column_name = 'company_id') THEN
+        ALTER TABLE public.timesheets ADD COLUMN company_id UUID;
+    END IF;
+END $$;
+
+-- Ensure expenses table has necessary columns
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'expenses' AND column_name = 'company_id') THEN
+        ALTER TABLE public.expenses ADD COLUMN company_id UUID;
+    END IF;
+END $$;
+
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_quotes_customer_id ON public.quotes(customer_id);
 CREATE INDEX IF NOT EXISTS idx_quotes_status ON public.quotes(status);
@@ -168,7 +263,15 @@ CREATE INDEX IF NOT EXISTS idx_expenses_project_id ON public.expenses(project_id
 CREATE INDEX IF NOT EXISTS idx_expenses_company_id ON public.expenses(company_id);
 
 -- Add updated_at triggers for new tables
+-- Add updated_at triggers for new tables
+DROP TRIGGER IF EXISTS update_quotes_updated_at ON public.quotes;
 CREATE TRIGGER update_quotes_updated_at BEFORE UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_orders_updated_at ON public.orders;
 CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_invoices_updated_at ON public.invoices;
 CREATE TRIGGER update_invoices_updated_at BEFORE UPDATE ON public.invoices FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_materials_updated_at ON public.materials;
 CREATE TRIGGER update_materials_updated_at BEFORE UPDATE ON public.materials FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

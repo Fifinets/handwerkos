@@ -40,6 +40,7 @@ const Auth: React.FC = () => {
   const [vatId, setVatId] = useState('');
   const [voucherCode, setVoucherCode] = useState('');
   const [referralSource, setReferralSource] = useState('');
+  const [userType, setUserType] = useState<'craftsman' | 'customer'>('craftsman');
 
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, updatePassword } = useAuth();
@@ -53,15 +54,27 @@ const Auth: React.FC = () => {
     const checkEmployeeInvitation = async () => {
       console.log('Current URL:', window.location.href);
       console.log('Search params:', window.location.search);
-      
+
       const mode = searchParams.get('mode');
       const inviteToken = searchParams.get('token');
+      const registerParam = searchParams.get('register');
+      const roleParam = searchParams.get('role');
 
-      console.log('Auth check:', { mode, inviteToken });
+      // Handle register param
+      if (registerParam === 'true') {
+        setIsLogin(false);
+      }
+
+      // Handle role param
+      if (roleParam === 'customer' || roleParam === 'craftsman') {
+        setUserType(roleParam);
+      }
+
+      console.log('Auth check:', { mode, inviteToken, registerParam, roleParam });
 
       if (mode === 'employee-setup' && inviteToken) {
         console.log('Processing employee invitation token:', inviteToken);
-        
+
         try {
           // Validate invitation token
           const { data: invitation, error: inviteError } = await supabase
@@ -87,7 +100,7 @@ const Auth: React.FC = () => {
           console.log('Valid invitation found:', invitation);
           setEmail(invitation.email);
           setIsPasswordSetup(true);
-          
+
           // Store invitation data for later use
           (window as any).invitationData = invitation;
 
@@ -114,7 +127,7 @@ const Auth: React.FC = () => {
       // A) Passwort-Setup für eingeladene Mitarbeiter
       if (isPasswordSetup) {
         const invitationData = (window as any).invitationData;
-        
+
         if (!invitationData) {
           toast.error('Einladungsdaten nicht gefunden. Bitte verwenden Sie den Link aus der E-Mail erneut.');
           setIsPasswordSetup(false);
@@ -131,7 +144,7 @@ const Auth: React.FC = () => {
         }
 
         console.log('Creating account for employee:', invitationData.email);
-        
+
         try {
           // Create Supabase user account
           const { data: authData, error: signUpError } = await supabase.auth.signUp({
@@ -189,7 +202,7 @@ const Auth: React.FC = () => {
 
             console.log('Employee account created successfully');
             toast.success('Konto erfolgreich erstellt! Sie können sich jetzt anmelden.');
-            
+
             // Redirect to login
             setIsPasswordSetup(false);
             setIsLogin(true);
@@ -226,10 +239,15 @@ const Auth: React.FC = () => {
         return;
       }
 
+      if (userType === 'craftsman' && !companyName) {
+        toast.error('Bitte geben Sie einen Firmennamen an');
+        return;
+      }
+
       const registrationData = {
         firstName,
         lastName,
-        companyName,
+        companyName: userType === 'craftsman' ? companyName : '',
         phone,
         streetAddress,
         postalCode,
@@ -237,7 +255,8 @@ const Auth: React.FC = () => {
         country,
         vatId,
         voucherCode,
-        referralSource
+        referralSource,
+        role: userType
       };
 
       const { error } = await signUp(email, password, registrationData);
@@ -256,9 +275,9 @@ const Auth: React.FC = () => {
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 shadow-lg">
         <div className="flex items-center justify-center gap-3">
-          <img 
-            src="/handwerkos-logo.svg" 
-            alt="HandwerkOS Logo" 
+          <img
+            src="/handwerkos-logo.svg"
+            alt="HandwerkOS Logo"
             className="h-12 w-12 object-contain"
           />
           <h1 className="text-3xl font-bold tracking-wide">HandwerkOS</h1>
@@ -267,7 +286,7 @@ const Auth: React.FC = () => {
           Die moderne Software-Lösung für Handwerksbetriebe
         </p>
       </div>
-      
+
       {/* Main Content */}
       <div className="flex items-center justify-center min-h-[calc(100vh-120px)] p-4">
         <Card className="w-full max-w-2xl shadow-xl border-0 bg-white/80 backdrop-blur-sm">
@@ -300,8 +319,8 @@ const Auth: React.FC = () => {
               {isPasswordSetup
                 ? 'Erstellen Sie Ihr Passwort für Ihren HandwerkOS Account'
                 : isLogin
-                ? 'Willkommen zurück! Melden Sie sich in Ihrem HandwerkOS Account an'
-                : 'Starten Sie jetzt mit HandwerkOS und digitalisieren Sie Ihren Betrieb'}
+                  ? 'Willkommen zurück! Melden Sie sich in Ihrem HandwerkOS Account an'
+                  : 'Starten Sie jetzt mit HandwerkOS und digitalisieren Sie Ihren Betrieb'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -361,6 +380,24 @@ const Auth: React.FC = () => {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Linke Spalte */}
                     <div className="space-y-6">
+                      {/* Role Selector */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div
+                          className={`cursor-pointer rounded-xl border-2 p-4 flex flex-col items-center justify-center gap-2 transition-all ${userType === 'craftsman' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-blue-300'}`}
+                          onClick={() => setUserType('craftsman')}
+                        >
+                          <Wrench className="w-6 h-6" />
+                          <span className="font-medium text-sm">Handwerker</span>
+                        </div>
+                        <div
+                          className={`cursor-pointer rounded-xl border-2 p-4 flex flex-col items-center justify-center gap-2 transition-all ${userType === 'customer' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-blue-300'}`}
+                          onClick={() => setUserType('customer')}
+                        >
+                          <User className="w-6 h-6" />
+                          <span className="font-medium text-sm">Auftraggeber</span>
+                        </div>
+                      </div>
+
                       {/* Persönliche Daten */}
                       <div className="space-y-4">
                         <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">
@@ -413,33 +450,35 @@ const Auth: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Firmendaten */}
-                      <div className="space-y-4">
-                        <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">
-                          Firmendaten
-                        </h3>
-                        <div className="space-y-2">
-                          <Label htmlFor="companyName">Firmenname *</Label>
-                          <Input
-                            id="companyName"
-                            type="text"
-                            value={companyName}
-                            onChange={(e) => setCompanyName(e.target.value)}
-                            required
-                            placeholder="Ihre Firma"
-                          />
+                      {/* Firmendaten - Only for Craftsmen */}
+                      {userType === 'craftsman' && (
+                        <div className="space-y-4">
+                          <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">
+                            Firmendaten
+                          </h3>
+                          <div className="space-y-2">
+                            <Label htmlFor="companyName">Firmenname *</Label>
+                            <Input
+                              id="companyName"
+                              type="text"
+                              value={companyName}
+                              onChange={(e) => setCompanyName(e.target.value)}
+                              required={userType === 'craftsman'}
+                              placeholder="Ihre Firma"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="vatId">USt-IdNr.</Label>
+                            <Input
+                              id="vatId"
+                              type="text"
+                              value={vatId}
+                              onChange={(e) => setVatId(e.target.value)}
+                              placeholder="DE123456789"
+                            />
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="vatId">USt-IdNr.</Label>
-                          <Input
-                            id="vatId"
-                            type="text"
-                            value={vatId}
-                            onChange={(e) => setVatId(e.target.value)}
-                            placeholder="DE123456789"
-                          />
-                        </div>
-                      </div>
+                      )}
 
                       {/* Zusätzliche Angaben */}
                       <div className="space-y-4">
@@ -564,22 +603,22 @@ const Auth: React.FC = () => {
                       {/* AGB */}
                       <div className="space-y-4">
                         <div className="flex items-center space-x-2">
-                          <Checkbox 
-                            id="terms" 
-                            required 
+                          <Checkbox
+                            id="terms"
+                            required
                           />
                           <Label htmlFor="terms" className="text-sm">
                             Ich stimme den{" "}
-                            <a 
-                              href="#" 
+                            <a
+                              href="#"
                               className="text-primary underline hover:no-underline"
                               onClick={(e) => e.preventDefault()}
                             >
                               Allgemeinen Geschäftsbedingungen
                             </a>{" "}
                             und der{" "}
-                            <a 
-                              href="#" 
+                            <a
+                              href="#"
                               className="text-primary underline hover:no-underline"
                               onClick={(e) => e.preventDefault()}
                             >
@@ -594,9 +633,9 @@ const Auth: React.FC = () => {
                 </>
               )}
 
-              <Button 
-                type="submit" 
-                className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200" 
+              <Button
+                type="submit"
+                className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200"
                 disabled={loading}
               >
                 {loading ? (
@@ -638,7 +677,7 @@ const Auth: React.FC = () => {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Footer */}
       <div className="text-center pb-6">
         <p className="text-sm text-gray-500">

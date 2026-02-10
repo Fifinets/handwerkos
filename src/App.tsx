@@ -17,6 +17,20 @@ import Impressum from "./pages/Impressum";
 import Datenschutz from "./pages/Datenschutz";
 import OfferCreationWizard from "./pages/offers/OfferCreationWizard";
 import OfferEditorPage from "./pages/offers/OfferEditorPage";
+import MarketplaceLanding from "./pages/marketplace/MarketplaceLanding";
+import JobPostingWizard from "./pages/marketplace/JobPostingWizard";
+import CustomerDashboard from "./pages/marketplace/CustomerDashboard";
+import MarketplaceAuth from "./pages/marketplace/MarketplaceAuth";
+import JobSearchFeed from "./pages/marketplace/JobSearchFeed";
+
+// Webbuilder Imports
+import WebBuilderLayout from "./features/webbuilder/components/WebBuilderLayout";
+import WebBuilderDashboard from "./features/webbuilder/pages/WebBuilderDashboard";
+import TemplateSelector from "./features/webbuilder/pages/TemplateSelector";
+import StyleConfigurator from "./features/webbuilder/pages/StyleConfigurator";
+import ContentInput from "./features/webbuilder/pages/ContentInput";
+import LegalDataInput from "./features/webbuilder/pages/LegalDataInput";
+import WebBuilderEditor from "./features/webbuilder/pages/WebBuilderEditor";
 
 
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -182,6 +196,29 @@ const App = () => (
               <Route path="/offers/wizard" element={<OfferCreationWizard />} />
               <Route path="/offers/:id/edit" element={<OfferEditorPage />} />
               <Route path="/offers/new/edit" element={<OfferEditorPage />} />
+
+              {/* Marketplace Module Routes */}
+              <Route path="/marktplatz" element={<MarketplaceLanding />} />
+              <Route path="/marktplatz/post" element={<JobPostingWizard />} />
+              <Route path="/marktplatz/customer/dashboard" element={<CustomerDashboard />} />
+              <Route path="/marktplatz/auth" element={<MarketplaceAuth />} />
+              <Route path="/marktplatz/search" element={<JobSearchFeed />} />
+
+              {/* Webbuilder Routes */}
+              {/* Webbuilder Routes */}
+              <Route path="/webbuilder">
+                {/* Landing Page: Full Width, No Layout Wrapper */}
+                <Route index element={<WebBuilderDashboard />} />
+
+                {/* App Routes: Wrapped in Layout */}
+                <Route element={<WebBuilderLayout />}>
+                  <Route path="onboarding/templates" element={<TemplateSelector />} />
+                  <Route path="onboarding/style" element={<StyleConfigurator />} />
+                  <Route path="onboarding/content" element={<ContentInput />} />
+                  <Route path="onboarding/legal" element={<LegalDataInput />} />
+                  <Route path="editor/:siteId" element={<WebBuilderEditor />} />
+                </Route>
+              </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

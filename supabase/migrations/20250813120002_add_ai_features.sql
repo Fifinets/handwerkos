@@ -1,6 +1,11 @@
 -- AI Features and Index Tables for HandwerkOS
 -- Supports AI-powered intent parsing, cost estimation, and scheduling
 
+-- Enable vector extension (must be done before using the vector type)
+CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
+
+-- AI Index table for storing embeddings and searchable content
+
 -- AI Index table for storing embeddings and searchable content
 -- This enables RAG (Retrieval Augmented Generation) for context-aware AI responses
 CREATE TABLE IF NOT EXISTS public.ai_index (
@@ -8,7 +13,7 @@ CREATE TABLE IF NOT EXISTS public.ai_index (
   ref_type TEXT NOT NULL, -- 'quote', 'project', 'customer', 'material', etc.
   ref_id UUID NOT NULL,   -- ID of the referenced entity
   content_text TEXT NOT NULL, -- The actual text content for searching
-  embedding VECTOR(1536), -- OpenAI embedding vector (1536 dimensions)
+  embedding extensions.vector(1536), -- OpenAI embedding vector (1536 dimensions)
   metadata JSONB, -- Additional structured data
   indexed_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   company_id UUID,
@@ -138,7 +143,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Function to search AI index (for RAG queries)
 CREATE OR REPLACE FUNCTION public.search_ai_index(
-  query_embedding VECTOR(1536),
+  query_embedding extensions.vector(1536),
   ref_types TEXT[] DEFAULT NULL,
   company_id_filter UUID DEFAULT NULL,
   limit_results INTEGER DEFAULT 5
@@ -210,7 +215,5 @@ CREATE TRIGGER update_ai_index_updated_at BEFORE UPDATE ON public.ai_index FOR E
 CREATE TRIGGER update_ai_suggestions_updated_at BEFORE UPDATE ON public.ai_suggestions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Enable vector extension for embeddings (if not already enabled)
--- CREATE EXTENSION IF NOT EXISTS vector;
-
 -- Note: The vector extension and VECTOR data type require the pgvector extension
 -- This should be enabled in Supabase dashboard or via separate migration

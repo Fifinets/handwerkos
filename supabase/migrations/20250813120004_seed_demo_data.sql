@@ -8,7 +8,7 @@
 -- We'll assume profiles already exist from user registration
 
 -- Insert demo materials for all companies
-INSERT INTO public.materials (name, sku, description, unit, unit_price, stock, reorder_min, category) VALUES
+INSERT INTO public.materials (name, sku, description, unit, unit_price, current_stock, reorder_min, category) VALUES
 -- Basic construction materials
 ('Ziegelstein rot', 'ZS-001', 'Standard Ziegelstein für Mauerwerk', 'Stk', 0.45, 5000, 500, 'Mauerwerk'),
 ('Zement Portland', 'ZE-001', 'Portland Zement 25kg Sack', 'Sack', 8.50, 200, 20, 'Bindemittel'),
@@ -44,9 +44,6 @@ ON CONFLICT (sku) DO NOTHING;
 
 -- Insert demo number sequences if not exists
 INSERT INTO public.number_sequences (sequence_name, prefix, format_pattern, current_value) VALUES
-('quotes', 'AG', '{prefix}-{year}-{number:04d}', 0),
-('orders', 'AU', '{prefix}-{year}-{number:04d}', 0), 
-('invoices', 'RE', '{prefix}-{year}-{number:04d}', 0),
 ('customers', 'KU', '{prefix}-{number:05d}', 1000)
 ON CONFLICT (sequence_name, company_id) DO NOTHING;
 
@@ -124,7 +121,7 @@ ON CONFLICT DO NOTHING;
 
 -- Update material stock based on movements
 UPDATE public.materials 
-SET stock = stock + COALESCE(
+SET current_stock = current_stock + COALESCE(
   (SELECT SUM(quantity) FROM public.stock_movements sm WHERE sm.material_id = materials.id), 
   0
 );

@@ -7,7 +7,12 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { OfferSidebar } from '@/components/offers/OfferSidebar';
 import { OfferItemsEditor } from '@/components/offers/OfferItemsEditor';
-import { useOffer, useUpdateOffer, useCreateOffer, useCustomers } from '@/hooks/useApi';
+import { OfferStatusBadge } from '@/components/offers/OfferStatusBadge';
+import { OfferEmailDialog } from '@/components/offers/OfferEmailDialog';
+import {
+    useOffer, useUpdateOffer, useCreateOffer, useCustomers,
+    useSendOffer, useAcceptOffer, useRejectOffer, useCancelOffer, useSyncOfferItems
+} from '@/hooks/useApi';
 import { useAuth } from '@/hooks/useAuth';
 import { OfferItem, OfferItemCreate } from '@/types/offer';
 import { Customer } from '@/types';
@@ -18,12 +23,33 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Send, CheckCircle, XCircle, Ban, Copy, Settings as SettingsIcon } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Textarea } from '@/components/ui/textarea';
 
 export default function OfferEditorPage() {
     const { id } = useParams();
     const navigate = useNavigate();
     const { toast } = useToast();
-    const isNew = id === 'new';
+    const isNew = !id || id === 'new';
     const { user } = useAuth();
     const currentDate = new Date().toLocaleDateString('de-DE');
     // Calculate validity date (14 days)
@@ -37,7 +63,12 @@ export default function OfferEditorPage() {
     // Form State
     const [subject, setSubject] = useState(isNew ? 'Angebot: Badsanierung Musterstraße' : '');
     const [introText, setIntroText] = useState(isNew ? 'Sehr geehrte Damen und Herren, anbei erhalten Sie unser Angebot:' : '');
+    const [finalText, setFinalText] = useState(isNew ? 'Wir freuen uns auf Ihre Auftragserteilung.' : '');
+    const [isReverseCharge, setIsReverseCharge] = useState(false);
+    const [showLaborShare, setShowLaborShare] = useState(true);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+    const [isEmailOpen, setIsEmailOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     // API Hooks
     // Note: We need to import useCreateOffer etc. at the top. I will assuming imports are there or will add them.
@@ -46,17 +77,48 @@ export default function OfferEditorPage() {
     // Wait, the view showed them being imported in line 10! Good.
     const createOfferMutation = useCreateOffer();
     const updateOfferMutation = useUpdateOffer();
+    const syncOfferItemsMutation = useSyncOfferItems();
+    const sendOfferMutation = useSendOffer();
+    const acceptOfferMutation = useAcceptOffer();
+    const rejectOfferMutation = useRejectOffer();
+    const cancelOfferMutation = useCancelOffer();
+
     const { data: offer } = useOffer(id!, { enabled: !isNew });
     const { data: customersData } = useCustomers();
     const customers = customersData?.items || [];
 
+
     // Sync selectedCustomer with offer data when loaded
     React.useEffect(() => {
-        if (offer && customers.length > 0 && !selectedCustomer) {
-            const c = customers.find(c => c.id === offer.customer_id);
-            if (c) setSelectedCustomer(c);
+        if (offer) {
+            if (customers.length > 0 && !selectedCustomer) {
+                const c = customers.find(c => c.id === offer.customer_id);
+                if (c) setSelectedCustomer(c);
+            }
+            if (offer.project_name) setSubject(offer.project_name);
+            if (offer.intro_text !== undefined) setIntroText(offer.intro_text || '');
+            if (offer.final_text !== undefined) setFinalText(offer.final_text || '');
+            if (offer.is_reverse_charge !== undefined) setIsReverseCharge(offer.is_reverse_charge);
+            if (offer.show_labor_share !== undefined) setShowLaborShare(offer.show_labor_share);
+            // We might want to store intro text in the DB too if we want it persisted, 
+            // but for now it's not in the main Offer schema explicitly as 'intro_text', 
+            // checking schema... 'notes' or 'execution_notes'? 
+            // The schema has 'execution_notes', 'terms_text', 'warranty_text'.
+            // Let's assume title -> project_name.
+
+            // Load items if we haven't modified them yet (or just on first load)
+            // Ideally we check if items are empty.
+            if (offer.items && offer.items.length > 0 && items.length === 0) {
+                const mappedItems = offer.items.map(i => ({
+                    ...i,
+                    temp_id: crypto.randomUUID() // Ensure we have a temp_id for dnd
+                }));
+                // Sort by position number if needed, usually backend returns sorted or we trust input
+                mappedItems.sort((a, b) => a.position_number - b.position_number);
+                setItems(mappedItems);
+            }
         }
-    }, [offer, customers, selectedCustomer]);
+    }, [offer, customers, selectedCustomer]); // removed items dependency to avoid loops
 
     // Mock data for UI development if isNew
     // State for items
@@ -77,11 +139,15 @@ export default function OfferEditorPage() {
                 const result = await createOfferMutation.mutateAsync({
                     data: {
                         project_name: subject,
-                        valid_until: validUntil.toISOString(),
+                        valid_until: validUntil.toISOString().split('T')[0],
                         customer_id: selectedCustomer.id,
                         customer_name: selectedCustomer.company_name,
                         customer_address: `${selectedCustomer.address}, ${selectedCustomer.postal_code} ${selectedCustomer.city}`,
                         contact_person: selectedCustomer.contact_person || undefined,
+                        intro_text: introText,
+                        final_text: finalText,
+                        is_reverse_charge: isReverseCharge,
+                        show_labor_share: showLaborShare,
                     },
                     items: items,
                 });
@@ -98,18 +164,48 @@ export default function OfferEditorPage() {
                             customer_name: selectedCustomer.company_name,
                             customer_address: `${selectedCustomer.address}, ${selectedCustomer.postal_code} ${selectedCustomer.city}`,
                             contact_person: selectedCustomer.contact_person || undefined
-                        } : {})
-                    }
+                        } : {}),
+                        intro_text: introText,
+                        final_text: finalText,
+                        is_reverse_charge: isReverseCharge,
+                        show_labor_share: showLaborShare,
+                    },
+                });
+
+                // Sync items separately
+                await syncOfferItemsMutation.mutateAsync({
+                    offerId: id!,
+                    items: items
                 });
                 toast({ title: "Gespeichert", description: "Änderungen wurden gespeichert." });
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
             toast({
                 title: "Fehler beim Speichern",
-                description: "Das Angebot konnte nicht gespeichert werden (Evtl. fehlt der Kunde).",
+                description: error.message || "Das Angebot konnte nicht gespeichert werden.",
                 variant: "destructive"
             });
+        }
+    };
+
+    const handleAction = async (action: 'send' | 'accept' | 'reject' | 'cancel') => {
+        if (!offer) return;
+        try {
+            if (action === 'send') {
+                setIsEmailOpen(true);
+            } else if (action === 'accept') {
+                await acceptOfferMutation.mutateAsync({ id: offer.id });
+                toast({ title: "Angenommen", description: "Angebot wurde angenommen und Projekt erstellt." });
+            } else if (action === 'reject') {
+                await rejectOfferMutation.mutateAsync({ id: offer.id, reason: 'Manuell abgelehnt' });
+                toast({ title: "Abgelehnt", description: "Angebot wurde abgelehnt." });
+            } else if (action === 'cancel') {
+                await cancelOfferMutation.mutateAsync(offer.id);
+                toast({ title: "Storniert", description: "Angebot wurde storniert." });
+            }
+        } catch (e) {
+            console.error(e);
         }
     };
 
@@ -174,11 +270,9 @@ export default function OfferEditorPage() {
                         <div className="flex flex-col">
                             <div className="flex items-center gap-2">
                                 <span className="font-semibold text-gray-900 text-lg">
-                                    {isNew ? 'Neues Angebot' : 'Angebot #1234'}
+                                    {isNew ? 'Neues Angebot' : `Angebot ${offer?.offer_number || ''}`}
                                 </span>
-                                <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-medium">
-                                    Entwurf
-                                </span>
+                                {offer && <OfferStatusBadge status={offer.status} />}
                             </div>
                             <span className="text-xs text-muted-foreground">Zuletzt gespeichert: Gerade eben</span>
                         </div>
@@ -189,16 +283,43 @@ export default function OfferEditorPage() {
                             <Printer className="mr-2 h-4 w-4" />
                             PDF / Drucken
                         </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)} title="Einstellungen">
+                            <SettingsIcon className="h-5 w-5" />
+                        </Button>
                         <Button
                             className="bg-emerald-600 hover:bg-emerald-700 text-white"
                             onClick={handleSave}
                         >
                             <FileCheck className="mr-2 h-4 w-4" />
-                            Fertigstellen
+                            Speichern
                         </Button>
-                        <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-5 w-5" />
-                        </Button>
+
+                        {!isNew && offer && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                        <MoreVertical className="h-5 w-5" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Aktionen</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => handleAction('send')} disabled={offer.status !== 'draft'}>
+                                        <Send className="mr-2 h-4 w-4" /> Als versendet markieren
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleAction('accept')} disabled={['accepted', 'cancelled'].includes(offer.status)}>
+                                        <CheckCircle className="mr-2 h-4 w-4 text-green-600" /> Annehmen (Projekt erstellen)
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleAction('reject')} disabled={['accepted', 'rejected', 'cancelled'].includes(offer.status)}>
+                                        <XCircle className="mr-2 h-4 w-4 text-red-600" /> Ablehnen
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => handleAction('cancel')} disabled={['cancelled'].includes(offer.status)}>
+                                        <Ban className="mr-2 h-4 w-4 text-gray-500" /> Stornieren
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
                     </div>
                 </header>
 
@@ -270,8 +391,8 @@ export default function OfferEditorPage() {
                                             value={subject}
                                             onChange={(e) => setSubject(e.target.value)}
                                         />
-                                        <Input
-                                            className="mt-2 border-none shadow-none px-0 focus-visible:ring-0 text-gray-600 print:p-0"
+                                        <Textarea
+                                            className="mt-4 border-none shadow-none px-0 focus-visible:ring-0 text-gray-600 print:p-0 resize-none min-h-[4rem]"
                                             placeholder="Einleitungstext (optional)..."
                                             value={introText}
                                             onChange={(e) => setIntroText(e.target.value)}
@@ -281,10 +402,15 @@ export default function OfferEditorPage() {
                             );
 
                             const footerContent = (
-                                <div className="border-t pt-8 mt-4">
-                                    <p>Mit freundlichen Grüßen</p>
+                                <div className="border-t pt-8 mt-4 print:mt-2">
+                                    <Textarea
+                                        className="border-none shadow-none px-0 focus-visible:ring-0 text-gray-600 print:p-0 resize-none mb-8 min-h-[3rem]"
+                                        placeholder="Abschlusstext (optional)..."
+                                        value={finalText}
+                                        onChange={(e) => setFinalText(e.target.value)}
+                                    />
                                     <div className="h-16"></div> {/* Returns signature space */}
-                                    <p>{user?.user_metadata?.first_name || 'Ihr HandwerkOS Team'}</p>
+                                    <p className="font-semibold">{user?.user_metadata?.first_name || 'Ihr HandwerkOS Team'}</p>
                                 </div>
                             );
 
@@ -294,7 +420,8 @@ export default function OfferEditorPage() {
                                     onChange={setItems}
                                     header={headerContent}
                                     footer={footerContent}
-
+                                    isReverseCharge={isReverseCharge}
+                                    showLaborShare={showLaborShare}
                                 />
                             );
                         })()}
@@ -310,6 +437,63 @@ export default function OfferEditorPage() {
                     onAddItem={handleAddItem}
                 />
             </div>
+
+            {/* Email Dialog */}
+            {offer && (
+                <OfferEmailDialog
+                    open={isEmailOpen}
+                    onOpenChange={setIsEmailOpen}
+                    offer={offer}
+                    onSend={async () => {
+                        await sendOfferMutation.mutateAsync(offer.id);
+                    }}
+                />
+            )}
+
+            {/* Settings Dialog */}
+            <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Angebotseinstellungen</DialogTitle>
+                        <DialogDescription>
+                            Konfigurieren Sie steuerliche und inhaltliche Optionen.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-6 py-4">
+                        <div className="flex items-center justify-between space-x-2">
+                            <div className="grid gap-1.5 leading-none">
+                                <Label htmlFor="reverse-charge" className="font-semibold">
+                                    Steuerschuldnerschaft (§13b UStG)
+                                </Label>
+                                <p className="text-sm text-muted-foreground">
+                                    Reverse Charge Verfahren: Rechnung ohne Umsatzsteuer.
+                                </p>
+                            </div>
+                            <Switch
+                                id="reverse-charge"
+                                checked={isReverseCharge}
+                                onCheckedChange={setIsReverseCharge}
+                            />
+                        </div>
+
+                        <div className="flex items-center justify-between space-x-2">
+                            <div className="grid gap-1.5 leading-none">
+                                <Label htmlFor="labor-share" className="font-semibold">
+                                    Lohnkosten ausweisen (§35a EStG)
+                                </Label>
+                                <p className="text-sm text-muted-foreground">
+                                    Summe der Arbeitskosten separat im Footer anzeigen.
+                                </p>
+                            </div>
+                            <Switch
+                                id="labor-share"
+                                checked={showLaborShare}
+                                onCheckedChange={setShowLaborShare}
+                            />
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

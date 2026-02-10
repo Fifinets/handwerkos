@@ -101,6 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           vat_id: registrationData.vatId,
           voucher_code: registrationData.voucherCode,
           referral_source: registrationData.referralSource,
+          role: registrationData.role, // 'craftsman' | 'customer'
         },
       },
     });

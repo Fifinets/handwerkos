@@ -980,6 +980,287 @@ export type Database = {
           },
         ]
       }
+      offer_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          internal_notes: string | null
+          is_optional: boolean | null
+          item_type: string
+          material_purchase_cost: number | null
+          offer_id: string
+          planned_hours_item: number | null
+          position_number: number
+          quantity: number
+          unit: string
+          unit_price_net: number
+          vat_rate: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          internal_notes?: string | null
+          is_optional?: boolean | null
+          item_type?: string
+          material_purchase_cost?: number | null
+          offer_id: string
+          planned_hours_item?: number | null
+          position_number: number
+          quantity?: number
+          unit?: string
+          unit_price_net?: number
+          vat_rate?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          internal_notes?: string | null
+          is_optional?: boolean | null
+          item_type?: string
+          material_purchase_cost?: number | null
+          offer_id?: string
+          planned_hours_item?: number | null
+          position_number?: number
+          quantity?: number
+          unit?: string
+          unit_price_net?: number
+          vat_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_items_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offer_targets: {
+        Row: {
+          billable_hourly_rate: number | null
+          complexity: string | null
+          created_at: string
+          id: string
+          internal_hourly_rate: number | null
+          offer_id: string
+          planned_hours_total: number | null
+          planned_material_cost_total: number | null
+          planned_other_cost: number | null
+          project_manager_id: string | null
+          snapshot_created_at: string | null
+          snapshot_target_cost: number | null
+          snapshot_target_margin: number | null
+          snapshot_target_revenue: number | null
+          target_end_date: string | null
+          target_start_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          billable_hourly_rate?: number | null
+          complexity?: string | null
+          created_at?: string
+          id?: string
+          internal_hourly_rate?: number | null
+          offer_id: string
+          planned_hours_total?: number | null
+          planned_material_cost_total?: number | null
+          planned_other_cost?: number | null
+          project_manager_id?: string | null
+          snapshot_created_at?: string | null
+          snapshot_target_cost?: number | null
+          snapshot_target_margin?: number | null
+          snapshot_target_revenue?: number | null
+          target_end_date?: string | null
+          target_start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          billable_hourly_rate?: number | null
+          complexity?: string | null
+          created_at?: string
+          id?: string
+          internal_hourly_rate?: number | null
+          offer_id?: string
+          planned_hours_total?: number | null
+          planned_material_cost_total?: number | null
+          planned_other_cost?: number | null
+          project_manager_id?: string | null
+          snapshot_created_at?: string | null
+          snapshot_target_cost?: number | null
+          snapshot_target_margin?: number | null
+          snapshot_target_revenue?: number | null
+          target_end_date?: string | null
+          target_start_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_targets_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_targets_project_manager_id_fkey"
+            columns: ["project_manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offers: {
+        Row: {
+          acceptance_note: string | null
+          accepted_at: string | null
+          accepted_by: string | null
+          company_id: string
+          contact_person: string | null
+          created_at: string
+          created_by: string | null
+          customer_address: string | null
+          customer_id: string
+          customer_name: string
+          customer_reference: string | null
+          execution_notes: string | null
+          execution_period_text: string | null
+          final_text: string | null
+          id: string
+          intro_text: string | null
+          is_locked: boolean | null
+          is_reverse_charge: boolean | null
+          notes: string | null
+          offer_date: string
+          offer_number: string
+          payment_terms: string | null
+          project_location: string | null
+          project_name: string
+          show_labor_share: boolean | null
+          skonto_days: number | null
+          skonto_percent: number | null
+          snapshot_created_at: string | null
+          snapshot_discount_amount: number | null
+          snapshot_discount_percent: number | null
+          snapshot_gross_total: number | null
+          snapshot_net_total: number | null
+          snapshot_subtotal_net: number | null
+          snapshot_vat_amount: number | null
+          snapshot_vat_rate: number | null
+          status: string
+          terms_text: string | null
+          updated_at: string
+          valid_until: string | null
+          version: number | null
+          warranty_text: string | null
+        }
+        Insert: {
+          acceptance_note?: string | null
+          accepted_at?: string | null
+          accepted_by?: string | null
+          company_id: string
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_address?: string | null
+          customer_id: string
+          customer_name: string
+          customer_reference?: string | null
+          execution_notes?: string | null
+          execution_period_text?: string | null
+          final_text?: string | null
+          id?: string
+          intro_text?: string | null
+          is_locked?: boolean | null
+          is_reverse_charge?: boolean | null
+          notes?: string | null
+          offer_date?: string
+          offer_number: string
+          payment_terms?: string | null
+          project_location?: string | null
+          project_name: string
+          show_labor_share?: boolean | null
+          skonto_days?: number | null
+          skonto_percent?: number | null
+          snapshot_created_at?: string | null
+          snapshot_discount_amount?: number | null
+          snapshot_discount_percent?: number | null
+          snapshot_gross_total?: number | null
+          snapshot_net_total?: number | null
+          snapshot_subtotal_net?: number | null
+          snapshot_vat_amount?: number | null
+          snapshot_vat_rate?: number | null
+          status?: string
+          terms_text?: string | null
+          updated_at?: string
+          valid_until?: string | null
+          version?: number | null
+          warranty_text?: string | null
+        }
+        Update: {
+          acceptance_note?: string | null
+          accepted_at?: string | null
+          accepted_by?: string | null
+          company_id?: string
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_address?: string | null
+          customer_id?: string
+          customer_name?: string
+          customer_reference?: string | null
+          execution_notes?: string | null
+          execution_period_text?: string | null
+          final_text?: string | null
+          id?: string
+          intro_text?: string | null
+          is_locked?: boolean | null
+          is_reverse_charge?: boolean | null
+          notes?: string | null
+          offer_date?: string
+          offer_number?: string
+          payment_terms?: string | null
+          project_location?: string | null
+          project_name?: string
+          show_labor_share?: boolean | null
+          skonto_days?: number | null
+          skonto_percent?: number | null
+          snapshot_created_at?: string | null
+          snapshot_discount_amount?: number | null
+          snapshot_discount_percent?: number | null
+          snapshot_gross_total?: number | null
+          snapshot_net_total?: number | null
+          snapshot_subtotal_net?: number | null
+          snapshot_vat_amount?: number | null
+          snapshot_vat_rate?: number | null
+          status?: string
+          terms_text?: string | null
+          updated_at?: string
+          valid_until?: string | null
+          version?: number | null
+          warranty_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           company_id: string | null
