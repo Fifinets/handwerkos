@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 8080 --host",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "build:android": "vite build && npx cap sync android",
@@ -73,6 +73,7 @@
     "@supabase/supabase-js": "^2.50.3",
     "@tanstack/react-query": "^5.56.2",
     "@types/crypto-js": "^4.2.2",
+    "@types/uuid": "^10.0.0",
     "browserslist": "^4.28.1",
     "caniuse-lite": "^1.0.30001762",
     "class-variance-authority": "^0.7.1",
@@ -106,6 +107,7 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "tesseract.js": "^6.0.1",
+    "uuid": "^13.0.0",
     "vaul": "^0.9.3",
     "zod": "^3.23.8",
     "zustand": "^5.0.11"

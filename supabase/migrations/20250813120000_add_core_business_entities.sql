@@ -72,7 +72,7 @@ BEGIN
 END $$;
 
 -- Extend projects table to link to orders (if not already linked)
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS order_id UUID REFERENCES public.orders(id) ON DELETE SET NULL;
+-- ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS order_id UUID REFERENCES public.orders(id) ON DELETE SET NULL;
 ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS company_id UUID;
 
 -- Invoices table
@@ -221,7 +221,7 @@ END $$;
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'timesheets' AND column_name = 'company_id') THEN
-        ALTER TABLE public.timesheets ADD COLUMN company_id UUID;
+        ALTER TABLE public.timesheets ADD COLUMN company_id UUID; 
     END IF;
 END $$;
 

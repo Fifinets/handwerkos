@@ -127,56 +127,56 @@ SET current_stock = current_stock + COALESCE(
 );
 
 -- Insert demo quotes
-INSERT INTO public.quotes (customer_id, title, description, status, total_net, total_gross, tax_rate, valid_until, body)
-SELECT 
-  c.id,
-  'Angebot ' || (ARRAY['Dachsanierung', 'Badsanierung', 'Elektroinstallation', 'Heizungswartung', 'Fassadenrenovierung'])[1 + (random() * 4)::int],
-  'Demo-Angebot für Kunde ' || c.company_name,
-  (ARRAY['draft', 'sent', 'sent', 'accepted', 'rejected'])[1 + (random() * 4)::int],
-  round((random() * 10000 + 2000)::numeric, 2),
-  round((random() * 11900 + 2380)::numeric, 2),
-  19.00,
-  CURRENT_DATE + (random() * 30 + 14)::int,
-  jsonb_build_object(
-    'items', jsonb_build_array(
-      jsonb_build_object('description', 'Arbeitszeit', 'quantity', 40, 'unit', 'h', 'unit_price', 65.00),
-      jsonb_build_object('description', 'Material', 'quantity', 1, 'unit', 'Pauschal', 'unit_price', 1200.00)
-    )
-  )
-FROM public.customers c
-LIMIT 15
-ON CONFLICT DO NOTHING;
+-- INSERT INTO public.quotes (customer_id, title, description, status, total_net, total_gross, tax_rate, valid_until, body)
+-- SELECT 
+--   c.id,
+--   'Angebot ' || (ARRAY['Dachsanierung', 'Badsanierung', 'Elektroinstallation', 'Heizungswartung', 'Fassadenrenovierung'])[1 + (random() * 4)::int],
+--   'Demo-Angebot für Kunde ' || c.company_name,
+--   (ARRAY['draft', 'sent', 'sent', 'accepted', 'rejected'])[1 + (random() * 4)::int],
+--   round((random() * 10000 + 2000)::numeric, 2),
+--   round((random() * 11900 + 2380)::numeric, 2),
+--   19.00,
+--   CURRENT_DATE + (random() * 30 + 14)::int,
+--   jsonb_build_object(
+--     'items', jsonb_build_array(
+--       jsonb_build_object('description', 'Arbeitszeit', 'quantity', 40, 'unit', 'h', 'unit_price', 65.00),
+--       jsonb_build_object('description', 'Material', 'quantity', 1, 'unit', 'Pauschal', 'unit_price', 1200.00)
+--     )
+--   )
+-- FROM public.customers c
+-- LIMIT 15
+-- ON CONFLICT DO NOTHING;
 
 -- Create orders from accepted quotes
-INSERT INTO public.orders (quote_id, customer_id, title, description, status, total_amount)
-SELECT 
-  q.id,
-  q.customer_id,
-  'Auftrag aus ' || q.title,
-  q.description,
-  'in_progress',
-  q.total_gross
-FROM public.quotes q
-WHERE q.status = 'accepted'
-ON CONFLICT DO NOTHING;
+-- INSERT INTO public.orders (quote_id, customer_id, title, description, status, total_amount)
+-- SELECT 
+--   q.id,
+--   q.customer_id,
+--   'Auftrag aus ' || q.title,
+--   q.description,
+--   'in_progress',
+--   q.total_gross
+-- FROM public.quotes q
+-- WHERE q.status = 'accepted'
+-- ON CONFLICT DO NOTHING;
 
 -- Create invoices for completed projects
-INSERT INTO public.invoices (project_id, customer_id, title, description, amount, net_amount, tax_amount, status, due_date)
-SELECT 
-  p.id,
-  p.customer_id,
-  'Rechnung ' || p.name,
-  'Abschlagsrechnung für Projekt ' || p.name,
-  round((COALESCE(p.budget, 5000) * 0.8)::numeric, 2),
-  round((COALESCE(p.budget, 5000) * 0.8 / 1.19)::numeric, 2),
-  round((COALESCE(p.budget, 5000) * 0.8 * 0.19 / 1.19)::numeric, 2),
-  (ARRAY['sent', 'sent', 'paid', 'overdue'])[1 + (random() * 3)::int],
-  CURRENT_DATE + 14
-FROM public.projects p
-WHERE p.status IN ('active', 'completed') 
-  AND p.customer_id IS NOT NULL
-LIMIT 10
-ON CONFLICT DO NOTHING;
+-- INSERT INTO public.invoices (project_id, customer_id, title, description, amount, net_amount, tax_amount, status, due_date)
+-- SELECT 
+--   p.id,
+--   p.customer_id,
+--   'Rechnung ' || p.name,
+--   'Abschlagsrechnung für Projekt ' || p.name,
+--   round((COALESCE(p.budget, 5000) * 0.8)::numeric, 2),
+--   round((COALESCE(p.budget, 5000) * 0.8 / 1.19)::numeric, 2),
+--   round((COALESCE(p.budget, 5000) * 0.8 * 0.19 / 1.19)::numeric, 2),
+--   (ARRAY['sent', 'sent', 'paid', 'overdue'])[1 + (random() * 3)::int],
+--   CURRENT_DATE + 14
+-- FROM public.projects p
+-- WHERE p.status IN ('active', 'completed') 
+--   AND p.customer_id IS NOT NULL
+-- LIMIT 10
+-- ON CONFLICT DO NOTHING;
 
 -- Create some audit trail entries (these would normally be created by triggers)
 INSERT INTO public.audit_log (entity_type, entity_id, action, new_values, user_email, reason)

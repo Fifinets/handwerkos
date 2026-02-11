@@ -32,17 +32,27 @@ const LegalDataInput = () => {
             if (!user) throw new Error("No user found");
 
             // 1. Create Site
+            const companySlug = siteConfig.webProfile.companyName
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-|-$/g, '') || 'my-site';
+            const uniqueSuffix = Math.random().toString(36).substring(2, 7);
+            const subdomain = `${companySlug}-${uniqueSuffix}`;
+
             const { data: site, error: siteError } = await supabase
                 .from('sites')
                 .insert({
                     user_id: user.id,
-                    template_id: selectedTemplate.id,
-                    title: siteConfig.webProfile.companyName,
-                    subdomain: `${siteConfig.webProfile.companyName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Math.floor(Math.random() * 1000)}`, // Simple slug
-                    theme_config: { colorPreset: siteConfig.colorPreset },
+                    template_id: null, // selectedTemplate.id is a string '1', not a UUID, so we skip the FK for now
+                    theme_config: {
+                        colorPreset: siteConfig.colorPreset,
+                        templateId: selectedTemplate.id
+                    },
                     web_profile: siteConfig.webProfile,
                     legal_profile: siteConfig.legalProfile,
-                    status: 'draft'
+                    status: 'draft',
+                    subdomain: subdomain,
+                    title: siteConfig.webProfile.companyName || 'My Website'
                 })
                 .select()
                 .single();
@@ -125,9 +135,10 @@ const LegalDataInput = () => {
             console.error("Generation failed:", error);
             toast({
                 title: "Generation Failed",
-                description: error.message || "Unknown error occurred",
+                description: error.message || error.details || "Unknown error occurred",
                 variant: "destructive"
             });
+
         } finally {
             setLoading(false);
         }

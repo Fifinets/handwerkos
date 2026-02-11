@@ -193,7 +193,7 @@ CREATE TRIGGER ai_index_materials_trigger
 -- Create indexes for AI tables
 CREATE INDEX IF NOT EXISTS idx_ai_index_ref ON public.ai_index(ref_type, ref_id);
 CREATE INDEX IF NOT EXISTS idx_ai_index_company_id ON public.ai_index(company_id);
-CREATE INDEX IF NOT EXISTS idx_ai_index_embedding ON public.ai_index USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+CREATE INDEX IF NOT EXISTS idx_ai_index_embedding ON public.ai_index USING ivfflat (embedding extensions.vector_cosine_ops) WITH (lists = 100);
 
 CREATE INDEX IF NOT EXISTS idx_ai_suggestions_project_id ON public.ai_suggestions(project_id);
 CREATE INDEX IF NOT EXISTS idx_ai_suggestions_type ON public.ai_suggestions(suggestion_type);
