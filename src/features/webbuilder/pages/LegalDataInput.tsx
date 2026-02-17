@@ -46,6 +46,8 @@ const LegalDataInput = () => {
                     template_id: null, // selectedTemplate.id is a string '1', not a UUID, so we skip the FK for now
                     theme_config: {
                         colorPreset: siteConfig.colorPreset,
+                        customColors: siteConfig.customColors,
+                        font: siteConfig.font,
                         templateId: selectedTemplate.id
                     },
                     web_profile: siteConfig.webProfile,

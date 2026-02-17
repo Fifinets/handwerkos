@@ -8,15 +8,9 @@ import { Loader2, Check, Layout, MousePointer2, ArrowDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import MiniWebsitePreview from '../components/MiniWebsitePreview';
+import { TEMPLATES, Template } from '../data/templates';
 
-// Define Template interface
-interface Template {
-    id: string;
-    name: string;
-    industry: string;
-    badge: string;
-    features: string[];
-}
+// Template interface imported from data/templates.ts
 
 const TemplateSelector = () => {
     const navigate = useNavigate();
@@ -27,7 +21,7 @@ const TemplateSelector = () => {
     useEffect(() => {
         // Simulating fetch
         setTimeout(() => {
-            setTemplates(MOCK_TEMPLATES);
+            setTemplates(TEMPLATES);
             setLoading(false);
         }, 500);
     }, []);
@@ -194,52 +188,5 @@ const TemplateCard = ({ template, onSelect }: { template: Template, onSelect: (t
     );
 };
 
-// Data
-const MOCK_TEMPLATES: Template[] = [
-    {
-        id: '1',
-        name: 'Atlas',
-        industry: 'sanitär',
-        badge: 'Sanitär & Heizung',
-        preview_image: '',
-        features: ['Mobil optimiert', 'Notdienst-Button', 'Clean-Look']
-    },
-    {
-        id: '2',
-        name: 'Nova',
-        industry: 'elektro',
-        badge: 'Elektrotechnik',
-        preview_image: '',
-        features: ['Dark Mode', 'Modernes UI', 'Projekt-Slider']
-    },
-    {
-        id: '3',
-        name: 'Orion',
-        industry: 'holzbau',
-        badge: 'Zimmerei & Holz',
-        features: ['Natürliche Farben', 'Galerie Fokus', 'Team Seite']
-    },
-    {
-        id: '4',
-        name: 'Forge',
-        industry: 'bau',
-        badge: 'Bauunternehmen',
-        features: ['Starke Typografie', 'Bauphasen', 'Zertifikate']
-    },
-    {
-        id: '5',
-        name: 'Zenith',
-        industry: 'maler',
-        badge: 'Maler & Lackierer',
-        features: ['Buntes Design', 'Portfolio-Grid', 'Angebots-Form']
-    },
-    {
-        id: '6',
-        name: 'Prime',
-        industry: 'allgemein',
-        badge: 'Universell',
-        features: ['Simples Layout', 'Schnelle Ladezeit', 'SEO Ready']
-    }
-] as any; // Cast mainly to ignore missing preview_image if strict
-
+// Data moved to data/templates.ts
 export default TemplateSelector;

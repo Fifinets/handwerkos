@@ -44,6 +44,12 @@ interface WebBuilderState {
             email: string;
             phone: string;
         };
+        customColors?: {
+            primary: string;
+            secondary: string;
+            bg: string;
+        };
+        font?: string;
     };
     pages: Page[];
 
@@ -51,6 +57,7 @@ interface WebBuilderState {
     setStep: (step: number) => void;
     setDeviceMode: (mode: 'desktop' | 'tablet' | 'mobile') => void;
     setSelectedTemplate: (template: any) => void;
+    setPages: (pages: Page[]) => void;
 
     // Site Actions
     initializeSite: (siteData: any) => void; // Load from DB
@@ -89,6 +96,7 @@ export const useWebBuilderStore = create<WebBuilderState>((set, get) => ({
     selectedTemplate: null,
     siteConfig: {
         colorPreset: 'default',
+        font: 'sans',
         webProfile: {
             companyName: '',
             cityRegion: '',
@@ -135,6 +143,8 @@ export const useWebBuilderStore = create<WebBuilderState>((set, get) => ({
                 legalProfile: { ...state.siteConfig.legalProfile, ...profile }
             }
         })),
+
+    setPages: (pages) => set({ pages }),
 
     addPage: (page) => set((state) => ({
         pages: [...state.pages, { ...page, id: uuidv4(), blocks: [] }]

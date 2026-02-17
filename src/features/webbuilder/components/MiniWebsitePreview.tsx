@@ -19,10 +19,15 @@ const DEFAULT_PALETTE = {
 };
 
 // --- Mini Website Preview Component ---
-const MiniWebsitePreview = ({ templateId, palette }: { templateId: string, palette?: ColorPalette }) => {
+const MiniWebsitePreview = ({ templateId, palette, customColors, font }: {
+    templateId: string;
+    palette?: ColorPalette;
+    customColors?: { primary: string; secondary: string; bg: string };
+    font?: string;
+}) => {
 
-    // Use provided palette or fall back to default
-    const colors = palette || DEFAULT_PALETTE;
+    // Use provided custom colors, palette, or fall back to default
+    const colors = customColors || palette || DEFAULT_PALETTE;
 
     const getTheme = () => {
         switch (templateId) {
@@ -36,12 +41,17 @@ const MiniWebsitePreview = ({ templateId, palette }: { templateId: string, palet
     };
 
     const theme = getTheme();
+    const effectiveFont = font ? `font-${font}` : (
+        theme === 'orion' ? 'font-serif' :
+            theme === 'forge' ? 'font-mono' :
+                'font-sans'
+    );
 
     // -------------------------------------------------------------------------
     // ATLAS: Corporate Blue, Left-aligned, Clean
     // -------------------------------------------------------------------------
     if (theme === 'atlas') return (
-        <div className="w-full min-h-[2000px] flex flex-col font-sans" style={{ backgroundColor: colors.bg, color: colors.secondary }}>
+        <div className={`w-full min-h-[2000px] flex flex-col ${effectiveFont}`} style={{ backgroundColor: colors.bg, color: colors.secondary }}>
             {/* Header */}
             <div className="h-12 border-b flex items-center justify-between px-6 sticky top-0 z-10" style={{ backgroundColor: colors.bg, borderColor: `${colors.secondary}20` }}>
                 <div className="w-8 h-3 rounded" style={{ backgroundColor: colors.primary }}></div>
@@ -132,7 +142,7 @@ const MiniWebsitePreview = ({ templateId, palette }: { templateId: string, palet
     // NOVA: Dark Mode, Neon, Modern
     // -------------------------------------------------------------------------
     if (theme === 'nova') return (
-        <div className="w-full min-h-[2000px] flex flex-col font-sans" style={{ backgroundColor: colors.secondary, color: '#f8fafc' }}>
+        <div className={`w-full min-h-[2000px] flex flex-col ${effectiveFont}`} style={{ backgroundColor: colors.secondary, color: '#f8fafc' }}>
             {/* Header */}
             <div className="h-12 flex items-center justify-center border-b sticky top-0 z-10 backdrop-blur" style={{ backgroundColor: `${colors.secondary}dd`, borderColor: `${colors.primary}30` }}>
                 <div className="w-8 h-2 rounded" style={{ backgroundColor: colors.primary, boxShadow: `0 0 10px ${colors.primary}80` }}></div>
@@ -191,7 +201,7 @@ const MiniWebsitePreview = ({ templateId, palette }: { templateId: string, palet
     // ORION: Warm, Traditional, Serif
     // -------------------------------------------------------------------------
     if (theme === 'orion') return (
-        <div className="w-full min-h-[2000px] flex flex-col font-serif" style={{ backgroundColor: colors.bg, color: colors.secondary }}>
+        <div className={`w-full min-h-[2000px] flex flex-col ${effectiveFont}`} style={{ backgroundColor: colors.bg, color: colors.secondary }}>
             {/* Header */}
             <div className="h-16 flex items-center justify-center border-b sticky top-0 z-10" style={{ backgroundColor: colors.bg, borderColor: `${colors.primary}20` }}>
                 <div className="w-12 h-4 rounded-sm" style={{ backgroundColor: colors.secondary }}></div>
@@ -255,7 +265,7 @@ const MiniWebsitePreview = ({ templateId, palette }: { templateId: string, palet
     // FORGE: Brutalist, Mono, Strong
     // -------------------------------------------------------------------------
     if (theme === 'forge') return (
-        <div className="w-full min-h-[2000px] flex flex-col font-mono" style={{ backgroundColor: colors.bg }}>
+        <div className={`w-full min-h-[2000px] flex flex-col ${effectiveFont}`} style={{ backgroundColor: colors.bg }}>
             {/* Header */}
             <div className="h-10 border-b-2 flex items-center justify-between px-4 sticky top-0 z-10" style={{ backgroundColor: colors.primary, borderColor: colors.secondary }}>
                 <div className="w-16 h-3" style={{ backgroundColor: colors.secondary }}></div>
@@ -317,7 +327,7 @@ const MiniWebsitePreview = ({ templateId, palette }: { templateId: string, palet
     // ZENITH: Artistic, Playful, Colorful
     // -------------------------------------------------------------------------
     if (theme === 'zenith') return (
-        <div className="w-full min-h-[2000px] flex flex-col overflow-hidden" style={{ backgroundColor: colors.bg }}>
+        <div className={`w-full min-h-[2000px] flex flex-col overflow-hidden ${effectiveFont}`} style={{ backgroundColor: colors.bg }}>
             {/* Header */}
             <div className="h-16 flex items-center px-6 sticky top-0 z-10 backdrop-blur" style={{ backgroundColor: `${colors.bg}cc` }}>
                 <div className="w-8 h-8 rounded-full" style={{ background: `linear-gradient(to top right, ${colors.primary}, ${colors.secondary})` }}></div>
@@ -392,7 +402,7 @@ const MiniWebsitePreview = ({ templateId, palette }: { templateId: string, palet
     // PRIME: Universal, Minimal, Clean
     // -------------------------------------------------------------------------
     return (
-        <div className="w-full min-h-[2000px] flex flex-col text-slate-800" style={{ backgroundColor: colors.bg }}>
+        <div className={`w-full min-h-[2000px] flex flex-col text-slate-800 ${effectiveFont}`} style={{ backgroundColor: colors.bg }}>
             {/* Header */}
             <div className="h-14 bg-white shadow-sm flex items-center justify-between px-6 sticky top-0 z-10">
                 <div className="w-24 h-3 rounded-full" style={{ backgroundColor: colors.secondary }}></div>

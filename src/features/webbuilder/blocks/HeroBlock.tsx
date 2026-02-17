@@ -18,7 +18,11 @@ export const HeroBlock = ({ block }: { block: Block }) => {
                 <h1 className="text-4xl md:text-6xl font-bold tracking-tight">{title}</h1>
                 <p className="text-xl md:text-2xl text-slate-200">{subtitle}</p>
                 {cta && (
-                    <Button size="lg" className="bg-primary hover:bg-primary/90 text-white font-semibold px-8 py-6 text-lg">
+                    <Button
+                        size="lg"
+                        className="text-white font-semibold px-8 py-6 text-lg border-none hover:opacity-90"
+                        style={{ backgroundColor: 'var(--primary)' }}
+                    >
                         {cta}
                     </Button>
                 )}

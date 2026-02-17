@@ -6,7 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
-import { ArrowRight, ArrowLeft, Check, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+import { ArrowRight, ArrowLeft, Check, Sparkles, RefreshCcw } from "lucide-react";
 import MiniWebsitePreview from '../components/MiniWebsitePreview';
 import { Badge } from "@/components/ui/badge";
 
@@ -46,6 +54,21 @@ const StyleConfigurator = () => {
             }
         }
     }, [selectedTemplate, allowedPaletteIds, siteConfig.colorPreset, updateSiteConfig]);
+
+    // Initialize custom colors when entering advanced mode
+    useEffect(() => {
+        if (advanced && !siteConfig.customColors) {
+            const currentPreset = COLOR_PRESETS.find(p => p.id === siteConfig.colorPreset) || COLOR_PRESETS[0];
+            updateSiteConfig({
+                customColors: {
+                    primary: currentPreset.primary,
+                    secondary: currentPreset.secondary,
+                    bg: currentPreset.bg
+                },
+                font: undefined
+            });
+        }
+    }, [advanced, siteConfig.colorPreset, siteConfig.customColors, updateSiteConfig]);
 
     const handleNext = () => {
         setStep(3);
@@ -123,12 +146,131 @@ const StyleConfigurator = () => {
 
                     <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 mt-auto">
                         <div className="flex items-center justify-between mb-2">
-                            <Label htmlFor="advanced-mode" className="cursor-pointer">Custom Styling</Label>
+                            <Label htmlFor="advanced-mode" className="cursor-pointer font-medium">Custom Styling</Label>
                             <Switch id="advanced-mode" checked={advanced} onCheckedChange={setAdvanced} />
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                            Enable advanced mode to customize individual colors, fonts, and spacing in the visual editor.
+                        <p className="text-xs text-muted-foreground mb-3">
+                            Enable advanced mode to customize individual colors.
                         </p>
+
+                        {advanced && siteConfig.customColors && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 pt-2 border-t">
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-slate-500">Primary Color</Label>
+                                    <div className="flex gap-2">
+                                        <div className="relative shrink-0">
+                                            <Input
+                                                type="color"
+                                                value={siteConfig.customColors.primary}
+                                                onChange={(e) => updateSiteConfig({
+                                                    customColors: { ...siteConfig.customColors!, primary: e.target.value }
+                                                })}
+                                                className="w-10 h-10 p-1 cursor-pointer rounded-md"
+                                            />
+                                        </div>
+                                        <Input
+                                            value={siteConfig.customColors.primary}
+                                            onChange={(e) => updateSiteConfig({
+                                                customColors: { ...siteConfig.customColors!, primary: e.target.value }
+                                            })}
+                                            className="flex-1 font-mono text-xs uppercase"
+                                            maxLength={7}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-slate-500">Secondary Color</Label>
+                                    <div className="flex gap-2">
+                                        <div className="relative shrink-0">
+                                            <Input
+                                                type="color"
+                                                value={siteConfig.customColors.secondary}
+                                                onChange={(e) => updateSiteConfig({
+                                                    customColors: { ...siteConfig.customColors!, secondary: e.target.value }
+                                                })}
+                                                className="w-10 h-10 p-1 cursor-pointer rounded-md"
+                                            />
+                                        </div>
+                                        <Input
+                                            value={siteConfig.customColors.secondary}
+                                            onChange={(e) => updateSiteConfig({
+                                                customColors: { ...siteConfig.customColors!, secondary: e.target.value }
+                                            })}
+                                            className="flex-1 font-mono text-xs uppercase"
+                                            maxLength={7}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-slate-500">Background Color</Label>
+                                    <div className="flex gap-2">
+                                        <div className="relative shrink-0">
+                                            <Input
+                                                type="color"
+                                                value={siteConfig.customColors.bg}
+                                                onChange={(e) => updateSiteConfig({
+                                                    customColors: { ...siteConfig.customColors!, bg: e.target.value }
+                                                })}
+                                                className="w-10 h-10 p-1 cursor-pointer rounded-md"
+                                            />
+                                        </div>
+                                        <Input
+                                            value={siteConfig.customColors.bg}
+                                            onChange={(e) => updateSiteConfig({
+                                                customColors: { ...siteConfig.customColors!, bg: e.target.value }
+                                            })}
+                                            className="flex-1 font-mono text-xs uppercase"
+                                            maxLength={7}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-slate-500">Typography</Label>
+                                    <Select
+                                        value={siteConfig.font || 'sans'}
+                                        onValueChange={(value) => updateSiteConfig({ font: value })}
+                                    >
+                                        <SelectTrigger className="h-9 w-full">
+                                            <SelectValue placeholder="Select Font Family" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="sans">
+                                                <span className="font-sans">Sans Serif (Modern)</span>
+                                            </SelectItem>
+                                            <SelectItem value="serif">
+                                                <span className="font-serif">Serif (Traditional)</span>
+                                            </SelectItem>
+                                            <SelectItem value="mono">
+                                                <span className="font-mono">Monospace (Technical)</span>
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="w-full text-xs h-8 mt-2"
+                                    onClick={() => {
+                                        const currentPreset = COLOR_PRESETS.find(p => p.id === siteConfig.colorPreset);
+                                        if (currentPreset) {
+                                            updateSiteConfig({
+                                                customColors: {
+                                                    primary: currentPreset.primary,
+                                                    secondary: currentPreset.secondary,
+                                                    bg: currentPreset.bg
+                                                }
+                                            });
+                                        }
+                                    }}
+                                >
+                                    <RefreshCcw className="w-3 h-3 mr-2" /> Reset to Preset
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -155,6 +297,8 @@ const StyleConfigurator = () => {
                             <MiniWebsitePreview
                                 templateId={selectedTemplate.id}
                                 palette={COLOR_PRESETS.find(p => p.id === siteConfig.colorPreset)}
+                                customColors={advanced ? siteConfig.customColors : undefined}
+                                font={advanced ? siteConfig.font : undefined}
                             />
                         </div>
                     </div>
