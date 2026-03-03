@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
 import Index from "./pages/Index";
+import IndexV2 from "./pages/IndexV2";
 import Auth from "./pages/Auth";
 import Employee from "./pages/Employee";
 import GmailCallback from "./pages/GmailCallback";
@@ -182,6 +183,7 @@ const App = () => (
               <Route path="/login" element={<Auth />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/manager" element={<Index />} />
+              <Route path="/manager2" element={<IndexV2 />} />
               <Route path="/employee" element={<Employee />} />
               <Route path="/auth/callback" element={<GmailCallback />} />
               <Route path="/privacy" element={<Privacy />} />

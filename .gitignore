@@ -41,3 +41,4 @@ local.properties
 # iOS (falls später verwendet)
 ios/App/Pods/
 ios/App/build/
+ai-bot/.env
