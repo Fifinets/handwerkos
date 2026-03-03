@@ -1,0 +1,1 @@
+INSERT INTO customers (id, first_name, last_name, email, phone, company, status, created_at, updated_at) VALUES (gen_random_uuid(), 'Max', 'Mustermann', 'max.mustermann@example.com', '+49 123 456789', 'Muster GmbH', 'active', now(), now());

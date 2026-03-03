@@ -5,6 +5,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCreateOffer } from '@/hooks/useApi';
+import { useToast } from '@/hooks/use-toast';
+import { OfferCopyDialog } from '@/components/offers/OfferCopyDialog';
 
 type DocumentType = 'angebot' | 'auftragsbestaetigung' | 'lieferschein' | 'rechnung' | 'abschlagsrechnung' | 'gutschrift' | 'brief';
 
@@ -19,7 +21,9 @@ interface WizardOption {
 export default function OfferCreationWizard() {
     const navigate = useNavigate();
     const createOffer = useCreateOffer();
+    const { toast } = useToast();
     const [expandedType, setExpandedType] = useState<DocumentType | null>('angebot');
+    const [isCopyDialogOpen, setIsCopyDialogOpen] = useState(false);
 
     const handleCreateBlankOffer = async () => {
         // Create a draft offer and navigate to editor
@@ -58,21 +62,27 @@ export default function OfferCreationWizard() {
                 title: 'Aus bestehendem Dokument',
                 description: 'Erstelle ein Dokument mit bestehenden Positionen',
                 icon: Copy,
-                action: () => console.log('Copy existing')
+                action: () => setIsCopyDialogOpen(true)
             },
             {
                 id: 'gaeb',
                 title: 'Als Angebotsabgabe mit GAEB',
                 description: 'Erstelle ein Dokument aus einer GAEB Datei innerhalb einer Ausschreibung',
                 icon: FileInput,
-                action: () => console.log('GAEB import')
+                action: () => toast({
+                    title: 'Demnächst verfügbar',
+                    description: 'Der GAEB Import (D83/X83) befindet sich aktuell in der Entwicklung.'
+                })
             },
             {
                 id: 'external',
                 title: 'Aus externer Datei',
                 description: 'Erstelle ein Dokument aus einer externen Datei (Excel, GAEB)',
                 icon: Upload,
-                action: () => console.log('External import')
+                action: () => toast({
+                    title: 'Demnächst verfügbar',
+                    description: 'Der Datei-Import befindet sich aktuell in der Entwicklung.'
+                })
             }
         ],
         auftragsbestaetigung: [], // To be implemented
@@ -164,6 +174,11 @@ export default function OfferCreationWizard() {
                 </div>
 
             </div>
+
+            <OfferCopyDialog
+                open={isCopyDialogOpen}
+                onOpenChange={setIsCopyDialogOpen}
+            />
         </div>
     );
 }

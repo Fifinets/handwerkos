@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port 8080 --host",
+    "dev": "vite --port 8080 --host 127.0.0.1",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "build:android": "vite build && npx cap sync android",

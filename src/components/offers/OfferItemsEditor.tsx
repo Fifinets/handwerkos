@@ -68,7 +68,9 @@ function formatCurrency(value: number): string {
 }
 
 const calculateItemTotal = (item: OfferItem | OfferItemCreate): number => {
-  return item.quantity * item.unit_price_net;
+  const subtotal = item.quantity * item.unit_price_net;
+  const discount = (item as any).discount_percent || 0;
+  return subtotal * (1 - discount / 100);
 };
 
 // --- Pure Measurement Wrapper ---
@@ -297,6 +299,12 @@ const ItemRender = ({
             </div>
           </div>
           {item.is_optional && <div className="text-xs text-blue-600 print:text-gray-500 italic mt-1 font-medium">* Optional (Nicht in der Summe)</div>}
+          {/* Discount badge */}
+          {((item as any).discount_percent || 0) > 0 && (
+            <div className="text-xs text-orange-600 font-medium mt-1 print:text-gray-600">
+              -{(item as any).discount_percent}% Rabatt
+            </div>
+          )}
         </div>
 
         {/* 3. Quantity */}
@@ -334,11 +342,22 @@ const ItemRender = ({
           <span className="absolute right-2 top-2 text-xs text-gray-400 pointer-events-none print:hidden">€</span>
 
           {/* VAT Selector on Hover (Hidden in Print) */}
-          <div className="absolute right-0 -bottom-6 z-10 hidden group-hover/price:block print:hidden">
+          <div className="absolute right-0 -bottom-6 z-10 hidden group-hover/price:flex gap-1 print:hidden items-center">
             <Select value={String(item.vat_rate)} onValueChange={(v) => updateItem && updateItem(index, 'vat_rate', parseFloat(v))} disabled={disabled}>
               <SelectTrigger className="h-5 text-[10px] w-16 bg-white border shadow-sm"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="0">0%</SelectItem><SelectItem value="7">7%</SelectItem><SelectItem value="19">19%</SelectItem></SelectContent>
             </Select>
+            <div className="flex items-center gap-0.5">
+              <Input
+                type="number" step="1" min="0" max="100"
+                value={(item as any).discount_percent || 0}
+                onChange={(e) => updateItem && updateItem(index, 'discount_percent' as any, parseFloat(e.target.value) || 0)}
+                disabled={disabled}
+                className="h-5 text-[10px] w-14 bg-white border shadow-sm text-right font-mono px-1"
+                title="Rabatt %"
+              />
+              <span className="text-[10px] text-gray-400">%↓</span>
+            </div>
           </div>
         </div>
 
@@ -562,30 +581,92 @@ export function OfferItemsEditor({
                    */}
                   {page.items.length > 0 && <TableHeader />}
 
+                  {/* Empty State (first page only) */}
+                  {page.items.length === 0 && pageIndex === 0 && items.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-16 text-center print:hidden">
+                      <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                        <Plus className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <p className="text-gray-500 text-sm mb-1">Noch keine Positionen vorhanden</p>
+                      <p className="text-gray-400 text-xs">Fügen Sie über die Seitenleiste Positionen, Texte oder Materialien hinzu.</p>
+                    </div>
+                  )}
+
                   <div className="space-y-0">
-                    {page.items.map(({ item, index }) => {
+                    {page.items.map(({ item, index }, pageItemIdx) => {
                       const itemId = item.id || item.temp_id || `temp_${index}`;
+
+                      // Determine if we need a subtotal BEFORE this item (i.e., this item is a title and has a preceding group)
+                      const showSubtotalBefore = item.item_type === 'title' && pageItemIdx > 0;
+                      let subtotalValue = 0;
+                      if (showSubtotalBefore) {
+                        // Sum all non-optional, non-title, non-page_break items between the previous title and this one
+                        let i = index - 1;
+                        while (i >= 0 && items[i]?.item_type !== 'title') {
+                          const prevItem = items[i];
+                          if (prevItem && !prevItem.is_optional && prevItem.item_type !== 'page_break' && prevItem.item_type !== 'text') {
+                            subtotalValue += calculateItemTotal(prevItem);
+                          }
+                          i--;
+                        }
+                      }
+
                       return (
-                        <SortableItemWrapper
-                          key={itemId}
-                          id={itemId}
-                          onHeightChange={(h) => {
-                            if (Math.abs((itemHeights[itemId] || 0) - h) > 2) {
-                              setItemHeights(prev => ({ ...prev, [itemId]: h }));
-                            }
-                          }}
-                        >
-                          <ItemRender
-                            item={item}
-                            index={index}
-                            displayNumber={getItemDisplayNumber(index)}
-                            updateItem={updateItem}
-                            removeItem={removeItem}
-                            disabled={disabled}
-                          />
-                        </SortableItemWrapper>
+                        <React.Fragment key={itemId}>
+                          {showSubtotalBefore && subtotalValue > 0 && (
+                            <div className={`grid ${GRID_COLS} ${GAP} items-center py-2 border-t border-gray-200 mb-4`}>
+                              <div></div>
+                              <div className="text-right text-sm font-semibold text-gray-600 col-span-4">Zwischensumme</div>
+                              <div className="text-right font-mono font-semibold text-gray-700">{formatCurrency(subtotalValue)}</div>
+                              <div></div>
+                            </div>
+                          )}
+                          <SortableItemWrapper
+                            id={itemId}
+                            onHeightChange={(h) => {
+                              if (Math.abs((itemHeights[itemId] || 0) - h) > 2) {
+                                setItemHeights(prev => ({ ...prev, [itemId]: h }));
+                              }
+                            }}
+                          >
+                            <ItemRender
+                              item={item}
+                              index={index}
+                              displayNumber={getItemDisplayNumber(index)}
+                              updateItem={updateItem}
+                              removeItem={removeItem}
+                              disabled={disabled}
+                            />
+                          </SortableItemWrapper>
+                        </React.Fragment>
                       );
                     })}
+
+                    {/* Final Zwischensumme after the last group (if there are titles and items after the last title) */}
+                    {(() => {
+                      const lastPageItem = page.items[page.items.length - 1];
+                      const hasTitles = items.some(i => i.item_type === 'title');
+                      if (!hasTitles || !lastPageItem || pageIndex !== pages.length - 1) return null;
+
+                      let i = lastPageItem.index;
+                      let sum = 0;
+                      while (i >= 0 && items[i]?.item_type !== 'title') {
+                        const it = items[i];
+                        if (it && !it.is_optional && it.item_type !== 'page_break' && it.item_type !== 'text') {
+                          sum += calculateItemTotal(it);
+                        }
+                        i--;
+                      }
+                      if (sum <= 0) return null;
+                      return (
+                        <div className={`grid ${GRID_COLS} ${GAP} items-center py-2 border-t border-gray-200 mb-2`}>
+                          <div></div>
+                          <div className="text-right text-sm font-semibold text-gray-600 col-span-4">Zwischensumme</div>
+                          <div className="text-right font-mono font-semibold text-gray-700">{formatCurrency(sum)}</div>
+                          <div></div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Summary / Footer (Last Page) */}
@@ -601,14 +682,20 @@ export function OfferItemsEditor({
                             </div>
 
                             {/* Render VAT groups */}
-                            {Object.entries(totals.vatGroups).map(([rate, group]) => (
-                              parseFloat(rate) > 0 && (
-                                <div key={rate} className="flex justify-between items-center mb-1 text-gray-600 print:text-black">
-                                  <span>zzgl. MwSt {rate}%</span>
-                                  <span>{formatCurrency(group.vat)}</span>
-                                </div>
-                              )
+                            {!isReverseCharge && Object.entries(totals.vatGroups).map(([rate, group]) => (
+                              <div key={rate} className="flex justify-between items-center mb-1 text-gray-600 print:text-black">
+                                <span>zzgl. MwSt {rate}%</span>
+                                <span>{formatCurrency(group.vat)}</span>
+                              </div>
                             ))}
+
+                            {/* Reverse Charge: Show 0% VAT explicitly */}
+                            {isReverseCharge && (
+                              <div className="flex justify-between items-center mb-1 text-gray-600 print:text-black">
+                                <span>MwSt (§13b Reverse Charge)</span>
+                                <span>{formatCurrency(0)}</span>
+                              </div>
+                            )}
 
                             <div className="h-px bg-gray-900 my-2" />
                             <div className="flex justify-between items-end">

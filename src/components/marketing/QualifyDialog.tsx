@@ -104,10 +104,10 @@ export const QualifyDialog = ({ children }: { children: React.ReactNode }) => {
                                     <SelectValue placeholder="Wähle deine Situation" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="start">Gründung / Startphase</SelectItem>
-                                    <SelectItem value="small">Kleines Team (1-5 MA)</SelectItem>
-                                    <SelectItem value="mid">Wachstumsphase (6-15 MA)</SelectItem>
-                                    <SelectItem value="large">Etablierter Betrieb (&gt;15 MA)</SelectItem>
+                                    <SelectItem value="Gründung / Startphase">Gründung / Startphase</SelectItem>
+                                    <SelectItem value="Kleines Team (1-5 MA)">Kleines Team (1-5 MA)</SelectItem>
+                                    <SelectItem value="Wachstumsphase (6-15 MA)">Wachstumsphase (6-15 MA)</SelectItem>
+                                    <SelectItem value="Etablierter Betrieb (>15 MA)">Etablierter Betrieb (&gt;15 MA)</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -118,10 +118,10 @@ export const QualifyDialog = ({ children }: { children: React.ReactNode }) => {
                                     <SelectValue placeholder="Wähle dein Ziel" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="time">Mehr Zeit / Weniger Stress</SelectItem>
-                                    <SelectItem value="money">Höhere Marge / Gewinn</SelectItem>
-                                    <SelectItem value="growth">Wachstum / Skalierung</SelectItem>
-                                    <SelectItem value="control">Bessere Übersicht</SelectItem>
+                                    <SelectItem value="Mehr Zeit / Weniger Stress">Mehr Zeit / Weniger Stress</SelectItem>
+                                    <SelectItem value="Höhere Marge / Gewinn">Höhere Marge / Gewinn</SelectItem>
+                                    <SelectItem value="Wachstum / Skalierung">Wachstum / Skalierung</SelectItem>
+                                    <SelectItem value="Bessere Übersicht">Bessere Übersicht</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

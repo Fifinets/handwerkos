@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 const MitarbeiterSetupPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -18,33 +18,35 @@ const MitarbeiterSetupPage = () => {
   const [lastName, setLastName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [validationFailed, setValidationFailed] = useState(false);
   const [invitationData, setInvitationData] = useState<any>(null);
 
   useEffect(() => {
     const validateInvitation = async () => {
       const token = searchParams.get('token');
-      
-      console.log('=== DEBUGGING TOKEN VALIDATION ===');
-      console.log('URL:', window.location.href);
-      console.log('Token from URL:', token);
-      
+
+      // console.log('=== DEBUGGING TOKEN VALIDATION ===');
+      // console.log('URL:', window.location.href);
+      // console.log('Token from URL:', token);
+
       if (!token) {
-        console.error('No token found in URL');
+        // console.error('No token found in URL');
         toast.error('Fehlender Einladungstoken. Bitte verwenden Sie den vollständigen Link aus der E-Mail.');
+        setValidationFailed(true);
         return;
       }
 
       try {
-        console.log('Attempting to validate token:', token);
-        
+        // console.log('Attempting to validate token:', token);
+
         // First, let's check if the table exists and what's in it
-        const { data: allInvitations, error: listError } = await supabase
-          .from('employee_invitations')
-          .select('*');
-          
-        console.log('All invitations in DB:', allInvitations);
-        console.log('List error:', listError);
-        
+        // const { data: allInvitations, error: listError } = await supabase
+        //   .from('employee_invitations')
+        //   .select('*');
+
+        // console.log('All invitations in DB:', allInvitations);
+        // console.log('List error:', listError);
+
         // Validate invitation token
         const { data: invitation, error: inviteError } = await supabase
           .from('employee_invitations')
@@ -53,48 +55,52 @@ const MitarbeiterSetupPage = () => {
           .eq('status', 'pending')
           .single();
 
-        console.log('Query result:', { invitation, inviteError });
+        // console.log('Query result:', { invitation, inviteError });
 
         if (inviteError) {
-          console.error('Database error:', inviteError);
+          // console.error('Database error:', inviteError);
           if (inviteError.code === 'PGRST116') {
             toast.error('Einladung nicht gefunden. Möglicherweise wurde sie bereits verwendet oder ist abgelaufen.');
           } else {
             toast.error(`Datenbankfehler: ${inviteError.message}`);
           }
+          setValidationFailed(true);
           return;
         }
 
         if (!invitation) {
-          console.error('No invitation found for token');
+          // console.error('No invitation found for token');
           toast.error('Ungültiger Einladungslink. Bitte wenden Sie sich an Ihren Manager.');
+          setValidationFailed(true);
           return;
         }
 
         // Check if token is expired
         const expiryDate = new Date(invitation.expires_at);
-        const now = new Date();
-        console.log('Token expires:', expiryDate);
-        console.log('Current time:', now);
-        console.log('Is expired:', expiryDate < now);
-        
-        if (expiryDate < now) {
-          console.error('Invitation token expired');
+        // const now = new Date();
+        // console.log('Token expires:', expiryDate);
+        // console.log('Current time:', now);
+        // console.log('Is expired:', expiryDate < now);
+
+        if (expiryDate < new Date()) {
+          // console.error('Invitation token expired');
           toast.error('Dieser Einladungslink ist abgelaufen. Bitte fordern Sie eine neue Einladung an.');
+          setValidationFailed(true);
           return;
         }
 
-        console.log('Valid invitation found:', invitation);
-        console.log('Employee data:', invitation.employee_data);
-        
+        // console.log('Valid invitation found:', invitation);
+        // console.log('Employee data:', invitation.employee_data);
+
         setEmail(invitation.email);
         setFirstName((invitation.employee_data as any)?.firstName || '');
         setLastName((invitation.employee_data as any)?.lastName || '');
         setInvitationData(invitation);
-        
+
       } catch (error: any) {
-        console.error('Exception during validation:', error);
+        // console.error('Exception during validation:', error);
         toast.error(`Fehler beim Validieren der Einladung: ${error?.message}`);
+        setValidationFailed(true);
       }
     };
 
@@ -124,7 +130,7 @@ const MitarbeiterSetupPage = () => {
 
     try {
       console.log('Creating account for employee:', invitationData.email);
-      
+
       // Create Supabase user account
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: invitationData.email,
@@ -151,6 +157,15 @@ const MitarbeiterSetupPage = () => {
           .update({ status: 'accepted' })
           .eq('invite_token', invitationData.invite_token);
 
+        // Link employee record to the new user
+        await supabase
+          .from('employees')
+          .update({
+            user_id: authData.user.id,
+            status: 'active'
+          })
+          .eq('email', invitationData.email.toLowerCase());
+
         // Create user role as employee
         await supabase
           .from('user_roles')
@@ -159,9 +174,19 @@ const MitarbeiterSetupPage = () => {
             role: 'employee'
           });
 
-        console.log('Employee account created successfully');
+        // Create profile for employee
+        await supabase
+          .from('profiles')
+          .upsert({
+            id: authData.user.id,
+            email: invitationData.email,
+            first_name: firstName,
+            last_name: lastName,
+            company_id: invitationData.company_id
+          });
+
         toast.success('Konto erfolgreich erstellt! Sie werden zur Anmeldung weitergeleitet.');
-        
+
         // Redirect to login
         setTimeout(() => navigate('/auth'), 1500);
       }
@@ -261,8 +286,8 @@ const MitarbeiterSetupPage = () => {
             )}
 
             <Button
-              type="submit" 
-              className="w-full" 
+              type="submit"
+              className="w-full"
               disabled={loading}
             >
               {loading ? 'Konto wird erstellt...' : 'Konto erstellen'}

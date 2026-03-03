@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MoreVertical, Eye, FileCheck, Save, Printer } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Eye, FileCheck, Save, Printer, Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -44,6 +44,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from '@/components/ui/textarea';
+import { generateA4PDF } from '@/lib/pdfGenerator';
 
 export default function OfferEditorPage() {
     const { id } = useParams();
@@ -66,6 +67,13 @@ export default function OfferEditorPage() {
     const [finalText, setFinalText] = useState(isNew ? 'Wir freuen uns auf Ihre Auftragserteilung.' : '');
     const [isReverseCharge, setIsReverseCharge] = useState(false);
     const [showLaborShare, setShowLaborShare] = useState(true);
+
+    // PDF Generation State
+    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+    const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [isEmailOpen, setIsEmailOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -124,6 +132,46 @@ export default function OfferEditorPage() {
     // State for items
     const [items, setItems] = useState<((OfferItem | OfferItemCreate) & { temp_id?: string })[]>([]);
 
+    // Track unsaved changes
+    const markDirty = useCallback(() => {
+        setHasUnsavedChanges(true);
+    }, []);
+
+    // Wrap state setters to track dirty state
+    const setSubjectTracked = useCallback((v: string) => { setSubject(v); markDirty(); }, [markDirty]);
+    const setIntroTextTracked = useCallback((v: string) => { setIntroText(v); markDirty(); }, [markDirty]);
+    const setFinalTextTracked = useCallback((v: string) => { setFinalText(v); markDirty(); }, [markDirty]);
+    const setItemsTracked = useCallback((v: ((OfferItem | OfferItemCreate) & { temp_id?: string })[]) => { setItems(v); markDirty(); }, [markDirty]);
+
+    const isLocked = offer ? (offer.is_locked || ['sent', 'accepted', 'rejected'].includes(offer.status)) : false;
+
+    // Ctrl+S Keyboard Shortcut
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                if (!isLocked) handleSave();
+            }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    });
+
+    // Auto-save for existing drafts (debounced 30s)
+    useEffect(() => {
+        if (isNew || isLocked || !hasUnsavedChanges || !id) return;
+
+        if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+
+        autoSaveTimerRef.current = setTimeout(() => {
+            handleSave();
+        }, 30000); // 30 seconds
+
+        return () => {
+            if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+        };
+    }, [hasUnsavedChanges, isNew, isLocked, id]);
+
     const handleSave = async () => {
         try {
             if (isNew) {
@@ -142,7 +190,7 @@ export default function OfferEditorPage() {
                         valid_until: validUntil.toISOString().split('T')[0],
                         customer_id: selectedCustomer.id,
                         customer_name: selectedCustomer.company_name,
-                        customer_address: `${selectedCustomer.address}, ${selectedCustomer.postal_code} ${selectedCustomer.city}`,
+                        customer_address: `${selectedCustomer.address}, ${selectedCustomer.postal_code} ${selectedCustomer.city} `,
                         contact_person: selectedCustomer.contact_person || undefined,
                         intro_text: introText,
                         final_text: finalText,
@@ -151,6 +199,8 @@ export default function OfferEditorPage() {
                     },
                     items: items,
                 });
+                setLastSavedAt(new Date());
+                setHasUnsavedChanges(false);
                 toast({ title: "Angebot erstellt", description: "Das Angebot wurde erfolgreich angelegt." });
                 navigate(`/offers/${result.id}/edit`);
             } else {
@@ -177,6 +227,8 @@ export default function OfferEditorPage() {
                     offerId: id!,
                     items: items
                 });
+                setLastSavedAt(new Date());
+                setHasUnsavedChanges(false);
                 toast({ title: "Gespeichert", description: "Änderungen wurden gespeichert." });
             }
         } catch (error: any) {
@@ -213,10 +265,37 @@ export default function OfferEditorPage() {
         window.print();
     };
 
-    const handleAddItem = (type: string) => {
+    const handleDownloadPdf = async () => {
+        setIsGeneratingPdf(true);
+        try {
+            const filename = offer?.offer_number
+                ? `Angebot_${offer.offer_number}.pdf`
+                : `Angebot_${subject.replace(/[^a-z0-9]/gi, '_') || 'Neu'}.pdf`;
+
+            const success = await generateA4PDF('offer-document-container', filename);
+            if (success) {
+                toast({ title: "PDF exportiert", description: "Der Download wurde gestartet." });
+            } else {
+                throw new Error("PDF konnte nicht generiert werden.");
+            }
+        } catch (error) {
+            console.error(error);
+            toast({
+                title: "Fehler",
+                description: "Fehler beim Exportieren der PDF.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsGeneratingPdf(false);
+        }
+    };
+
+    const handleAddItem = (type: string, data?: any) => {
         let itemType: OfferItem['item_type'] = 'labor';
         let description = 'Neue Position';
         let unit = 'Stk';
+        let unitPrice = 0;
+        let vatRate = 19;
 
         if (type === 'title') {
             itemType = 'title';
@@ -234,6 +313,13 @@ export default function OfferEditorPage() {
             itemType = 'page_break';
             description = '--- Seitenumbruch ---';
             unit = 'psch';
+        } else if (type === 'material' && data) {
+            itemType = 'material';
+            description = data.name + (data.description ? `\n${data.description}` : '');
+            unit = data.unit || 'Stk';
+            unitPrice = data.unit_price || 0;
+            // Material doesn't have a tax rate in its core schema by default, we'll keep 19%
+            vatRate = 19;
         }
 
         const newItem: OfferItemCreate & { temp_id?: string } = {
@@ -241,8 +327,8 @@ export default function OfferEditorPage() {
             description,
             quantity: 1,
             unit,
-            unit_price_net: 0,
-            vat_rate: 19,
+            unit_price_net: unitPrice,
+            vat_rate: vatRate,
             item_type: itemType,
             is_optional: false,
             temp_id: crypto.randomUUID(),
@@ -256,10 +342,19 @@ export default function OfferEditorPage() {
         });
     };
 
+    const lockedWarning = isLocked ? (
+        <div className="bg-amber-100 text-amber-800 p-2 text-center text-sm font-semibold flex justify-center items-center print:hidden border-b border-amber-200">
+            <SettingsIcon className="w-4 h-4 mr-2" />
+            Dieses Angebot ist gesperrt und kann aus rechtlichen Gründen (GoBD) nicht mehr bearbeitet werden.
+        </div>
+    ) : null;
+
     return (
         <div className="flex h-screen bg-gray-100 overflow-hidden print:bg-white print:h-auto print:overflow-visible">
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col min-w-0 print:block print:w-full print:h-auto print:overflow-visible">
+            <div className="flex-1 flex flex-col min-w-0 print:block print:w-full print:h-auto print:overflow-visible relative">
+
+                {lockedWarning}
 
                 {/* Top Header */}
                 <header className="bg-white border-b px-6 py-3 flex items-center justify-between shadow-sm z-10 print:hidden">
@@ -274,25 +369,36 @@ export default function OfferEditorPage() {
                                 </span>
                                 {offer && <OfferStatusBadge status={offer.status} />}
                             </div>
-                            <span className="text-xs text-muted-foreground">Zuletzt gespeichert: Gerade eben</span>
+                            <span className="text-xs text-muted-foreground">
+                                {hasUnsavedChanges && <span className="inline-block w-2 h-2 rounded-full bg-orange-400 mr-1.5 animate-pulse" title="Ungespeicherte Änderungen" />}
+                                {lastSavedAt
+                                    ? `Zuletzt gespeichert: ${lastSavedAt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`
+                                    : (isNew ? 'Noch nicht gespeichert' : 'Geladen')}
+                            </span>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" onClick={handlePrint}>
+                        <Button variant="ghost" size="sm" onClick={handleDownloadPdf} disabled={isGeneratingPdf}>
+                            {isGeneratingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                            PDF
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={handlePrint} disabled={isGeneratingPdf}>
                             <Printer className="mr-2 h-4 w-4" />
-                            PDF / Drucken
+                            Drucken
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)} title="Einstellungen">
                             <SettingsIcon className="h-5 w-5" />
                         </Button>
-                        <Button
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                            onClick={handleSave}
-                        >
-                            <FileCheck className="mr-2 h-4 w-4" />
-                            Speichern
-                        </Button>
+                        {!isLocked && (
+                            <Button
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                onClick={handleSave}
+                            >
+                                <FileCheck className="mr-2 h-4 w-4" />
+                                Speichern
+                            </Button>
+                        )}
 
                         {!isNew && offer && (
                             <DropdownMenu>
@@ -325,11 +431,27 @@ export default function OfferEditorPage() {
 
                 {/* Document Canvas */}
                 <main className="flex-1 overflow-y-auto p-8 flex justify-center bg-gray-100 print:p-0 print:bg-white print:overflow-visible print:block">
-                    <div className="w-full max-w-4xl pb-20 print:w-full print:max-w-none print:pb-0">
+                    <div id="offer-document-container" className="w-full max-w-4xl pb-20 print:w-full print:max-w-none print:pb-0 bg-white shadow-sm p-12 min-h-[1123px]">
 
                         {(() => {
                             const headerContent = (
                                 <>
+                                    {/* Company Letterhead (Briefkopf) */}
+                                    <div className="flex justify-between items-start mb-8 pb-6 border-b border-gray-200">
+                                        <div className="text-xs text-gray-400">
+                                            {/* Return Address Line */}
+                                            <span>{user?.user_metadata?.company_name || 'Firma'} · {user?.user_metadata?.street_address || ''} · {user?.user_metadata?.postal_code || ''} {user?.user_metadata?.city || ''}</span>
+                                        </div>
+                                        <div className="text-right text-sm">
+                                            <p className="font-bold text-gray-900 text-base">{user?.user_metadata?.company_name || 'Ihr Unternehmen'}</p>
+                                            <p className="text-gray-600">{user?.user_metadata?.street_address || ''}</p>
+                                            <p className="text-gray-600">{user?.user_metadata?.postal_code || ''} {user?.user_metadata?.city || ''}</p>
+                                            {user?.user_metadata?.phone && <p className="text-gray-600 mt-1">Tel: {user.user_metadata.phone}</p>}
+                                            {user?.email && <p className="text-gray-600">{user.email}</p>}
+                                            {user?.user_metadata?.vat_id && <p className="text-gray-500 text-xs mt-1">USt-IdNr: {user.user_metadata.vat_id}</p>}
+                                        </div>
+                                    </div>
+
                                     <div className="grid grid-cols-2 gap-12 pb-8 border-b border-gray-100">
                                         {/* Empfänger */}
                                         {/* Empfänger */}
@@ -345,6 +467,7 @@ export default function OfferEditorPage() {
                                                                 setSelectedCustomer(customer);
                                                             }
                                                         }}
+                                                        disabled={isLocked}
                                                     >
                                                         <SelectTrigger className="w-full h-auto border-none shadow-none text-left p-0 font-normal text-gray-900 bg-transparent hover:bg-gray-50 focus:ring-0 [&>svg]:hidden print:p-0">
                                                             {(selectedCustomer || offer) ? (
@@ -371,6 +494,13 @@ export default function OfferEditorPage() {
                                         {/* Metadata */}
                                         <div className="space-y-4">
                                             <div className="grid grid-cols-[100px_1fr] gap-2 text-sm">
+                                                {!isNew && offer?.offer_number && (
+                                                    <>
+                                                        <span className="text-gray-500">Angebots-Nr.</span>
+                                                        <span className="font-bold text-gray-900">{offer.offer_number}</span>
+                                                    </>
+                                                )}
+
                                                 <span className="text-gray-500">Datum</span>
                                                 <span className="font-medium">{currentDate}</span>
 
@@ -389,13 +519,15 @@ export default function OfferEditorPage() {
                                             className="text-2xl font-bold border-none shadow-none px-0 focus-visible:ring-0 placeholder:text-gray-300 h-auto print:p-0"
                                             placeholder="Betreff eingeben..."
                                             value={subject}
-                                            onChange={(e) => setSubject(e.target.value)}
+                                            onChange={(e) => setSubjectTracked(e.target.value)}
+                                            readOnly={isLocked}
                                         />
                                         <Textarea
                                             className="mt-4 border-none shadow-none px-0 focus-visible:ring-0 text-gray-600 print:p-0 resize-none min-h-[4rem]"
                                             placeholder="Einleitungstext (optional)..."
                                             value={introText}
-                                            onChange={(e) => setIntroText(e.target.value)}
+                                            onChange={(e) => setIntroTextTracked(e.target.value)}
+                                            readOnly={isLocked}
                                         />
                                     </div>
                                 </>
@@ -407,7 +539,8 @@ export default function OfferEditorPage() {
                                         className="border-none shadow-none px-0 focus-visible:ring-0 text-gray-600 print:p-0 resize-none mb-8 min-h-[3rem]"
                                         placeholder="Abschlusstext (optional)..."
                                         value={finalText}
-                                        onChange={(e) => setFinalText(e.target.value)}
+                                        onChange={(e) => setFinalTextTracked(e.target.value)}
+                                        readOnly={isLocked}
                                     />
                                     <div className="h-16"></div> {/* Returns signature space */}
                                     <p className="font-semibold">{user?.user_metadata?.first_name || 'Ihr HandwerkOS Team'}</p>
@@ -417,11 +550,12 @@ export default function OfferEditorPage() {
                             return (
                                 <OfferItemsEditor
                                     items={items}
-                                    onChange={setItems}
+                                    onChange={setItemsTracked}
                                     header={headerContent}
                                     footer={footerContent}
                                     isReverseCharge={isReverseCharge}
                                     showLaborShare={showLaborShare}
+                                    disabled={isLocked}
                                 />
                             );
                         })()}
@@ -431,12 +565,14 @@ export default function OfferEditorPage() {
             </div>
 
             {/* Right Sidebar */}
-            <div className="print:hidden">
-                <OfferSidebar
-                    isOpen={isSidebarOpen}
-                    onAddItem={handleAddItem}
-                />
-            </div>
+            {!isLocked && (
+                <div className="print:hidden">
+                    <OfferSidebar
+                        isOpen={isSidebarOpen}
+                        onAddItem={handleAddItem}
+                    />
+                </div>
+            )}
 
             {/* Email Dialog */}
             {offer && (

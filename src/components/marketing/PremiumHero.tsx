@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { QualifyDialog } from "@/components/marketing/QualifyDialog";
+import { InteractiveDemoPreview } from "@/components/marketing/InteractiveDemoPreview";
 
 // Magnetic Button Component
 function MagneticButton({
@@ -158,22 +159,6 @@ export default function PremiumHero() {
                   </svg>
                 </MagneticButton>
               </QualifyDialog>
-              <MagneticButton className="premium-btn-secondary text-lg">
-                15-Min Setup-Check
-                <svg
-                  className="inline-block ml-2 w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-              </MagneticButton>
             </div>
 
             {/* Micro Trust */}
@@ -217,123 +202,8 @@ export default function PremiumHero() {
               }}
             />
 
-            {/* Mock Dashboard */}
-            <div
-              className="relative rounded-2xl overflow-hidden border"
-              style={{
-                background: "var(--premium-bg-card)",
-                borderColor: "var(--premium-border)",
-              }}
-            >
-              {/* Browser Chrome */}
-              <div
-                className="flex items-center gap-2 px-4 py-3 border-b"
-                style={{ borderColor: "var(--premium-border)" }}
-              >
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-green-500/80" />
-                </div>
-                <div
-                  className="flex-1 mx-4 h-6 rounded-md"
-                  style={{ background: "var(--premium-bg-elevated)" }}
-                />
-              </div>
-
-              {/* Dashboard Content */}
-              <div className="p-6 space-y-4">
-                {/* Top Stats */}
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { label: "Offene Angebote", value: "12", color: "#00D4FF" },
-                    { label: "Projekte aktiv", value: "8", color: "#10B981" },
-                    { label: "Umsatz Monat", value: "47.2k", color: "#F59E0B" },
-                  ].map((stat, i) => (
-                    <div
-                      key={i}
-                      className="p-4 rounded-xl"
-                      style={{ background: "var(--premium-bg-elevated)" }}
-                    >
-                      <div
-                        className="text-2xl font-bold"
-                        style={{ color: stat.color }}
-                      >
-                        {stat.value}
-                      </div>
-                      <div
-                        className="text-xs mt-1"
-                        style={{ color: "var(--premium-text-dim)" }}
-                      >
-                        {stat.label}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Chart Placeholder */}
-                <div
-                  className="h-32 rounded-xl flex items-end justify-around px-4 pb-4"
-                  style={{ background: "var(--premium-bg-elevated)" }}
-                >
-                  {[40, 65, 45, 80, 55, 90, 70].map((h, i) => (
-                    <div
-                      key={i}
-                      className="w-6 rounded-t"
-                      style={{
-                        height: `${h}%`,
-                        background: `linear-gradient(to top, #00D4FF, rgba(0,212,255,0.3))`,
-                        opacity: 0.6 + i * 0.05,
-                      }}
-                    />
-                  ))}
-                </div>
-
-                {/* List Items */}
-                <div className="space-y-2">
-                  {["Projekt Müller - Badezimmer", "Angebot Weber - Küche", "Rechnung Schmidt"].map(
-                    (item, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center gap-3 p-3 rounded-lg"
-                        style={{ background: "var(--premium-bg-elevated)" }}
-                      >
-                        <div
-                          className="w-2 h-2 rounded-full"
-                          style={{ background: "#00D4FF" }}
-                        />
-                        <span
-                          className="text-sm flex-1"
-                          style={{ color: "var(--premium-text-muted)" }}
-                        >
-                          {item}
-                        </span>
-                        <div
-                          className="text-xs px-2 py-1 rounded"
-                          style={{
-                            background: "rgba(0,212,255,0.1)",
-                            color: "#00D4FF",
-                          }}
-                        >
-                          {["In Arbeit", "Offen", "Bezahlt"][i]}
-                        </div>
-                      </div>
-                    )
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Floating Badge */}
-            <div
-              className="absolute -bottom-4 -right-4 px-4 py-2 rounded-full text-sm font-medium shadow-lg"
-              style={{
-                background: "var(--premium-gradient)",
-                color: "var(--premium-bg)",
-              }}
-            >
-              Live Demo
-            </div>
+            {/* Interactive Dashboard Demo */}
+            <InteractiveDemoPreview />
           </div>
         </div>
       </div>

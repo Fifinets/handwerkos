@@ -89,16 +89,16 @@ const EditorCanvas = () => {
     const bgColor = siteConfig.customColors?.bg || preset?.bg || '#ffffff';
 
     // 2. Handle Template Specifics
-    const isDarkMode = selectedTemplate?.features?.includes('Dark Mode');
+    const isDarkMode = selectedTemplate?.features?.includes('Dark Mode') || siteConfig.colorPreset === 'neon';
 
     const themeStyles = {
         '--primary': primaryColor,
         '--secondary': secondaryColor,
-        '--bg-page': isDarkMode ? '#1a1a1a' : bgColor,
-        '--text-main': isDarkMode ? '#f8fafc' : '#0f172a',
-        '--text-muted': isDarkMode ? '#94a3b8' : '#475569',
-        '--bg-card': isDarkMode ? '#262626' : '#ffffff',
-        '--border-color': isDarkMode ? '#404040' : '#e2e8f0',
+        '--bg-page': bgColor, // Use the preset's background!
+        '--text-main': isDarkMode ? '#f8fafc' : secondaryColor, // If dark bg, force light text, else use secondary
+        '--text-muted': isDarkMode ? '#cbd5e1' : '#475569',
+        '--bg-card': isDarkMode ? 'rgba(255,255,255,0.05)' : '#ffffff',
+        '--border-color': isDarkMode ? 'rgba(255,255,255,0.1)' : '#e2e8f0',
     } as React.CSSProperties;
 
     // DnD Sensors

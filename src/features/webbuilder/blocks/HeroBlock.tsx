@@ -4,7 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Block } from '../context/useWebBuilderStore';
 
 export const HeroBlock = ({ block }: { block: Block }) => {
-    const { title, subtitle, cta, backgroundImage } = block.content;
+    // Map content keys to support both 'headline' (Editor) and 'title' (Legacy)
+    const title = block.content.headline || block.content.title;
+    const subtitle = block.content.subheadline || block.content.subtitle;
+    const cta = block.content.ctaText || block.content.cta;
+    const backgroundImage = block.content.backgroundImage;
 
     return (
         <div

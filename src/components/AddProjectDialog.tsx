@@ -58,7 +58,7 @@ interface AddProjectDialogProps {
 const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMembers }: AddProjectDialogProps) => {
   const { toast } = useToast();
   const createProjectMutation = useCreateProject();
-  
+
   // Debug logging
   console.log('AddProjectDialog - customers:', customers);
   console.log('AddProjectDialog - teamMembers:', teamMembers);
@@ -75,22 +75,22 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
   // Verfügbarkeitsprüfung für Teammitglieder
   const getAvailabilityStatus = (member: TeamMember, dateRange: DateRange | undefined) => {
     if (!dateRange?.from || !dateRange?.to) return 'unknown';
-    
+
     // Check if member has projects array
     if (!member.projects || !Array.isArray(member.projects)) {
       return 'available'; // If no projects, member is available
     }
-    
+
     const startDate = dateRange.from;
     const endDate = dateRange.to;
-    
+
     let conflictDays = 0;
     const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    
+
     member.projects.forEach(project => {
       const memberProjectStart = new Date(project.startDate.split('.').reverse().join('-'));
       const memberProjectEnd = new Date(project.endDate.split('.').reverse().join('-'));
-      
+
       if (startDate <= memberProjectEnd && endDate >= memberProjectStart) {
         const overlapStart = new Date(Math.max(startDate.getTime(), memberProjectStart.getTime()));
         const overlapEnd = new Date(Math.min(endDate.getTime(), memberProjectEnd.getTime()));
@@ -98,7 +98,7 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
         conflictDays += overlapDays;
       }
     });
-    
+
     if (conflictDays === 0) return 'available';
     if (conflictDays >= totalDays * 0.8) return 'unavailable';
     return 'partial';
@@ -126,7 +126,7 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validierung
     if (!formData.name || !formData.customer || !formData.budget) {
       toast({
@@ -138,10 +138,10 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
     }
 
     // Find customer ID
-    const selectedCustomer = customers.find(customer => 
+    const selectedCustomer = customers.find(customer =>
       (customer.name === formData.customer) || (customer.company_name === formData.customer)
     );
-    
+
     if (!selectedCustomer) {
       toast({
         title: "Fehler",
@@ -164,8 +164,8 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
     // Get team member IDs
     const teamMemberIds = formData.team
       .map(memberName => {
-        const member = teamMembers.find(m => 
-          m.name === memberName || 
+        const member = teamMembers.find(m =>
+          m.name === memberName ||
           `${m.first_name || ''} ${m.last_name || ''}`.trim() === memberName
         );
         return member?.id;
@@ -178,8 +178,8 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
       customer_id: selectedCustomer.id,
       description: formData.location ? `Standort: ${formData.location}` : undefined,
       status: statusMapping[formData.status] || 'geplant',
-      budget: parseFloat(formData.budget.replace(/[^0-9.]/g, '')),
-      start_date: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : new Date().toISOString().split('T')[0],
+      budget: parseFloat(formData.budget.replace(/[^0-9.]/g, '')) || 0,
+      start_date: dateRange?.from ? format(dateRange?.from, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
       end_date: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
       // Remove assigned_employees for now - will be handled separately
       // assigned_employees: teamMemberIds
@@ -188,31 +188,31 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
     try {
       // Create project in database
       const newProject = await createProjectMutation.mutateAsync(projectData);
-      
+
       // Add team members to the project if any were selected
       if (teamMemberIds.length > 0 && newProject) {
-        console.log('Adding team members to project:', { 
-          projectId: newProject.id, 
-          teamMemberIds, 
+        console.log('Adding team members to project:', {
+          projectId: newProject.id,
+          teamMemberIds,
           teamMemberInserts: teamMemberIds.map(id => ({ project_id: newProject.id, employee_id: id }))
         });
-        
+
         // Import supabase here to add team members
         const { supabase } = await import('@/integrations/supabase/client');
-        
+
         const teamMemberInserts = teamMemberIds.map(employeeId => ({
           project_id: newProject.id,
           employee_id: employeeId,
           assigned_at: new Date().toISOString()
         }));
-        
+
         const { error: teamError } = await supabase
           .from('project_team_members')
           .insert(teamMemberInserts);
-          
+
         if (teamError) {
           console.error('Error adding team members:', teamError);
-          
+
           // If table doesn't exist, provide helpful message
           if (teamError.message?.includes('relation "public.project_team_members" does not exist')) {
             toast({
@@ -235,13 +235,13 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
           });
         }
       }
-      
+
       // Close dialog and show success message
       toast({
         title: "Projekt erstellt",
         description: `${formData.name} wurde erfolgreich erstellt.`,
       });
-      
+
       // Reset form
       setFormData({
         name: '',
@@ -252,7 +252,7 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
         status: 'Planung'
       });
       setDateRange(undefined);
-      
+
       onClose();
     } catch (error) {
       console.error('Error creating project:', error);
@@ -267,10 +267,10 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
   };
 
   const handleCustomerChange = (customerName: string) => {
-    const selectedCustomer = customers.find(customer => 
+    const selectedCustomer = customers.find(customer =>
       (customer.name === customerName) || (customer.company_name === customerName)
     );
-    
+
     setFormData(prev => ({
       ...prev,
       customer: customerName,
@@ -280,15 +280,15 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
 
   const handleTeamMemberToggle = (memberName: string, checked: boolean) => {
     // Get the actual name to use for the member
-    const member = teamMembers.find(m => 
-      m.name === memberName || 
+    const member = teamMembers.find(m =>
+      m.name === memberName ||
       `${m.first_name || ''} ${m.last_name || ''}`.trim() === memberName
     );
     const nameToUse = member?.name || `${member?.first_name || ''} ${member?.last_name || ''}`.trim() || memberName;
-    
+
     setFormData(prev => ({
       ...prev,
-      team: checked 
+      team: checked
         ? [...prev.team, nameToUse]
         : prev.team.filter(name => name !== nameToUse)
     }));

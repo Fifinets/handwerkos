@@ -380,23 +380,6 @@ const Auth: React.FC = () => {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Linke Spalte */}
                     <div className="space-y-6">
-                      {/* Role Selector */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div
-                          className={`cursor-pointer rounded-xl border-2 p-4 flex flex-col items-center justify-center gap-2 transition-all ${userType === 'craftsman' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-blue-300'}`}
-                          onClick={() => setUserType('craftsman')}
-                        >
-                          <Wrench className="w-6 h-6" />
-                          <span className="font-medium text-sm">Handwerker</span>
-                        </div>
-                        <div
-                          className={`cursor-pointer rounded-xl border-2 p-4 flex flex-col items-center justify-center gap-2 transition-all ${userType === 'customer' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-blue-300'}`}
-                          onClick={() => setUserType('customer')}
-                        >
-                          <User className="w-6 h-6" />
-                          <span className="font-medium text-sm">Auftraggeber</span>
-                        </div>
-                      </div>
 
                       {/* Persönliche Daten */}
                       <div className="space-y-4">

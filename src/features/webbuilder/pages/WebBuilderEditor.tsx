@@ -46,17 +46,26 @@ const WebBuilderEditor = () => {
             } else {
                 // Hydrate store
                 updateSiteConfig({
-                    colorPreset: site.theme_config?.colorPreset || 'default',
-                    customColors: site.theme_config?.customColors,
-                    font: site.theme_config?.font
+                    colorPreset: (site.theme_config as any)?.colorPreset || 'default',
+                    customColors: (site.theme_config as any)?.customColors,
+                    font: (site.theme_config as any)?.font
                 });
                 updateWebProfile(site.web_profile as any); // Cast for MVP simplicity
                 updateLegalProfile(site.legal_profile as any);
 
                 // Fallback for missing template relation (since we store ID 1, 2 etc which are not UUIDs in DB)
-                let templateData = site.template;
-                if (!templateData && site.theme_config?.templateId) {
-                    templateData = TEMPLATES.find(t => t.id === site.theme_config.templateId);
+                let templateData = (site as any).template;
+                if (!templateData && (site.theme_config as any)?.templateId) {
+                    templateData = TEMPLATES.find(t => t.id === (site.theme_config as any).templateId);
+                }
+
+                // MERGE: Ensure we have the latest static content from code (TEMPLATES constant)
+                // even if we loaded a partial object from DB
+                if (templateData) {
+                    const codeTemplate = TEMPLATES.find(t => t.id === templateData.id);
+                    if (codeTemplate) {
+                        templateData = { ...templateData, ...codeTemplate };
+                    }
                 }
 
                 setSelectedTemplate(templateData);
@@ -83,30 +92,40 @@ const WebBuilderEditor = () => {
                                 {
                                     id: 'hero-fallback', type: 'hero',
                                     content: {
-                                        headline: profile.companyName ? `Willkommen bei ${profile.companyName}` : 'Willkommen',
-                                        subheadline: 'Ihr Partner für Qualität und Zuverlässigkeit',
-                                        ctaText: 'Jetzt anfragen'
+                                        headline: templateData?.content?.hero.headline || (profile.companyName ? `Willkommen bei ${profile.companyName}` : 'Willkommen'),
+                                        subheadline: templateData?.content?.hero.subheadline || 'Ihr Partner für Qualität und Zuverlässigkeit',
+                                        ctaText: templateData?.content?.hero.cta || 'Jetzt anfragen'
                                     }
                                 },
                                 {
                                     id: 'services-fallback', type: 'features',
                                     content: {
-                                        headline: 'Unsere Leistungen',
-                                        features: profile.services?.length ? profile.services : ['Service 1', 'Service 2', 'Service 3']
+                                        headline: templateData?.content?.services.title || 'Unsere Leistungen',
+                                        features: templateData?.content?.services.items
+                                            ? templateData.content.services.items.map((i: any) => i.title)
+                                            : (profile.services?.length ? profile.services : ['Service 1', 'Service 2', 'Service 3'])
+                                    }
+                                },
+                                {
+                                    id: 'about-fallback', type: 'about', // Inserting About Ref which might be missing in original but useful
+                                    content: {
+                                        headline: templateData?.content?.about.headline || 'Über Uns',
+                                        text: templateData?.content?.about.text || 'Wir sind Ihr Partner.',
+                                        image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&q=80&w=800'
                                     }
                                 },
                                 {
                                     id: 'gallery-fallback', type: 'gallery',
                                     content: {
                                         headline: 'Unsere Referenzen',
-                                        images: [] // Uses default images in component
+                                        images: []
                                     }
                                 },
                                 {
                                     id: 'testimonials-fallback', type: 'testimonials',
                                     content: {
                                         headline: 'Kundenstimmen',
-                                        testimonials: [] // Uses default testimonials in component
+                                        testimonials: []
                                     }
                                 },
                                 {
@@ -115,7 +134,7 @@ const WebBuilderEditor = () => {
                                         headline: 'Kontakt',
                                         email: profile.contact?.email || 'info@handwerk.de',
                                         phone: profile.contact?.phone || '+49 123 45678',
-                                        address: site.legal_profile?.address || 'Musterstraße 1'
+                                        address: (site.legal_profile as any)?.address || 'Musterstraße 1'
                                     }
                                 }
                             ]

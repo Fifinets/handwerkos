@@ -69,37 +69,39 @@ export function useEmployeePermissions() {
       }
 
       try {
-        const { data, error: fetchError } = await supabase
-          .rpc('get_current_employee_with_grants');
+        // Direct query - only columns that exist in the employees table
+        const { data: empData, error: empError } = await supabase
+          .from('employees')
+          .select('id, user_id, first_name, last_name, email, company_id')
+          .eq('user_id', user.id)
+          .single();
 
-        if (fetchError) {
-          // Fallback: Direct query if RPC doesn't exist yet
-          const { data: empData, error: empError } = await supabase
-            .from('employees')
-            .select('id, user_id, first_name, last_name, email, role, grants, company_id')
-            .eq('user_id', user.id)
-            .single();
-
-          if (empError) throw empError;
-
-          setEmployee({
-            ...empData,
-            role: (empData.role as 'employee' | 'manager') || 'employee',
-            grants: (empData.grants as Permission[]) || [],
-          });
-        } else if (data && data.length > 0) {
-          const emp = data[0];
-          setEmployee({
-            id: emp.id,
-            user_id: emp.user_id,
-            first_name: emp.first_name,
-            last_name: emp.last_name,
-            email: emp.email,
-            role: (emp.role as 'employee' | 'manager') || 'employee',
-            grants: (emp.grants as Permission[]) || [],
-            company_id: emp.company_id,
-          });
+        if (empError) {
+          console.error('Error fetching employee:', empError);
+          setEmployee(null);
+          setIsLoading(false);
+          return;
         }
+
+        // Get role from user_roles table
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
+
+        const role = (roleData?.role as 'employee' | 'manager') || 'employee';
+
+        setEmployee({
+          id: empData.id,
+          user_id: empData.user_id,
+          first_name: empData.first_name,
+          last_name: empData.last_name,
+          email: empData.email,
+          company_id: empData.company_id || '',
+          role,
+          grants: [], // grants column doesn't exist yet, default to empty
+        });
       } catch (err) {
         console.error('Error fetching employee permissions:', err);
         setError(err instanceof Error ? err.message : 'Fehler beim Laden');
@@ -159,7 +161,7 @@ export function useEmployeePermissions() {
 
     // Ohne Grant: Nur eigene Entwürfe
     const isOwn = note.created_by_employee_id === employee.id ||
-                  note.created_by === employee.user_id;
+      note.created_by === employee.user_id;
     return isOwn && note.status === 'draft';
   }, [employee, isManager, can]);
 
@@ -217,7 +219,7 @@ export function useEmployeePermissions() {
   const canSubmitDeliveryNote = useCallback((note: DeliveryNoteForPermission): boolean => {
     if (!employee) return false;
     const isOwn = note.created_by_employee_id === employee.id ||
-                  note.created_by === employee.user_id;
+      note.created_by === employee.user_id;
     return isOwn && note.status === 'draft';
   }, [employee]);
 
