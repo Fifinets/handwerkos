@@ -60,7 +60,6 @@ import {
 } from "@/hooks/useApi";
 import { OfferStatusBadge } from "./offers";
 import AddOfferDialog from "./AddOfferDialog";
-import EditOfferDialog from "./EditOfferDialog";
 import OfferDetailView from "./OfferDetailView";
 
 interface OfferModuleProps {
@@ -75,7 +74,6 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
     const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
-    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isDetailViewOpen, setIsDetailViewOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
@@ -261,11 +259,6 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
     const openDetailView = (offer: Offer) => {
         setSelectedOfferId(offer.id);
         setIsDetailViewOpen(true);
-    };
-
-    const openEditDialog = (offer: Offer) => {
-        setSelectedOfferId(offer.id);
-        setIsEditDialogOpen(true);
     };
 
     return (
@@ -553,15 +546,6 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
             <AddOfferDialog
                 isOpen={isAddDialogOpen}
                 onClose={() => setIsAddDialogOpen(false)}
-            />
-
-            <EditOfferDialog
-                isOpen={isEditDialogOpen}
-                onClose={() => {
-                    setIsEditDialogOpen(false);
-                    setSelectedOfferId(null);
-                }}
-                offerId={selectedOfferId}
             />
 
             <OfferDetailView

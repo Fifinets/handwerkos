@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -50,7 +51,6 @@ import {
 } from '@/hooks/useApi';
 import { OfferStatusBadge, OfferSummaryCard } from '@/components/offers';
 import { OFFER_ITEM_TYPE_LABELS } from '@/types/offer';
-import EditOfferDialog from './EditOfferDialog';
 
 interface OfferDetailViewProps {
   isOpen: boolean;
@@ -66,6 +66,7 @@ export function OfferDetailView({
   onOfferUpdated,
 }: OfferDetailViewProps) {
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Queries
   const { data: offer, isLoading: offerLoading, refetch: refetchOffer } = useOffer(offerId || '', {
@@ -82,7 +83,6 @@ export function OfferDetailView({
   const deleteOfferMutation = useDeleteOffer();
 
   // Dialog states
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
@@ -225,7 +225,10 @@ export function OfferDetailView({
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setIsEditDialogOpen(true)}
+                        onClick={() => {
+                          onClose();
+                          navigate(`/offers/${offerId}/edit`);
+                        }}
                       >
                         <Edit className="h-4 w-4 mr-1" />
                         Bearbeiten
@@ -470,12 +473,12 @@ export function OfferDetailView({
                     snapshotTotals={
                       offer.snapshot_gross_total
                         ? {
-                            subtotal_net: offer.snapshot_subtotal_net,
-                            discount_amount: offer.snapshot_discount_amount,
-                            net_total: offer.snapshot_net_total,
-                            vat_amount: offer.snapshot_vat_amount,
-                            gross_total: offer.snapshot_gross_total,
-                          }
+                          subtotal_net: offer.snapshot_subtotal_net,
+                          discount_amount: offer.snapshot_discount_amount,
+                          net_total: offer.snapshot_net_total,
+                          vat_amount: offer.snapshot_vat_amount,
+                          gross_total: offer.snapshot_gross_total,
+                        }
                         : undefined
                     }
                     discountPercent={offer.discount_percent || 0}
@@ -547,15 +550,7 @@ export function OfferDetailView({
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog */}
-      <EditOfferDialog
-        isOpen={isEditDialogOpen}
-        onClose={() => setIsEditDialogOpen(false)}
-        offerId={offerId}
-        onOfferUpdated={handleEditComplete}
-      />
 
-      {/* Delete Confirmation */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
