@@ -2,13 +2,13 @@
 // Handles CRUD operations and business logic for customers
 
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  apiCall, 
-  createQuery, 
-  validateInput, 
+import {
+  apiCall,
+  createQuery,
+  validateInput,
   getCurrentUserProfile,
   ApiError,
-  API_ERROR_CODES 
+  API_ERROR_CODES
 } from '@/utils/api';
 import {
   Customer,
@@ -21,7 +21,7 @@ import {
 } from '@/types';
 
 export class CustomerService {
-  
+
   // Get all customers with pagination and filtering
   static async getCustomers(
     pagination?: PaginationQuery,
@@ -34,12 +34,12 @@ export class CustomerService {
       let query = supabase
         .from('customers')
         .select('*', { count: 'exact' });
-      
+
       // Apply filters
       if (filters?.status) {
         query = query.eq('status', filters.status);
       }
-      
+
       if (filters?.search) {
         query = query.or(
           `company_name.ilike.%${filters.search}%,` +
@@ -47,21 +47,21 @@ export class CustomerService {
           `email.ilike.%${filters.search}%`
         );
       }
-      
+
       // Apply pagination
       if (pagination) {
         const offset = (pagination.page - 1) * pagination.limit;
         query = query
           .range(offset, offset + pagination.limit - 1)
-          .order(pagination.sort_by || 'created_at', { 
-            ascending: pagination.sort_order === 'asc' 
+          .order(pagination.sort_by || 'created_at', {
+            ascending: pagination.sort_order === 'asc'
           });
       } else {
         query = query.order('created_at', { ascending: false });
       }
-      
+
       const { data, count } = await createQuery<Customer>(query).executeWithCount();
-      
+
       return {
         items: data,
         pagination: {
@@ -75,7 +75,7 @@ export class CustomerService {
       };
     }, 'Get customers');
   }
-  
+
   // Get customer by ID
   static async getCustomer(id: string): Promise<Customer> {
     return apiCall(async () => {
@@ -83,53 +83,77 @@ export class CustomerService {
         .from('customers')
         .select('*')
         .eq('id', id);
-      
+
       return createQuery<Customer>(query).executeSingle();
     }, `Get customer ${id}`);
   }
-  
+
   // Create new customer
   static async createCustomer(data: CustomerCreate): Promise<Customer> {
     return apiCall(async () => {
       // Validate input
       const validatedData = validateInput(CustomerCreateSchema, data);
-      
+
       // Generate customer number if not provided
       if (!validatedData.customer_number) {
-        const customerNumber = await this.generateCustomerNumber();
-        validatedData.customer_number = customerNumber;
+        try {
+          const customerNumber = await this.generateCustomerNumber();
+          validatedData.customer_number = customerNumber;
+        } catch {
+          // Fallback: timestamp-based number if DB function fails
+          validatedData.customer_number = `KD-${Date.now()}`;
+        }
       }
-      
-      const query = supabase
+
+      // Try inserting – if customer_number is a duplicate, generate a unique fallback
+      const { data: created, error } = await supabase
         .from('customers')
-        .insert(validatedData)
+        .insert(validatedData as any)
         .select()
         .single();
-      
-      return createQuery<Customer>(query).executeSingle();
+
+      if (error) {
+        if (error.code === '23505') {
+          // Unique constraint: retry with timestamp-based fallback number
+          const fallbackNumber = `KD-${Date.now()}`;
+          const { data: retried, error: retryError } = await supabase
+            .from('customers')
+            .insert({ ...validatedData, customer_number: fallbackNumber } as any)
+            .select()
+            .single();
+          if (retryError) {
+            throw retryError;
+          }
+          return retried as Customer;
+        }
+        throw error;
+      }
+
+      return created as Customer;
     }, 'Create customer');
   }
-  
+
+
   // Update existing customer
   static async updateCustomer(id: string, data: CustomerUpdate): Promise<Customer> {
     return apiCall(async () => {
       // Validate input
       const validatedData = validateInput(CustomerUpdateSchema, data);
-      
+
       // Check if customer exists and user has permission
       await this.getCustomer(id);
-      
+
       const query = supabase
         .from('customers')
         .update(validatedData)
         .eq('id', id)
         .select()
         .single();
-      
+
       return createQuery<Customer>(query).executeSingle();
     }, `Update customer ${id}`);
   }
-  
+
   // Delete customer (with safety checks)
   static async deleteCustomer(id: string): Promise<void> {
     return apiCall(async () => {
@@ -139,7 +163,7 @@ export class CustomerService {
         .select('id')
         .eq('customer_id', id)
         .limit(1);
-      
+
       if (relatedProjects && relatedProjects.length > 0) {
         throw new ApiError(
           API_ERROR_CODES.BUSINESS_RULE_VIOLATION,
@@ -147,13 +171,13 @@ export class CustomerService {
           { relatedProjects: relatedProjects.length }
         );
       }
-      
+
       const { data: relatedQuotes } = await supabase
         .from('quotes')
         .select('id')
         .eq('customer_id', id)
         .limit(1);
-      
+
       if (relatedQuotes && relatedQuotes.length > 0) {
         throw new ApiError(
           API_ERROR_CODES.BUSINESS_RULE_VIOLATION,
@@ -161,18 +185,18 @@ export class CustomerService {
           { relatedQuotes: relatedQuotes.length }
         );
       }
-      
+
       const { error } = await supabase
         .from('customers')
         .delete()
         .eq('id', id);
-      
+
       if (error) {
         throw error;
       }
     }, `Delete customer ${id}`);
   }
-  
+
   // Get customer statistics
   static async getCustomerStats(id: string): Promise<{
     total_projects: number;
@@ -188,27 +212,27 @@ export class CustomerService {
         .from('projects')
         .select('status, budget')
         .eq('customer_id', id);
-      
+
       // Get invoice stats
       const { data: invoices } = await supabase
         .from('invoices')
         .select('status, amount')
         .eq('customer_id', id);
-      
+
       const stats = {
         total_projects: projects?.length || 0,
-        active_projects: projects?.filter(p => p.status === 'active').length || 0,
-        completed_projects: projects?.filter(p => p.status === 'completed').length || 0,
-        total_revenue: invoices?.filter(i => i.status === 'paid')
-          .reduce((sum, i) => sum + (i.amount || 0), 0) || 0,
-        pending_invoices: invoices?.filter(i => i.status === 'sent').length || 0,
-        overdue_invoices: invoices?.filter(i => i.status === 'overdue').length || 0,
+        active_projects: projects?.filter((p: any) => p.status === 'active').length || 0,
+        completed_projects: projects?.filter((p: any) => p.status === 'completed').length || 0,
+        total_revenue: (invoices as any[])?.filter((i: any) => i.status === 'paid')
+          .reduce((sum: number, i: any) => sum + (i.amount || 0), 0) || 0,
+        pending_invoices: (invoices as any[])?.filter((i: any) => i.status === 'sent').length || 0,
+        overdue_invoices: (invoices as any[])?.filter((i: any) => i.status === 'overdue').length || 0,
       };
-      
+
       return stats;
     }, `Get customer stats ${id}`);
   }
-  
+
   // Search customers by query
   static async searchCustomers(query: string, limit: number = 10): Promise<Customer[]> {
     return apiCall(async () => {
@@ -223,31 +247,31 @@ export class CustomerService {
         )
         .order('company_name')
         .limit(limit);
-      
+
       return createQuery<Customer>(searchQuery).execute();
     }, `Search customers: ${query}`);
   }
-  
+
   // Generate next customer number
   static async generateCustomerNumber(): Promise<string> {
     return apiCall(async () => {
       const profile = await getCurrentUserProfile();
-      
+
       // Call the database function to get next number
       const { data, error } = await supabase
         .rpc('get_next_number', {
           seq_name: 'customers',
           comp_id: profile.company_id
         });
-      
+
       if (error) {
         throw error;
       }
-      
+
       return data as string;
     }, 'Generate customer number');
   }
-  
+
   // Get customer projects
   static async getCustomerProjects(id: string): Promise<any[]> {
     return apiCall(async () => {
@@ -258,11 +282,11 @@ export class CustomerService {
         `)
         .eq('customer_id', id)
         .order('created_at', { ascending: false });
-      
+
       return createQuery(query).execute();
     }, `Get customer projects ${id}`);
   }
-  
+
   // Get customer quotes
   static async getCustomerQuotes(id: string): Promise<any[]> {
     return apiCall(async () => {
@@ -271,11 +295,11 @@ export class CustomerService {
         .select('*')
         .eq('customer_id', id)
         .order('created_at', { ascending: false });
-      
+
       return createQuery(query).execute();
     }, `Get customer quotes ${id}`);
   }
-  
+
   // Get customer invoices
   static async getCustomerInvoices(id: string): Promise<any[]> {
     return apiCall(async () => {
@@ -289,7 +313,7 @@ export class CustomerService {
         `)
         .eq('customer_id', id)
         .order('created_at', { ascending: false });
-      
+
       return createQuery(query).execute();
     }, `Get customer invoices ${id}`);
   }

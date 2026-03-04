@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
 import Index from "./pages/Index";
 import IndexV2 from "./pages/IndexV2";
@@ -182,7 +182,7 @@ const App = () => (
               <Route path="/" element={<HandwerkerSoftwarePremium />} />
               <Route path="/login" element={<Auth />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/manager" element={<Index />} />
+              <Route path="/manager" element={<Navigate to="/manager2" replace />} />
               <Route path="/manager2" element={<IndexV2 />} />
               <Route path="/employee" element={<Employee />} />
               <Route path="/auth/callback" element={<GmailCallback />} />

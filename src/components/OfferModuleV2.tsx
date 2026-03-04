@@ -22,7 +22,11 @@ import {
     Edit,
     Trash2,
     User,
-    Filter
+    Filter,
+    Copy,
+    AlertTriangle,
+    TrendingUp,
+    TrendingDown,
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -115,6 +119,33 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
         expired: offers.filter(o => o.status === 'expired').length,
         cancelled: offers.filter(o => o.status === 'cancelled').length,
     };
+
+    const getDaysUntilExpiry = (validUntil?: string): number | null => {
+        if (!validUntil) return null;
+        const diff = new Date(validUntil).getTime() - Date.now();
+        return Math.ceil(diff / (1000 * 60 * 60 * 24));
+    };
+
+    const getFälligkeitBadge = (offer: Offer) => {
+        if (offer.status !== 'draft' && offer.status !== 'sent') return null;
+        const days = getDaysUntilExpiry(offer.valid_until);
+        if (days === null) return null;
+        if (days < 0) return <span className="inline-flex items-center gap-1 text-xs font-medium text-rose-600 bg-rose-50 border border-rose-200 rounded px-1.5 py-0.5"><AlertTriangle className="h-3 w-3" />Abgelaufen</span>;
+        if (days <= 7) return <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5"><Clock className="h-3 w-3" />{days}d</span>;
+        if (days <= 14) return <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-1.5 py-0.5"><Clock className="h-3 w-3" />{days}d</span>;
+        return <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5"><Clock className="h-3 w-3" />{days}d</span>;
+    };
+
+    const handleCopyNumber = (e: React.MouseEvent, offerNumber?: string) => {
+        e.stopPropagation();
+        if (!offerNumber) return;
+        navigator.clipboard.writeText(offerNumber);
+        toast({ title: 'Kopiert!', description: offerNumber });
+    };
+
+    const openVolume = offers.filter(o => o.status === 'draft' || o.status === 'sent').reduce((s, o) => s + (o.snapshot_gross_total || 0), 0);
+    const acceptedVolume = offers.filter(o => o.status === 'accepted').reduce((s, o) => s + (o.snapshot_gross_total || 0), 0);
+    const lostVolume = offers.filter(o => o.status === 'rejected' || o.status === 'expired').reduce((s, o) => s + (o.snapshot_gross_total || 0), 0);
 
     const totalValue = offers
         .filter(o => o.status !== 'rejected' && o.status !== 'cancelled')
@@ -316,6 +347,9 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                     <TabsTrigger value="sent" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Versendet ({statusCounts.sent})</TabsTrigger>
                     <TabsTrigger value="accepted" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Angenommen ({statusCounts.accepted})</TabsTrigger>
                     <TabsTrigger value="rejected" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Abgelehnt ({statusCounts.rejected})</TabsTrigger>
+                    {statusCounts.expired > 0 && (
+                        <TabsTrigger value="expired" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-rose-600">Abgelaufen ({statusCounts.expired})</TabsTrigger>
+                    )}
                 </TabsList>
 
                 <div className="flex gap-4">
@@ -371,15 +405,24 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                         <tbody className="divide-y divide-slate-100">
                                             {filteredOffers.map((offer) => (
                                                 <tr key={offer.id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => openDetailView(offer)}>
-                                                    <td className="px-5 py-4 font-medium text-slate-900">
-                                                        {offer.offer_number}
+                                                    <td className="px-5 py-4">
+                                                        <div className="flex items-center gap-1.5 group">
+                                                            <span className="font-medium text-slate-900">{offer.offer_number}</span>
+                                                            <button
+                                                                onClick={(e) => handleCopyNumber(e, offer.offer_number)}
+                                                                className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-slate-700"
+                                                            >
+                                                                <Copy className="h-3.5 w-3.5" />
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                     <td className="px-5 py-4 text-slate-500">
                                                         <div className="flex flex-col gap-1">
                                                             <span>{formatDate(offer.offer_date)}</span>
                                                             {offer.valid_until && (
-                                                                <span className="text-xs text-slate-400 flex items-center gap-1"><Clock className="h-3 w-3" /> bis {formatDate(offer.valid_until)}</span>
+                                                                <span className="text-xs text-slate-400">bis {formatDate(offer.valid_until)}</span>
                                                             )}
+                                                            {getFälligkeitBadge(offer)}
                                                         </div>
                                                     </td>
                                                     <td className="px-5 py-4">
@@ -399,56 +442,70 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                         <OfferStatusBadge status={offer.status} />
                                                     </td>
                                                     <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                                    <MoreHorizontal className="h-4 w-4" />
+                                                        <div className="flex items-center justify-end gap-1">
+                                                            {offer.status === 'draft' && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-8 px-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                                                                    onClick={(e) => { e.stopPropagation(); handleSendOffer(offer); }}
+                                                                    title="Versenden"
+                                                                >
+                                                                    <Send className="h-3.5 w-3.5 mr-1" />
+                                                                    <span className="text-xs">Senden</span>
                                                                 </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end">
-                                                                <DropdownMenuItem onClick={() => openDetailView(offer)}>
-                                                                    <Eye className="h-4 w-4 mr-2" />
-                                                                    Details anzeigen
-                                                                </DropdownMenuItem>
-                                                                {offer.status === 'draft' && !offer.is_locked && (
-                                                                    <>
-                                                                        <DropdownMenuItem onClick={() => openEditDialog(offer)}>
-                                                                            <Edit className="h-4 w-4 mr-2" />
-                                                                            Bearbeiten
-                                                                        </DropdownMenuItem>
-                                                                        <DropdownMenuItem onClick={() => handleSendOffer(offer)}>
-                                                                            <Send className="h-4 w-4 mr-2" />
-                                                                            Versenden
-                                                                        </DropdownMenuItem>
-                                                                    </>
-                                                                )}
-                                                                {offer.status === 'sent' && (
-                                                                    <>
-                                                                        <DropdownMenuSeparator />
-                                                                        <DropdownMenuItem onClick={() => openAcceptDialog(offer)}>
-                                                                            <CheckCircle className="h-4 w-4 mr-2 text-emerald-600" />
-                                                                            Angenommen
-                                                                        </DropdownMenuItem>
-                                                                        <DropdownMenuItem onClick={() => openRejectDialog(offer)}>
-                                                                            <XCircle className="h-4 w-4 mr-2 text-rose-600" />
-                                                                            Abgelehnt
-                                                                        </DropdownMenuItem>
-                                                                    </>
-                                                                )}
-                                                                {offer.status === 'draft' && (
-                                                                    <>
-                                                                        <DropdownMenuSeparator />
-                                                                        <DropdownMenuItem
-                                                                            onClick={() => openDeleteDialog(offer)}
-                                                                            className="text-rose-600"
-                                                                        >
-                                                                            <Trash2 className="h-4 w-4 mr-2" />
-                                                                            Löschen
-                                                                        </DropdownMenuItem>
-                                                                    </>
-                                                                )}
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
+                                                            )}
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                        <MoreHorizontal className="h-4 w-4" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuItem onClick={() => openDetailView(offer)}>
+                                                                        <Eye className="h-4 w-4 mr-2" />
+                                                                        Details anzeigen
+                                                                    </DropdownMenuItem>
+                                                                    {offer.status === 'draft' && (
+                                                                        <>
+                                                                            <DropdownMenuItem onClick={() => navigate(`/offers/${offer.id}/edit`)}>
+                                                                                <Edit className="h-4 w-4 mr-2" />
+                                                                                Bearbeiten
+                                                                            </DropdownMenuItem>
+                                                                            <DropdownMenuItem onClick={() => handleSendOffer(offer)}>
+                                                                                <Send className="h-4 w-4 mr-2" />
+                                                                                Versenden
+                                                                            </DropdownMenuItem>
+                                                                        </>
+                                                                    )}
+                                                                    {offer.status === 'sent' && (
+                                                                        <>
+                                                                            <DropdownMenuSeparator />
+                                                                            <DropdownMenuItem onClick={() => openAcceptDialog(offer)}>
+                                                                                <CheckCircle className="h-4 w-4 mr-2 text-emerald-600" />
+                                                                                Angenommen
+                                                                            </DropdownMenuItem>
+                                                                            <DropdownMenuItem onClick={() => openRejectDialog(offer)}>
+                                                                                <XCircle className="h-4 w-4 mr-2 text-rose-600" />
+                                                                                Abgelehnt
+                                                                            </DropdownMenuItem>
+                                                                        </>
+                                                                    )}
+                                                                    {offer.status === 'draft' && (
+                                                                        <>
+                                                                            <DropdownMenuSeparator />
+                                                                            <DropdownMenuItem
+                                                                                onClick={() => openDeleteDialog(offer)}
+                                                                                className="text-rose-600"
+                                                                            >
+                                                                                <Trash2 className="h-4 w-4 mr-2" />
+                                                                                Löschen
+                                                                            </DropdownMenuItem>
+                                                                        </>
+                                                                    )}
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -458,8 +515,40 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                             )}
                         </CardContent>
                     </Card>
+
                 </TabsContent>
             </Tabs>
+
+            {/* Volumen-Summary - always visible */}
+            <div className="grid grid-cols-3 gap-4">
+                <div className="bg-white border border-slate-200 rounded-lg p-4 flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                        <Clock className="h-4 w-4 text-amber-600" />
+                    </div>
+                    <div>
+                        <p className="text-xs text-slate-500 font-medium">Offen</p>
+                        <p className="text-lg font-bold text-slate-900">{formatCurrency(openVolume)}</p>
+                    </div>
+                </div>
+                <div className="bg-white border border-slate-200 rounded-lg p-4 flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                        <TrendingUp className="h-4 w-4 text-emerald-600" />
+                    </div>
+                    <div>
+                        <p className="text-xs text-slate-500 font-medium">Angenommen</p>
+                        <p className="text-lg font-bold text-emerald-700">{formatCurrency(acceptedVolume)}</p>
+                    </div>
+                </div>
+                <div className="bg-white border border-slate-200 rounded-lg p-4 flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-full bg-rose-50 flex items-center justify-center flex-shrink-0">
+                        <TrendingDown className="h-4 w-4 text-rose-600" />
+                    </div>
+                    <div>
+                        <p className="text-xs text-slate-500 font-medium">Verloren</p>
+                        <p className="text-lg font-bold text-rose-700">{formatCurrency(lostVolume)}</p>
+                    </div>
+                </div>
+            </div>
 
             <AddOfferDialog
                 isOpen={isAddDialogOpen}

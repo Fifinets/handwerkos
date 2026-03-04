@@ -1,23 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Settings, User, UserPlus, Key, Wrench } from 'lucide-react';
+import { User, UserPlus, Key, FileText, Users, CalendarDays, BarChart3 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -41,42 +27,24 @@ const Auth: React.FC = () => {
   const [voucherCode, setVoucherCode] = useState('');
   const [referralSource, setReferralSource] = useState('');
   const [userType, setUserType] = useState<'craftsman' | 'customer'>('craftsman');
-
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp, updatePassword } = useAuth();
+
+  const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // ──────────────────────────────────────────────────────────────
-  // 1) Employee invitation token handling
-  // ──────────────────────────────────────────────────────────────
   useEffect(() => {
     const checkEmployeeInvitation = async () => {
-      console.log('Current URL:', window.location.href);
-      console.log('Search params:', window.location.search);
-
       const mode = searchParams.get('mode');
       const inviteToken = searchParams.get('token');
       const registerParam = searchParams.get('register');
       const roleParam = searchParams.get('role');
 
-      // Handle register param
-      if (registerParam === 'true') {
-        setIsLogin(false);
-      }
-
-      // Handle role param
-      if (roleParam === 'customer' || roleParam === 'craftsman') {
-        setUserType(roleParam);
-      }
-
-      console.log('Auth check:', { mode, inviteToken, registerParam, roleParam });
+      if (registerParam === 'true') setIsLogin(false);
+      if (roleParam === 'customer' || roleParam === 'craftsman') setUserType(roleParam);
 
       if (mode === 'employee-setup' && inviteToken) {
-        console.log('Processing employee invitation token:', inviteToken);
-
         try {
-          // Validate invitation token
           const { data: invitation, error: inviteError } = await supabase
             .from('employee_invitations')
             .select('*')
@@ -85,591 +53,252 @@ const Auth: React.FC = () => {
             .single();
 
           if (inviteError || !invitation) {
-            console.error('Invalid invitation token:', inviteError);
-            toast.error('Ungültiger oder abgelaufener Einladungslink. Bitte wenden Sie sich an Ihren Manager.');
+            toast.error('Ungültiger oder abgelaufener Einladungslink.');
             return;
           }
-
-          // Check if token is expired
           if (new Date(invitation.expires_at) < new Date()) {
-            console.error('Invitation token expired');
-            toast.error('Dieser Einladungslink ist abgelaufen. Bitte fordern Sie eine neue Einladung an.');
+            toast.error('Dieser Einladungslink ist abgelaufen.');
             return;
           }
-
-          console.log('Valid invitation found:', invitation);
           setEmail(invitation.email);
           setIsPasswordSetup(true);
-
-          // Store invitation data for later use
           (window as any).invitationData = invitation;
-
         } catch (error) {
-          console.error('Error validating invitation:', error);
           toast.error('Fehler beim Validieren der Einladung.');
         }
       } else if (mode === 'employee-setup' && !inviteToken) {
-        toast.error('Fehlender Einladungstoken. Bitte verwenden Sie den vollständigen Link aus der E-Mail.');
+        toast.error('Fehlender Einladungstoken.');
       }
     };
-
     checkEmployeeInvitation();
   }, [searchParams]);
 
-  // ──────────────────────────────────────────────────────────────
-  // 2) Form-Handler
-  // ──────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      // A) Passwort-Setup für eingeladene Mitarbeiter
       if (isPasswordSetup) {
         const invitationData = (window as any).invitationData;
+        if (!invitationData) { toast.error('Einladungsdaten nicht gefunden.'); setIsPasswordSetup(false); return; }
+        if (password !== confirmPassword) { toast.error('Passwörter stimmen nicht überein'); return; }
+        if (password.length < 6) { toast.error('Passwort muss mindestens 6 Zeichen lang sein'); return; }
 
-        if (!invitationData) {
-          toast.error('Einladungsdaten nicht gefunden. Bitte verwenden Sie den Link aus der E-Mail erneut.');
-          setIsPasswordSetup(false);
-          return;
-        }
+        const { data: authData, error: signUpError } = await supabase.auth.signUp({
+          email: invitationData.email, password,
+          options: { data: { first_name: invitationData.employee_data?.firstName || '', last_name: invitationData.employee_data?.lastName || '', company_id: invitationData.company_id } }
+        });
 
-        if (password !== confirmPassword) {
-          toast.error('Passwörter stimmen nicht überein');
-          return;
-        }
-        if (password.length < 6) {
-          toast.error('Passwort muss mindestens 6 Zeichen lang sein');
-          return;
-        }
+        if (signUpError) { toast.error(signUpError.message || 'Fehler beim Erstellen des Kontos'); return; }
 
-        console.log('Creating account for employee:', invitationData.email);
-
-        try {
-          // Create Supabase user account
-          const { data: authData, error: signUpError } = await supabase.auth.signUp({
-            email: invitationData.email,
-            password: password,
-            options: {
-              data: {
-                first_name: invitationData.employee_data?.firstName || '',
-                last_name: invitationData.employee_data?.lastName || '',
-                company_id: invitationData.company_id
-              }
-            }
-          });
-
-          if (signUpError) {
-            console.error('Error creating user account:', signUpError);
-            toast.error(signUpError.message || 'Fehler beim Erstellen des Kontos');
-            return;
-          }
-
-          if (authData.user) {
-            // Mark invitation as accepted
-            await supabase
-              .from('employee_invitations')
-              .update({ status: 'accepted' })
-              .eq('invite_token', invitationData.invite_token);
-
-            // Link employee record to user
-            await supabase
-              .from('employees')
-              .update({
-                user_id: authData.user.id,
-                status: 'active'
-              })
-              .eq('email', invitationData.email.toLowerCase());
-
-            // Create user role as employee
-            await supabase
-              .from('user_roles')
-              .insert({
-                user_id: authData.user.id,
-                role: 'employee'
-              });
-
-            // Create profile for employee
-            await supabase
-              .from('profiles')
-              .upsert({
-                id: authData.user.id,
-                email: invitationData.email,
-                first_name: invitationData.employee_data?.firstName || '',
-                last_name: invitationData.employee_data?.lastName || '',
-                company_id: invitationData.company_id
-              });
-
-            console.log('Employee account created successfully');
-            toast.success('Konto erfolgreich erstellt! Sie können sich jetzt anmelden.');
-
-            // Redirect to login
-            setIsPasswordSetup(false);
-            setIsLogin(true);
-            setPassword('');
-            setConfirmPassword('');
-          }
-        } catch (error) {
-          console.error('Error during employee registration:', error);
-          toast.error('Fehler beim Erstellen des Kontos');
+        if (authData.user) {
+          await supabase.from('employee_invitations').update({ status: 'accepted' }).eq('invite_token', invitationData.invite_token);
+          await supabase.from('employees').update({ user_id: authData.user.id, status: 'active' }).eq('email', invitationData.email.toLowerCase());
+          await supabase.from('user_roles').insert({ user_id: authData.user.id, role: 'employee' });
+          await supabase.from('profiles').upsert({ id: authData.user.id, email: invitationData.email, first_name: invitationData.employee_data?.firstName || '', last_name: invitationData.employee_data?.lastName || '', company_id: invitationData.company_id });
+          toast.success('Konto erfolgreich erstellt! Sie können sich jetzt anmelden.');
+          setIsPasswordSetup(false); setIsLogin(true); setPassword(''); setConfirmPassword('');
         }
         return;
       }
 
-      // B) Ganz normaler Login
       if (isLogin) {
         const { error } = await signIn(email, password);
-        if (error) {
-          toast.error(error.message);
-        } else {
-          // Remove success toast - just navigate silently
-          navigate('/manager');
-        }
+        if (error) { toast.error(error.message); } else { navigate('/manager2'); }
         return;
       }
 
-      // C) Registrierung
-      if (password.length < 6) {
-        toast.error('Passwort muss mindestens 6 Zeichen lang sein');
-        return;
-      }
+      if (password.length < 6) { toast.error('Passwort muss mindestens 6 Zeichen lang sein'); return; }
+      if (password !== confirmPassword) { toast.error('Passwörter stimmen nicht überein'); return; }
+      if (userType === 'craftsman' && !companyName) { toast.error('Bitte geben Sie einen Firmennamen an'); return; }
 
-      if (password !== confirmPassword) {
-        toast.error('Passwörter stimmen nicht überein');
-        return;
-      }
-
-      if (userType === 'craftsman' && !companyName) {
-        toast.error('Bitte geben Sie einen Firmennamen an');
-        return;
-      }
-
-      const registrationData = {
-        firstName,
-        lastName,
-        companyName: userType === 'craftsman' ? companyName : '',
-        phone,
-        streetAddress,
-        postalCode,
-        city,
-        country,
-        vatId,
-        voucherCode,
-        referralSource,
-        role: userType
-      };
-
-      const { error } = await signUp(email, password, registrationData);
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success('Registrierung erfolgreich! Bitte bestätigen Sie Ihre E-Mail.');
-      }
+      const { error } = await signUp(email, password, { firstName, lastName, companyName: userType === 'craftsman' ? companyName : '', phone, streetAddress, postalCode, city, country, vatId, voucherCode, referralSource, role: userType });
+      if (error) { toast.error(error.message); } else { toast.success('Registrierung erfolgreich! Bitte bestätigen Sie Ihre E-Mail.'); }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 shadow-lg">
-        <div className="flex items-center justify-center gap-3">
-          <img
-            src="/handwerkos-logo.svg"
-            alt="HandwerkOS Logo"
-            className="h-12 w-12 object-contain"
-          />
-          <h1 className="text-3xl font-bold tracking-wide">HandwerkOS</h1>
+    <div className="min-h-screen flex bg-slate-950">
+      {/* Left Panel */}
+      <div className="hidden lg:flex lg:w-[45%] xl:w-[40%] flex-col justify-between p-12 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden flex-shrink-0">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-32 -left-32 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
+          <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl" />
         </div>
-        <p className="text-center text-blue-100 mt-2 text-sm">
-          Die moderne Software-Lösung für Handwerksbetriebe
-        </p>
+
+        <div className="relative">
+          <span className="text-white text-xl font-bold tracking-tight">HandwerkOS</span>
+        </div>
+
+        <div className="relative space-y-8">
+          <div className="space-y-4">
+            <h2 className="text-4xl xl:text-5xl font-bold text-white leading-tight">
+              Dein Betrieb.<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">Digital perfekt.</span>
+            </h2>
+            <p className="text-slate-400 text-lg leading-relaxed max-w-sm">
+              Die moderne All-in-One Lösung für Handwerksbetriebe. Angebote, Rechnungen, Mitarbeiter – alles an einem Ort.
+            </p>
+          </div>
+          <div className="space-y-4">
+            {[
+              { Icon: FileText, label: 'Angebote & Rechnungen in Sekunden' },
+              { Icon: Users, label: 'Kunden & Projekte verwalten' },
+              { Icon: CalendarDays, label: 'Plantafel & Zeiterfassung' },
+              { Icon: BarChart3, label: 'Live-Dashboard & KPIs' },
+            ].map(({ Icon, label }) => (
+              <div key={label} className="flex items-center gap-3">
+                <Icon className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                <span className="text-slate-300 text-sm">{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="relative">
+          <p className="text-slate-600 text-xs">© 2026 HandwerkOS · Datenschutz · Impressum</p>
+        </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex items-center justify-center min-h-[calc(100vh-120px)] p-4">
-        <Card className="w-full max-w-2xl shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-          <CardHeader className="text-center space-y-4 pb-8">
-            <CardTitle className="flex items-center justify-center gap-3 text-2xl font-bold text-gray-800">
-              {isPasswordSetup ? (
-                <>
-                  <div className="p-2 bg-blue-100 rounded-full">
-                    <Key className="h-6 w-6 text-blue-600" />
-                  </div>
-                  Passwort erstellen
-                </>
-              ) : isLogin ? (
-                <>
-                  <div className="p-2 bg-green-100 rounded-full">
-                    <User className="h-6 w-6 text-green-600" />
-                  </div>
-                  Anmeldung
-                </>
-              ) : (
-                <>
-                  <div className="p-2 bg-orange-100 rounded-full">
-                    <UserPlus className="h-6 w-6 text-orange-600" />
-                  </div>
-                  Registrierung
-                </>
-              )}
-            </CardTitle>
-            <CardDescription className="text-base text-gray-600">
-              {isPasswordSetup
-                ? 'Erstellen Sie Ihr Passwort für Ihren HandwerkOS Account'
-                : isLogin
-                  ? 'Willkommen zurück! Melden Sie sich in Ihrem HandwerkOS Account an'
-                  : 'Starten Sie jetzt mit HandwerkOS und digitalisieren Sie Ihren Betrieb'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {isPasswordSetup ? (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Neues Passwort</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      placeholder="Mindestens 6 Zeichen"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Passwort bestätigen</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                      placeholder="Passwort wiederholen"
-                    />
-                  </div>
-                </>
-              ) : isLogin ? (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">E-Mail</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      placeholder="ihre@email.de"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Passwort</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      placeholder="Ihr Passwort"
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Linke Spalte */}
-                    <div className="space-y-6">
+      {/* Right Panel */}
+      <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-12 bg-white overflow-y-auto">
+        <div className="lg:hidden mb-10">
+          <span className="text-slate-900 text-lg font-bold">HandwerkOS</span>
+        </div>
 
-                      {/* Persönliche Daten */}
-                      <div className="space-y-4">
-                        <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">
-                          Persönliche Daten
-                        </h3>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="firstName">Vorname *</Label>
-                            <Input
-                              id="firstName"
-                              type="text"
-                              value={firstName}
-                              onChange={(e) => setFirstName(e.target.value)}
-                              required
-                              placeholder="Ihr Vorname"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="lastName">Nachname *</Label>
-                            <Input
-                              id="lastName"
-                              type="text"
-                              value={lastName}
-                              onChange={(e) => setLastName(e.target.value)}
-                              required
-                              placeholder="Ihr Nachname"
-                            />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="email">E-Mail *</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            placeholder="ihre@email.de"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="phone">Telefon</Label>
-                          <Input
-                            id="phone"
-                            type="tel"
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            placeholder="+49 123 456789"
-                          />
-                        </div>
-                      </div>
+        <div className="w-full max-w-md">
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold text-slate-900">
+              {isPasswordSetup ? 'Passwort erstellen' : isLogin ? 'Willkommen zurück' : 'Konto erstellen'}
+            </h1>
+            <p className="text-slate-500 text-sm mt-1.5">
+              {isPasswordSetup ? 'Legen Sie Ihr Passwort fest, um loszulegen.' : isLogin ? 'Melden Sie sich in Ihrem Account an.' : 'Starten Sie kostenlos mit HandwerkOS.'}
+            </p>
+          </div>
 
-                      {/* Firmendaten - Only for Craftsmen */}
-                      {userType === 'craftsman' && (
-                        <div className="space-y-4">
-                          <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">
-                            Firmendaten
-                          </h3>
-                          <div className="space-y-2">
-                            <Label htmlFor="companyName">Firmenname *</Label>
-                            <Input
-                              id="companyName"
-                              type="text"
-                              value={companyName}
-                              onChange={(e) => setCompanyName(e.target.value)}
-                              required={userType === 'craftsman'}
-                              placeholder="Ihre Firma"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="vatId">USt-IdNr.</Label>
-                            <Input
-                              id="vatId"
-                              type="text"
-                              value={vatId}
-                              onChange={(e) => setVatId(e.target.value)}
-                              placeholder="DE123456789"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Zusätzliche Angaben */}
-                      <div className="space-y-4">
-                        <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">
-                          Zusätzliche Angaben (optional)
-                        </h3>
-                        <div className="space-y-2">
-                          <Label htmlFor="voucherCode">Gutscheincode</Label>
-                          <Input
-                            id="voucherCode"
-                            type="text"
-                            value={voucherCode}
-                            onChange={(e) => setVoucherCode(e.target.value)}
-                            placeholder="Falls vorhanden"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="referralSource">Wie haben Sie von uns erfahren?</Label>
-                          <Select value={referralSource} onValueChange={setReferralSource}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Bitte auswählen" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Google">Google</SelectItem>
-                              <SelectItem value="Social Media">Social Media</SelectItem>
-                              <SelectItem value="Empfehlung">Empfehlung</SelectItem>
-                              <SelectItem value="Werbung">Werbung</SelectItem>
-                              <SelectItem value="Messe">Messe</SelectItem>
-                              <SelectItem value="Sonstiges">Sonstiges</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {isPasswordSetup ? (
+              <>
+                <div className="space-y-1.5">
+                  <Label htmlFor="password" className="text-slate-700 font-medium text-sm">Neues Passwort</Label>
+                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="Mindestens 6 Zeichen" className="h-11 border-slate-200" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="confirmPassword" className="text-slate-700 font-medium text-sm">Passwort bestätigen</Label>
+                  <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required placeholder="Passwort wiederholen" className="h-11 border-slate-200" />
+                </div>
+              </>
+            ) : isLogin ? (
+              <>
+                <div className="space-y-1.5">
+                  <Label htmlFor="email" className="text-slate-700 font-medium text-sm">E-Mail</Label>
+                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="ihre@email.de" className="h-11 border-slate-200" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="password" className="text-slate-700 font-medium text-sm">Passwort</Label>
+                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="Ihr Passwort" className="h-11 border-slate-200" />
+                </div>
+              </>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Persönliche Daten</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-slate-700 font-medium text-sm">Vorname *</Label>
+                      <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} required placeholder="Max" className="h-10 border-slate-200" />
                     </div>
-
-                    {/* Rechte Spalte */}
-                    <div className="space-y-6">
-                      {/* Adresse */}
-                      <div className="space-y-4">
-                        <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">
-                          Adresse
-                        </h3>
-                        <div className="space-y-2">
-                          <Label htmlFor="streetAddress">Straße & Hausnummer</Label>
-                          <Input
-                            id="streetAddress"
-                            type="text"
-                            value={streetAddress}
-                            onChange={(e) => setStreetAddress(e.target.value)}
-                            placeholder="Musterstraße 123"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="postalCode">PLZ</Label>
-                            <Input
-                              id="postalCode"
-                              type="text"
-                              value={postalCode}
-                              onChange={(e) => setPostalCode(e.target.value)}
-                              placeholder="12345"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="city">Stadt</Label>
-                            <Input
-                              id="city"
-                              type="text"
-                              value={city}
-                              onChange={(e) => setCity(e.target.value)}
-                              placeholder="Musterstadt"
-                            />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="country">Land</Label>
-                          <Select value={country} onValueChange={setCountry}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Land auswählen" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Deutschland">Deutschland</SelectItem>
-                              <SelectItem value="Österreich">Österreich</SelectItem>
-                              <SelectItem value="Schweiz">Schweiz</SelectItem>
-                              <SelectItem value="Niederlande">Niederlande</SelectItem>
-                              <SelectItem value="Belgien">Belgien</SelectItem>
-                              <SelectItem value="Frankreich">Frankreich</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      {/* Passwort */}
-                      <div className="space-y-4">
-                        <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">
-                          Passwort
-                        </h3>
-                        <div className="space-y-2">
-                          <Label htmlFor="password">Passwort *</Label>
-                          <Input
-                            id="password"
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            placeholder="Mindestens 6 Zeichen"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="confirmPassword">Passwort bestätigen *</Label>
-                          <Input
-                            id="confirmPassword"
-                            type="password"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            required
-                            placeholder="Passwort wiederholen"
-                          />
-                        </div>
-                      </div>
-
-                      {/* AGB */}
-                      <div className="space-y-4">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="terms"
-                            required
-                          />
-                          <Label htmlFor="terms" className="text-sm">
-                            Ich stimme den{" "}
-                            <a
-                              href="#"
-                              className="text-primary underline hover:no-underline"
-                              onClick={(e) => e.preventDefault()}
-                            >
-                              Allgemeinen Geschäftsbedingungen
-                            </a>{" "}
-                            und der{" "}
-                            <a
-                              href="#"
-                              className="text-primary underline hover:no-underline"
-                              onClick={(e) => e.preventDefault()}
-                            >
-                              Datenschutzerklärung
-                            </a>{" "}
-                            zu *
-                          </Label>
-                        </div>
-                      </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-slate-700 font-medium text-sm">Nachname *</Label>
+                      <Input value={lastName} onChange={(e) => setLastName(e.target.value)} required placeholder="Muster" className="h-10 border-slate-200" />
                     </div>
                   </div>
-                </>
-              )}
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-700 font-medium text-sm">E-Mail *</Label>
+                    <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="ihre@email.de" className="h-10 border-slate-200" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-700 font-medium text-sm">Telefon</Label>
+                    <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+49 123 456789" className="h-10 border-slate-200" />
+                  </div>
+                  {userType === 'craftsman' && (
+                    <>
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider pt-2">Firmendaten</p>
+                      <div className="space-y-1.5">
+                        <Label className="text-slate-700 font-medium text-sm">Firmenname *</Label>
+                        <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} required placeholder="Muster GmbH" className="h-10 border-slate-200" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-slate-700 font-medium text-sm">USt-IdNr.</Label>
+                        <Input value={vatId} onChange={(e) => setVatId(e.target.value)} placeholder="DE123456789" className="h-10 border-slate-200" />
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div className="space-y-4">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Adresse & Sicherheit</p>
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-700 font-medium text-sm">Straße & Hausnummer</Label>
+                    <Input value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="Musterstraße 1" className="h-10 border-slate-200" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-slate-700 font-medium text-sm">PLZ</Label>
+                      <Input value={postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="12345" className="h-10 border-slate-200" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-slate-700 font-medium text-sm">Stadt</Label>
+                      <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Musterstadt" className="h-10 border-slate-200" />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-700 font-medium text-sm">Passwort *</Label>
+                    <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="Min. 6 Zeichen" className="h-10 border-slate-200" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-700 font-medium text-sm">Passwort bestätigen *</Label>
+                    <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required placeholder="Wiederholen" className="h-10 border-slate-200" />
+                  </div>
+                  <div className="flex items-start gap-2 pt-1">
+                    <Checkbox id="terms" required className="mt-0.5" />
+                    <Label htmlFor="terms" className="text-xs text-slate-500 leading-relaxed cursor-pointer">
+                      Ich stimme den{' '}
+                      <a href="#" className="text-slate-800 underline underline-offset-2" onClick={(e) => e.preventDefault()}>AGB</a>{' '}
+                      und der{' '}
+                      <a href="#" className="text-slate-800 underline underline-offset-2" onClick={(e) => e.preventDefault()}>Datenschutzerklärung</a> zu *
+                    </Label>
+                  </div>
+                </div>
+              </div>
+            )}
 
-              <Button
-                type="submit"
-                className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200"
-                disabled={loading}
-              >
+            <div className="pt-2">
+              <Button type="submit" className="w-full h-11 font-semibold bg-slate-900 hover:bg-slate-800 text-white rounded-lg shadow-sm transition-all" disabled={loading}>
                 {loading ? (
-                  <div className="flex items-center gap-3">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    {isPasswordSetup ? 'Wird erstellt...' : isLogin ? 'Wird angemeldet...' : 'Wird registriert...'}
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    {isPasswordSetup ? 'Wird erstellt...' : isLogin ? 'Anmelden...' : 'Registrieren...'}
                   </div>
                 ) : isPasswordSetup ? (
-                  <>
-                    <Key className="h-5 w-5 mr-2" />
-                    Passwort erstellen
-                  </>
+                  <><Key className="h-4 w-4 mr-2" />Passwort erstellen</>
                 ) : isLogin ? (
-                  <>
-                    <User className="h-5 w-5 mr-2" />
-                    Jetzt anmelden
-                  </>
+                  <><User className="h-4 w-4 mr-2" />Jetzt anmelden</>
                 ) : (
-                  <>
-                    <UserPlus className="h-5 w-5 mr-2" />
-                    Kostenlos registrieren
-                  </>
+                  <><UserPlus className="h-4 w-4 mr-2" />Kostenlos registrieren</>
                 )}
               </Button>
+            </div>
 
-              {!isPasswordSetup && (
-                <div className="text-center pt-4 border-t">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => setIsLogin(!isLogin)}
-                    className="text-sm text-gray-600 hover:text-blue-600 font-medium"
-                  >
-                    {isLogin ? 'Noch kein Account? Jetzt kostenlos registrieren' : 'Bereits registriert? Zur Anmeldung'}
-                  </Button>
-                </div>
-              )}
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Footer */}
-      <div className="text-center pb-6">
-        <p className="text-sm text-gray-500">
-          © 2024 HandwerkOS - Die digitale Zukunft des Handwerks
-        </p>
-        <div className="flex justify-center gap-6 mt-2 text-xs text-gray-400">
-          <button className="hover:text-blue-600 transition-colors">Datenschutz</button>
-          <button className="hover:text-blue-600 transition-colors">Impressum</button>
-          <button className="hover:text-blue-600 transition-colors">Support</button>
+            {!isPasswordSetup && (
+              <p className="text-center text-sm text-slate-500 pt-1">
+                {isLogin ? 'Noch kein Account?' : 'Bereits registriert?'}{' '}
+                <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-slate-900 font-semibold hover:underline underline-offset-2">
+                  {isLogin ? 'Jetzt registrieren' : 'Zur Anmeldung'}
+                </button>
+              </p>
+            )}
+          </form>
         </div>
       </div>
     </div>

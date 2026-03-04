@@ -56,7 +56,7 @@ const JobSearchFeed = () => {
                 <div className="container mx-auto px-4 py-4 space-y-4">
                     <div className="flex justify-between items-center">
                         <h1 className="text-xl font-bold text-slate-900">Aufträge finden</h1>
-                        <Button variant="ghost" size="sm" onClick={() => navigate('/manager')}>
+                        <Button variant="ghost" size="sm" onClick={() => navigate('/manager2')}>
                             Zurück zum Dashboard
                         </Button>
                     </div>

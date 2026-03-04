@@ -15,7 +15,7 @@ const MobileAuth: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [safeAreaInsets, setSafeAreaInsets] = useState({ top: 0, bottom: 0 });
-  
+
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
@@ -28,7 +28,7 @@ const MobileAuth: React.FC = () => {
         setSafeAreaInsets({ top: isNaN(top) ? 44 : top, bottom: isNaN(bottom) ? 34 : bottom });
       }
     };
-    
+
     getSafeAreaInsets();
   }, []);
 
@@ -42,10 +42,10 @@ const MobileAuth: React.FC = () => {
     setLoading(true);
     try {
       const result = await signIn(email, password);
-      
+
       // Hole die aktuelle Session nach dem Login
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (session?.user) {
         // Rolle abrufen
         const { data: roleData } = await supabase
@@ -53,14 +53,14 @@ const MobileAuth: React.FC = () => {
           .select('role')
           .eq('user_id', session.user.id)
           .single();
-        
+
         const userRole = roleData?.role || 'employee';
-        
+
         toast.success('Erfolgreich angemeldet');
-        
+
         // Rollenbasierte Weiterleitung
         if (userRole === 'manager') {
-          navigate('/manager');
+          navigate('/manager2');
         } else {
           navigate('/employee');
         }
@@ -76,21 +76,21 @@ const MobileAuth: React.FC = () => {
   };
 
   return (
-    <div 
-      className="h-full bg-white flex flex-col justify-center" 
-      style={{ 
-        paddingTop: `${Math.max(safeAreaInsets.top, 44)}px`, 
-        paddingBottom: `${Math.max(safeAreaInsets.bottom, 20)}px` 
+    <div
+      className="h-full bg-white flex flex-col justify-center"
+      style={{
+        paddingTop: `${Math.max(safeAreaInsets.top, 44)}px`,
+        paddingBottom: `${Math.max(safeAreaInsets.bottom, 20)}px`
       }}
     >
       {/* Header */}
       <div className="text-center mb-8">
         <div className="flex justify-center items-center mb-2">
-          <img 
-            src="/favicon-32x32.png" 
-            alt="HandwerkOS Logo" 
+          <img
+            src="/favicon-32x32.png"
+            alt="HandwerkOS Logo"
             className="h-6 w-6 mr-2"
-            style={{ 
+            style={{
               imageRendering: '-webkit-optimize-contrast'
             }}
             onError={(e) => {

@@ -81,7 +81,7 @@ const AddCustomerDialog = ({ isOpen, onClose, onCustomerAdded }: AddCustomerDial
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validierung
     if (!formData.company_name || !formData.contact_person || !formData.email) {
       toast({
@@ -104,7 +104,7 @@ const AddCustomerDialog = ({ isOpen, onClose, onCustomerAdded }: AddCustomerDial
     }
 
     onCustomerAdded(formData);
-    
+
     // Formular zurücksetzen
     setFormData({
       company_name: '',
@@ -150,7 +150,7 @@ const AddCustomerDialog = ({ isOpen, onClose, onCustomerAdded }: AddCustomerDial
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl">
         <DialogHeader>
           <DialogTitle>Neuen Kunden hinzufügen</DialogTitle>
           <DialogDescription>
@@ -169,7 +169,7 @@ const AddCustomerDialog = ({ isOpen, onClose, onCustomerAdded }: AddCustomerDial
               <TabsTrigger value="zugprd">ZUGPRD 2.0 STANDARD</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="ansprechpartner" className="space-y-4 mt-6">
+            <TabsContent value="ansprechpartner" className="space-y-4 mt-6 h-[280px]">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="company_name">Firmenname *</Label>
@@ -238,7 +238,7 @@ const AddCustomerDialog = ({ isOpen, onClose, onCustomerAdded }: AddCustomerDial
               </div>
             </TabsContent>
 
-            <TabsContent value="kontaktdetails" className="space-y-4 mt-6">
+            <TabsContent value="kontaktdetails" className="space-y-4 mt-6 h-[280px]">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="email">E-Mail *</Label>
@@ -293,7 +293,7 @@ const AddCustomerDialog = ({ isOpen, onClose, onCustomerAdded }: AddCustomerDial
               </div>
             </TabsContent>
 
-            <TabsContent value="adresse" className="space-y-4 mt-6">
+            <TabsContent value="adresse" className="space-y-4 mt-6 h-[280px]">
               <div>
                 <Label htmlFor="address">Straße und Hausnummer</Label>
                 <Input
@@ -345,7 +345,7 @@ const AddCustomerDialog = ({ isOpen, onClose, onCustomerAdded }: AddCustomerDial
               </div>
             </TabsContent>
 
-            <TabsContent value="konditionen" className="space-y-4 mt-6">
+            <TabsContent value="konditionen" className="space-y-4 mt-6 h-[280px]">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="zahlungsziel">Zahlungsziel (Tage)</Label>
@@ -411,7 +411,7 @@ const AddCustomerDialog = ({ isOpen, onClose, onCustomerAdded }: AddCustomerDial
               </div>
             </TabsContent>
 
-            <TabsContent value="zahlungsdaten" className="space-y-4 mt-6">
+            <TabsContent value="zahlungsdaten" className="space-y-4 mt-6 h-[280px]">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="iban">IBAN</Label>
@@ -455,7 +455,7 @@ const AddCustomerDialog = ({ isOpen, onClose, onCustomerAdded }: AddCustomerDial
               </div>
             </TabsContent>
 
-            <TabsContent value="zugprd" className="space-y-4 mt-6">
+            <TabsContent value="zugprd" className="space-y-4 mt-6 h-[280px]">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="zugprd_status">Status</Label>

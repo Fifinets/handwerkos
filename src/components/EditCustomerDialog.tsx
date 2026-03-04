@@ -122,7 +122,7 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!customer) return;
 
     // Validierung
@@ -190,7 +190,7 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl h-[45vh] overflow-y-auto">
+      <DialogContent className="max-w-7xl">
         <DialogHeader>
           <DialogTitle>Kunde bearbeiten</DialogTitle>
           <DialogDescription>
@@ -209,7 +209,7 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
               <TabsTrigger value="zugprd">ZUGPRD 2.0 STANDARD</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="ansprechpartner" className="space-y-4">
+            <TabsContent value="ansprechpartner" className="space-y-4 h-[320px]">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="anrede">Anrede</Label>
@@ -255,7 +255,7 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
               </div>
             </TabsContent>
 
-            <TabsContent value="kontaktdetails" className="space-y-4">
+            <TabsContent value="kontaktdetails" className="space-y-4 h-[320px]">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="email">Emailadresse *</Label>
@@ -333,7 +333,7 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
               </div>
             </TabsContent>
 
-            <TabsContent value="adresse" className="space-y-4">
+            <TabsContent value="adresse" className="space-y-4 h-[320px]">
               <div>
                 <Label htmlFor="address">Straße & Hausnummer</Label>
                 <Input
@@ -371,7 +371,7 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
               </div>
             </TabsContent>
 
-            <TabsContent value="konditionen" className="space-y-4">
+            <TabsContent value="konditionen" className="space-y-4 h-[320px]">
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="zahlungsziel">Zahlungsziel (Tage)</Label>
@@ -414,7 +414,7 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
               </div>
             </TabsContent>
 
-            <TabsContent value="zahlungsdaten" className="space-y-4">
+            <TabsContent value="zahlungsdaten" className="space-y-4 h-[320px]">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="iban">IBAN</Label>
@@ -463,9 +463,9 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
               </div>
             </TabsContent>
 
-            <TabsContent value="zugprd" className="space-y-4">
+            <TabsContent value="zugprd" className="space-y-4 h-[320px]">
               <div className="text-muted-foreground text-sm">
-                Diese Information ist erforderlich, um Rechnungen zu ZUGFeRD 2.0 Standard zu erstellen. 
+                Diese Information ist erforderlich, um Rechnungen zu ZUGFeRD 2.0 Standard zu erstellen.
                 Dieser Standard ist verpflichtend für die Rechnungsstellung an öffentliche Behörden/Auftraggeber.
               </div>
             </TabsContent>
@@ -475,9 +475,9 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
             <Button type="button" variant="outline" onClick={onClose} className="flex-1">
               Abbrechen
             </Button>
-            <Button 
-              type="button" 
-              variant="destructive" 
+            <Button
+              type="button"
+              variant="destructive"
               onClick={handleDelete}
               disabled={deleteCustomerMutation.isPending}
               className="flex items-center gap-2"

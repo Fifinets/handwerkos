@@ -16,7 +16,7 @@ const MobileApp = () => {
         console.log('Checking auth and role...');
         const { data: { session } } = await supabase.auth.getSession();
         setIsAuthenticated(!!session);
-        
+
         if (session?.user) {
           console.log('User found:', session.user.id);
           // Rolle abrufen
@@ -25,12 +25,12 @@ const MobileApp = () => {
             .select('role')
             .eq('user_id', session.user.id)
             .maybeSingle(); // Verwende maybeSingle statt single
-          
+
           console.log('Role data:', roleData, 'Error:', error);
-          
+
           // Wenn keine Rolle gefunden, erstelle einen Default-Eintrag
           let userRole = 'employee';
-          
+
           if (roleData?.role) {
             userRole = roleData.role;
           } else {
@@ -38,13 +38,13 @@ const MobileApp = () => {
             console.log('No role found for user, treating as employee');
             userRole = 'employee';
           }
-          
+
           console.log('User role:', userRole);
-          
+
           // Manager zu /manager weiterleiten
           if (userRole === 'manager') {
             console.log('Redirecting manager to /manager');
-            navigate('/manager');
+            navigate('/manager2');
             return; // Wichtig: Return hier, damit wir nicht weitermachen
           }
         }
@@ -69,7 +69,7 @@ const MobileApp = () => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setIsAuthenticated(!!session);
-      
+
       if (session?.user && event === 'SIGNED_IN') {
         // Bei Login: Rolle prüfen und ggf. weiterleiten
         const { data: roleData } = await supabase
@@ -77,11 +77,11 @@ const MobileApp = () => {
           .select('role')
           .eq('user_id', session.user.id)
           .single();
-        
+
         const userRole = roleData?.role || 'employee';
-        
+
         if (userRole === 'manager') {
-          navigate('/manager');
+          navigate('/manager2');
         }
       }
     });
