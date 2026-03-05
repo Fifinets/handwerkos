@@ -181,7 +181,7 @@ export default function PremiumHero() {
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <QualifyDialog>
                 <MagneticButton className="premium-btn-primary text-lg">
-                  Jetzt auf die Warteliste
+                  Frühzugang sichern
                   <svg
                     className="inline-block ml-2 w-5 h-5"
                     fill="none"

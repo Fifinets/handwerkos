@@ -92,7 +92,7 @@ export default function HandwerkerSoftwarePremium() {
                     color: "var(--premium-bg)",
                   }}
                 >
-                  Auf die Warteliste
+                  Frühzugang sichern
                 </button>
               </QualifyDialog>
             </div>
