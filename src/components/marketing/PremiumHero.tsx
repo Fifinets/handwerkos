@@ -126,7 +126,7 @@ export default function PremiumHero() {
                   clipRule="evenodd"
                 />
               </svg>
-              <span>Bereits 1.000+ Handwerksbetriebe vertrauen uns</span>
+              <span>50+ Handwerksbetriebe haben sich schon beworben</span>
             </div>
 
             {/* Headline */}
