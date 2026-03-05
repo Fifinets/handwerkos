@@ -1,0 +1,11 @@
+Zusätzliche System-Regeln für die Entwicklung in HandwerkOS.
+
+Immer wenn du (die KI) aufgefordert wirst, Datenbank-Migrationen (SQL), RLS-Policies oder Backend-Logik zu erstellen, MUSST du die Regeln in `./docs/SECURITY_RULES.md` sowie `./docs/EU_COMPLIANCE_RULES.md` zwingend beachten.
+
+1. RLS (Row Level Security) IMMER aktivieren.
+2. NIEMALS `USING (true)` für authentifizierte Nutzer verwenden.
+3. IMMER über `company_id` und `public.user_has_company_access()` filtern.
+4. Keine Service-Rollen-Schlüssel in `.tsx` oder `client.ts` Dateien.
+5. Ohne Login (anon) nur über SECURITY DEFINER Funktionen zugreifen.
+
+Halte dich an diese Vorgaben, egal ob der Nutzer explizit danach fragt oder nicht. Sicherheit hat in diesem System oberste Priorität.

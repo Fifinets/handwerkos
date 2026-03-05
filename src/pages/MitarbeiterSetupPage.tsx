@@ -47,23 +47,16 @@ const MitarbeiterSetupPage = () => {
         // console.log('All invitations in DB:', allInvitations);
         // console.log('List error:', listError);
 
-        // Validate invitation token
-        const { data: invitation, error: inviteError } = await supabase
-          .from('employee_invitations')
-          .select('*')
-          .eq('invite_token', token)
-          .eq('status', 'pending')
-          .single();
+        // Validate invitation token via SECURITY DEFINER function
+        // (Direct table access is blocked for anon users)
+        const { data: invitations, error: inviteError } = await supabase
+          .rpc('get_invitation_by_token', { p_token: token });
+        const invitation = invitations && invitations.length > 0 ? invitations[0] : null;
 
         // console.log('Query result:', { invitation, inviteError });
 
         if (inviteError) {
-          // console.error('Database error:', inviteError);
-          if (inviteError.code === 'PGRST116') {
-            toast.error('Einladung nicht gefunden. Möglicherweise wurde sie bereits verwendet oder ist abgelaufen.');
-          } else {
-            toast.error(`Datenbankfehler: ${inviteError.message}`);
-          }
+          toast.error(`Datenbankfehler: ${inviteError.message}`);
           setValidationFailed(true);
           return;
         }
@@ -151,11 +144,9 @@ const MitarbeiterSetupPage = () => {
       }
 
       if (authData.user) {
-        // Mark invitation as accepted
+        // Mark invitation as accepted via SECURITY DEFINER function
         await supabase
-          .from('employee_invitations')
-          .update({ status: 'accepted' })
-          .eq('invite_token', invitationData.invite_token);
+          .rpc('accept_invitation_by_token', { p_token: invitationData.invite_token });
 
         // Link employee record to the new user
         await supabase

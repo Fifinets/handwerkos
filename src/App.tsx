@@ -168,6 +168,8 @@ const EventBusQueryInvalidation = () => {
   return null;
 };
 
+import CookieBanner from "./components/CookieBanner";
+
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -176,6 +178,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <CookieBanner />
           <BrowserRouter>
             <GoogleAnalytics />
             <Routes>

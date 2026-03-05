@@ -4549,6 +4549,10 @@ export type Database = {
           project_id: string
         }[]
       }
+      accept_invitation_by_token: {
+        Args: { p_token: string }
+        Returns: boolean
+      }
       add_invoice_manual_item: {
         Args: {
           p_description: string
@@ -4705,6 +4709,21 @@ export type Database = {
       | { Args: never; Returns: string }
       | { Args: { p_company_id: string }; Returns: string }
       generate_quote_number: { Args: never; Returns: string }
+      get_invitation_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          id: string
+          email: string
+          invited_by: string | null
+          company_id: string
+          invite_token: string
+          expires_at: string
+          employee_data: Json | null
+          status: string
+          created_at: string
+          updated_at: string
+        }[]
+      }
       get_active_cost_centers: {
         Args: { p_company_id: string }
         Returns: {

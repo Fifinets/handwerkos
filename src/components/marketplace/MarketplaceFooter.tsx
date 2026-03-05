@@ -27,6 +27,7 @@ const MarketplaceFooter = () => {
                             <li><Link to="/datenschutz" className="hover:text-white transition-colors">Datenschutz</Link></li>
                             <li><Link to="/privacy" className="hover:text-white transition-colors">AGB</Link></li>
                             <li><Link to="/datenschutz" className="hover:text-white transition-colors">Nutzungsbedingungen</Link></li>
+                            <li><button onClick={() => (window as any).openCookieSettings?.()} className="hover:text-white transition-colors">Cookie-Einstellungen</button></li>
                         </ul>
                     </div>
 

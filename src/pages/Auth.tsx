@@ -45,19 +45,12 @@ const Auth: React.FC = () => {
 
       if (mode === 'employee-setup' && inviteToken) {
         try {
-          const { data: invitation, error: inviteError } = await supabase
-            .from('employee_invitations')
-            .select('*')
-            .eq('invite_token', inviteToken)
-            .eq('status', 'pending')
-            .single();
+          const { data: invitations, error: inviteError } = await supabase
+            .rpc('get_invitation_by_token', { p_token: inviteToken });
+          const invitation = invitations && invitations.length > 0 ? invitations[0] : null;
 
           if (inviteError || !invitation) {
             toast.error('Ungültiger oder abgelaufener Einladungslink.');
-            return;
-          }
-          if (new Date(invitation.expires_at) < new Date()) {
-            toast.error('Dieser Einladungslink ist abgelaufen.');
             return;
           }
           setEmail(invitation.email);
@@ -91,7 +84,7 @@ const Auth: React.FC = () => {
         if (signUpError) { toast.error(signUpError.message || 'Fehler beim Erstellen des Kontos'); return; }
 
         if (authData.user) {
-          await supabase.from('employee_invitations').update({ status: 'accepted' }).eq('invite_token', invitationData.invite_token);
+          await supabase.rpc('accept_invitation_by_token', { p_token: invitationData.invite_token });
           await supabase.from('employees').update({ user_id: authData.user.id, status: 'active' }).eq('email', invitationData.email.toLowerCase());
           await supabase.from('user_roles').insert({ user_id: authData.user.id, role: 'employee' });
           await supabase.from('profiles').upsert({ id: authData.user.id, email: invitationData.email, first_name: invitationData.employee_data?.firstName || '', last_name: invitationData.employee_data?.lastName || '', company_id: invitationData.company_id });
@@ -157,7 +150,15 @@ const Auth: React.FC = () => {
         </div>
 
         <div className="relative">
-          <p className="text-slate-600 text-xs">© 2026 HandwerkOS · Datenschutz · Impressum</p>
+          <div className="text-slate-600 text-xs flex flex-wrap gap-2">
+            <span>© 2026 HandwerkOS</span>
+            <span>·</span>
+            <a href="/datenschutz" className="hover:text-slate-400">Datenschutz</a>
+            <span>·</span>
+            <a href="/impressum" className="hover:text-slate-400">Impressum</a>
+            <span>·</span>
+            <button onClick={() => (window as any).openCookieSettings?.()} className="hover:text-slate-400">Cookies</button>
+          </div>
         </div>
       </div>
 

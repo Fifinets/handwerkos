@@ -2,7 +2,7 @@ import ReactGA from 'react-ga4'
 import { Capacitor } from '@capacitor/core'
 
 // Google Analytics Measurement ID
-const GA_MEASUREMENT_ID = 'G-M69SXHL9RX'
+export const GA_MEASUREMENT_ID = 'G-M69SXHL9RX'
 
 // Check if gtag is available
 declare global {
@@ -12,30 +12,112 @@ declare global {
   }
 }
 
-// Initialisiere Google Analytics nur für Web, nicht für Mobile Apps
-export const initGA = () => {
-  // Nur auf Web-Plattform initialisieren, nicht in der mobilen App
-  if (!Capacitor.isNativePlatform() && typeof window !== 'undefined') {
-    try {
-      // Warte bis gtag verfügbar ist (vom HTML Script)
-      if (typeof window.gtag !== 'undefined') {
-        ReactGA.initialize(GA_MEASUREMENT_ID, {
-          gaOptions: {
-            anonymize_ip: true, // IP-Anonymisierung für DSGVO
-            cookie_flags: 'SameSite=None;Secure' // Sichere Cookie-Einstellungen
-          }
-        })
-        console.log('Google Analytics initialized with React-GA4')
-      } else {
-        console.warn('gtag not available, using fallback initialization')
-        // Fallback: Direkt über gtag wenn React-GA4 nicht funktioniert
-        setTimeout(() => initGA(), 100)
+/**
+ * Initializes and loads Google Analytics dynamically, ensuring it's only loaded once.
+ * Also configures Google Consent Mode V2 to 'granted'.
+ */
+export const loadAnalytics = () => {
+  if (Capacitor.isNativePlatform() || typeof window === 'undefined') return;
+
+  // Prevent duplicate injection if the script is already there
+  if (document.querySelector('script[data-ga="true"]')) {
+    updateConsentState('granted');
+    return;
+  }
+
+  // Initialize dataLayer and gtag function
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function gtag() {
+    window.dataLayer.push(arguments);
+  };
+
+  // Google Consent Mode V2 - Set initial state to granted since this function 
+  // is only called AFTER the user explicitly opts in.
+  window.gtag('consent', 'default', {
+    'analytics_storage': 'granted',
+    'ad_storage': 'denied', // We only use GA for analytics, no ads
+    'ad_user_data': 'denied',
+    'ad_personalization': 'denied',
+  });
+
+  window.gtag('js', new Date());
+  window.gtag('config', GA_MEASUREMENT_ID, {
+    send_page_view: false, // ReactGA handles this
+    anonymize_ip: true,
+    cookie_flags: 'SameSite=None;Secure'
+  });
+
+  // Inject the GA scripts
+  const gtagScript = document.createElement('script');
+  gtagScript.setAttribute('data-ga', 'true');
+  gtagScript.async = true;
+  gtagScript.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+
+  gtagScript.onload = () => {
+    // Initialize ReactGA4 after the script has loaded
+    ReactGA.initialize(GA_MEASUREMENT_ID, {
+      gaOptions: {
+        anonymize_ip: true,
+        cookie_flags: 'SameSite=None;Secure'
       }
-    } catch (error) {
-      console.error('Failed to initialize Google Analytics:', error)
+    });
+  };
+
+  document.head.appendChild(gtagScript);
+};
+
+/**
+ * Updates the Google Consent Mode V2 state dynamically
+ */
+export const updateConsentState = (state: 'granted' | 'denied') => {
+  if (typeof window.gtag === 'function') {
+    window.gtag('consent', 'update', {
+      'analytics_storage': state
+    });
+  }
+};
+
+/**
+ * Disables tracking and attempts to remove existing GA cookies.
+ * Used when a user revokes consent.
+ */
+export const removeAnalytics = () => {
+  // Update Consent Mode V2 immediately
+  updateConsentState('denied');
+
+  // GA sets cookies on the primary domain and subdomains.
+  // We attempt to delete the most common GA cookies (_ga, _gat, _gid, etc.)
+  const cookies = document.cookie.split(';');
+  const domain = window.location.hostname;
+  const rootDomain = `.${domain.split('.').slice(-2).join('.')}`;
+  const gaCookiesPrefixes = ['_ga', '_gid', '_gat'];
+
+  for (let i = 0; i < cookies.length; i++) {
+    const cookie = cookies[i];
+    const cookieNameWrapper = cookie.split('=')[0];
+    if (!cookieNameWrapper) continue;
+
+    const cookieName = cookieNameWrapper.trim();
+    const isGaCookie = gaCookiesPrefixes.some(prefix => cookieName.startsWith(prefix));
+
+    if (isGaCookie) {
+      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${domain};`;
+      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      if (domain.includes('.')) {
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${rootDomain};`;
+      }
     }
   }
-}
+
+  // Force page reload to ensure scripts stop sending pulses and memory is cleared
+  window.location.reload();
+};
+
+export const initGA = () => {
+  // We no longer auto-initialize GA here.
+  // It is now strictly handled by loadAnalytics() after user consent.
+  console.log('initGA called but ignored; GA is now loaded via user consent.');
+};
 
 // Seiten-Tracking
 export const trackPageView = (path: string, title?: string) => {

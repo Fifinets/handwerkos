@@ -3,6 +3,8 @@
 -- where the employee creates their account.
 
 -- Allow anyone with a valid token to read the invitation (SELECT only)
+DROP POLICY IF EXISTS "Anyone can view invitation by token" ON employee_invitations;
+
 CREATE POLICY "Anyone can view invitation by token" ON employee_invitations
   FOR SELECT
   TO anon, authenticated

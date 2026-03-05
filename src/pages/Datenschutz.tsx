@@ -156,19 +156,20 @@ export default function Datenschutz() {
               <li><strong>Analyse-Cookies:</strong> Diese werden nur nach Ihrer ausdrücklichen Einwilligung gesetzt.</li>
             </ul>
             <p>
-              Für das Cookie-Management nutzen wir <strong>iubenda</strong>. Beim ersten Besuch der Website erscheint ein Cookie-Banner,
-              über den Sie Ihre Einwilligung erteilen oder verweigern können.
+              Für das Cookie-Management nutzen wir einen eigenen, DSGVO-konformen Cookie-Banner.
+              Beim ersten Besuch der Website erscheint dieser Banner, über den Sie Ihre Einwilligung
+              erteilen oder verweigern können.
             </p>
             <p>
               Sie können Ihre Cookie-Einstellungen jederzeit ändern, indem Sie auf „Cookie-Einstellungen" im Footer klicken oder
               den folgenden Link nutzen:{" "}
-              <a
-                href="#"
-                className="iubenda-cs-preferences-link hover:underline"
+              <button
+                onClick={() => (window as any).openCookieSettings?.()}
+                className="hover:underline"
                 style={{ color: "var(--premium-accent)" }}
               >
                 Cookie-Einstellungen öffnen
-              </a>
+              </button>
             </p>
           </section>
 
@@ -180,6 +181,7 @@ export default function Datenschutz() {
             <p>
               Diese Website nutzt Google Analytics, einen Webanalysedienst der Google Ireland Limited („Google"),
               Gordon House, Barrow Street, Dublin 4, Irland.
+              Zweck der Datenverarbeitung ist die Reichweitenmessung und Analyse des Nutzerverhaltens.
             </p>
             <p>
               <strong>Wichtig:</strong> Google Analytics wird erst nach Ihrer ausdrücklichen Einwilligung über das Cookie-Banner aktiviert.
@@ -187,14 +189,14 @@ export default function Datenschutz() {
             </p>
             <p>Wir haben folgende Datenschutzmaßnahmen getroffen:</p>
             <ul className="list-disc list-inside space-y-1 ml-4">
+              <li><strong>Google Consent Mode V2:</strong> Vor Ihrer Einwilligung signalisieren wir Google strikt, dass keine Tracker gesetzt werden dürfen ("denied").</li>
               <li><strong>IP-Anonymisierung:</strong> Ihre IP-Adresse wird vor der Übertragung gekürzt.</li>
-              <li><strong>Kein Daten-Sharing:</strong> Wir teilen keine Daten mit Google für Werbezwecke.</li>
+              <li><strong>Kein Daten-Sharing:</strong> Wir teilen keine Daten mit Google für Werbezwecke oder personalisierte Werbung.</li>
               <li><strong>Auftragsverarbeitung:</strong> Wir haben einen Auftragsverarbeitungsvertrag mit Google abgeschlossen.</li>
-              <li><strong>Standardvertragsklauseln:</strong> Für die Datenübertragung in die USA gelten die EU-Standardvertragsklauseln.</li>
             </ul>
             <p>
               Die Verarbeitung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. a DSGVO (Einwilligung). Sie können Ihre Einwilligung
-              jederzeit mit Wirkung für die Zukunft widerrufen, indem Sie Ihre Cookie-Einstellungen ändern.
+              jederzeit mit Wirkung für die Zukunft widerrufen, indem Sie Ihre Cookie-Einstellungen (im Footer) ändern.
             </p>
           </section>
 
@@ -310,7 +312,7 @@ export default function Datenschutz() {
           <p>© {new Date().getFullYear()} HandwerkOS – Filip Bosz</p>
           <div className="flex items-center gap-6">
             <Link to="/impressum" className="hover:text-white transition-colors">Impressum</Link>
-            <a href="#" className="iubenda-cs-preferences-link hover:text-white transition-colors">Cookie-Einstellungen</a>
+            <button onClick={() => (window as any).openCookieSettings?.()} className="hover:text-white transition-colors">Cookie-Einstellungen</button>
           </div>
         </div>
       </footer>

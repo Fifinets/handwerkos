@@ -422,12 +422,12 @@ export default function HandwerkerSoftwarePremium() {
                   {col.links.map((link) => (
                     <li key={link.label}>
                       {link.label === "Cookie-Einstellungen" ? (
-                        <a
-                          href="#"
-                          className="iubenda-cs-preferences-link hover:text-white transition-colors"
+                        <button
+                          onClick={() => (window as any).openCookieSettings?.()}
+                          className="hover:text-white transition-colors text-left"
                         >
                           {link.label}
-                        </a>
+                        </button>
                       ) : link.href.startsWith("#") ? (
                         <a href={link.href} className="hover:text-white transition-colors">
                           {link.label}
