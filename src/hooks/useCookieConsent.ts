@@ -50,19 +50,24 @@ export function useCookieConsent() {
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         setConsentStatus(status);
-        setIsBannerVisible(status === 'pending');
     };
 
     const acceptConsent = () => {
         saveConsent('accepted');
+        setIsBannerVisible(false);
     };
 
     const rejectConsent = () => {
         saveConsent('rejected');
+        setIsBannerVisible(false);
     };
 
     const openBanner = () => {
         setIsBannerVisible(true);
+    };
+
+    const closeBanner = () => {
+        setIsBannerVisible(false);
     };
 
     return {
@@ -70,7 +75,9 @@ export function useCookieConsent() {
         isBannerVisible,
         acceptConsent,
         rejectConsent,
+        saveConsent,
         openBanner,
+        closeBanner,
         CONSENT_VERSION
     };
 }

@@ -6,8 +6,14 @@ import { Shield, Cookie, X, Settings2 } from 'lucide-react';
 
 
 export default function CookieBanner() {
-    const { consentStatus, isBannerVisible, acceptConsent, rejectConsent, openBanner } = useCookieConsent();
+    const { consentStatus, isBannerVisible, acceptConsent, rejectConsent, openBanner, closeBanner } = useCookieConsent();
     const [showDetails, setShowDetails] = React.useState(false);
+    const [tempAnalytics, setTempAnalytics] = React.useState(consentStatus === 'accepted');
+
+    // Sync local state with global consent status
+    React.useEffect(() => {
+        setTempAnalytics(consentStatus === 'accepted');
+    }, [consentStatus]);
 
     // Expose function globally so links in Footer/Datenschutz can re-open banner
     React.useEffect(() => {
@@ -113,10 +119,10 @@ export default function CookieBanner() {
                                                         </p>
                                                     </div>
                                                     <div
-                                                        className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${consentStatus === 'accepted' ? 'bg-[#00D4FF]' : 'bg-slate-700'}`}
-                                                        onClick={() => consentStatus === 'accepted' ? handleReject() : handleAccept()}
+                                                        className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${tempAnalytics ? 'bg-[#00D4FF]' : 'bg-slate-700'}`}
+                                                        onClick={() => setTempAnalytics(!tempAnalytics)}
                                                     >
-                                                        <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${consentStatus === 'accepted' ? 'right-1' : 'left-1'}`} />
+                                                        <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${tempAnalytics ? 'right-1' : 'left-1'}`} />
                                                     </div>
                                                 </div>
                                             </div>
@@ -148,10 +154,10 @@ export default function CookieBanner() {
                                             Nur notwendige
                                         </button>
                                         <button
-                                            onClick={handleAccept}
+                                            onClick={() => tempAnalytics ? handleAccept() : handleReject()}
                                             className="px-8 py-3 rounded-xl bg-[#00D4FF] text-[#0B0F14] text-base font-bold hover:bg-[#00b8e6] transition-all shadow-lg shadow-[#00D4FF]/20 w-full sm:w-auto whitespace-nowrap"
                                         >
-                                            Alle akzeptieren
+                                            {showDetails ? 'Auswahl speichern' : 'Alle akzeptieren'}
                                         </button>
                                     </div>
                                 </div>
