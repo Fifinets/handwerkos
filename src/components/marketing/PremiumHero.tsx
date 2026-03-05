@@ -3,6 +3,15 @@ import { Link } from "react-router-dom";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { QualifyDialog } from "@/components/marketing/QualifyDialog";
 import { InteractiveDemoPreview } from "@/components/marketing/InteractiveDemoPreview";
+import {
+  Inbox,
+  FileText,
+  ClipboardCheck,
+  HardHat,
+  Truck,
+  Receipt,
+  ChevronRight
+} from "lucide-react";
 
 // Magnetic Button Component
 function MagneticButton({
@@ -126,6 +135,41 @@ export default function PremiumHero() {
               <br />
               <span className="premium-headline-accent">ohne Büro-Chaos?</span>
             </h1>
+
+            {/* Flow Graphic */}
+            <div className="py-2">
+              <p className="text-sm font-medium mb-6 flex items-center gap-2" style={{ color: "var(--premium-accent)" }}>
+                <span className="w-8 h-[1px]" style={{ background: "var(--premium-gradient)" }}></span>
+                Von Anfrage bis Rechnung in einem Flow
+              </p>
+
+              <div className="flex flex-wrap items-center gap-y-6 gap-x-2 md:gap-x-4">
+                {[
+                  { label: 'Anfrage', icon: Inbox },
+                  { label: 'Angebot', icon: FileText },
+                  { label: 'Auftrag', icon: ClipboardCheck },
+                  { label: 'Baustelle', icon: HardHat },
+                  { label: 'Lieferschein', icon: Truck },
+                  { label: 'Rechnung', icon: Receipt },
+                ].map((step, idx, arr) => (
+                  <React.Fragment key={step.label}>
+                    <div className="flex flex-col items-center gap-2 group">
+                      <div className="w-12 h-12 rounded-xl bg-slate-800/50 border border-slate-700 flex items-center justify-center transition-all group-hover:border-[#00D4FF]/50 group-hover:shadow-[0_0_15px_rgba(0,212,255,0.1)]">
+                        <step.icon size={20} className="text-slate-400 group-hover:text-[#00D4FF] transition-colors" />
+                      </div>
+                      <span className="text-[10px] md:text-xs font-medium text-slate-500 group-hover:text-slate-300 transition-colors uppercase tracking-wider">
+                        {step.label}
+                      </span>
+                    </div>
+                    {idx < arr.length - 1 && (
+                      <div className="hidden sm:block text-slate-700 mb-6">
+                        <ChevronRight size={16} />
+                      </div>
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
 
             {/* Subline */}
             <p className="premium-subline max-w-xl">
