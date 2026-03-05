@@ -1,236 +1,170 @@
 import ReactGA from 'react-ga4'
 import { Capacitor } from '@capacitor/core'
 
-// Google Analytics Measurement ID
+/**
+ * GOOGLE ANALYTICS CONFIGURATION
+ * 
+ * We use a custom loading mechanism to comply with GDPR/DSGVO.
+ * No GA scripts are loaded or executed until the user grants consent via the CookieBanner.
+ */
+
 export const GA_MEASUREMENT_ID = 'G-M69SXHL9RX'
 
-// Check if gtag is available
+let isInitialized = false;
+let pendingPageViews: string[] = [];
+
 declare global {
   interface Window {
     gtag: (...args: any[]) => void;
     dataLayer: any[];
+    [key: string]: any;
   }
 }
 
 /**
- * Initializes and loads Google Analytics dynamically, ensuring it's only loaded once.
- * Also configures Google Consent Mode V2 to 'granted'.
+ * Initializes and loads Google Analytics dynamically.
+ * Configures Google Consent Mode V2.
  */
 export const loadAnalytics = () => {
   if (Capacitor.isNativePlatform() || typeof window === 'undefined') return;
 
-  // Prevent duplicate injection if the script is already there
-  if (document.querySelector('script[data-ga="true"]')) {
+  if (isInitialized || document.querySelector('script[data-ga="true"]')) {
+    console.log('[Analytics] GA already loaded or initializing...');
     updateConsentState('granted');
     return;
   }
 
-  // Initialize dataLayer and gtag function
+  console.log('[Analytics] Initializing Google Analytics with Consent Mode V2...');
+
+  // 1. Initialize dataLayer and gtag
   window.dataLayer = window.dataLayer || [];
   window.gtag = function gtag() {
     window.dataLayer.push(arguments);
   };
 
-  // Google Consent Mode V2 - Set initial state to granted since this function 
-  // is only called AFTER the user explicitly opts in.
+  // 2. Set Default Consent (to granted, because loadAnalytics is ONLY called after explicit user consent)
   window.gtag('consent', 'default', {
     'analytics_storage': 'granted',
-    'ad_storage': 'denied', // We only use GA for analytics, no ads
+    'ad_storage': 'denied',
     'ad_user_data': 'denied',
     'ad_personalization': 'denied',
+    'wait_for_update': 500
   });
 
+  // 3. Basic gtag setup
   window.gtag('js', new Date());
-  window.gtag('config', GA_MEASUREMENT_ID, {
-    send_page_view: false, // ReactGA handles this
-    anonymize_ip: true,
-    cookie_flags: 'SameSite=None;Secure'
-  });
 
-  // Inject the GA scripts
+  // 4. Load the script tag manually
   const gtagScript = document.createElement('script');
   gtagScript.setAttribute('data-ga', 'true');
   gtagScript.async = true;
   gtagScript.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
 
   gtagScript.onload = () => {
-    // Initialize ReactGA4 after the script has loaded
-    ReactGA.initialize(GA_MEASUREMENT_ID, {
-      gaOptions: {
-        anonymize_ip: true,
-        cookie_flags: 'SameSite=None;Secure'
+    console.log('[Analytics] GA Script loaded successfully.');
+
+    try {
+      // Initialize ReactGA4 - this will also trigger the 'config' call
+      ReactGA.initialize(GA_MEASUREMENT_ID, {
+        gaOptions: {
+          anonymize_ip: true,
+          cookie_flags: 'SameSite=None;Secure'
+        }
+      });
+
+      isInitialized = true;
+      console.log('[Analytics] ReactGA4 initialized.');
+
+      // Process any pageviews that happened while we were loading
+      if (pendingPageViews.length > 0) {
+        console.log(`[Analytics] Processing ${pendingPageViews.length} pending page views.`);
+        pendingPageViews.forEach(path => trackPageView(path));
+        pendingPageViews = [];
       }
-    });
+    } catch (err) {
+      console.error('[Analytics] Failed to initialize ReactGA4:', err);
+    }
+  };
+
+  gtagScript.onerror = () => {
+    console.error('[Analytics] Failed to load GA script. Check network/AdBlock.');
   };
 
   document.head.appendChild(gtagScript);
 };
 
-/**
- * Updates the Google Consent Mode V2 state dynamically
- */
 export const updateConsentState = (state: 'granted' | 'denied') => {
   if (typeof window.gtag === 'function') {
+    console.log(`[Analytics] Updating consent state to: ${state}`);
     window.gtag('consent', 'update', {
       'analytics_storage': state
     });
   }
 };
 
-/**
- * Disables tracking and attempts to remove existing GA cookies.
- * Used when a user revokes consent.
- */
 export const removeAnalytics = () => {
-  // Update Consent Mode V2 immediately
+  console.log('[Analytics] Revoking consent and removing analytics...');
   updateConsentState('denied');
 
-  // GA sets cookies on the primary domain and subdomains.
-  // We attempt to delete the most common GA cookies (_ga, _gat, _gid, etc.)
+  // Clear common GA cookies
   const cookies = document.cookie.split(';');
   const domain = window.location.hostname;
   const rootDomain = `.${domain.split('.').slice(-2).join('.')}`;
-  const gaCookiesPrefixes = ['_ga', '_gid', '_gat'];
 
-  for (let i = 0; i < cookies.length; i++) {
-    const cookie = cookies[i];
-    const cookieNameWrapper = cookie.split('=')[0];
-    if (!cookieNameWrapper) continue;
-
-    const cookieName = cookieNameWrapper.trim();
-    const isGaCookie = gaCookiesPrefixes.some(prefix => cookieName.startsWith(prefix));
-
-    if (isGaCookie) {
-      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${domain};`;
-      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+  cookies.forEach(cookie => {
+    const name = cookie.split('=')[0].trim();
+    if (name.startsWith('_ga') || name.startsWith('_gid') || name.startsWith('_gat')) {
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${domain};`;
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
       if (domain.includes('.')) {
-        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${rootDomain};`;
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${rootDomain};`;
       }
     }
-  }
+  });
 
-  // Force page reload to ensure scripts stop sending pulses and memory is cleared
+  // Reload to ensure all trackers are dead
   window.location.reload();
 };
 
 export const initGA = () => {
-  // We no longer auto-initialize GA here.
-  // It is now strictly handled by loadAnalytics() after user consent.
-  console.log('initGA called but ignored; GA is now loaded via user consent.');
+  // Just a stub for backward compatibility
+  console.log('[Analytics] initGA ignored - using consent-based loading.');
 };
 
-// Seiten-Tracking
 export const trackPageView = (path: string, title?: string) => {
-  // Nur auf Web-Plattform tracken
-  if (!Capacitor.isNativePlatform() && typeof window !== 'undefined') {
-    try {
-      // Versuche React-GA4
-      ReactGA.send({
-        hitType: 'pageview',
-        page: path,
-        title: title || document.title
-      })
-      console.log('Page view tracked:', path)
-    } catch (error) {
-      // Fallback: Direkt gtag verwenden
-      if (typeof window.gtag !== 'undefined') {
-        window.gtag('config', GA_MEASUREMENT_ID, {
-          page_path: path,
-          page_title: title || document.title
-        })
-        console.log('Page view tracked via gtag:', path)
-      } else {
-        console.error('Failed to track page view:', error)
-      }
-    }
-  }
-}
+  if (Capacitor.isNativePlatform() || typeof window === 'undefined') return;
 
-// Event-Tracking
-export const trackEvent = (
-  category: string,
-  action: string,
-  label?: string,
-  value?: number
-) => {
-  // Nur auf Web-Plattform tracken
-  if (!Capacitor.isNativePlatform() && typeof window !== 'undefined') {
-    try {
-      // Versuche React-GA4
-      ReactGA.event({
-        category,
-        action,
-        label,
-        value
-      })
-      console.log('Event tracked:', { category, action, label, value })
-    } catch (error) {
-      // Fallback: Direkt gtag verwenden
-      if (typeof window.gtag !== 'undefined') {
-        window.gtag('event', action, {
-          event_category: category,
-          event_label: label,
-          value: value
-        })
-        console.log('Event tracked via gtag:', { category, action, label, value })
-      } else {
-        console.error('Failed to track event:', error)
-      }
-    }
+  if (!isInitialized) {
+    console.log(`[Analytics] GA not ready. Queuing page view: ${path}`);
+    pendingPageViews.push(path);
+    return;
   }
-}
 
-// User-Eigenschaften setzen (z.B. für User-Segmentierung)
-export const setUserProperties = (properties: Record<string, any>) => {
-  // Nur auf Web-Plattform
-  if (!Capacitor.isNativePlatform() && typeof window !== 'undefined') {
-    try {
-      ReactGA.set(properties)
-    } catch (error) {
-      console.error('Failed to set user properties:', error)
-    }
+  try {
+    ReactGA.send({
+      hitType: 'pageview',
+      page: path,
+      title: title || document.title
+    });
+    console.log(`[Analytics] Tracked page view: ${path}`);
+  } catch (error) {
+    console.error('[Analytics] Page view tracking failed:', error);
   }
-}
+};
 
-// Conversion-Tracking (z.B. für Registrierungen)
-export const trackConversion = (conversionType: string, value?: number) => {
-  trackEvent('Conversion', conversionType, undefined, value)
-}
+export const trackEvent = (category: string, action: string, label?: string, value?: number) => {
+  if (Capacitor.isNativePlatform() || !isInitialized) return;
 
-// Fehler-Tracking
-export const trackError = (error: string, fatal: boolean = false) => {
-  // Nur auf Web-Plattform
-  if (!Capacitor.isNativePlatform() && typeof window !== 'undefined') {
-    try {
-      ReactGA.event({
-        category: 'Error',
-        action: error,
-        label: fatal ? 'Fatal' : 'Non-Fatal'
-      })
-    } catch (err) {
-      console.error('Failed to track error:', err)
-    }
+  try {
+    ReactGA.event({ category, action, label, value });
+    console.log('[Analytics] Tracked event:', { category, action, label, value });
+  } catch (error) {
+    console.error('[Analytics] Event tracking failed:', error);
   }
-}
+};
 
-// Timing-Tracking (z.B. für Performance-Messungen)
-export const trackTiming = (
-  category: string,
-  variable: string,
-  value: number,
-  label?: string
-) => {
-  // Nur auf Web-Plattform
-  if (!Capacitor.isNativePlatform() && typeof window !== 'undefined') {
-    try {
-      ReactGA.event({
-        category: 'Timing',
-        action: category,
-        label: `${variable}${label ? `: ${label}` : ''}`,
-        value: Math.round(value)
-      })
-    } catch (error) {
-      console.error('Failed to track timing:', error)
-    }
-  }
-}
+// ... other export stubs for backward compatibility ...
+export const setUserProperties = (props: any) => isInitialized && ReactGA.set(props);
+export const trackConversion = (type: string, val?: number) => trackEvent('Conversion', type, undefined, val);
+export const trackError = (err: string, fatal = false) => trackEvent('Error', err, fatal ? 'Fatal' : 'Non-Fatal');
+export const trackTiming = (cat: string, varName: string, val: number, lab?: string) => trackEvent('Timing', cat, `${varName}${lab ? `: ${lab}` : ''}`, Math.round(val));
