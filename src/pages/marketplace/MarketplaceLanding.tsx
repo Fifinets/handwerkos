@@ -14,11 +14,11 @@ const MarketplaceLanding = () => {
             {/* Navigation */}
             <nav className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50">
                 <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="bg-blue-600 p-1.5 rounded-lg">
-                            <Hammer className="h-5 w-5 text-white" />
+                    <div className="flex items-center gap-3">
+                        <div className="h-20 w-auto -my-5 flex items-center justify-center flex-shrink-0">
+                            <img src="/logo.png" alt="Logo" className="w-auto h-full object-contain" />
                         </div>
-                        <span className="font-bold text-xl text-slate-900">HandwerkOS Marktplatz</span>
+                        <span className="font-['Inter'] font-medium text-[1.25rem] tracking-tight text-slate-900">HandwerkOS Marktplatz</span>
                     </div>
                     <div className="flex items-center gap-4">
                         <Button variant="ghost" onClick={() => navigate('/marktplatz/auth')}>Anmelden / Registrieren</Button>

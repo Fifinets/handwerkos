@@ -110,12 +110,10 @@ const Index = () => {
         <div className="flex items-center justify-between h-full px-8">
           <div className="flex items-center space-x-4">
             <div className="flex items-center gap-3">
-              <img
-                src="/handwerkos-logo.svg"
-                alt="HandwerkOS Logo"
-                className="h-10 w-10 object-contain"
-              />
-              <h1 className="font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent text-3xl">
+              <div className="h-24 w-auto -my-6 flex items-center justify-center flex-shrink-0">
+                <img src="/logo.png" alt="Logo" className="w-auto h-full object-contain" />
+              </div>
+              <h1 className="font-['Inter'] font-medium text-[1.5rem] tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 HandwerkOS
               </h1>
             </div>

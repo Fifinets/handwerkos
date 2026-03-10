@@ -1,4 +1,6 @@
 import React, { useState, useRef, useLayoutEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,7 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Trash2, GripVertical, Plus } from 'lucide-react';
+import { Trash2, GripVertical, Plus, Copy, FileText, UserRound } from 'lucide-react';
 import {
   OfferItem,
   OfferItemCreate,
@@ -18,6 +20,23 @@ import {
   OFFER_ITEM_TYPE_LABELS,
   OFFER_ITEM_UNITS,
 } from '@/types/offer';
+
+// Lightweight hook to fetch company employees for the labor-row picker
+function useEmployees() {
+  return useQuery({
+    queryKey: ['employees-picker'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('id, first_name, last_name, hourly_wage')
+        .eq('status', 'active')
+        .order('last_name');
+      if (error) throw error;
+      return data as { id: string; first_name: string; last_name: string; hourly_wage: number | null }[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
 import {
   DndContext,
   closestCenter,
@@ -175,7 +194,9 @@ const ItemRender = ({
   index,
   displayNumber,
   updateItem,
+  onBatchUpdate,
   removeItem,
+  duplicateItem,
   disabled,
   dragHandleProps
 }: {
@@ -183,7 +204,9 @@ const ItemRender = ({
   index: number;
   displayNumber: string | number;
   updateItem?: (index: number, field: keyof OfferItemCreate, value: any) => void;
+  onBatchUpdate?: (index: number, fields: Partial<OfferItemCreate & Record<string, any>>) => void;
   removeItem?: (index: number) => void;
+  duplicateItem?: (index: number) => void;
   disabled?: boolean;
   dragHandleProps?: any;
 }) => {
@@ -274,25 +297,65 @@ const ItemRender = ({
           </div>
         </div>
 
-        {/* 2. Description */}
-        <div className="space-y-1">
-          <Textarea
-            placeholder="Beschreibung der Leistung..."
-            value={item.description}
-            onChange={(e) => updateItem && updateItem(index, 'description', e.target.value)}
-            disabled={disabled}
-            className="min-h-[2.5rem] resize-y bg-transparent border-none shadow-none p-0 focus-visible:ring-0 font-medium text-gray-800 print:text-black print:resize-none"
-          />
+        {/* 2. Description / Employee Picker */}
+        <div className="space-y-1 min-h-[2.5rem] flex flex-col justify-center">
+          {item.item_type === 'travel' && !disabled ? (
+            <>
+              <Textarea
+                placeholder="An- und Abfahrt..."
+                value={item.description}
+                onChange={(e) => updateItem && updateItem(index, 'description', e.target.value)}
+                disabled={disabled}
+                className="min-h-[2.5rem] resize-y bg-transparent border-none shadow-none p-0 focus-visible:ring-0 font-medium text-gray-800 print:text-black print:resize-none"
+              />
+              <div className="text-[10px] text-amber-600 mt-0.5 print:hidden">
+                Menge = km · Preis = €/km (Standard: 0,42 €)
+              </div>
+            </>
+          ) : item.item_type === 'labor' && !disabled ? (
+            <>
+              <div className="print:hidden">
+                <EmployeePicker
+                  selectedName={(item as any).employee_name || null}
+                  placeholder="Mitarbeiter wählen..."
+                  className="h-9 text-sm bg-blue-50/50 border-blue-100 text-blue-900 hover:bg-blue-100/50 w-full rounded-md font-medium shadow-none focus:ring-0"
+                  onSelect={(emp) => {
+                    if (onBatchUpdate) {
+                      onBatchUpdate(index, {
+                        unit_price_net: emp.hourly_wage ?? 0,
+                        employee_name: `${emp.first_name} ${emp.last_name}`,
+                        employee_id: emp.id,
+                        unit: 'Std',
+                        description: `Lohnarbeit / Montage: ${emp.first_name} ${emp.last_name}`,
+                      });
+                    }
+                  }}
+                  onClear={() => {
+                    if (onBatchUpdate) {
+                      onBatchUpdate(index, {
+                        employee_name: undefined,
+                        employee_id: undefined,
+                        description: 'Lohnarbeit / Montage',
+                      });
+                    }
+                  }}
+                />
+              </div>
+              <div className="hidden print:block font-medium text-gray-800">
+                {item.description}
+              </div>
+            </>
+          ) : (
+            <Textarea
+              placeholder="Beschreibung der Leistung..."
+              value={item.description}
+              onChange={(e) => updateItem && updateItem(index, 'description', e.target.value)}
+              disabled={disabled}
+              className="min-h-[2.5rem] resize-y bg-transparent border-none shadow-none p-0 focus-visible:ring-0 font-medium text-gray-800 print:text-black print:resize-none"
+            />
+          )}
           {/* Optional Controls (Hidden in Print) */}
           <div className="flex gap-2 print:hidden opacity-0 group-hover:opacity-100 transition-opacity">
-            <Select value={item.item_type} onValueChange={(value) => updateItem && updateItem(index, 'item_type', value as OfferItemType)} disabled={disabled}>
-              <SelectTrigger className="h-6 text-[10px] w-24 bg-gray-50 border-none"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {Object.entries(OFFER_ITEM_TYPE_LABELS).filter(([k]) => k !== 'page_break').map(([value, label]) => (
-                  <SelectItem key={value} value={value}>{label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
             <div className="flex items-center space-x-1">
               <Checkbox id={`opt-${index}`} checked={item.is_optional} onCheckedChange={(c) => updateItem && updateItem(index, 'is_optional', !!c)} disabled={disabled} className="h-3 w-3" />
               <label htmlFor={`opt-${index}`} className="text-[10px] text-gray-500 cursor-pointer">Optional</label>
@@ -303,6 +366,21 @@ const ItemRender = ({
           {((item as any).discount_percent || 0) > 0 && (
             <div className="text-xs text-orange-600 font-medium mt-1 print:text-gray-600">
               -{(item as any).discount_percent}% Rabatt
+            </div>
+          )}
+          {/* Internal Notes (B5) - editable on hover, hidden in print */}
+          {!disabled && (
+            <input
+              type="text"
+              placeholder="🔒 Interne Notiz (nicht auf Angebot sichtbar)..."
+              value={(item as any).internal_notes || ''}
+              onChange={(e) => updateItem && updateItem(index, 'internal_notes' as any, e.target.value)}
+              className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 w-full mt-1.5 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity print:hidden placeholder:text-amber-400 focus:outline-none focus:border-amber-400"
+            />
+          )}
+          {(item as any).internal_notes && disabled && (
+            <div className="text-[10px] text-amber-700 italic mt-1 print:hidden">
+              🔒 {(item as any).internal_notes}
             </div>
           )}
         </div>
@@ -319,15 +397,11 @@ const ItemRender = ({
         </div>
 
         {/* 4. Unit */}
-        <div className="pt-0.5">
-          <Select value={item.unit} onValueChange={(v) => updateItem && updateItem(index, 'unit', v)} disabled={disabled}>
-            <SelectTrigger className="h-8 bg-transparent border-gray-200 focus:bg-white focus:border-blue-500 print:border-none print:p-0 print:h-auto print:!bg-transparent [&>svg]:hidden">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {OFFER_ITEM_UNITS.map(({ value, label }) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
-            </SelectContent>
-          </Select>
+        <div className="pt-2 text-sm text-gray-500 font-medium text-center">
+          {item.item_type === 'labor' ? 'Std'
+            : item.item_type === 'travel' ? 'km'
+            : ['lump_sum', 'material_lump_sum', 'small_material'].includes(item.item_type) ? 'psch'
+            : item.unit}
         </div>
 
         {/* 5. Unit Price */}
@@ -369,10 +443,15 @@ const ItemRender = ({
         </div>
 
         {/* 7. Actions */}
-        <div className="pt-0.5 text-right print:hidden">
+        <div className="pt-0.5 text-right print:hidden flex flex-col gap-1 items-end">
+          {!disabled && duplicateItem && (
+            <Button type="button" variant="ghost" size="icon" onClick={() => duplicateItem(index)} className="h-7 w-7 text-gray-400 hover:text-blue-500 hover:bg-blue-50 opacity-0 group-hover:opacity-100 transition-opacity" title="Duplizieren">
+              <Copy className="h-3.5 w-3.5" />
+            </Button>
+          )}
           {!disabled && removeItem && (
-            <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(index)} className="h-8 w-8 text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Trash2 className="h-4 w-4" />
+            <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(index)} className="h-7 w-7 text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Trash2 className="h-3.5 w-3.5" />
             </Button>
           )}
         </div>
@@ -413,6 +492,19 @@ export function OfferItemsEditor({
 
   const removeItem = (index: number) => {
     const updatedItems = items.filter((_, i) => i !== index);
+    onChange(updatedItems);
+  };
+
+  const duplicateItem = (index: number) => {
+    const original = items[index];
+    const newItem = {
+      ...original,
+      id: undefined,
+      temp_id: crypto.randomUUID(),
+      position_number: items.length + 1,
+    };
+    const updatedItems = [...items];
+    updatedItems.splice(index + 1, 0, newItem);
     onChange(updatedItems);
   };
 
@@ -634,7 +726,13 @@ export function OfferItemsEditor({
                               index={index}
                               displayNumber={getItemDisplayNumber(index)}
                               updateItem={updateItem}
+                              onBatchUpdate={(idx, fields) => {
+                                const updatedItems = [...items];
+                                updatedItems[idx] = { ...updatedItems[idx], ...fields };
+                                onChange(updatedItems);
+                              }}
                               removeItem={removeItem}
+                              duplicateItem={duplicateItem}
                               disabled={disabled}
                             />
                           </SortableItemWrapper>
@@ -773,11 +871,19 @@ export function OfferItemsEditor({
           const index = items.findIndex(i => (i.id || i.temp_id) === activeDragId);
           const item = items[index];
           if (!item) return null;
+          const displayNum = getItemDisplayNumber(index);
           return (
-            <div className="bg-white shadow-2xl rounded-lg opacity-90 scale-105 pointer-events-none ring-2 ring-blue-500 p-2">
-              <div className="flex items-center gap-4">
-                <span className="font-bold">{item.item_type}</span>
-                <span>{item.description.substring(0, 20)}...</span>
+            <div className="bg-white shadow-2xl rounded-lg opacity-95 scale-105 pointer-events-none ring-2 ring-blue-500 p-3">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 bg-blue-50 rounded flex items-center justify-center text-blue-700 font-bold text-sm flex-shrink-0">
+                  {displayNum || '#'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {item.description.replace(/<\/?b>/g, '').substring(0, 40)}{item.description.length > 40 ? '...' : ''}
+                  </p>
+                  <p className="text-xs text-gray-500">{formatCurrency(calculateItemTotal(item))}</p>
+                </div>
               </div>
             </div>
           );
@@ -788,3 +894,60 @@ export function OfferItemsEditor({
 }
 
 export default OfferItemsEditor;
+
+// --- EmployeePicker Component ---
+type EmployeeRow = { id: string; first_name: string; last_name: string; hourly_wage: number | null };
+
+function EmployeePicker({
+  selectedName,
+  onSelect,
+  onClear,
+  className,
+  placeholder = 'Mitarbeiter wählen',
+}: {
+  selectedName: string | null;
+  onSelect: (emp: EmployeeRow) => void;
+  onClear: () => void;
+  className?: string;
+  placeholder?: string;
+}) {
+  const { data: employees = [], isLoading } = useEmployees();
+
+  const handleChange = (value: string) => {
+    if (value === '__none__') {
+      onClear();
+      return;
+    }
+    const emp = employees.find(e => e.id === value);
+    if (emp) onSelect(emp);
+  };
+
+  return (
+    <div className="flex items-center gap-1.5 print:hidden">
+      <UserRound className="h-3 w-3 text-blue-400 flex-shrink-0" />
+      <Select
+        value={employees.find(e => `${e.first_name} ${e.last_name}` === selectedName)?.id ?? '__none__'}
+        onValueChange={handleChange}
+        disabled={isLoading}
+      >
+        <SelectTrigger className={className || "h-6 text-[10px] bg-blue-50 border-blue-100 text-blue-700 hover:bg-blue-100 w-36 rounded-md"}>
+          <SelectValue placeholder={isLoading ? 'Lade...' : placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__none__" className="text-gray-400 text-xs">Kein Mitarbeiter</SelectItem>
+          {employees.map(emp => (
+            <SelectItem key={emp.id} value={emp.id} className="text-xs">
+              <span>{emp.first_name} {emp.last_name}</span>
+              {emp.hourly_wage != null && (
+                <span className="ml-2 text-gray-400">· {emp.hourly_wage.toFixed(2)} €/Std</span>
+              )}
+            </SelectItem>
+          ))}
+          {employees.length === 0 && !isLoading && (
+            <div className="px-2 py-1.5 text-xs text-gray-400">Keine Mitarbeiter gefunden</div>
+          )}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}

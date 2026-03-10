@@ -24,11 +24,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
-import { 
-  Mail, 
-  Star, 
-  Search, 
-  Filter, 
+import {
+  Mail,
+  Star,
+  Search,
+  Filter,
   RefreshCw,
   Brain,
   ShoppingCart,
@@ -150,13 +150,13 @@ export function EmailModule() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [companyEmail, setCompanyEmail] = useState<string>("");
-  
+
   // Compose form state
   const [composeTo, setComposeTo] = useState("");
   const [composeSubject, setComposeSubject] = useState("");
   const [composeContent, setComposeContent] = useState("");
   const [composePriority, setComposePriority] = useState("normal");
-  
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -238,13 +238,13 @@ export function EmailModule() {
       }, (payload) => {
         const newEmail = payload.new as Email;
         setEmails(prev => [newEmail, ...prev]);
-        
+
         toast({
           title: "📧 Neue E-Mail",
           description: `Von: ${newEmail.sender_name || newEmail.sender_email}`,
           action: (
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               onClick={() => setSelectedEmail(newEmail)}
             >
               Anzeigen
@@ -277,11 +277,11 @@ export function EmailModule() {
 
   const handleEmailSelect = async (email: Email) => {
     setSelectedEmail(email);
-    
+
     if (!email.is_read) {
       await markAsRead([email.id], true);
     }
-    
+
     if (email.thread_id && viewMode === 'conversation') {
       await fetchEmailThread(email.thread_id);
     }
@@ -294,7 +294,7 @@ export function EmailModule() {
       .in('id', emailIds);
 
     if (!error) {
-      setEmails(prev => prev.map(email => 
+      setEmails(prev => prev.map(email =>
         emailIds.includes(email.id) ? { ...email, is_read: isRead } : email
       ));
     }
@@ -335,7 +335,7 @@ export function EmailModule() {
       .eq('id', emailId);
 
     if (!error) {
-      setEmails(prev => prev.map(e => 
+      setEmails(prev => prev.map(e =>
         e.id === emailId ? { ...e, is_starred: !email.is_starred } : e
       ));
     }
@@ -390,7 +390,7 @@ export function EmailModule() {
       title: "E-Mail gesendet",
       description: `E-Mail an ${composeTo} wurde gesendet.`
     });
-    
+
     setIsComposing(false);
     setComposeTo("");
     setComposeSubject("");
@@ -401,7 +401,7 @@ export function EmailModule() {
     try {
       // Extract customer information from email
       let customerId = null;
-      
+
       if (email.customers) {
         // Customer already linked
         const { data: customer } = await supabase
@@ -422,26 +422,24 @@ export function EmailModule() {
           })
           .select()
           .single();
-          
+
         if (!error) {
           customerId = newCustomer.id;
         }
       }
 
       if (customerId) {
-        // Create quote
+        // Create offer
         const { data: quote, error } = await supabase
-          .from('quotes')
+          .from('offers')
           .insert({
-            quote_number: `AG-${Date.now().toString().slice(-6)}`,
+            offer_number: `AG-${Date.now().toString().slice(-6)}`,
             customer_id: customerId,
+            project_id: project.id,
             title: `Angebot bezüglich: ${email.subject}`,
-            description: `Automatisch erstellt aus E-Mail vom ${formatDateToShort(email.received_at)}`,
-            quote_date: new Date().toISOString().split('T')[0],
+            intro_text: `Automatisch erstellt aus E-Mail vom ${formatDateToShort(email.received_at)}`,
             valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 Tage
-            status: 'entwurf',
-            total_amount: 0,
-            currency: 'EUR'
+            status: 'draft',
           })
           .select()
           .single();
@@ -450,8 +448,8 @@ export function EmailModule() {
           // Mark email as processed
           await supabase
             .from('emails')
-            .update({ 
-              ai_extracted_data: { quote_id: quote.id },
+            .update({
+              ai_extracted_data: { offer_id: quote.id },
               processing_status: 'processed'
             })
             .eq('id', email.id);
@@ -492,7 +490,7 @@ export function EmailModule() {
       if (!profile?.company_id) throw new Error('Firma nicht gefunden');
 
       let customerId = null;
-      
+
       if (email.customers) {
         // Customer already linked
         const { data: customer } = await supabase
@@ -513,7 +511,7 @@ export function EmailModule() {
           })
           .select()
           .single();
-          
+
         if (!error) {
           customerId = newCustomer.id;
         }
@@ -539,7 +537,7 @@ export function EmailModule() {
           // Mark email as processed
           await supabase
             .from('emails')
-            .update({ 
+            .update({
               ai_extracted_data: { project_id: project.id },
               processing_status: 'processed'
             })
@@ -567,15 +565,15 @@ export function EmailModule() {
   };
 
   const filteredEmails = emails.filter(email => {
-    const matchesSearch = !searchTerm || 
+    const matchesSearch = !searchTerm ||
       email.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
       email.sender_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       email.content.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesCategory = selectedCategory === "inbox" || 
-                           (selectedCategory === "unread" && !email.is_read) ||
-                           (selectedCategory === "starred" && email.is_starred) ||
-                           (email.email_categories?.name === selectedCategory);
+
+    const matchesCategory = selectedCategory === "inbox" ||
+      (selectedCategory === "unread" && !email.is_read) ||
+      (selectedCategory === "starred" && email.is_starred) ||
+      (email.email_categories?.name === selectedCategory);
 
     return matchesSearch && matchesCategory;
   });
@@ -583,7 +581,7 @@ export function EmailModule() {
   const getEmailIcon = (email: Email) => {
     if (email.email_categories?.icon) {
       const Icon = iconMap[email.email_categories.icon as keyof typeof iconMap];
-      return Icon ? <Icon className="h-4 w-4" style={{color: email.email_categories.color}} /> : <Mail className="h-4 w-4" />;
+      return Icon ? <Icon className="h-4 w-4" style={{ color: email.email_categories.color }} /> : <Mail className="h-4 w-4" />;
     }
     return <Mail className="h-4 w-4" />;
   };
@@ -620,7 +618,7 @@ export function EmailModule() {
 
       {/* Compose Button */}
       <div className="p-4">
-        <Button 
+        <Button
           onClick={() => setIsComposing(true)}
           className="w-full justify-start gap-2"
         >
@@ -685,7 +683,7 @@ export function EmailModule() {
         {categories.map(category => {
           const Icon = iconMap[category.icon as keyof typeof iconMap] || Mail;
           const count = emails.filter(e => e.email_categories?.name === category.name).length;
-          
+
           return (
             <Button
               key={category.id}
@@ -693,7 +691,7 @@ export function EmailModule() {
               className="w-full justify-start"
               onClick={() => setSelectedCategory(category.name)}
             >
-              <Icon className="h-4 w-4 mr-2" style={{color: category.color}} />
+              <Icon className="h-4 w-4 mr-2" style={{ color: category.color }} />
               {!sidebarCollapsed && (
                 <>
                   {category.name}
@@ -711,7 +709,7 @@ export function EmailModule() {
           <Button
             variant="outline"
             className="w-full"
-            onClick={() => toast({title: "KI-Analyse", description: "Analysiere E-Mails..."})}
+            onClick={() => toast({ title: "KI-Analyse", description: "Analysiere E-Mails..." })}
           >
             <Brain className="h-4 w-4 mr-2" />
             KI-Analyse
@@ -727,14 +725,14 @@ export function EmailModule() {
         {/* Bulk Actions */}
         {selectedEmails.length > 0 ? (
           <div className="flex items-center gap-2">
-            <Checkbox 
+            <Checkbox
               checked={true}
               onChange={() => setSelectedEmails([])}
             />
             <span className="text-sm font-medium">{selectedEmails.length} ausgewählt</span>
-            
+
             <Separator orientation="vertical" className="h-4" />
-            
+
             <Button size="sm" variant="ghost" onClick={() => handleBulkAction('mark-read')}>
               <Eye className="h-4 w-4" />
             </Button>
@@ -785,9 +783,8 @@ export function EmailModule() {
           {filteredEmails.map((email) => (
             <div
               key={email.id}
-              className={`p-4 cursor-pointer transition-all hover:bg-accent/50 ${
-                selectedEmail?.id === email.id ? 'bg-accent border-r-2 border-primary' : ''
-              } ${!email.is_read ? 'bg-blue-50/30 border-l-2 border-blue-500' : ''}`}
+              className={`p-4 cursor-pointer transition-all hover:bg-accent/50 ${selectedEmail?.id === email.id ? 'bg-accent border-r-2 border-primary' : ''
+                } ${!email.is_read ? 'bg-blue-50/30 border-l-2 border-blue-500' : ''}`}
               onClick={() => handleEmailSelect(email)}
             >
               <div className="flex items-start gap-3">
@@ -802,7 +799,7 @@ export function EmailModule() {
                   }}
                   onClick={(e) => e.stopPropagation()}
                 />
-                
+
                 <Avatar className="h-8 w-8 flex-shrink-0">
                   <AvatarFallback>
                     {email.sender_name?.[0] || email.sender_email[0].toUpperCase()}
@@ -840,7 +837,7 @@ export function EmailModule() {
                         </Badge>
                       )}
                     </div>
-                    
+
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -880,7 +877,7 @@ export function EmailModule() {
             <h2 className="font-medium truncate max-w-md">{selectedEmail.subject}</h2>
             {getPriorityIndicator(selectedEmail.priority)}
           </div>
-          
+
           <div className="flex items-center gap-1">
             <Button size="sm" variant="ghost" onClick={() => setIsComposing(true)}>
               <Reply className="h-4 w-4" />
@@ -921,7 +918,7 @@ export function EmailModule() {
                     </p>
                   </div>
                 </div>
-                
+
                 {selectedEmail.customers && (
                   <Badge variant="outline" className="gap-1">
                     <Building2 className="h-3 w-3" />
@@ -969,7 +966,7 @@ export function EmailModule() {
 
             {/* Email Body */}
             <ScrollArea className="flex-1 p-6">
-              <div 
+              <div
                 className="prose prose-sm max-w-none"
                 dangerouslySetInnerHTML={{
                   __html: selectedEmail.html_content || selectedEmail.content.replace(/\n/g, '<br>')
@@ -985,7 +982,7 @@ export function EmailModule() {
                 <Building2 className="h-4 w-4 mr-2" />
                 <span className="font-medium text-sm">Kundeninformationen</span>
               </div>
-              
+
               <div className="p-4 space-y-4">
                 <div>
                   <h4 className="font-medium text-sm mb-2">{selectedEmail.customers.company_name}</h4>
@@ -1006,9 +1003,9 @@ export function EmailModule() {
                 {selectedEmail.customers.website && (
                   <div className="flex items-center gap-2">
                     <Globe className="h-4 w-4 text-muted-foreground" />
-                    <a 
-                      href={selectedEmail.customers.website} 
-                      target="_blank" 
+                    <a
+                      href={selectedEmail.customers.website}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm hover:underline"
                     >
@@ -1044,24 +1041,23 @@ export function EmailModule() {
     if (!isComposing) return null;
 
     return (
-      <div className={`fixed bottom-0 right-4 bg-card border border-border rounded-t-lg shadow-lg transition-all duration-300 ${
-        composeMinimized ? 'h-12 w-64' : 'h-96 w-96'
-      }`}>
+      <div className={`fixed bottom-0 right-4 bg-card border border-border rounded-t-lg shadow-lg transition-all duration-300 ${composeMinimized ? 'h-12 w-64' : 'h-96 w-96'
+        }`}>
         {/* Compose Header */}
         <div className="h-12 px-4 flex items-center justify-between bg-primary text-primary-foreground rounded-t-lg">
           <span className="font-medium text-sm">Neue E-Mail</span>
           <div className="flex items-center gap-1">
-            <Button 
-              size="sm" 
-              variant="ghost" 
+            <Button
+              size="sm"
+              variant="ghost"
               onClick={() => setComposeMinimized(!composeMinimized)}
               className="h-6 w-6 p-0 text-primary-foreground hover:bg-primary-foreground/20"
             >
               {composeMinimized ? <Maximize2 className="h-3 w-3" /> : <Minimize2 className="h-3 w-3" />}
             </Button>
-            <Button 
-              size="sm" 
-              variant="ghost" 
+            <Button
+              size="sm"
+              variant="ghost"
               onClick={() => setIsComposing(false)}
               className="h-6 w-6 p-0 text-primary-foreground hover:bg-primary-foreground/20"
             >
@@ -1192,7 +1188,7 @@ export function EmailModule() {
           </div>
         </CardContent>
       </Card>
-      
+
       {renderComposeDialog()}
     </div>
   );

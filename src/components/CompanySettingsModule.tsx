@@ -71,7 +71,7 @@ export function CompanySettingsModule() {
     mutationFn: async (updatedSettings: Partial<CompanySettings>) => {
       console.log('updateSettingsMutation called with:', updatedSettings);
       console.log('Current settings state:', settings);
-      
+
       if (!settings?.id) {
         console.error('No settings ID found');
         throw new Error("No settings ID");
@@ -86,7 +86,7 @@ export function CompanySettingsModule() {
 
       console.log('Supabase response:', { data, error });
       if (error) throw error;
-      
+
       return data;
     },
     onSuccess: () => {
@@ -101,7 +101,7 @@ export function CompanySettingsModule() {
       console.error("Error message:", error.message);
       console.error("Error details:", error.details);
       console.error("Error code:", error.code);
-      
+
       toast({
         title: "Fehler beim Speichern",
         description: `Die Einstellungen konnten nicht gespeichert werden. ${error.message || ''}`,
@@ -153,12 +153,12 @@ export function CompanySettingsModule() {
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
         <div className="text-muted-foreground">Fehler beim Laden der Firmeneinstellungen</div>
         <div className="text-sm text-red-500">
-          {error.message?.includes('row-level security') 
-            ? 'Zugriff verweigert. Bitte melden Sie sich als Manager an.' 
+          {error.message?.includes('row-level security')
+            ? 'Zugriff verweigert. Bitte melden Sie sich als Manager an.'
             : error.message}
         </div>
         <Button
-          onClick={() => window.location.reload()} 
+          onClick={() => window.location.reload()}
           variant="outline"
         >
           Seite neu laden
@@ -185,7 +185,7 @@ export function CompanySettingsModule() {
               default_currency: "EUR",
               quote_validity_days: 30,
               invoice_prefix: "R",
-              quote_prefix: "Q", 
+              quote_prefix: "Q",
               order_prefix: "A",
               default_working_hours_start: "08:00",
               default_working_hours_end: "17:00",
@@ -221,6 +221,9 @@ export function CompanySettingsModule() {
         {/* Company Information */}
         <Card>
           <CardHeader>
+            <div className="h-20 w-auto -my-5 flex items-center justify-center flex-shrink-0">
+              <img src="/logo.png" alt="Logo" className="w-auto h-full object-contain" />
+            </div>
             <CardTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5" />
               Firmeninformationen
@@ -265,9 +268,9 @@ export function CompanySettingsModule() {
                 />
               </div>
             </div>
-            
+
             <Separator />
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="company_address">Adresse</Label>
@@ -294,7 +297,7 @@ export function CompanySettingsModule() {
                 />
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="company_country">Land</Label>
@@ -365,7 +368,7 @@ export function CompanySettingsModule() {
                 />
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="invoice_terms">Standard Zahlungsbedingungen</Label>
               <Input
@@ -483,7 +486,7 @@ export function CompanySettingsModule() {
                 placeholder="https://example.com/logo.png"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="email_signature">E-Mail Signatur</Label>
               <Textarea

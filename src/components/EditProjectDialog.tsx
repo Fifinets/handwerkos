@@ -25,7 +25,10 @@ interface Project {
   endDate: string;
   budget: string;
   team: string[];
-  location: string;
+  project_site_id?: string;
+  customer_id?: string;
+  start_date?: string;
+  end_date?: string;
 }
 
 interface EditProjectDialogProps {
@@ -45,44 +48,67 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
   const [deleteTimer, setDeleteTimer] = useState<NodeJS.Timeout | null>(null);
   const [formData, setFormData] = useState({
     name: '',
-    customer: '',
-    status: 'Planung',
+    customer_id: '',
+    status: 'planned',
     progress: 0,
     startDate: '',
     endDate: '',
     budget: '',
-    location: ''
+    project_site_id: ''
   });
+  const [projectSites, setProjectSites] = useState<{ id: string; name: string | null; address: string; city: string; }[]>([]);
+
+  // Fetch project sites for the selected customer
+  useEffect(() => {
+    const fetchSites = async () => {
+      if (!formData.customer_id) {
+        setProjectSites([]);
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from('project_sites')
+          .select('id, name, address, city')
+          .eq('customer_id', formData.customer_id);
+
+        if (error) throw error;
+
+        if (data) {
+          setProjectSites(data);
+          // If customer has exactly one site and we don't have one selected, auto-select it
+          if (data.length === 1 && !formData.project_site_id) {
+            setFormData(prev => ({ ...prev, project_site_id: data[0].id }));
+          } else if (data.length === 0) {
+            setFormData(prev => ({ ...prev, project_site_id: '' }));
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching project sites:', err);
+      }
+    };
+    fetchSites();
+  }, [formData.customer_id]);
 
   // Update form data when project changes
   useEffect(() => {
     if (project) {
       console.log('EditProjectDialog: Updating form with project data:', project);
-      
-      // Map database status to display status
-      const statusMapping = {
-        'anfrage': 'Anfrage',
-        'besichtigung': 'Termin ausmachen', 
-        'geplant': 'Planung',
-        'in_bearbeitung': 'In Arbeit',
-        'abgeschlossen': 'Abgeschlossen'
-      };
 
       setFormData({
         name: project.name || '',
-        customer: project.customers?.company_name || project.customer || '',
-        status: statusMapping[project.status] || project.status || 'Planung',
+        customer_id: project.customer_id || '',
+        status: (project.status as any) || 'planned',
         progress: project.progress || 0,
-        startDate: project.start_date || project.startDate || '',
-        endDate: project.end_date || project.endDate || '',
+        startDate: (project as any).start_date || project.startDate || '',
+        endDate: (project as any).end_date || project.endDate || '',
         budget: project.budget?.toString() || '',
-        location: project.location || project.description || ''
+        project_site_id: project.project_site_id || ''
       });
 
       // Set date range if dates are available
-      const startDate = project.start_date || project.startDate;
-      const endDate = project.end_date || project.endDate;
-      
+      const startDate = (project as any).start_date || project.startDate;
+      const endDate = (project as any).end_date || project.endDate;
+
       if (startDate && endDate) {
         setDateRange({
           from: new Date(startDate),
@@ -102,7 +128,7 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
         .select('*')
         .eq('status', 'Aktiv')
         .order('company_name');
-      
+
       if (data) {
         setCustomers(data);
       }
@@ -117,20 +143,20 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
     if (project) {
       setFormData({
         name: project.name,
-        customer: project.customer,
+        customer_id: project.customer_id || '',
         status: project.status,
         progress: project.progress,
         startDate: project.startDate,
         endDate: project.endDate,
         budget: project.budget,
-        location: project.location
+        project_site_id: project.project_site_id || ''
       });
 
       // Set date range from project dates
       if (project.startDate && project.endDate) {
         const startDate = new Date(project.startDate);
         const endDate = new Date(project.endDate);
-        
+
         if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
           setDateRange({
             from: startDate,
@@ -139,7 +165,7 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
         }
       } else if (project.startDate) {
         const startDate = new Date(project.startDate);
-        
+
         if (!isNaN(startDate.getTime())) {
           setDateRange({
             from: startDate,
@@ -165,7 +191,7 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
     if (!isOpen) {
       stopDelete();
     }
-    
+
     return () => {
       if (deleteTimer) {
         clearInterval(deleteTimer);
@@ -175,7 +201,7 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!project) return;
 
     const updatedProject = {
@@ -198,12 +224,12 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
     console.log('🚀 startDelete called - beginning delete sequence');
     setIsDeleting(true);
     setDeleteProgress(0);
-    
+
     const interval = setInterval(() => {
       setDeleteProgress(prev => {
         const newProgress = prev + (100 / 25); // 2,5 Sekunden = 25 Updates à 100ms
         console.log('⏰ Delete progress:', Math.round(newProgress) + '%');
-        
+
         if (newProgress >= 100) {
           clearInterval(interval);
           console.log('✅ Delete timer completed, calling handleDelete');
@@ -213,7 +239,7 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
         return newProgress;
       });
     }, 100);
-    
+
     setDeleteTimer(interval);
   };
 
@@ -232,9 +258,9 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
       console.log('❌ handleDelete aborted - missing project or callback');
       return;
     }
-    
+
     console.log('🗑️ Starting deletion of project:', project.id, project.name);
-    
+
     try {
       // First, check if we can access the project
       const { data: checkData, error: checkError } = await supabase
@@ -242,9 +268,9 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
         .select('id, name')
         .eq('id', project.id)
         .single();
-      
+
       console.log('🔍 Project check before delete:', { checkData, checkError });
-      
+
       if (checkError) {
         console.error('❌ Cannot access project for deletion:', checkError);
         throw new Error('Projekt nicht gefunden oder keine Berechtigung');
@@ -261,11 +287,11 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
 
       if (error) {
         console.error('❌ Database delete error:', error);
-        console.error('❌ Error details:', { 
-          message: error.message, 
-          code: error.code, 
+        console.error('❌ Error details:', {
+          message: error.message,
+          code: error.code,
           details: error.details,
-          hint: error.hint 
+          hint: error.hint
         });
         throw error;
       }
@@ -284,10 +310,10 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
 
       // Call the callback to update parent component
       onProjectDeleted(project.id);
-      
+
       // Close dialog
       onClose();
-      
+
       console.log('✅ Delete operation completed');
     } catch (error) {
       console.error('💥 Error deleting project:', error);
@@ -327,15 +353,15 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
           </div>
 
           <div>
-            <Label htmlFor="customer">Kunde</Label>
-            <Select value={formData.customer} onValueChange={(value) => handleInputChange('customer', value)}>
+            <Label htmlFor="customer_id">Kunde</Label>
+            <Select value={formData.customer_id} onValueChange={(value) => handleInputChange('customer_id', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Kunde auswählen" />
               </SelectTrigger>
               <SelectContent>
                 {customers.map((customer) => (
-                  <SelectItem key={customer.id} value={customer.company_name}>
-                    {customer.company_name}
+                  <SelectItem key={customer.id} value={customer.id}>
+                    {(customer as any).company_name || (customer as any).name || 'Unbekannt'}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -343,12 +369,29 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
           </div>
 
           <div>
-            <Label htmlFor="location">Standort</Label>
-            <Input
-              id="location"
-              value={formData.location}
-              onChange={(e) => handleInputChange('location', e.target.value)}
-            />
+            <Label htmlFor="project_site_id">Standort (Baustelle)</Label>
+            <Select
+              value={formData.project_site_id}
+              onValueChange={(value) => handleInputChange('project_site_id', value)}
+              disabled={!formData.customer_id}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={
+                  !formData.customer_id
+                    ? "Bitte zuerst Kunde wählen"
+                    : projectSites.length === 0
+                      ? "Keine Baustellen hinterlegt"
+                      : "Standort auswählen..."
+                } />
+              </SelectTrigger>
+              <SelectContent>
+                {projectSites.map((site) => (
+                  <SelectItem key={site.id} value={site.id}>
+                    {site.name ? `${site.name} - ` : ''}{site.address}, {site.city}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
@@ -408,11 +451,10 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Anfrage">Anfrage</SelectItem>
-                <SelectItem value="Besichtigung">Besichtigung</SelectItem>
-                <SelectItem value="Planung">Planung</SelectItem>
-                <SelectItem value="In Bearbeitung">In Bearbeitung</SelectItem>
-                <SelectItem value="Abgeschlossen">Abgeschlossen</SelectItem>
+                <SelectItem value="planned">Planung</SelectItem>
+                <SelectItem value="active">In Bearbeitung</SelectItem>
+                <SelectItem value="completed">Abgeschlossen</SelectItem>
+                <SelectItem value="cancelled">Storniert</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -432,9 +474,9 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
           <div className="flex gap-2 pt-4">
             <div className="flex-1">
               <div className="relative">
-                <Button 
-                  type="button" 
-                  variant="destructive" 
+                <Button
+                  type="button"
+                  variant="destructive"
                   className="w-full relative overflow-hidden"
                   onClick={() => console.log('🖱️ Delete button clicked!')}
                   onMouseDown={onProjectDeleted ? startDelete : undefined}
@@ -446,7 +488,7 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
                 >
                   {/* Heller Film von links nach rechts */}
                   {isDeleting && (
-                    <div 
+                    <div
                       className="absolute inset-0 bg-white/30 transition-all duration-100 ease-linear"
                       style={{
                         width: `${deleteProgress}%`,

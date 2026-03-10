@@ -31,8 +31,7 @@ export const OrderCreateFromOfferSchema = z.object({
 
 export const OrderCreateSchema = z.object({
   customer_id: z.string().uuid('Kunde ist erforderlich'),
-  offer_id: z.string().uuid().optional(),
-  quote_id: z.string().uuid().optional(), // Legacy
+  project_id: z.string().uuid().optional(),
   title: z.string().min(1, 'Titel ist erforderlich'),
   description: z.string().optional(),
   total_amount: z.number().min(0, 'Betrag muss positiv sein').optional(),
@@ -48,7 +47,7 @@ export const OrderSchema = z.object({
   order_number: z.string().nullable(),
   customer_id: z.string().uuid(),
   offer_id: z.string().uuid().nullable(),
-  quote_id: z.string().uuid().nullable(), // Legacy
+  project_id: z.string().uuid().nullable(),
   title: z.string(),
   description: z.string().nullable(),
   status: OrderStatusEnum,

@@ -13,9 +13,10 @@ export const BaseEntitySchema = z.object({
 
 // Customer schemas
 export const CustomerCreateSchema = z.object({
-  company_name: z.string().min(1, 'Firmenname ist erforderlich'),
-  contact_person: z.string().min(1, 'Ansprechpartner ist erforderlich'),
-  email: z.string().email('Gültige E-Mail-Adresse erforderlich'),
+  customer_type: z.enum(['business', 'private']).default('business'),
+  display_name: z.string().optional(),
+  company_name: z.string().optional(),
+  email: z.string().email('Gültige E-Mail-Adresse erforderlich').optional().or(z.literal('')),
   phone: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
@@ -23,7 +24,26 @@ export const CustomerCreateSchema = z.object({
   country: z.string().default('Deutschland'),
   tax_number: z.string().optional(),
   customer_number: z.string().optional(),
+  contact_person: z.string().optional(),
   status: z.enum(['Aktiv', 'Premium', 'Inaktiv']).default('Aktiv'),
+  anrede: z.string().optional(),
+  first_name: z.string().optional(),
+  last_name: z.string().optional(),
+  mobile: z.string().optional(),
+  fax: z.string().optional(),
+  website: z.string().optional(),
+  zahlungsziel: z.string().optional(),
+  skonto_prozent: z.string().optional(),
+  skonto_tage: z.string().optional(),
+  waehrung: z.string().optional(),
+  preisgruppe: z.string().optional(),
+  iban: z.string().optional(),
+  bic: z.string().optional(),
+  bank_name: z.string().optional(),
+  kontoinhaber: z.string().optional(),
+  zugprd_status: z.string().optional(),
+  benutzer_id: z.string().optional(),
+  passwort: z.string().optional(),
 });
 
 export const CustomerUpdateSchema = CustomerCreateSchema.partial();
@@ -49,7 +69,7 @@ export const MaterialUpdateSchema = MaterialCreateSchema.partial();
 
 export const MaterialSchema = BaseEntitySchema.merge(MaterialCreateSchema);
 
-// Quote schemas
+// Offer/Quote schemas (Offers are canonical now)
 export const QuoteItemSchema = z.object({
   id: z.string().optional(),
   description: z.string().min(1, 'Beschreibung ist erforderlich'),
@@ -61,6 +81,7 @@ export const QuoteItemSchema = z.object({
 
 export const QuoteCreateSchema = z.object({
   customer_id: z.string().uuid('Kunde ist erforderlich'),
+  project_id: z.string().uuid('Projekt ist erforderlich'),
   title: z.string().min(1, 'Titel ist erforderlich'),
   description: z.string().optional(),
   body: z.object({
@@ -74,7 +95,7 @@ export const QuoteCreateSchema = z.object({
 
 export const QuoteUpdateSchema = QuoteCreateSchema.partial().extend({
   status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'expired']).optional(),
-  quote_number: z.string().optional(),
+  quote_number: z.string().optional(), // Later renamed to offer_number
 });
 
 export const QuoteSchema = BaseEntitySchema.merge(QuoteCreateSchema).extend({
@@ -110,13 +131,13 @@ export const ProjectCreateSchema = z.object({
   order_id: z.string().uuid().optional(),
   customer_id: z.string().uuid().optional(),
   company_id: z.string().uuid().optional(),
+  project_site_id: z.string().uuid().optional(),
   name: z.string().min(1, 'Projektname ist erforderlich'),
   description: z.string().optional(),
-  status: z.enum(['anfrage', 'besichtigung', 'geplant', 'in_bearbeitung', 'abgeschlossen', 'planned', 'active', 'blocked', 'completed', 'cancelled']).default('geplant'),
+  status: z.enum(['planned', 'active', 'completed', 'cancelled']).default('planned'),
   budget: z.number().min(0, 'Budget muss positiv sein').optional(),
   start_date: z.string().optional(),
   end_date: z.string().optional(),
-  // Remove progress_percentage as it doesn't exist in the database
 });
 
 export const ProjectUpdateSchema = ProjectCreateSchema.partial();
@@ -130,11 +151,14 @@ export const ProjectSchema = BaseEntitySchema.merge(ProjectCreateSchema).extend(
 
 // Invoice schemas
 export const InvoiceCreateSchema = z.object({
-  project_id: z.string().uuid().optional(),
+  project_id: z.string().uuid('Projekt ist erforderlich'),
+  offer_id: z.string().uuid().optional(),
   customer_id: z.string().uuid('Kunde ist erforderlich'),
   title: z.string().min(1, 'Titel ist erforderlich'),
   description: z.string().optional(),
-  amount: z.number().min(0, 'Betrag muss positiv sein'),
+  net_amount: z.number().min(0, 'Betrag muss positiv sein'),
+  gross_amount: z.number().min(0, 'Betrag muss positiv sein'),
+  tax_amount: z.number().min(0, 'Betrag muss positiv sein'),
   tax_rate: z.number().min(0).max(100).default(19),
   due_date: z.string().date().optional(),
 });
@@ -147,8 +171,6 @@ export const InvoiceUpdateSchema = InvoiceCreateSchema.partial().extend({
 export const InvoiceSchema = BaseEntitySchema.merge(InvoiceCreateSchema).extend({
   invoice_number: z.string().nullable(),
   status: z.enum(['draft', 'sent', 'paid', 'overdue', 'void', 'cancelled']).default('draft'),
-  net_amount: z.number().optional(),
-  tax_amount: z.number().optional(),
   sent_at: z.string().datetime().optional(),
   paid_at: z.string().datetime().optional(),
 });

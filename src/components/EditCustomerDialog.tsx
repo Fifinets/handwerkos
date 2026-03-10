@@ -23,25 +23,24 @@ interface Customer {
   status: string;
   created_at: string;
   updated_at: string;
-  // Erweiterte Felder
   anrede?: string;
   first_name?: string;
   last_name?: string;
   mobile?: string;
   website?: string;
-  erreichbarkeit?: string;
-  sonstiges?: string;
-  festnetz?: string;
   fax?: string;
   zahlungsziel?: string;
-  skonto?: string;
-  skontofrist?: string;
-  verkaufspreise_gruppe?: string;
+  skonto_prozent?: string;
+  skonto_tage?: string;
+  preisgruppe?: string;
   iban?: string;
   bic?: string;
   bank_name?: string;
-  umsatzsteuer_id?: string;
-  debitor_konto?: string;
+  tax_number?: string;
+  kontoinhaber?: string;
+  zugprd_status?: string;
+  benutzer_id?: string;
+  passwort?: string;
 }
 
 interface EditCustomerDialogProps {
@@ -64,25 +63,24 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
     postal_code: customer?.postal_code || '',
     country: customer?.country || 'Deutschland',
     status: customer?.status || 'Aktiv',
-    // Erweiterte Felder
     anrede: customer?.anrede || '',
     first_name: customer?.first_name || '',
     last_name: customer?.last_name || '',
     mobile: customer?.mobile || '',
     website: customer?.website || '',
-    erreichbarkeit: customer?.erreichbarkeit || '',
-    sonstiges: customer?.sonstiges || '',
-    festnetz: customer?.festnetz || '',
     fax: customer?.fax || '',
     zahlungsziel: customer?.zahlungsziel || '',
-    skonto: customer?.skonto || '',
-    skontofrist: customer?.skontofrist || '',
-    verkaufspreise_gruppe: customer?.verkaufspreise_gruppe || '',
+    skonto_prozent: customer?.skonto_prozent || '',
+    skonto_tage: customer?.skonto_tage || '',
+    preisgruppe: customer?.preisgruppe || '',
     iban: customer?.iban || '',
     bic: customer?.bic || '',
     bank_name: customer?.bank_name || '',
-    umsatzsteuer_id: customer?.umsatzsteuer_id || '',
-    debitor_konto: customer?.debitor_konto || ''
+    tax_number: customer?.tax_number || '',
+    kontoinhaber: customer?.kontoinhaber || '',
+    zugprd_status: customer?.zugprd_status || '',
+    benutzer_id: customer?.benutzer_id || '',
+    passwort: customer?.passwort || ''
   });
 
   React.useEffect(() => {
@@ -97,25 +95,24 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
         postal_code: customer.postal_code || '',
         country: customer.country || 'Deutschland',
         status: customer.status,
-        // Erweiterte Felder
         anrede: customer.anrede || '',
         first_name: customer.first_name || '',
         last_name: customer.last_name || '',
         mobile: customer.mobile || '',
         website: customer.website || '',
-        erreichbarkeit: customer.erreichbarkeit || '',
-        sonstiges: customer.sonstiges || '',
-        festnetz: customer.festnetz || '',
         fax: customer.fax || '',
         zahlungsziel: customer.zahlungsziel || '',
-        skonto: customer.skonto || '',
-        skontofrist: customer.skontofrist || '',
-        verkaufspreise_gruppe: customer.verkaufspreise_gruppe || '',
+        skonto_prozent: customer.skonto_prozent || '',
+        skonto_tage: customer.skonto_tage || '',
+        preisgruppe: customer.preisgruppe || '',
         iban: customer.iban || '',
         bic: customer.bic || '',
         bank_name: customer.bank_name || '',
-        umsatzsteuer_id: customer.umsatzsteuer_id || '',
-        debitor_konto: customer.debitor_konto || ''
+        tax_number: customer.tax_number || '',
+        kontoinhaber: customer.kontoinhaber || '',
+        zugprd_status: customer.zugprd_status || '',
+        benutzer_id: customer.benutzer_id || '',
+        passwort: customer.passwort || ''
       });
     }
   }, [customer]);
@@ -279,12 +276,11 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="erreichbarkeit">Erreichbarkeit</Label>
-                  <Textarea
-                    id="erreichbarkeit"
-                    value={formData.erreichbarkeit}
-                    onChange={(e) => handleInputChange('erreichbarkeit', e.target.value)}
-                    rows={2}
+                  <Label htmlFor="phone">Telefon</Label>
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => handleInputChange('phone', e.target.value)}
                   />
                 </div>
                 <div>
@@ -299,24 +295,19 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="sonstiges">Sonstiges</Label>
-                  <Select value={formData.sonstiges} onValueChange={(value) => handleInputChange('sonstiges', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sonstiges wählen" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Standard">Standard</SelectItem>
-                      <SelectItem value="VIP">VIP</SelectItem>
-                      <SelectItem value="Premium">Premium</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="tax_number">Steuernummer</Label>
+                  <Input
+                    id="tax_number"
+                    value={formData.tax_number}
+                    onChange={(e) => handleInputChange('tax_number', e.target.value)}
+                  />
                 </div>
                 <div>
-                  <Label htmlFor="festnetz">Festnetz</Label>
+                  <Label htmlFor="fax">Fax</Label>
                   <Input
-                    id="festnetz"
-                    value={formData.festnetz}
-                    onChange={(e) => handleInputChange('festnetz', e.target.value)}
+                    id="fax"
+                    value={formData.fax}
+                    onChange={(e) => handleInputChange('fax', e.target.value)}
                   />
                 </div>
               </div>
@@ -382,33 +373,33 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
                   />
                 </div>
                 <div>
-                  <Label htmlFor="skonto">Skonto %</Label>
+                  <Label htmlFor="skonto_prozent">Skonto %</Label>
                   <Input
-                    id="skonto"
-                    value={formData.skonto}
-                    onChange={(e) => handleInputChange('skonto', e.target.value)}
+                    id="skonto_prozent"
+                    value={formData.skonto_prozent}
+                    onChange={(e) => handleInputChange('skonto_prozent', e.target.value)}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="skontofrist">Skontofrist (Tage)</Label>
+                  <Label htmlFor="skonto_tage">Skonto Tage</Label>
                   <Input
-                    id="skontofrist"
-                    value={formData.skontofrist}
-                    onChange={(e) => handleInputChange('skontofrist', e.target.value)}
+                    id="skonto_tage"
+                    value={formData.skonto_tage}
+                    onChange={(e) => handleInputChange('skonto_tage', e.target.value)}
                   />
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="verkaufspreise_gruppe">Verkaufspreise-Gruppe</Label>
-                <Select value={formData.verkaufspreise_gruppe} onValueChange={(value) => handleInputChange('verkaufspreise_gruppe', value)}>
+                <Label htmlFor="preisgruppe">Preisgruppe</Label>
+                <Select value={formData.preisgruppe} onValueChange={(value) => handleInputChange('preisgruppe', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Gruppe wählen" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Standard-VK">Standard-VK</SelectItem>
-                    <SelectItem value="Premium-VK">Premium-VK</SelectItem>
-                    <SelectItem value="Großkunden-VK">Großkunden-VK</SelectItem>
+                    <SelectItem value="Standard">Standard</SelectItem>
+                    <SelectItem value="Premium">Premium</SelectItem>
+                    <SelectItem value="VIP">VIP</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -445,28 +436,63 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="umsatzsteuer_id">Umsatzsteuer ID</Label>
+                  <Label htmlFor="kontoinhaber">Kontoinhaber</Label>
                   <Input
-                    id="umsatzsteuer_id"
-                    value={formData.umsatzsteuer_id}
-                    onChange={(e) => handleInputChange('umsatzsteuer_id', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="debitor_konto">Debitor / Kreditor Konto</Label>
-                  <Input
-                    id="debitor_konto"
-                    value={formData.debitor_konto}
-                    onChange={(e) => handleInputChange('debitor_konto', e.target.value)}
+                    id="kontoinhaber"
+                    value={formData.kontoinhaber}
+                    onChange={(e) => handleInputChange('kontoinhaber', e.target.value)}
                   />
                 </div>
               </div>
             </TabsContent>
 
             <TabsContent value="zugprd" className="space-y-4 h-[320px]">
-              <div className="text-muted-foreground text-sm">
-                Diese Information ist erforderlich, um Rechnungen zu ZUGFeRD 2.0 Standard zu erstellen.
-                Dieser Standard ist verpflichtend für die Rechnungsstellung an öffentliche Behörden/Auftraggeber.
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="zugprd_status">Status</Label>
+                  <Select value={formData.zugprd_status} onValueChange={(value) => handleInputChange('zugprd_status', value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Aktiv">Aktiv</SelectItem>
+                      <SelectItem value="Inaktiv">Inaktiv</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="status">Kundenstatus</Label>
+                  <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Aktiv">Aktiv</SelectItem>
+                      <SelectItem value="Premium">Premium</SelectItem>
+                      <SelectItem value="Inaktiv">Inaktiv</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                  <Label htmlFor="benutzer_id">Benutzer-ID</Label>
+                  <Input
+                    id="benutzer_id"
+                    value={formData.benutzer_id}
+                    onChange={(e) => handleInputChange('benutzer_id', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="passwort">Passwort</Label>
+                  <Input
+                    id="passwort"
+                    type="password"
+                    value={formData.passwort}
+                    onChange={(e) => handleInputChange('passwort', e.target.value)}
+                  />
+                </div>
               </div>
             </TabsContent>
           </Tabs>

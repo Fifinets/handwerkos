@@ -87,22 +87,14 @@ const MobileAuth: React.FC = () => {
       <div className="text-center mb-8">
         <div className="flex justify-center items-center mb-2">
           <img
-            src="/favicon-32x32.png"
+            src="/logo.png"
             alt="HandwerkOS Logo"
-            className="h-6 w-6 mr-2"
-            style={{
-              imageRendering: '-webkit-optimize-contrast'
-            }}
-            onError={(e) => {
-              // Fallback to icon if logo not found
-              e.currentTarget.style.display = 'none';
-              e.currentTarget.nextElementSibling?.classList.remove('hidden');
-            }}
+            className="h-10 w-auto mr-2 object-contain scale-[2.5] origin-left"
           />
           <div className="bg-gray-100 p-1 rounded-full mr-2 hidden">
             <Wrench className="h-4 w-4 text-blue-600" />
           </div>
-          <h1 className="text-lg font-bold text-gray-900">HandwerkOS</h1>
+          <h1 className="font-['Inter'] font-medium text-[1.25rem] tracking-tight text-gray-900">HandwerkOS</h1>
         </div>
       </div>
 

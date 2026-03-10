@@ -376,12 +376,9 @@ export function InteractiveDemoPreview() {
                 >
                     {/* Logo */}
                     <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center mb-2 flex-shrink-0"
-                        style={{ background: "var(--premium-accent-subtle)", border: "1px solid rgba(0,212,255,0.2)" }}
+                        className="w-auto h-20 -my-5 flex items-center justify-center mb-2 flex-shrink-0"
                     >
-                        <span className="text-xs font-bold" style={{ color: "var(--premium-accent)" }}>
-                            H
-                        </span>
+                        <img src="/logo.png" alt="Logo" className="w-auto h-full object-contain" />
                     </div>
 
                     {/* Nav Items */}

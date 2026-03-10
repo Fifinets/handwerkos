@@ -45,7 +45,7 @@ export const DeliveryNoteItemCreateSchema = z.object({
   (data) => {
     if (data.item_type === 'material') {
       return data.material_name && data.material_name.length > 0 &&
-             data.material_quantity && data.material_quantity > 0;
+        data.material_quantity && data.material_quantity > 0;
     }
     if (data.item_type === 'photo') {
       return data.photo_url && data.photo_url.length > 0;
@@ -76,6 +76,9 @@ export const DeliveryNoteItemSchema = z.object({
 
 export const DeliveryNoteCreateSchema = z.object({
   project_id: z.string().uuid('Projekt ist erforderlich'),
+  customer_id: z.string().uuid('Kunde ist erforderlich'),
+  order_id: z.string().uuid().optional(),
+  project_site_id: z.string().uuid().optional(),
   work_date: z.string().default(() => new Date().toISOString().split('T')[0]),
   start_time: z.string().regex(/^\d{2}:\d{2}$/, 'Format: HH:MM').optional(),
   end_time: z.string().regex(/^\d{2}:\d{2}$/, 'Format: HH:MM').optional(),
@@ -96,6 +99,9 @@ export const DeliveryNoteSchema = z.object({
   company_id: z.string().uuid(),
   delivery_note_number: z.string(),
   project_id: z.string().uuid(),
+  customer_id: z.string().uuid(),
+  order_id: z.string().uuid().nullable().optional(),
+  project_site_id: z.string().uuid().nullable().optional(),
   created_by_employee_id: z.string().uuid(),
   work_date: z.string(),
   start_time: z.string().nullable(),

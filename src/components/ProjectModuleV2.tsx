@@ -1,47 +1,28 @@
 import React, { useState, useCallback, useEffect } from 'react';
 
-// Type definitions
-type ProjectStatus = 'anfrage' | 'besichtigung' | 'geplant' | 'in_bearbeitung' | 'abgeschlossen';
+import type {
+    Project,
+    ProjectStatus,
+    Customer,
+    Employee as TeamMember
+} from '@/types';
 
-interface Customer {
-    id: string;
-    company_name?: string;
-    contact_person?: string;
-    email?: string;
-    phone?: string;
-    address?: string;
-    status?: string;
-}
-
-interface ProjectCustomer {
-    company_name?: string;
-    contact_person?: string;
-    email?: string;
-}
-
-interface Project {
-    id: string;
-    name: string;
+// Extended Project type for local usage if needed, or just use Project
+interface ProjectWithCustomers extends Project {
+    id: string; // Ensure id is required
     project_number?: string;
-    description?: string;
-    status: ProjectStatus;
-    budget?: number;
-    start_date?: string;
-    end_date?: string;
-    customer_id?: string;
-    created_at?: string;
-    customers?: ProjectCustomer;
-}
-
-interface TeamMember {
-    id: string;
-    first_name?: string;
-    last_name?: string;
-    email?: string;
-    phone?: string;
-    position?: string;
-    status?: string;
-    company_id?: string;
+    customers?: {
+        company_name?: string;
+        contact_person?: string;
+        email?: string;
+    };
+    // Compatibility fields for some sub-components
+    customer?: any;
+    progress?: number;
+    startDate?: string;
+    endDate?: string;
+    team?: string[];
+    location?: string;
 }
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -128,7 +109,7 @@ const ProjectModuleV2 = () => {
     const { data: customersResponse, isLoading: customersLoading } = useCustomers();
 
     // Debug: Direct database query
-    const [debugProjects, setDebugProjects] = useState<Project[]>([]);
+    const [debugProjects, setDebugProjects] = useState<ProjectWithCustomers[]>([]);
     const [debugError, setDebugError] = useState<any>(null);
 
     useEffect(() => {
@@ -138,7 +119,7 @@ const ProjectModuleV2 = () => {
                     .from('projects')
                     .select('*');
 
-                setDebugProjects(data || []);
+                setDebugProjects((data as any) || []);
                 setDebugError(error);
             } catch (err) {
                 setDebugError(err);
@@ -149,7 +130,7 @@ const ProjectModuleV2 = () => {
     }, []);
 
     // Local state for employees
-    const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+    const [teamMembers, setTeamMembers] = useState<any[]>([]);
     const [teamLoading, setTeamLoading] = useState(true);
 
     const fetchEmployees = useCallback(async () => {
@@ -160,20 +141,43 @@ const ProjectModuleV2 = () => {
                 return;
             }
 
+            console.log('Fetching employees for companyId:', companyId);
+
+            // 1. Fetch employees basic data
             const { data: employeesData, error: employeesError } = await supabase
                 .from('employees')
-                .select(`id, user_id, first_name, last_name, email, phone, position, status, qualifications, license`)
+                .select('id, user_id, first_name, last_name, email, phone, position, status')
                 .eq('company_id', companyId)
-                .eq('status', 'Aktiv')
                 .order('created_at', { ascending: false });
 
             if (employeesError) {
+                console.error('Error fetching employees:', employeesError);
                 setTeamLoading(false);
                 return;
             }
 
+            console.log('Found employees:', employeesData?.length);
+
+            // 2. Fetch project assignments separately to be more robust
+            const { data: assignmentsData, error: assignmentsError } = await supabase
+                .from('project_team_members')
+                .select(`
+                    employee_id,
+                    projects(
+                        name,
+                        start_date,
+                        end_date
+                    )
+                `);
+
+            if (assignmentsError) {
+                console.warn('Error fetching project assignments (ignoring):', assignmentsError);
+                // We continue even if assignments fail, just no availability check
+            }
+
             const userIds = employeesData?.filter(emp => emp.user_id).map(emp => emp.user_id) || [];
             let profilesData: any[] = [];
+
 
             if (userIds.length > 0) {
                 const { data, error } = await supabase
@@ -186,31 +190,51 @@ const ProjectModuleV2 = () => {
                 }
             }
 
-            const employeeList = employeesData?.map(employee => {
-                const profile = profilesData.find(p => p.id === employee.user_id);
-                const firstName = profile?.first_name || employee.first_name || '';
-                const lastName = profile?.last_name || employee.last_name || '';
-
-                return {
-                    id: employee.id,
-                    first_name: firstName,
-                    last_name: lastName,
-                    name: `${firstName} ${lastName}`.trim(),
-                    email: employee.email,
-                    phone: employee.phone,
-                    position: employee.position,
-                    status: employee.status,
-                    user_id: employee.user_id
-                };
-            })
+            const employeeList = (employeesData || [])
                 .filter(employee => {
-                    const hasFirstName = employee.first_name && employee.first_name.trim().length > 0;
-                    const hasLastName = employee.last_name && employee.last_name.trim().length > 0;
-                    const hasValidName = employee.name && employee.name.trim().length > 0 && employee.name.trim() !== ' ';
-                    return hasFirstName || hasLastName || hasValidName;
-                }) || [];
+                    // Inclusion filter: handle various 'active' status strings
+                    const status = (employee.status || '').toLowerCase();
+                    return status === 'aktiv' || status === 'active' || status === '' || status === 'eingeladen';
+                })
+                .map(employee => {
+                    const profile = profilesData.find(p => p.id === employee.user_id);
+                    const firstName = profile?.first_name || employee.first_name || '';
+                    const lastName = profile?.last_name || employee.last_name || '';
+                    const fullName = `${firstName} ${lastName}`.trim();
 
+                    // Map project assignments from the separate data
+                    const projectAssignments = (assignmentsData || [])
+                        .filter(a => a.employee_id === employee.id)
+                        .map(ptm => ptm.projects)
+                        .filter(p => p && (p as any).start_date)
+                        .map(p => ({
+                            name: (p as any).name,
+                            // Convert YYYY-MM-DD to DD.MM.YYYY for the availability logic
+                            startDate: (p as any).start_date.split('-').reverse().join('.'),
+                            endDate: ((p as any).end_date || (p as any).start_date).split('-').reverse().join('.')
+                        }));
+
+                    return {
+                        id: employee.id,
+                        first_name: firstName,
+                        last_name: lastName,
+                        name: fullName || employee.email || 'Unbekannter Mitarbeiter',
+                        email: employee.email,
+                        phone: employee.phone,
+                        position: employee.position,
+                        status: employee.status,
+                        user_id: employee.user_id,
+                        projects: projectAssignments
+                    };
+                })
+                .filter(employee => {
+                    // Ensure we have at least a name or ID or email to show
+                    return employee.name !== 'Unbekannter Mitarbeiter' || employee.id || employee.email;
+                });
+
+            console.log('Final employee list:', employeeList);
             setTeamMembers(employeeList);
+
         } catch (error) {
             console.error('ProjectModule: fetchEmployees error:', error);
         } finally {
@@ -227,10 +251,10 @@ const ProjectModuleV2 = () => {
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
     const [isProjectDetailViewOpen, setIsProjectDetailViewOpen] = useState(false);
-    const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+    const [selectedProject, setSelectedProject] = useState<ProjectWithCustomers | null>(null);
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
-    const projects = projectsResponse?.items || debugProjects || [];
+    const projects = (projectsResponse?.items || debugProjects || []) as ProjectWithCustomers[];
     const customers = customersResponse?.items || [];
 
     // Filter projects based on search
@@ -275,12 +299,12 @@ const ProjectModuleV2 = () => {
         return `P${hash.substring(0, 6).toUpperCase()}`;
     };
 
-    const handleDoubleClickProject = (project: Project) => {
+    const handleDoubleClickProject = (project: ProjectWithCustomers) => {
         setSelectedProjectId(project.id);
         setIsProjectDetailViewOpen(true);
     };
 
-    const handleEditProject = (project: Project) => {
+    const handleEditProject = (project: ProjectWithCustomers) => {
         setSelectedProject(project);
         setIsEditDialogOpen(true);
     };
@@ -408,7 +432,7 @@ const ProjectModuleV2 = () => {
                                                 id={generateShortId(project.id)}
                                                 project_number={project.project_number}
                                                 name={project.name}
-                                                status={project.status}
+                                                status={project.status as any}
                                                 budget={extractBudgetFromDescription(project.description || '') || project.budget || 0}
                                                 start={project.start_date}
                                                 end={project.end_date}
@@ -429,7 +453,7 @@ const ProjectModuleV2 = () => {
                                                 id={generateShortId(project.id)}
                                                 project_number={project.project_number}
                                                 name={project.name}
-                                                status={project.status}
+                                                status={project.status as any}
                                                 budget={extractBudgetFromDescription(project.description || '') || project.budget || 0}
                                                 start={project.start_date}
                                                 end={project.end_date}
@@ -514,14 +538,14 @@ const ProjectModuleV2 = () => {
                 isOpen={isAddDialogOpen}
                 onClose={() => setIsAddDialogOpen(false)}
                 onProjectAdded={() => setIsAddDialogOpen(false)}
-                customers={customersWithFallback}
+                customers={customersWithFallback as any}
                 teamMembers={teamMembers}
             />
 
             <EditProjectDialog
                 isOpen={isEditDialogOpen}
                 onClose={() => setIsEditDialogOpen(false)}
-                project={selectedProject}
+                project={selectedProject as any}
                 onProjectUpdated={() => setIsEditDialogOpen(false)}
                 onProjectDeleted={() => setIsEditDialogOpen(false)}
             />
@@ -529,7 +553,7 @@ const ProjectModuleV2 = () => {
             <ProjectDetailDialogWithTasks
                 isOpen={isDetailDialogOpen}
                 onClose={() => setIsDetailDialogOpen(false)}
-                project={selectedProject}
+                project={selectedProject as any}
             />
 
             {selectedProjectId && (

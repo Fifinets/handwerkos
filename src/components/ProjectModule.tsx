@@ -49,12 +49,11 @@ import { Calendar, Plus, CheckCircle, Clock, AlertTriangle, Building2, FileText,
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  useProjects, 
-  useCustomers, 
+import {
+  useProjects,
+  useCustomers,
   useCreateProject,
-  useUpdateProject,
-  useDeleteProject
+  useUpdateProject
 } from "@/hooks/useApi";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
@@ -128,66 +127,25 @@ const generateShortId = (fullId: string) => {
   return `P${hash.substring(0, 6).toUpperCase()}`;
 };
 
-const extractBudgetFromDescription = (description: string) => {
-  if (!description) return 0;
-  const budgetMatch = description.match(/\[BUDGET:(\d+\.?\d*)\]/);
-  return budgetMatch ? parseFloat(budgetMatch[1]) : 0;
-};
-
-const extractPreCalculationFromDescription = (description: string) => {
-  if (!description) return null;
-  const preCalcMatch = description.match(/\[PRECALC:(.*?)\]/);
-  if (preCalcMatch) {
-    try {
-      return JSON.parse(preCalcMatch[1]);
-    } catch (e) {
-      console.warn('Error parsing pre-calculation:', e);
-      return null;
-    }
-  }
-  return null;
-};
-
-const hasPreCalculation = (description: string) => {
-  return extractPreCalculationFromDescription(description) !== null;
-};
-
-const getEstimateInfo = (description: string) => {
-  const preCalc = extractPreCalculationFromDescription(description);
-  if (!preCalc) return null;
-  
-  const materialEstimates = preCalc.materials ? Object.keys(preCalc.materials).length : 0;
-  const laborEstimates = preCalc.labor ? Object.keys(preCalc.labor).length : 0;
-  
-  return {
-    totalEstimates: materialEstimates + laborEstimates,
-    materials: materialEstimates,
-    labor: laborEstimates
-  };
-};
-
-const formatBudget = (budget: number, description: string) => {
-  const budgetFromDesc = extractBudgetFromDescription(description);
-  const budgetValue = budgetFromDesc > 0 ? budgetFromDesc : (budget || 0);
-  
-  return budgetValue.toLocaleString('de-DE', { 
+const formatBudget = (budget: number) => {
+  return (budget || 0).toLocaleString('de-DE', {
     minimumFractionDigits: 0,
-    maximumFractionDigits: 0 
+    maximumFractionDigits: 0
   });
 };
 
 const ProjectModule = () => {
   const { toast } = useToast();
   const { companyId } = useSupabaseAuth();
-  
+
   // React Query hooks
   const { data: projectsResponse, isLoading: projectsLoading, error: projectsError } = useProjects();
   const { data: customersResponse, isLoading: customersLoading } = useCustomers();
-  
+
   // Debug: Direct database query
   const [debugProjects, setDebugProjects] = useState([]);
   const [debugError, setDebugError] = useState(null);
-  
+
   useEffect(() => {
     const fetchDebugProjects = async () => {
       try {
@@ -195,7 +153,7 @@ const ProjectModule = () => {
         const { data, error } = await supabase
           .from('projects')
           .select('*');
-        
+
         console.log('DEBUG: Direct query result:', { data, error });
         setDebugProjects(data || []);
         setDebugError(error);
@@ -204,35 +162,35 @@ const ProjectModule = () => {
         setDebugError(err);
       }
     };
-    
+
     fetchDebugProjects();
   }, []);
-  
+
   // Local state for employees (using same logic as PersonalModule)
   const [teamMembers, setTeamMembers] = useState([]);
   const [teamLoading, setTeamLoading] = useState(true);
-  
+
   // Fetch employees using PersonalModule logic
   const fetchEmployees = useCallback(async () => {
     try {
       setTeamLoading(true);
-      
+
       console.log('ProjectModule: fetchEmployees called with companyId:', companyId);
-      
+
       if (!companyId) {
         console.error('ProjectModule: No company ID available');
         setTeamLoading(false);
         return;
       }
-      
+
       // Debug query - get ALL employees for this company
       const { data: allEmployeesData, error: debugError } = await supabase
         .from('employees')
         .select('id, email, status, user_id, company_id')
         .eq('company_id', companyId);
-      
+
       console.log('ProjectModule: DEBUG - All employees for company:', allEmployeesData);
-      
+
       // Main employees query
       const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
@@ -263,13 +221,13 @@ const ProjectModule = () => {
       // Fetch profile names separately for employees with user_id
       const userIds = employeesData?.filter(emp => emp.user_id).map(emp => emp.user_id) || [];
       let profilesData = [];
-      
+
       if (userIds.length > 0) {
         const { data, error } = await supabase
           .from('profiles')
           .select('id, first_name, last_name')
           .in('id', userIds);
-        
+
         if (!error) {
           profilesData = data || [];
         }
@@ -280,7 +238,7 @@ const ProjectModule = () => {
         const profile = profilesData.find(p => p.id === employee.user_id);
         const firstName = profile?.first_name || employee.first_name || '';
         const lastName = profile?.last_name || employee.last_name || '';
-        
+
         return {
           id: employee.id,
           first_name: firstName,
@@ -296,30 +254,30 @@ const ProjectModule = () => {
           user_id: employee.user_id // Keep for filtering
         };
       })
-      .filter(employee => {
-        // Show employees that have a meaningful name
-        // Accept if first_name OR last_name exists, or if combined name is not empty
-        const hasFirstName = employee.first_name && employee.first_name.trim().length > 0;
-        const hasLastName = employee.last_name && employee.last_name.trim().length > 0;
-        const hasValidName = employee.name && employee.name.trim().length > 0 && employee.name.trim() !== ' ';
-        
-        const shouldInclude = hasFirstName || hasLastName || hasValidName;
-        
-        console.log('ProjectModule: Employee filter check:', {
-          employee: employee.name,
-          hasFirstName,
-          hasLastName, 
-          hasValidName,
-          shouldInclude,
-          user_id: employee.user_id
-        });
-        
-        if (!shouldInclude) {
-          console.log('ProjectModule: Filtering out employee without proper name:', employee);
-        }
-        
-        return shouldInclude;
-      }) || [];
+        .filter(employee => {
+          // Show employees that have a meaningful name
+          // Accept if first_name OR last_name exists, or if combined name is not empty
+          const hasFirstName = employee.first_name && employee.first_name.trim().length > 0;
+          const hasLastName = employee.last_name && employee.last_name.trim().length > 0;
+          const hasValidName = employee.name && employee.name.trim().length > 0 && employee.name.trim() !== ' ';
+
+          const shouldInclude = hasFirstName || hasLastName || hasValidName;
+
+          console.log('ProjectModule: Employee filter check:', {
+            employee: employee.name,
+            hasFirstName,
+            hasLastName,
+            hasValidName,
+            shouldInclude,
+            user_id: employee.user_id
+          });
+
+          if (!shouldInclude) {
+            console.log('ProjectModule: Filtering out employee without proper name:', employee);
+          }
+
+          return shouldInclude;
+        }) || [];
 
       console.log('ProjectModule: Final employee list:', employeeList);
       setTeamMembers(employeeList);
@@ -334,7 +292,7 @@ const ProjectModule = () => {
   useEffect(() => {
     fetchEmployees();
   }, [fetchEmployees]);
-  
+
   // Local state for dialogs
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -344,23 +302,23 @@ const ProjectModule = () => {
   const [isProfitabilityOpen, setIsProfitabilityOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  
+
   // Extract data from responses
   // Use debugProjects as fallback if the API hook fails
   const projects = projectsResponse?.items || debugProjects || [];
   const customers = customersResponse?.items || [];
-  
+
   // Debug logging
   console.log('ProjectModule - projectsResponse:', projectsResponse);
   console.log('ProjectModule - projects:', projects);
   console.log('ProjectModule - projectsError:', projectsError);
   console.log('ProjectModule - debugProjects:', debugProjects);
-  
+
   // Debug logging
   console.log('Customers data:', customers);
   console.log('Team members data:', teamMembers);
   console.log('Team members loading:', teamLoading);
-  
+
   // Always use real data, with fallback only if completely empty
   const customersWithFallback = customers.length > 0 ? customers : [
     {
@@ -376,13 +334,13 @@ const ProjectModule = () => {
       status: 'Demo'
     }
   ];
-  
+
   // Use team members directly from state
   const teamMembersWithFallback = teamMembers;
-  
+
   // Loading state
   const isLoading = projectsLoading || customersLoading || teamLoading;
-  
+
   // Debug logging
   console.log('ProjectModule Debug:', {
     projectsResponse,
@@ -394,7 +352,7 @@ const ProjectModule = () => {
     debugError,
     companyId
   });
-  
+
   // Calculate derived data
   const statusCounts: StatusCounts = {
     anfrage: projects.filter(p => p.status === 'anfrage').length,
@@ -403,17 +361,17 @@ const ProjectModule = () => {
     in_bearbeitung: projects.filter(p => p.status === 'in_bearbeitung').length,
     abgeschlossen: projects.filter(p => p.status === 'abgeschlossen').length
   };
-  
+
   const totalBudget = projects.reduce((total, project) => {
-    const budget = extractBudgetFromDescription(project.description) || project.budget || 0;
+    const budget = project.budget || 0;
     return total + budget;
   }, 0);
-  
+
   const today = new Date().toISOString().split('T')[0];
-  const delayedProjects = projects.filter(project => 
+  const delayedProjects = projects.filter(project =>
     project.end_date && project.end_date < today && project.status !== 'abgeschlossen'
   );
-  
+
   const topCustomers = customers.filter(c => c.status === 'Aktiv').slice(0, 5);
 
   const handleProjectAdded = () => {
@@ -460,7 +418,7 @@ const ProjectModule = () => {
     <div className="p-4 space-y-4">
       {/* Auto-fix database if needed */}
       <AutoFixDatabase />
-      
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Projekte & Baustellen</h1>
@@ -515,8 +473,8 @@ const ProjectModule = () => {
                 </div>
               ) : (
                 projects.filter(p => p.status !== 'abgeschlossen').map((project) => (
-                  <div 
-                    key={project.id} 
+                  <div
+                    key={project.id}
                     className="border rounded-xl p-3 shadow-softer cursor-pointer hover:shadow-md transition-shadow"
                     onDoubleClick={() => handleDoubleClickProject(project)}
                   >
@@ -525,7 +483,7 @@ const ProjectModule = () => {
                       project_number={project.project_number}
                       name={project.name}
                       status={project.status}
-                      budget={extractBudgetFromDescription(project.description) || project.budget || 0}
+                      budget={project.budget || 0}
                       start={project.start_date}
                       end={project.end_date}
                       onOpen={() => handleDoubleClickProject(project)}
@@ -548,17 +506,17 @@ const ProjectModule = () => {
               ) : delayedProjects.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Keine Projekte im Verzug 🎉</p>
               ) : delayedProjects.map((project: Project) => (
-                <div 
-                  key={project.id} 
+                <div
+                  key={project.id}
                   className="border rounded-xl p-3 mb-2 cursor-pointer hover:shadow-md transition-shadow"
                   onDoubleClick={() => handleDoubleClickProject(project)}
                 >
-                  <ProjectRow 
-                    id={generateShortId(project.id)} 
-                    project_number={project.project_number}
-                    name={project.name} 
-                    status={project.status} 
-                    budget={extractBudgetFromDescription(project.description) || project.budget || 0} 
+                  <ProjectRow
+                    id={generateShortId(project.id)}
+                    project_number={(project as any).project_number || generateShortId(project.id)}
+                    name={project.name}
+                    status={project.status}
+                    budget={project.budget || 0}
                     start={project.start_date}
                     end={project.end_date}
                     onOpen={() => handleDoubleClickProject(project)}
@@ -589,7 +547,7 @@ const ProjectModule = () => {
                 ))
               ) : topCustomers.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Hier erscheinen Kunden, sobald Projekte abgeschlossen sind.</p>
-              ) : topCustomers.map((customer: Customer) => (
+              ) : topCustomers.map((customer: any) => (
                 <div key={customer.id} className="flex items-center justify-between text-sm">
                   <span>{customer.company_name || customer.contact_person}</span>
                   <span className="text-muted-foreground">{customer.email}</span>
@@ -614,14 +572,14 @@ const ProjectModule = () => {
         isOpen={isAddDialogOpen}
         onClose={() => setIsAddDialogOpen(false)}
         onProjectAdded={handleProjectAdded}
-        customers={customersWithFallback}
-        teamMembers={teamMembersWithFallback}
+        customers={customersWithFallback as any[]}
+        teamMembers={teamMembersWithFallback as any[]}
       />
 
       <EditProjectDialog
         isOpen={isEditDialogOpen}
         onClose={() => setIsEditDialogOpen(false)}
-        project={selectedProject}
+        project={selectedProject as any}
         onProjectUpdated={handleProjectUpdated}
         onProjectDeleted={handleProjectDeleted}
       />
@@ -629,7 +587,7 @@ const ProjectModule = () => {
       <ProjectDetailDialogWithTasks
         isOpen={isDetailDialogOpen}
         onClose={() => setIsDetailDialogOpen(false)}
-        project={selectedProject}
+        project={selectedProject as any}
       />
 
       {selectedProjectId && (

@@ -8,11 +8,11 @@ const MarketplaceFooter = () => {
             <div className="container mx-auto px-4">
                 <div className="grid md:grid-cols-4 gap-8 mb-8">
                     <div className="space-y-4">
-                        <div className="flex items-center gap-2 text-white">
-                            <div className="bg-blue-600 p-1.5 rounded-lg">
-                                <Hammer className="h-5 w-5 text-white" />
+                        <div className="flex items-center gap-3 text-white">
+                            <div className="h-20 w-auto -my-5 flex items-center justify-center flex-shrink-0">
+                                <img src="/logo.png" alt="Logo" className="w-auto h-full object-contain brightness-0 invert" />
                             </div>
-                            <span className="font-bold text-xl">HandwerkOS</span>
+                            <span className="font-['Inter'] font-medium text-[1.25rem] tracking-tight">HandwerkOS</span>
                         </div>
                         <p className="text-sm">
                             Der Marktplatz für Qualitätshandwerk. <br />

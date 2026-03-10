@@ -22,14 +22,11 @@ export default function Datenschutz() {
         }}
       >
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center font-bold"
-              style={{ background: "var(--premium-gradient)" }}
-            >
-              H
+          <Link to="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
+            <div className="h-20 w-auto -my-5 flex items-center justify-center flex-shrink-0">
+              <img src="/logo.png" alt="Logo" className="w-auto h-full object-contain" />
             </div>
-            <span className="text-xl font-bold">HandwerkOS</span>
+            <span className="font-['Inter'] font-medium text-[1.5rem] tracking-tight text-white">HandwerkOS</span>
           </Link>
           <Link to="/">
             <button

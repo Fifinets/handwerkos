@@ -46,17 +46,14 @@ export default function HandwerkerSoftwarePremium() {
         >
           <div className="container mx-auto px-6 py-4 flex items-center justify-between">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2">
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center font-bold"
-                style={{ background: "var(--premium-gradient)" }}
-              >
-                H
+            <div className="flex items-center gap-2">
+              <div className="h-20 w-auto -my-5 flex items-center justify-center flex-shrink-0">
+                <img src="/logo.png" alt="Logo" className="w-auto h-full object-contain" />
               </div>
-              <span className="text-xl font-bold" style={{ color: "var(--premium-text)" }}>
+              <span className="font-['Inter'] font-medium text-[1.5rem] tracking-tight" style={{ color: "var(--premium-text)" }}>
                 HandwerkOS
               </span>
-            </Link>
+            </div>
 
             {/* Nav Links (Desktop) */}
             <div
@@ -368,13 +365,10 @@ export default function HandwerkerSoftwarePremium() {
             {/* Brand */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm"
-                  style={{ background: "var(--premium-gradient)" }}
-                >
-                  H
+                <div className="h-20 w-auto -my-5 flex items-center justify-center flex-shrink-0">
+                  <img src="/logo.png" alt="Logo" className="w-auto h-full object-contain" />
                 </div>
-                <span className="font-bold text-lg">HandwerkOS</span>
+                <span className="font-['Inter'] font-medium text-[1.25rem] tracking-tight text-white">HandwerkOS</span>
               </div>
               <p
                 className="text-sm leading-relaxed"

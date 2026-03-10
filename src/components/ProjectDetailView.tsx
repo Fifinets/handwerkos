@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { 
-  Calendar, 
-  Clock, 
-  Users, 
-  FileText, 
-  DollarSign, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  Calendar,
+  Clock,
+  Users,
+  FileText,
+  DollarSign,
+  AlertTriangle,
+  CheckCircle,
   Building2,
   MapPin,
   Phone,
@@ -22,12 +22,12 @@ import {
   MessageSquare
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  ProjectDashboardData, 
-  ProjectPermissions, 
-  TimeEntry, 
-  MaterialEntry, 
-  ProjectDocument, 
+import {
+  ProjectDashboardData,
+  ProjectPermissions,
+  TimeEntry,
+  MaterialEntry,
+  ProjectDocument,
   ProjectComment,
   getProjectPermissions,
   PROJECT_STATUS_CONFIG,
@@ -95,7 +95,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
 
       if (!profile?.company_id) {
         toast({
-          title: "Fehler", 
+          title: "Fehler",
           description: "Benutzer-Unternehmen nicht gefunden",
           variant: "destructive"
         });
@@ -131,74 +131,74 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       }
 
       // Calculate real statistics from database
-      
+
       // Get real time entries for this project (with fallback)
       const { data: timeEntries, error: timeError } = await supabase
         .from('time_entries')
         .select('hours_worked')
         .eq('project_id', projectId);
-      
+
       if (timeError) {
         console.log('Time entries table might not exist yet:', timeError.message);
       }
-      
+
       // Calculate total hours from real time entries (fallback to 0 if no data)
       const totalHours = timeEntries?.reduce((sum, entry) => sum + (entry.hours_worked || 0), 0) || 0;
-      
+
       // Get real material costs for this project (with fallback)
       const { data: materialEntries, error: materialError } = await supabase
         .from('material_entries')
         .select('total_cost')
         .eq('project_id', projectId);
-      
+
       if (materialError) {
         console.log('Material entries table might not exist yet:', materialError.message);
       }
-      
+
       // Calculate total material costs from real data (fallback to 0 if no data)
       const totalMaterialCost = materialEntries?.reduce((sum, entry) => sum + (entry.total_cost || 0), 0) || 0;
-      
+
       // Get assigned team members for this project (with fallback)
       // First try simple query without join
       const { data: teamMemberIds, error: teamIdsError } = await supabase
         .from('project_team_members')
         .select('employee_id')
         .eq('project_id', projectId);
-      
+
       console.log('Team member IDs for project:', { teamMemberIds, teamIdsError, projectId });
-      
+
       let teamMembers = [];
       let teamError = teamIdsError;
-      
+
       // If we have team member IDs, fetch their details
       if (teamMemberIds && teamMemberIds.length > 0) {
         const employeeIds = teamMemberIds.map(tm => tm.employee_id);
-        
+
         const { data: employeeDetails, error: employeeError } = await supabase
           .from('employees')
           .select('id, first_name, last_name, email')
           .in('id', employeeIds);
-        
+
         console.log('Employee details:', { employeeDetails, employeeError, employeeIds });
-        
+
         if (employeeDetails) {
           teamMembers = teamMemberIds.map(tm => ({
             employee_id: tm.employee_id,
             employees: employeeDetails.find(emp => emp.id === tm.employee_id)
           })).filter(tm => tm.employees); // Only include if employee details found
         }
-        
+
         teamError = employeeError;
       }
-      
+
       console.log('Team members query result:', { teamMembers, teamError, projectId });
-      
+
       // Additional debug: Check what's in the project_team_members table
       const { data: allTeamMembers, error: allTeamError } = await supabase
         .from('project_team_members')
         .select('*');
       console.log('All team members in database:', { allTeamMembers, allTeamError });
-      
+
       if (teamError) {
         console.log('Project team members table might not exist yet:', teamError.message);
         // If table doesn't exist, show helpful message to user
@@ -206,32 +206,32 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           console.log('project_team_members table needs to be created. Please apply the migration.');
         }
       }
-      
+
       // Get project comments count (with fallback)
       const { data: comments, error: commentsError } = await supabase
         .from('project_comments')
         .select('id')
         .eq('project_id', projectId);
-      
+
       if (commentsError) {
         console.log('Project comments table might not exist yet:', commentsError.message);
       }
-      
+
       // Get project documents count (with fallback)
       const { data: documents, error: documentsError } = await supabase
         .from('project_documents')
         .select('id')
         .eq('project_id', projectId);
-      
+
       if (documentsError) {
         console.log('Project documents table might not exist yet:', documentsError.message);
       }
-      
+
       // Calculate budget utilization
       const projectBudget = projectData.budget || 0;
       const totalProjectCost = totalMaterialCost + (totalHours * 50); // Assuming 50€/hour
       const budgetUtilization = projectBudget > 0 ? Math.round((totalProjectCost / projectBudget) * 100) : 0;
-      
+
       // Calculate days active and remaining
       const startDate = new Date(projectData.start_date || new Date());
       const endDate = new Date(projectData.end_date || new Date());
@@ -256,7 +256,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         updated_at: projectData.updated_at || new Date().toISOString(),
         created_by: currentUser.user.id,
         assigned_team: teamMembers?.map(tm => tm.employee_id) || [],
-        
+
         customer: customerData ? {
           company_name: customerData.company_name || 'Unbekanntes Unternehmen',
           contact_person: customerData.contact_person || 'Nicht angegeben',
@@ -299,10 +299,10 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       const currentUserRole: UserRole = 'admin'; // This should come from user profile
       setUserRole(currentUserRole);
       setPermissions(getProjectPermissions(currentUserRole, true));
-      
+
       // Get real project activities
       const activities = [];
-      
+
       // Get recent comments
       if (comments && comments.length > 0) {
         const { data: recentComments } = await supabase
@@ -311,7 +311,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           .eq('project_id', projectId)
           .order('created_at', { ascending: false })
           .limit(5);
-        
+
         if (recentComments) {
           recentComments.forEach(comment => {
             activities.push({
@@ -327,7 +327,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           });
         }
       }
-      
+
       // Get recent time entries
       if (timeEntries && timeEntries.length > 0) {
         const { data: recentTimeEntries } = await supabase
@@ -336,7 +336,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           .eq('project_id', projectId)
           .order('created_at', { ascending: false })
           .limit(3);
-        
+
         if (recentTimeEntries) {
           recentTimeEntries.forEach(entry => {
             activities.push({
@@ -352,7 +352,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           });
         }
       }
-      
+
       // Get recent material entries
       if (materialEntries && materialEntries.length > 0) {
         const { data: recentMaterialEntries } = await supabase
@@ -361,7 +361,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           .eq('project_id', projectId)
           .order('created_at', { ascending: false })
           .limit(3);
-        
+
         if (recentMaterialEntries) {
           recentMaterialEntries.forEach(entry => {
             activities.push({
@@ -377,13 +377,13 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           });
         }
       }
-      
+
       // Sort activities by timestamp (newest first)
       activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      
+
       // Update project data with real activities only
       realProjectData.recent_activities = activities.slice(0, 10);
-      
+
       setProject(realProjectData);
     } catch (error) {
       console.error('Error fetching project data:', error);
@@ -420,7 +420,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       // Filter out employees who are already in the project
       const currentTeamIds = project?.assigned_team || [];
       const available = employees?.filter(emp => !currentTeamIds.includes(emp.id)) || [];
-      
+
       setAvailableEmployees(available);
     } catch (error) {
       console.error('Error loading available employees:', error);
@@ -459,7 +459,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
     } catch (error) {
       console.error('Error adding team member:', error);
       toast({
-        title: "Fehler", 
+        title: "Fehler",
         description: "Ein unerwarteter Fehler ist aufgetreten",
         variant: "destructive"
       });
@@ -550,90 +550,100 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[98vw] max-h-[98vh] w-full h-full overflow-y-auto">
+      <DialogContent className="max-w-[95vw] lg:max-w-6xl max-h-[95vh] rounded-[24px] bg-[#f8fafc] shadow-xl overflow-y-auto border border-slate-200 p-6 md:p-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <DialogHeader className="pb-2">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <DialogTitle className="text-2xl flex items-center gap-2">
-                  <Building2 className="h-6 w-6" />
-                  {project.project_name}
-                </DialogTitle>
-                <DialogDescription className="flex items-center gap-4 mt-1">
-                  <Badge className={`${statusConfig.bgColor} ${statusConfig.color} text-sm`}>
-                    {statusConfig.icon} {statusConfig.label}
-                  </Badge>
-                  <span className="text-gray-500">ID: {generateShortId(project.id)}</span>
-                </DialogDescription>
-              </div>
+          <DialogHeader className="pb-4 mb-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
+                <div className="h-14 w-14 bg-indigo-50 rounded-[18px] flex items-center justify-center flex-shrink-0 border border-indigo-100/50">
+                  <Building2 className="h-7 w-7 text-indigo-600" />
+                </div>
+                <div>
+                  <DialogTitle className="text-3xl font-bold flex flex-col sm:flex-row sm:items-center gap-3 text-slate-900">
+                    {project.project_name}
+                  </DialogTitle>
+                  <DialogDescription className="flex items-center gap-3 mt-1.5">
+                    <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-100/50 px-2 py-0.5 rounded-[6px] font-medium shadow-none">
+                      <CheckCircle className="h-3.5 w-3.5 mr-1" /> Erledigt
+                    </Badge>
+                    <span className="text-slate-500 font-medium text-sm">ID: {generateShortId(project.id)}</span>
+                  </DialogDescription>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 bg-white px-5 py-3 rounded-[16px] border border-slate-200 shadow-sm ml-auto">
                 <div className="text-right">
-                  <p className="text-sm text-gray-600">Aktueller Projektkosten</p>
-                  <p className="text-3xl font-bold text-green-600">{formatCurrency(project.stats.total_project_cost)}</p>
+                  <p className="text-xs font-medium text-slate-500 mb-0.5">Aktuelle Projektkosten</p>
+                  <div className="flex items-baseline justify-end gap-1">
+                    <p className="text-2xl font-bold text-emerald-600 leading-none">{formatCurrency(project.stats.total_project_cost)}</p>
+                  </div>
                   {project.budget_planned && project.budget_planned > 0 && (
-                    <p className="text-xs text-gray-500">von {formatCurrency(project.budget_planned)} Budget</p>
+                    <p className="text-[10px] font-medium text-slate-400 mt-1">von {formatCurrency(project.budget_planned)} Budget</p>
                   )}
                 </div>
               </div>
             </div>
-            
+
             {/* Tabs direkt im Header */}
-            <TabsList className="grid w-full grid-cols-5 mb-4">
-              <TabsTrigger value="overview">Übersicht</TabsTrigger>
-              <TabsTrigger value="time">Zeiten</TabsTrigger>
-              <TabsTrigger value="materials">Material</TabsTrigger>
-              <TabsTrigger value="documents">Dokumente</TabsTrigger>
-              <TabsTrigger value="comments">Kommentare</TabsTrigger>
+            <TabsList className="bg-slate-100 border border-slate-200/60 p-1 rounded-full grid w-full grid-cols-5 mt-8 h-12">
+              <TabsTrigger value="overview" className="rounded-full h-full data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 transition-all font-medium text-slate-500 hover:text-slate-700">Übersicht</TabsTrigger>
+              <TabsTrigger value="time" className="rounded-full h-full data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 transition-all font-medium text-slate-500 hover:text-slate-700">Zeiten</TabsTrigger>
+              <TabsTrigger value="materials" className="rounded-full h-full data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 transition-all font-medium text-slate-500 hover:text-slate-700">Material</TabsTrigger>
+              <TabsTrigger value="documents" className="rounded-full h-full data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 transition-all font-medium text-slate-500 hover:text-slate-700">Dokumente</TabsTrigger>
+              <TabsTrigger value="comments" className="rounded-full h-full data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 transition-all font-medium text-slate-500 hover:text-slate-700">Kommentare</TabsTrigger>
             </TabsList>
           </DialogHeader>
 
-          <TabsContent value="overview" className="space-y-4 min-h-[600px] mt-0">
+          <TabsContent value="overview" className="space-y-6 min-h-[600px] mt-0">
             {/* Project Statistics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Gesamtstunden</p>
-                      <p className="text-2xl font-bold">{project.stats.total_hours_logged}h</p>
-                    </div>
-                    <Clock className="h-8 w-8 text-blue-500" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="border-0 shadow-sm bg-white rounded-[20px] relative overflow-hidden group h-[100px]">
+                <div className="absolute right-0 top-0 bottom-0 w-24 bg-blue-50/50 rounded-l-full" />
+                <CardContent className="p-5 flex items-center justify-between h-full relative z-10 w-full">
+                  <div className="flex flex-col h-full justify-between">
+                    <p className="text-[13px] font-medium text-slate-500 mb-1">Gesamtstunden</p>
+                    <p className="text-4xl font-bold text-slate-900 leading-none">{project.stats.total_hours_logged}<span className="text-lg text-slate-500 font-medium ml-1">h</span></p>
                   </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Materialkosten</p>
-                      <p className="text-2xl font-bold">{formatCurrency(project.stats.total_material_cost)}</p>
-                    </div>
-                    <DollarSign className="h-8 w-8 text-green-500" />
+                  <div className="h-[46px] w-[46px] rounded-full bg-white flex items-center justify-center text-blue-600 border border-blue-100 shadow-sm">
+                    <Clock className="h-5 w-5" />
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Budget-Nutzung</p>
-                      <p className="text-2xl font-bold">{project.stats.budget_utilization}%</p>
-                    </div>
-                    <AlertTriangle className={`h-8 w-8 ${project.stats.budget_utilization > 80 ? 'text-red-500' : 'text-yellow-500'}`} />
+              <Card className="border-0 shadow-sm bg-white rounded-[20px] relative overflow-hidden group h-[100px]">
+                <div className="absolute right-0 top-0 bottom-0 w-24 bg-emerald-50/50 rounded-l-full" />
+                <CardContent className="p-5 flex items-center justify-between h-full relative z-10 w-full">
+                  <div className="flex flex-col h-full justify-between">
+                    <p className="text-[13px] font-medium text-slate-500 mb-1">Materialkosten</p>
+                    <p className="text-3xl font-bold text-slate-900 leading-none">{formatCurrency(project.stats.total_material_cost).replace(',00', '')}</p>
+                  </div>
+                  <div className="h-[46px] w-[46px] rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100 shadow-sm">
+                    <DollarSign className="h-5 w-5" />
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Team-Größe</p>
-                      <p className="text-2xl font-bold">{project.stats.team_size}</p>
-                    </div>
-                    <Users className="h-8 w-8 text-purple-500" />
+              <Card className="border-0 shadow-sm bg-white rounded-[20px] relative overflow-hidden group h-[100px]">
+                <div className="absolute right-0 top-0 bottom-0 w-24 bg-emerald-50/50 rounded-l-full" />
+                <CardContent className="p-5 flex items-center justify-between h-full relative z-10 w-full">
+                  <div className="flex flex-col h-full justify-between">
+                    <p className="text-[13px] font-medium text-slate-500 mb-1">Budget-Nutzung</p>
+                    <p className="text-4xl font-bold text-slate-900 leading-none">{project.stats.budget_utilization}<span className="text-lg text-slate-500 font-medium ml-1">%</span></p>
+                  </div>
+                  <div className="h-[46px] w-[46px] rounded-full bg-white flex items-center justify-center text-emerald-600 border border-emerald-100 shadow-sm">
+                    <AlertTriangle className="h-5 w-5 stroke-[2.5]" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-sm bg-white rounded-[20px] relative overflow-hidden group h-[100px]">
+                <div className="absolute right-0 top-0 bottom-0 w-24 bg-purple-50/50 rounded-l-full" />
+                <CardContent className="p-5 flex items-center justify-between h-full relative z-10 w-full">
+                  <div className="flex flex-col h-full justify-between">
+                    <p className="text-[13px] font-medium text-slate-500 mb-1">Team-Größe</p>
+                    <p className="text-4xl font-bold text-slate-900 leading-none">{project.stats.team_size}</p>
+                  </div>
+                  <div className="h-[46px] w-[46px] rounded-full bg-purple-50 flex items-center justify-center text-purple-600 border border-purple-100 shadow-sm">
+                    <Users className="h-5 w-5" />
                   </div>
                 </CardContent>
               </Card>
@@ -641,61 +651,73 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Project Details */}
-              <div className="lg:col-span-2 space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Projektdetails</CardTitle>
+              <div className="lg:col-span-2 space-y-6">
+                <Card className="border-slate-200 shadow-sm bg-white rounded-[20px] overflow-hidden">
+                  <CardHeader className="border-b border-slate-100 pb-4 bg-slate-50">
+                    <CardTitle className="text-lg font-semibold text-slate-800">Projektdetails</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-6">
+                  <CardContent className="space-y-6 pt-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex flex-wrap items-center gap-4 md:gap-6">
                         <div className="text-sm">
-                          <span className="text-gray-600">Start:</span> {formatDate(project.start_date)}
+                          <span className="text-slate-500 font-medium">Start:</span>
+                          <span className="ml-2 px-2.5 py-1 bg-white border border-slate-200 rounded-md shadow-sm font-medium">{formatDate(project.start_date)}</span>
                         </div>
                         <div className="text-sm">
-                          <span className="text-gray-600">Ende:</span> {formatDate(project.planned_end_date)}
+                          <span className="text-slate-500 font-medium">Ende:</span>
+                          <span className="ml-2 px-2.5 py-1 bg-white border border-slate-200 rounded-md shadow-sm font-medium">{formatDate(project.planned_end_date)}</span>
                         </div>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
                       <div>
-                        <p className="text-sm text-gray-600">Standort</p>
-                        <p className="font-medium flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
+                        <p className="text-sm font-medium text-slate-500 mb-1.5">Standort</p>
+                        <p className="font-medium flex items-center gap-2 text-slate-900 bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm">
+                          <MapPin className="h-4 w-4 text-slate-400" />
                           {project.project_address}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Verbleibende Tage</p>
-                        <p className="font-medium">{project.stats.days_remaining} Tage</p>
+                        <p className="text-sm font-medium text-slate-500 mb-1.5">Verbleibende Tage</p>
+                        <div className="flex items-center gap-2 text-slate-900 bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm">
+                          <Clock className="h-4 w-4 text-blue-500" />
+                          <p className="font-medium">{project.stats.days_remaining} Tage</p>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
                 {/* Customer Information */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Kundeninformationen</CardTitle>
+                <Card className="border-slate-200 shadow-sm bg-white rounded-[20px] overflow-hidden">
+                  <CardHeader className="border-b border-slate-100 pb-4 bg-slate-50">
+                    <CardTitle className="text-lg font-semibold text-slate-800">Kundeninformationen</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div>
-                      <p className="text-sm text-gray-600">Unternehmen</p>
-                      <p className="font-medium">{project.customer.company_name}</p>
+                  <CardContent className="space-y-4 pt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                        <p className="text-sm font-medium text-slate-500 mb-1">Unternehmen</p>
+                        <p className="font-semibold text-slate-900 text-lg">{project.customer.company_name}</p>
+                      </div>
+                      <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                        <p className="text-sm font-medium text-slate-500 mb-1">Ansprechpartner</p>
+                        <p className="font-medium text-slate-900">{project.customer.contact_person}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Ansprechpartner</p>
-                      <p className="font-medium">{project.customer.contact_person}</p>
-                    </div>
-                    <div className="flex gap-4">
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm">{project.customer.email}</span>
+                    <div className="flex flex-col sm:flex-row gap-4 mt-2">
+                      <div className="flex-1 flex items-center gap-3 bg-slate-50 px-4 py-3 rounded-xl border border-slate-100">
+                        <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                          <Mail className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <span className="text-sm font-medium text-slate-700">{project.customer.email}</span>
                       </div>
                       {project.customer.phone && (
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm">{project.customer.phone}</span>
+                        <div className="flex-1 flex items-center gap-3 bg-slate-50 px-4 py-3 rounded-xl border border-slate-100">
+                          <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                            <Phone className="h-4 w-4 text-emerald-600" />
+                          </div>
+                          <span className="text-sm font-medium text-slate-700">{project.customer.phone}</span>
                         </div>
                       )}
                     </div>
@@ -704,65 +726,77 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
               </div>
 
               {/* Right Sidebar */}
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {/* Team Members */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
+                <Card className="border-slate-200 shadow-sm bg-white rounded-[20px] overflow-hidden">
+                  <CardHeader className="border-b border-slate-100 pb-4 bg-slate-50 flex flex-row items-center justify-between">
+                    <CardTitle className="text-lg font-semibold text-slate-800 m-0">
                       Team-Mitglieder
-                      {permissions.can_manage_team && (
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => {
-                            loadAvailableEmployees();
-                            setIsAddTeamMemberOpen(true);
-                          }}
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          Hinzufügen
-                        </Button>
-                      )}
                     </CardTitle>
+                    {permissions.can_manage_team && (
+                      <Button
+                        size="sm"
+                        className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-sm"
+                        onClick={() => {
+                          loadAvailableEmployees();
+                          setIsAddTeamMemberOpen(true);
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-1.5" />
+                        Hinzufügen
+                      </Button>
+                    )}
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-0 p-0">
                     {project.team_members.length === 0 ? (
-                      <p className="text-sm text-gray-500">Noch keine Teammitglieder zugewiesen</p>
+                      <div className="p-6 text-center">
+                        <Users className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+                        <p className="text-sm text-slate-500 font-medium">Noch keine Teammitglieder zugewiesen</p>
+                      </div>
                     ) : (
-                      project.team_members.map(member => (
-                        <div key={member.id} className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">{member.name || 'Unbekannt'}</p>
-                            <p className="text-sm text-gray-600">{member.email || 'Keine E-Mail'}</p>
+                      <div className="divide-y divide-slate-100">
+                        {project.team_members.map(member => (
+                          <div key={member.id} className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-100 to-blue-100 border border-indigo-200 flex items-center justify-center flex-shrink-0">
+                                <span className="text-indigo-700 font-semibold text-sm">
+                                  {member.name ? member.name.charAt(0).toUpperCase() : 'U'}
+                                </span>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-slate-800">{member.name || 'Unbekannt'}</p>
+                                <p className="text-xs text-slate-500 font-medium">{member.email || 'Keine E-Mail'}</p>
+                              </div>
+                            </div>
+                            <div className="text-right bg-white px-2.5 py-1.5 rounded-lg border border-slate-100 shadow-sm">
+                              <p className="text-sm font-bold text-slate-700">{member.hours_this_week || 0}h</p>
+                              <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Diese Woche</p>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium">{member.hours_this_week || 0}h</p>
-                            <p className="text-xs text-gray-500">diese Woche</p>
-                          </div>
-                        </div>
-                      ))
+                        ))}
+                      </div>
                     )}
                   </CardContent>
                 </Card>
 
                 {/* Status Management */}
                 {permissions.can_change_status && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Status ändern</CardTitle>
+                  <Card className="border-slate-200 shadow-sm bg-white rounded-[20px] overflow-hidden">
+                    <CardHeader className="border-b border-slate-100 pb-4 bg-slate-50">
+                      <CardTitle className="text-lg font-semibold text-slate-800">Status ändern</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-2">
+                    <CardContent className="space-y-2 pt-6">
                       {statusConfig.nextStates.map(nextStatus => {
                         const nextConfig = getStatusConfig(nextStatus);
                         return (
                           <Button
                             key={nextStatus}
                             variant="outline"
-                            size="sm"
-                            className="w-full justify-start"
+                            className="w-full justify-start h-11 bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-sm group"
                             onClick={() => handleStatusChange(nextStatus)}
                           >
-                            {nextConfig.icon} {nextConfig.label}
+                            <span className={`mr-2 group-hover:scale-110 transition-transform ${nextConfig.color}`}>{nextConfig.icon}</span>
+                            <span className="font-medium text-slate-700">{nextConfig.label}</span>
                           </Button>
                         );
                       })}
@@ -771,25 +805,32 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                 )}
 
                 {/* Recent Activities */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Letzte Aktivitäten</CardTitle>
+                <Card className="border-slate-200 shadow-sm bg-white rounded-[20px] overflow-hidden">
+                  <CardHeader className="border-b border-slate-100 pb-4 bg-slate-50">
+                    <CardTitle className="text-lg font-semibold text-slate-800">Letzte Aktivitäten</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="pt-6">
                     {project.recent_activities.length === 0 ? (
-                      <p className="text-sm text-gray-500">Noch keine Aktivitäten für dieses Projekt</p>
+                      <div className="text-center py-4">
+                        <Clock className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+                        <p className="text-sm text-slate-500">Noch keine Aktivitäten</p>
+                      </div>
                     ) : (
-                      project.recent_activities.map(activity => (
-                        <div key={activity.id} className="border-l-2 border-blue-200 pl-3">
-                          <p className="text-sm font-medium">{activity.title}</p>
-                          <p className="text-xs text-gray-600">{activity.description}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-gray-500">{activity.user_name}</span>
-                            <span className="text-xs text-gray-400">•</span>
-                            <span className="text-xs text-gray-500">{formatDateTime(activity.timestamp)}</span>
+                      <div className="space-y-5 relative before:absolute before:inset-0 before:ml-1.5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent ml-2">
+                        {project.recent_activities.map((activity, index) => (
+                          <div key={activity.id} className="relative flex items-start gap-4 before:absolute before:left-0 before:h-full before:w-[2px] before:bg-slate-200 pl-4 before:-ml-[17px] first:before:bg-gradient-to-b first:before:from-transparent first:before:to-slate-200 last:before:bg-gradient-to-t last:before:from-transparent last:before:to-slate-200">
+                            <div className="absolute left-[-22px] top-1.5 h-3 w-3 rounded-full bg-blue-500 border-[3px] border-white shadow-sm ring-1 ring-slate-200" />
+                            <div className="flex-1 bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                              <p className="text-sm font-semibold text-slate-800">{activity.title}</p>
+                              <p className="text-xs text-slate-600 mt-1 mb-2 leading-relaxed">{activity.description}</p>
+                              <div className="flex items-center gap-2 mt-auto pt-2 border-t border-slate-50">
+                                <span className="text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">{activity.user_name}</span>
+                                <span className="text-[11px] text-slate-400 font-medium">{formatDateTime(activity.timestamp)}</span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      ))
+                        ))}
+                      </div>
                     )}
                   </CardContent>
                 </Card>
@@ -862,10 +903,10 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs>
+        </Tabs >
 
         {/* Time Entry Form */}
-        <TimeEntryForm
+        < TimeEntryForm
           isOpen={isTimeFormOpen}
           onClose={() => setIsTimeFormOpen(false)}
           projectId={project.id}
@@ -895,48 +936,50 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         />
 
         {/* Add Team Member Dialog */}
-        {isAddTeamMemberOpen && (
-          <Dialog open={isAddTeamMemberOpen} onOpenChange={setIsAddTeamMemberOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Team-Mitglied hinzufügen</DialogTitle>
-                <DialogDescription>
-                  Wählen Sie einen Mitarbeiter aus, der dem Projekt hinzugefügt werden soll.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                {availableEmployees.length === 0 ? (
-                  <p className="text-sm text-gray-500">
-                    Keine verfügbaren Mitarbeiter gefunden oder alle sind bereits dem Projekt zugewiesen.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {availableEmployees.map(employee => (
-                      <div 
-                        key={employee.id}
-                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
-                      >
-                        <div>
-                          <p className="font-medium">{employee.first_name} {employee.last_name}</p>
-                          <p className="text-sm text-gray-500">{employee.position}</p>
-                          <p className="text-xs text-gray-400">{employee.email}</p>
-                        </div>
-                        <Button 
-                          size="sm"
-                          onClick={() => handleAddTeamMember(employee.id)}
+        {
+          isAddTeamMemberOpen && (
+            <Dialog open={isAddTeamMemberOpen} onOpenChange={setIsAddTeamMemberOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Team-Mitglied hinzufügen</DialogTitle>
+                  <DialogDescription>
+                    Wählen Sie einen Mitarbeiter aus, der dem Projekt hinzugefügt werden soll.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  {availableEmployees.length === 0 ? (
+                    <p className="text-sm text-gray-500">
+                      Keine verfügbaren Mitarbeiter gefunden oder alle sind bereits dem Projekt zugewiesen.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {availableEmployees.map(employee => (
+                        <div
+                          key={employee.id}
+                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
                         >
-                          Hinzufügen
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
-      </DialogContent>
-    </Dialog>
+                          <div>
+                            <p className="font-medium">{employee.first_name} {employee.last_name}</p>
+                            <p className="text-sm text-gray-500">{employee.position}</p>
+                            <p className="text-xs text-gray-400">{employee.email}</p>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => handleAddTeamMember(employee.id)}
+                          >
+                            Hinzufügen
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+          )
+        }
+      </DialogContent >
+    </Dialog >
   );
 };
 

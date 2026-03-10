@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,13 +63,46 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
   console.log('AddProjectDialog - teamMembers:', teamMembers);
   const [formData, setFormData] = useState({
     name: '',
-    customer: '',
-    location: '',
+    customer_id: '',
+    project_site_id: '',
     budget: '',
     team: [] as string[],
-    status: 'Planung'
+    status: 'planned'
   });
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [projectSites, setProjectSites] = useState<{ id: string; name: string | null; address: string; city: string; }[]>([]);
+
+  // Fetch project sites for the selected customer
+  useEffect(() => {
+    const fetchSites = async () => {
+      if (!formData.customer_id) {
+        setProjectSites([]);
+        return;
+      }
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data, error } = await supabase
+          .from('project_sites')
+          .select('id, name, address, city')
+          .eq('customer_id', formData.customer_id);
+
+        if (error) throw error;
+
+        if (data) {
+          setProjectSites(data);
+          // If customer has exactly one site and we don't have one selected, auto-select it
+          if (data.length === 1 && !formData.project_site_id) {
+            setFormData(prev => ({ ...prev, project_site_id: data[0].id }));
+          } else if (data.length === 0) {
+            setFormData(prev => ({ ...prev, project_site_id: '' }));
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching project sites:', err);
+      }
+    };
+    fetchSites();
+  }, [formData.customer_id]);
 
   // Verfügbarkeitsprüfung für Teammitglieder
   const getAvailabilityStatus = (member: TeamMember, dateRange: DateRange | undefined) => {
@@ -81,26 +113,34 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
       return 'available'; // If no projects, member is available
     }
 
-    const startDate = dateRange.from;
-    const endDate = dateRange.to;
+    const startDate = new Date(dateRange.from);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(dateRange.to);
+    endDate.setHours(23, 59, 59, 999);
 
     let conflictDays = 0;
-    const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    // Inclusive day count
+    const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) || 1;
 
     member.projects.forEach(project => {
+      if (!project.startDate || !project.endDate) return;
+
       const memberProjectStart = new Date(project.startDate.split('.').reverse().join('-'));
+      memberProjectStart.setHours(0, 0, 0, 0);
       const memberProjectEnd = new Date(project.endDate.split('.').reverse().join('-'));
+      memberProjectEnd.setHours(23, 59, 59, 999);
 
       if (startDate <= memberProjectEnd && endDate >= memberProjectStart) {
         const overlapStart = new Date(Math.max(startDate.getTime(), memberProjectStart.getTime()));
         const overlapEnd = new Date(Math.min(endDate.getTime(), memberProjectEnd.getTime()));
-        const overlapDays = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24));
+        // Inclusive overlap days
+        const overlapDays = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) || 1;
         conflictDays += overlapDays;
       }
     });
 
     if (conflictDays === 0) return 'available';
-    if (conflictDays >= totalDays * 0.8) return 'unavailable';
+    if (conflictDays >= totalDays * 0.5) return 'unavailable'; // 50% overlap is enough to be "unavailable"
     return 'partial';
   };
 
@@ -128,7 +168,7 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
     e.preventDefault();
 
     // Validierung
-    if (!formData.name || !formData.customer || !formData.budget) {
+    if (!formData.name || !formData.customer_id || !formData.budget) {
       toast({
         title: "Fehler",
         description: "Bitte füllen Sie alle Pflichtfelder aus.",
@@ -137,10 +177,8 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
       return;
     }
 
-    // Find customer ID
-    const selectedCustomer = customers.find(customer =>
-      (customer.name === formData.customer) || (customer.company_name === formData.customer)
-    );
+    // Find customer by ID
+    const selectedCustomer = customers.find(customer => customer.id === formData.customer_id);
 
     if (!selectedCustomer) {
       toast({
@@ -150,16 +188,6 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
       });
       return;
     }
-
-    // Map status to correct format
-    const statusMapping: { [key: string]: 'anfrage' | 'besichtigung' | 'geplant' | 'in_bearbeitung' | 'abgeschlossen' } = {
-      'Planung': 'geplant',
-      'geplant': 'geplant',
-      'anfrage': 'anfrage',
-      'besichtigung': 'besichtigung',
-      'in_bearbeitung': 'in_bearbeitung',
-      'abgeschlossen': 'abgeschlossen'
-    };
 
     // Get team member IDs
     const teamMemberIds = formData.team
@@ -176,8 +204,8 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
     const projectData = {
       name: formData.name,
       customer_id: selectedCustomer.id,
-      description: formData.location ? `Standort: ${formData.location}` : undefined,
-      status: statusMapping[formData.status] || 'geplant',
+      project_site_id: formData.project_site_id || undefined,
+      status: formData.status as 'planned' | 'active' | 'completed' | 'cancelled',
       budget: parseFloat(formData.budget.replace(/[^0-9.]/g, '')) || 0,
       start_date: dateRange?.from ? format(dateRange?.from, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
       end_date: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
@@ -206,8 +234,7 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
           assigned_at: new Date().toISOString()
         }));
 
-        const { error: teamError } = await supabase
-          .from('project_team_members')
+        const { error: teamError } = await (supabase.from as any)('project_team_members')
           .insert(teamMemberInserts);
 
         if (teamError) {
@@ -245,11 +272,11 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
       // Reset form
       setFormData({
         name: '',
-        customer: '',
-        location: '',
+        customer_id: '',
+        project_site_id: '',
         budget: '',
         team: [],
-        status: 'Planung'
+        status: 'planned'
       });
       setDateRange(undefined);
 
@@ -266,15 +293,12 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
     }));
   };
 
-  const handleCustomerChange = (customerName: string) => {
-    const selectedCustomer = customers.find(customer =>
-      (customer.name === customerName) || (customer.company_name === customerName)
-    );
-
+  const handleCustomerChange = (customerId: string) => {
     setFormData(prev => ({
       ...prev,
-      customer: customerName,
-      location: selectedCustomer ? selectedCustomer.address : ''
+      customer_id: customerId,
+      // Optional: automatically select primary site if available later
+      project_site_id: ''
     }));
   };
 
@@ -317,15 +341,15 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
           </div>
 
           <div>
-            <Label htmlFor="customer">Kunde *</Label>
-            <Select value={formData.customer} onValueChange={handleCustomerChange}>
+            <Label htmlFor="customer_id">Kunde *</Label>
+            <Select value={formData.customer_id} onValueChange={handleCustomerChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Kunde auswählen" />
               </SelectTrigger>
               <SelectContent>
                 {customers.map((customer) => (
-                  <SelectItem key={customer.id} value={customer.name || customer.company_name || 'Unbekannt'}>
-                    {customer.name || customer.company_name || 'Unbekannt'}
+                  <SelectItem key={customer.id} value={customer.id}>
+                    {customer.company_name || customer.name || 'Unbekannt'}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -333,15 +357,29 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
           </div>
 
           <div>
-            <Label htmlFor="location">Standort</Label>
-            <Input
-              id="location"
-              value={formData.location}
-              onChange={(e) => handleInputChange('location', e.target.value)}
-              placeholder="Wird automatisch aus Kundendaten übernommen"
-              readOnly
-              className="bg-gray-50"
-            />
+            <Label htmlFor="project_site_id">Standort (Baustelle)</Label>
+            <Select
+              value={formData.project_site_id}
+              onValueChange={(value) => handleInputChange('project_site_id', value)}
+              disabled={!formData.customer_id}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={
+                  !formData.customer_id
+                    ? "Bitte zuerst Kunde wählen"
+                    : projectSites.length === 0
+                      ? "Keine Baustellen hinterlegt"
+                      : "Standort auswählen..."
+                } />
+              </SelectTrigger>
+              <SelectContent>
+                {projectSites.map((site) => (
+                  <SelectItem key={site.id} value={site.id}>
+                    {site.name ? `${site.name} - ` : ''}{site.address}, {site.city}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
@@ -424,11 +462,10 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Anfrage">Anfrage</SelectItem>
-                <SelectItem value="Besichtigung">Besichtigung</SelectItem>
-                <SelectItem value="Planung">Planung</SelectItem>
-                <SelectItem value="In Bearbeitung">In Bearbeitung</SelectItem>
-                <SelectItem value="Abgeschlossen">Abgeschlossen</SelectItem>
+                <SelectItem value="planned">Planung</SelectItem>
+                <SelectItem value="active">In Bearbeitung</SelectItem>
+                <SelectItem value="completed">Abgeschlossen</SelectItem>
+                <SelectItem value="cancelled">Storniert</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -109,8 +109,8 @@ export function AppSidebarV2({ activeModule, onModuleChange }: AppSidebarV2Props
                     <button
                         onClick={() => toggleGroup(item.id)}
                         className={`w-full flex items-center px-3 py-2.5 rounded-md transition-colors ${isActive
-                                ? 'bg-slate-800 text-slate-100'
-                                : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                            ? 'bg-slate-800 text-slate-100'
+                            : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
                             }`}
                     >
                         <item.icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-teal-400' : 'text-slate-400'}`} />
@@ -137,8 +137,8 @@ export function AppSidebarV2({ activeModule, onModuleChange }: AppSidebarV2Props
                                     key={child.id}
                                     onClick={() => onModuleChange(child.id)}
                                     className={`w-full flex items-center px-3 py-2 rounded-md transition-colors text-sm ${activeModule === child.id
-                                            ? 'bg-slate-800 text-teal-400 font-medium'
-                                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                                        ? 'bg-slate-800 text-teal-400 font-medium'
+                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                                         }`}
                                 >
                                     <child.icon className="h-4 w-4 mr-2" />
@@ -156,8 +156,8 @@ export function AppSidebarV2({ activeModule, onModuleChange }: AppSidebarV2Props
                 key={item.id}
                 onClick={() => onModuleChange(item.id)}
                 className={`w-full flex items-center px-3 py-2.5 rounded-md transition-colors mb-1 ${activeModule === item.id
-                        ? 'bg-slate-800 text-teal-400 font-medium'
-                        : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                    ? 'bg-slate-800 text-teal-400 font-medium'
+                    : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
                     }`}
                 title={!isExpanded ? item.name : undefined}
             >
@@ -187,16 +187,11 @@ export function AppSidebarV2({ activeModule, onModuleChange }: AppSidebarV2Props
             }}
         >
             {/* Brand / Logo */}
-            <div className="h-16 flex items-center justify-center border-b border-slate-800/60 px-4">
-                <div className={`flex items-center gap-3 w-full ${!isExpanded && 'justify-center'}`}>
-                    <div className="h-8 w-8 rounded bg-teal-600 flex items-center justify-center flex-shrink-0">
-                        <span className="text-white font-bold text-sm">H</span>
+            <div className="p-4 border-b border-slate-800/60 overflow-hidden">
+                <div className={`flex items-center transition-all duration-300 ${isExpanded ? 'justify-start' : 'justify-center'}`}>
+                    <div className={`w-auto flex items-center flex-shrink-0 transition-all duration-300 ${isExpanded ? 'h-20 -my-6' : 'h-10'}`}>
+                        <img src="/logo.png" alt="Logo" className={`w-auto h-full object-contain ${isExpanded ? 'object-left' : 'object-center'}`} />
                     </div>
-                    {isExpanded && (
-                        <span className="font-semibold text-slate-100 truncate">
-                            HandwerkOS
-                        </span>
-                    )}
                 </div>
             </div>
 

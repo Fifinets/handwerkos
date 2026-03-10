@@ -22,10 +22,17 @@ interface Customer {
   contact_person: string;
 }
 
-interface Quote {
+interface Offer {
   id: string;
-  quote_number: string;
-  title: string;
+  offer_number: string;
+  project_name: string;
+  project_id: string;
+  customer_id: string;
+}
+
+interface Project {
+  id: string;
+  name: string;
   customer_id: string;
 }
 
@@ -47,7 +54,8 @@ export function AddInvoiceDialog({ open, onOpenChange }: AddInvoiceDialogProps) 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [customerId, setCustomerId] = useState('');
-  const [quoteId, setQuoteId] = useState('');
+  const [projectId, setProjectId] = useState('');
+  const [offerId, setOfferId] = useState('');
   const [invoiceDate, setInvoiceDate] = useState<Date>(new Date());
   const [dueDate, setDueDate] = useState<Date>(addDays(new Date(), 30));
   const [paymentTerms, setPaymentTerms] = useState('30 Tage netto');
@@ -73,28 +81,45 @@ export function AddInvoiceDialog({ open, onOpenChange }: AddInvoiceDialogProps) 
         .select('id, company_name, contact_person')
         .eq('status', 'Aktiv')
         .order('company_name');
-      
+
       if (error) throw error;
       return data as Customer[];
     }
   });
 
-  const { data: quotes = [] } = useQuery({
-    queryKey: ['quotes-for-invoice'],
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects-for-invoice', customerId],
+    enabled: !!customerId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('quotes')
-        .select('id, quote_number, title, customer_id')
-        .eq('status', 'Angenommen')
-        .order('created_at', { ascending: false });
-      
+        .from('projects')
+        .select('id, name, customer_id')
+        .eq('customer_id', customerId)
+        .order('name');
+
       if (error) throw error;
-      return data as Quote[];
+      return data as Project[];
+    }
+  });
+
+  const { data: offers = [] } = useQuery({
+    queryKey: ['offers-for-invoice', projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('offers')
+        .select('id, offer_number, project_name, project_id, customer_id')
+        .eq('project_id', projectId)
+        .eq('status', 'accepted')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as Offer[];
     }
   });
 
   const createInvoiceMutation = useMutation({
-    mutationFn: async (invoiceData: { title: string; description: string; customerId: string }) => {
+    mutationFn: async (invoiceData: { title: string; description: string; customerId: string; projectId: string }) => {
       // Calculate totals
       const netAmount = items.reduce((sum, item) => sum + item.total_price, 0);
       const taxAmount = (netAmount * taxRate) / 100;
@@ -107,7 +132,8 @@ export function AddInvoiceDialog({ open, onOpenChange }: AddInvoiceDialogProps) 
           title,
           description,
           customer_id: customerId,
-          quote_id: quoteId || null,
+          project_id: projectId,
+          offer_id: offerId || null,
           invoice_date: format(invoiceDate, 'yyyy-MM-dd'),
           due_date: format(dueDate, 'yyyy-MM-dd'),
           payment_terms: paymentTerms,
@@ -164,7 +190,8 @@ export function AddInvoiceDialog({ open, onOpenChange }: AddInvoiceDialogProps) 
     setTitle('');
     setDescription('');
     setCustomerId('');
-    setQuoteId('');
+    setProjectId('');
+    setOfferId('');
     setInvoiceDate(new Date());
     setDueDate(addDays(new Date(), 30));
     setPaymentTerms('30 Tage netto');
@@ -203,59 +230,62 @@ export function AddInvoiceDialog({ open, onOpenChange }: AddInvoiceDialogProps) 
     setItems(items.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
-        
+
         // Recalculate total price when quantity or unit_price changes
         if (field === 'quantity' || field === 'unit_price') {
           updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price;
         }
-        
+
         return updatedItem;
       }
       return item;
     }));
   };
 
-  const loadQuoteData = async (selectedQuoteId: string) => {
-    if (!selectedQuoteId) return;
+  const loadOfferData = async (selectedOfferId: string) => {
+    if (!selectedOfferId) return;
 
     try {
-      // Get quote data
-      const { data: quote, error: quoteError } = await supabase
-        .from('quotes')
+      // Get offer data
+      const { data: offer, error: offerError } = await supabase
+        .from('offers')
         .select(`
           *,
           customer:customers(company_name, contact_person)
         `)
-        .eq('id', selectedQuoteId)
+        .eq('id', selectedOfferId)
         .single();
 
-      if (quoteError) throw quoteError;
+      if (offerError) throw offerError;
 
-      // Get quote items
-      const { data: quoteItems, error: itemsError } = await supabase
-        .from('document_items')
+      // Get offer items
+      const { data: offerItems, error: itemsError } = await supabase
+        .from('offer_items')
         .select('*')
-        .eq('quote_id', selectedQuoteId)
-        .order('position');
+        .eq('offer_id', selectedOfferId)
+        .order('position_number');
 
       if (itemsError) throw itemsError;
 
-      // Populate form with quote data
-      setTitle(`Rechnung für ${quote.title}`);
-      setDescription(quote.description || '');
-      setCustomerId(quote.customer_id);
-      setTaxRate(quote.tax_rate);
-      setNotes(quote.notes || '');
+      // Populate form with offer data
+      setTitle(`Rechnung für ${offer.project_name || 'Angebot ' + offer.offer_number}`);
+      setDescription(offer.intro_text || '');
+      setCustomerId(offer.customer_id);
+      if (offer.project_id) setProjectId(offer.project_id);
+
+      // We don't have a direct tax_rate on the new offer table, so we leave it as default or calculate it
+      // setTaxRate(offer.tax_rate); 
+      setNotes(offer.notes || '');
 
       // Populate items
-      if (quoteItems && quoteItems.length > 0) {
-        const loadedItems = quoteItems.map(item => ({
+      if (offerItems && offerItems.length > 0) {
+        const loadedItems = offerItems.map(item => ({
           id: item.id,
-          description: item.description,
-          quantity: item.quantity,
-          unit: item.unit,
-          unit_price: item.unit_price,
-          total_price: item.total_price
+          description: item.description || '',
+          quantity: item.quantity || 1,
+          unit: item.unit || 'Stk.',
+          unit_price: item.unit_price_net || 0,
+          total_price: (item.quantity || 1) * (item.unit_price_net || 0)
         }));
         setItems(loadedItems);
       }
@@ -265,7 +295,7 @@ export function AddInvoiceDialog({ open, onOpenChange }: AddInvoiceDialogProps) 
         description: "Die Daten aus dem Angebot wurden übernommen.",
       });
     } catch (error) {
-      console.error('Error loading quote data:', error);
+      console.error('Error loading offer data:', error);
       toast({
         title: "Fehler",
         description: "Beim Laden der Angebotsdaten ist ein Fehler aufgetreten.",
@@ -280,17 +310,17 @@ export function AddInvoiceDialog({ open, onOpenChange }: AddInvoiceDialogProps) 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!title || !customerId || items.some(item => !item.description)) {
+
+    if (!title || !customerId || !projectId || items.some(item => !item.description)) {
       toast({
         title: "Fehler",
-        description: "Bitte füllen Sie alle Pflichtfelder aus.",
+        description: "Bitte füllen Sie alle Pflichtfelder aus (inkl. Projekt).",
         variant: "destructive",
       });
       return;
     }
 
-    createInvoiceMutation.mutate({});
+    createInvoiceMutation.mutate({ title, description, customerId, projectId });
   };
 
   return (
@@ -315,14 +345,18 @@ export function AddInvoiceDialog({ open, onOpenChange }: AddInvoiceDialogProps) 
 
             <div className="space-y-2">
               <Label htmlFor="customer">Kunde *</Label>
-              <Select value={customerId} onValueChange={setCustomerId} required>
+              <Select value={customerId} onValueChange={(val) => {
+                setCustomerId(val);
+                setProjectId('');
+                setOfferId('');
+              }} required>
                 <SelectTrigger>
                   <SelectValue placeholder="Kunde auswählen" />
                 </SelectTrigger>
                 <SelectContent>
                   {customers.map((customer) => (
                     <SelectItem key={customer.id} value={customer.id}>
-                      {customer.company_name} ({customer.contact_person})
+                      {customer.company_name} ({customer.contact_person || 'Kein Kontakt'})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -330,28 +364,55 @@ export function AddInvoiceDialog({ open, onOpenChange }: AddInvoiceDialogProps) 
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="quote">Basiert auf Angebot (optional)</Label>
-            <Select 
-              value={quoteId} 
-              onValueChange={(value) => {
-                setQuoteId(value);
-                if (value) {
-                  loadQuoteData(value);
-                }
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Angebot auswählen (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                {quotes.map((quote) => (
-                  <SelectItem key={quote.id} value={quote.id}>
-                    {quote.quote_number} - {quote.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="project">Projekt *</Label>
+              <Select
+                value={projectId}
+                onValueChange={(val) => {
+                  setProjectId(val);
+                  setOfferId('');
+                }}
+                required
+                disabled={!customerId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Projekt auswählen" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="offer">Basiert auf Angebot (optional)</Label>
+              <Select
+                value={offerId}
+                onValueChange={(value) => {
+                  setOfferId(value);
+                  if (value) {
+                    loadOfferData(value);
+                  }
+                }}
+                disabled={!projectId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Angebot auswählen (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {offers.map((offer) => (
+                    <SelectItem key={offer.id} value={offer.id}>
+                      {offer.offer_number} - {offer.project_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -477,8 +538,8 @@ export function AddInvoiceDialog({ open, onOpenChange }: AddInvoiceDialogProps) 
                   </div>
                   <div className="col-span-2 space-y-2">
                     <Label>Einheit</Label>
-                    <Select 
-                      value={item.unit} 
+                    <Select
+                      value={item.unit}
                       onValueChange={(value) => updateItem(item.id, 'unit', value)}
                     >
                       <SelectTrigger>

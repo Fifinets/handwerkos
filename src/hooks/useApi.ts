@@ -1519,7 +1519,8 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
             status,
             qualifications,
             license,
-            company_id
+            company_id,
+            hourly_wage
           `)
           .not('user_id', 'is', null)  // Only employees who have registered
           .neq('status', 'eingeladen')  // Exclude invited but not registered
@@ -1565,7 +1566,8 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
             position: employee.position,
             status: employee.status,
             qualifications: Array.isArray(employee.qualifications) ? employee.qualifications : [],
-            license: employee.license
+            license: employee.license,
+            hourly_wage: employee.hourly_wage ?? 0,
           };
         }) || [];
 

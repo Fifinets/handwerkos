@@ -112,15 +112,11 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
       }}
     >
       {/* Logo at top */}
-      <div className="p-4 border-b border-blue-600/30">
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
-            <span className="text-white font-bold text-sm">H</span>
+      <div className="p-4 border-b border-blue-600/30 overflow-hidden">
+        <div className={`flex items-center transition-all duration-300 ${isExpanded ? 'justify-start' : 'justify-center'}`}>
+          <div className={`w-auto flex items-center flex-shrink-0 transition-all duration-300 ${isExpanded ? 'h-20 -my-6' : 'h-10'}`}>
+            <img src="/logo.png" alt="Logo" className={`w-auto h-full object-contain ${isExpanded ? 'object-left' : 'object-center'}`} />
           </div>
-          <span className={`font-bold text-white transition-all duration-300 ${isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
-            }`}>
-            HandwerkOS
-          </span>
         </div>
       </div>
 

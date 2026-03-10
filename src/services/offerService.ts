@@ -283,7 +283,7 @@ export class OfferService {
       if (existingOffer.status !== 'draft') {
         throw new ApiError(
           API_ERROR_CODES.BUSINESS_RULE_VIOLATION,
-          'Nur Entwürfe können gelöscht werden.',
+          'Nur Entwürfe können gelöscht werden. Abgesendete oder finale Angebote müssen storniert werden.',
           { currentStatus: existingOffer.status }
         );
       }

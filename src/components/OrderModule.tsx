@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import AddOrderDialog from "./AddOrderDialog";
 import EditOrderDialog from "./EditOrderDialog";
 import OrderDetailView from "./OrderDetailView";
+import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, OrderStatus } from "@/types/order";
 
 interface Order {
   id: string;
@@ -91,7 +92,7 @@ const OrderModule = () => {
   const handleDeleteOrder = async (id: string) => {
     try {
       console.log('Deleting order:', id);
-      
+
       const { error } = await supabase
         .from('orders')
         .delete()
@@ -126,14 +127,14 @@ const OrderModule = () => {
   const handleCreateProject = async (orderId: string, orderTitle: string) => {
     try {
       console.log('Creating project from order:', orderId);
-      
+
       const projectId = await workflowService.createProjectFromOrder(orderId);
       if (projectId) {
         toast({
           title: "Projekt erstellt",
           description: `Projekt aus Auftrag "${orderTitle}" wurde erfolgreich erstellt.`
         });
-        
+
         // Refresh orders to show updated status
         fetchOrders();
       }
@@ -149,11 +150,15 @@ const OrderModule = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Angebot': return 'bg-blue-100 text-blue-800';
-      case 'Bestätigt': return 'bg-green-100 text-green-800';
-      case 'In Bearbeitung': return 'bg-yellow-100 text-yellow-800';
-      case 'Abgeschlossen': return 'bg-gray-100 text-gray-800';
-      case 'Storniert': return 'bg-red-100 text-red-800';
+      case 'created':
+      case 'open':
+        return 'bg-blue-100 text-blue-800';
+      case 'confirmed': return 'bg-green-100 text-green-800';
+      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
+      case 'completed':
+      case 'invoiced':
+        return 'bg-gray-100 text-gray-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -170,11 +175,15 @@ const OrderModule = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'Angebot': return <FileText className="h-4 w-4 text-blue-600" />;
-      case 'Bestätigt': return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'In Bearbeitung': return <Clock className="h-4 w-4 text-yellow-600" />;
-      case 'Abgeschlossen': return <CheckCircle className="h-4 w-4 text-gray-600" />;
-      case 'Storniert': return <X className="h-4 w-4 text-red-600" />;
+      case 'created':
+      case 'open':
+        return <FileText className="h-4 w-4 text-blue-600" />;
+      case 'confirmed': return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'in_progress': return <Clock className="h-4 w-4 text-yellow-600" />;
+      case 'completed':
+      case 'invoiced':
+        return <CheckCircle className="h-4 w-4 text-gray-600" />;
+      case 'cancelled': return <X className="h-4 w-4 text-red-600" />;
       default: return <FileText className="h-4 w-4 text-gray-600" />;
     }
   };
@@ -195,7 +204,7 @@ const OrderModule = () => {
     order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.customers?.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.status.toLowerCase().includes(searchTerm.toLowerCase())
+    (ORDER_STATUS_LABELS[order.status as OrderStatus] || order.status).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleDoubleClickOrder = (order: Order) => {
@@ -224,7 +233,7 @@ const OrderModule = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Offene Aufträge</p>
-                <p className="text-2xl font-bold">{orders.filter(o => o.status !== 'Abgeschlossen' && o.status !== 'Storniert').length}</p>
+                <p className="text-2xl font-bold">{orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled' && o.status !== 'invoiced').length}</p>
               </div>
               <Package className="h-8 w-8 text-blue-500 opacity-50" />
             </div>
@@ -235,7 +244,7 @@ const OrderModule = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">In Bearbeitung</p>
-                <p className="text-2xl font-bold">{orders.filter(o => o.status === 'In Bearbeitung').length}</p>
+                <p className="text-2xl font-bold">{orders.filter(o => o.status === 'in_progress').length}</p>
               </div>
               <Clock className="h-8 w-8 text-yellow-500 opacity-50" />
             </div>
@@ -246,7 +255,7 @@ const OrderModule = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Abgeschlossen</p>
-                <p className="text-2xl font-bold">{orders.filter(o => o.status === 'Abgeschlossen').length}</p>
+                <p className="text-2xl font-bold">{orders.filter(o => o.status === 'completed' || o.status === 'invoiced').length}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-500 opacity-50" />
             </div>
@@ -304,7 +313,7 @@ const OrderModule = () => {
               {searchTerm ? 'Keine Aufträge gefunden' : 'Noch keine Aufträge'}
             </h3>
             <p className="text-gray-500 mb-6">
-              {searchTerm 
+              {searchTerm
                 ? `Keine Aufträge gefunden für "${searchTerm}"`
                 : 'Erstellen Sie Ihren ersten Auftrag'
               }
@@ -318,8 +327,8 @@ const OrderModule = () => {
           </div>
         ) : (
           filteredOrders.map((order) => (
-            <Card 
-              key={order.id} 
+            <Card
+              key={order.id}
               className="shadow-soft rounded-2xl hover:shadow-md transition-shadow cursor-pointer"
               onDoubleClick={() => handleDoubleClickOrder(order)}
             >
@@ -330,7 +339,7 @@ const OrderModule = () => {
                       {getStatusIcon(order.status)}
                       <CardTitle className="text-lg">{order.order_number}</CardTitle>
                       <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs ${getStatusColor(order.status)}`}>
-                        {order.status}
+                        {ORDER_STATUS_LABELS[order.status as OrderStatus] || order.status}
                       </span>
                     </div>
                     <CardDescription className="font-medium text-gray-900">
@@ -338,7 +347,7 @@ const OrderModule = () => {
                     </CardDescription>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2 mt-2">
                   <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs ${getPriorityColor(order.priority)}`}>
                     {order.priority}
@@ -381,7 +390,7 @@ const OrderModule = () => {
 
                 <div className="flex gap-2 mt-4">
                   {/* Workflow button - only show for confirmed orders that don't have projects yet */}
-                  {(order.status === 'confirmed' || order.status === 'Bestätigt') && (
+                  {(order.status === 'confirmed') && (
                     <Button
                       size="sm"
                       variant="default"
@@ -392,7 +401,7 @@ const OrderModule = () => {
                       Projekt erstellen
                     </Button>
                   )}
-                  
+
                   <Button
                     size="sm"
                     variant="outline"

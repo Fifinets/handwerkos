@@ -9,10 +9,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+import { ORDER_STATUS_LABELS, OrderStatus } from "@/types/order";
+
 interface Customer {
   id: string;
   company_name: string;
   contact_person: string;
+}
+
+interface Offer {
+  id: string;
+  offer_number: string;
+  project: { name: string } | null;
+  snapshots?: {
+    snapshot_net_total?: number;
+    snapshot_gross_total?: number;
+  };
+  total_amount?: number; // Depending on what we fetch
 }
 
 interface AddOrderDialogProps {
@@ -25,13 +38,15 @@ const AddOrderDialog = ({ open, onOpenChange, onOrderAdded }: AddOrderDialogProp
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [customerId, setCustomerId] = useState('');
+  const [offerId, setOfferId] = useState('');
   const [dueDate, setDueDate] = useState('');
-  const [status, setStatus] = useState('Angebot');
+  const [status, setStatus] = useState<OrderStatus>('created');
   const [priority, setPriority] = useState('Normal');
   const [totalAmount, setTotalAmount] = useState('');
   const [currency, setCurrency] = useState('EUR');
   const [notes, setNotes] = useState('');
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -40,6 +55,51 @@ const AddOrderDialog = ({ open, onOpenChange, onOrderAdded }: AddOrderDialogProp
       fetchCustomers();
     }
   }, [open]);
+
+  useEffect(() => {
+    if (customerId) {
+      fetchOffers(customerId);
+    } else {
+      setOffers([]);
+      setOfferId('');
+    }
+  }, [customerId]);
+
+  const fetchOffers = async (custId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('offers')
+        .select(`
+          id,
+          offer_number,
+          projects ( name ),
+          snapshot_net_total,
+          snapshot_gross_total
+        `)
+        .eq('status', 'accepted')
+        .eq('customer_id', custId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching offers:', error);
+        return;
+      }
+
+      const mappedOffers = (data || []).map(o => ({
+        id: o.id,
+        offer_number: o.offer_number,
+        project: Array.isArray(o.projects) ? o.projects[0] : o.projects,
+        snapshots: {
+          snapshot_net_total: o.snapshot_net_total,
+          snapshot_gross_total: o.snapshot_gross_total,
+        }
+      })) as Offer[];
+
+      setOffers(mappedOffers);
+    } catch (error) {
+      console.error('Error fetching offers:', error);
+    }
+  };
 
   const fetchCustomers = async () => {
     try {
@@ -62,7 +122,7 @@ const AddOrderDialog = ({ open, onOpenChange, onOrderAdded }: AddOrderDialogProp
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!title.trim() || !customerId) {
       toast({
         title: "Fehler",
@@ -82,6 +142,7 @@ const AddOrderDialog = ({ open, onOpenChange, onOrderAdded }: AddOrderDialogProp
         title: title.trim(),
         description: description.trim() || null,
         customer_id: customerId,
+        offer_id: offerId || null,
         due_date: dueDate || null,
         status,
         priority,
@@ -113,8 +174,9 @@ const AddOrderDialog = ({ open, onOpenChange, onOrderAdded }: AddOrderDialogProp
       setTitle('');
       setDescription('');
       setCustomerId('');
+      setOfferId('');
       setDueDate('');
-      setStatus('Angebot');
+      setStatus('created');
       setPriority('Normal');
       setTotalAmount('');
       setCurrency('EUR');
@@ -139,7 +201,7 @@ const AddOrderDialog = ({ open, onOpenChange, onOrderAdded }: AddOrderDialogProp
         <DialogHeader>
           <DialogTitle>Neuen Auftrag erstellen</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -171,6 +233,22 @@ const AddOrderDialog = ({ open, onOpenChange, onOrderAdded }: AddOrderDialogProp
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="offer">Angebot (Optional)</Label>
+            <Select value={offerId} onValueChange={setOfferId} disabled={!customerId || offers.length === 0}>
+              <SelectTrigger>
+                <SelectValue placeholder={!customerId ? "Zuerst Kunde wählen" : offers.length === 0 ? "Keine aktiven Angebote" : "Angebot auswählen"} />
+              </SelectTrigger>
+              <SelectContent>
+                {offers.map((offer) => (
+                  <SelectItem key={offer.id} value={offer.id}>
+                    {offer.offer_number} {offer.project?.name ? `- ${offer.project.name}` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="description">Beschreibung</Label>
             <Textarea
               id="description"
@@ -184,16 +262,14 @@ const AddOrderDialog = ({ open, onOpenChange, onOrderAdded }: AddOrderDialogProp
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <Select value={status} onValueChange={setStatus}>
+              <Select value={status} onValueChange={(val) => setStatus(val as OrderStatus)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Angebot">Angebot</SelectItem>
-                  <SelectItem value="Bestätigt">Bestätigt</SelectItem>
-                  <SelectItem value="In Bearbeitung">In Bearbeitung</SelectItem>
-                  <SelectItem value="Abgeschlossen">Abgeschlossen</SelectItem>
-                  <SelectItem value="Storniert">Storniert</SelectItem>
+                  {Object.entries(ORDER_STATUS_LABELS).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>{label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

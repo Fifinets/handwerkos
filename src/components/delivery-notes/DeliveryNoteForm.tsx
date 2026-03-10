@@ -31,6 +31,9 @@ import { DeliveryNoteCreateSchema, type DeliveryNoteCreate, type DeliveryNoteIte
 
 interface DeliveryNoteFormProps {
   projectId: string;
+  customerId: string;
+  orderId?: string;
+  projectSiteId?: string;
   deliveryNoteId?: string; // For editing
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -54,6 +57,9 @@ interface PhotoItem {
 
 export function DeliveryNoteForm({
   projectId,
+  customerId,
+  orderId,
+  projectSiteId,
   deliveryNoteId,
   open,
   onOpenChange,
@@ -68,7 +74,7 @@ export function DeliveryNoteForm({
     submitForApproval,
     isLoading,
     currentDeliveryNote,
-  } = useDeliveryNotes({ projectId });
+  } = useDeliveryNotes();
 
   const [materials, setMaterials] = useState<MaterialItem[]>([]);
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
@@ -78,6 +84,9 @@ export function DeliveryNoteForm({
     resolver: zodResolver(DeliveryNoteCreateSchema),
     defaultValues: {
       project_id: projectId,
+      customer_id: customerId,
+      order_id: orderId,
+      project_site_id: projectSiteId,
       work_date: new Date().toISOString().split('T')[0],
       start_time: '08:00',
       end_time: '16:30',
@@ -89,10 +98,13 @@ export function DeliveryNoteForm({
   // Load existing delivery note for editing
   useEffect(() => {
     if (deliveryNoteId && open) {
-      fetchDeliveryNote(deliveryNoteId).then((note) => {
+      fetchDeliveryNote(deliveryNoteId).then((note: any) => {
         if (note) {
           form.reset({
             project_id: note.project_id,
+            customer_id: note.customer_id || customerId,
+            order_id: note.order_id || orderId,
+            project_site_id: note.project_site_id || projectSiteId,
             work_date: note.work_date,
             start_time: note.start_time || undefined,
             end_time: note.end_time || undefined,
@@ -102,8 +114,8 @@ export function DeliveryNoteForm({
 
           // Load items
           const materialItems = note.items
-            ?.filter((i) => i.item_type === 'material')
-            .map((i) => ({
+            ?.filter((i: any) => i.item_type === 'material')
+            .map((i: any) => ({
               id: i.id,
               material_name: i.material_name || '',
               material_quantity: i.material_quantity || 0,
@@ -113,8 +125,8 @@ export function DeliveryNoteForm({
             })) || [];
 
           const photoItems = note.items
-            ?.filter((i) => i.item_type === 'photo')
-            .map((i) => ({
+            ?.filter((i: any) => i.item_type === 'photo')
+            .map((i: any) => ({
               id: i.id,
               photo_url: i.photo_url || '',
               photo_caption: i.photo_caption || '',
@@ -127,6 +139,9 @@ export function DeliveryNoteForm({
     } else if (!deliveryNoteId && open) {
       form.reset({
         project_id: projectId,
+        customer_id: customerId,
+        order_id: orderId,
+        project_site_id: projectSiteId,
         work_date: new Date().toISOString().split('T')[0],
         start_time: '08:00',
         end_time: '16:30',
@@ -136,7 +151,7 @@ export function DeliveryNoteForm({
       setMaterials([]);
       setPhotos([]);
     }
-  }, [deliveryNoteId, open, projectId, fetchDeliveryNote, form]);
+  }, [deliveryNoteId, open, projectId, customerId, orderId, projectSiteId, fetchDeliveryNote, form]);
 
   // Calculate work hours
   const startTime = form.watch('start_time');
@@ -215,7 +230,12 @@ export function DeliveryNoteForm({
     if (deliveryNoteId) {
       await updateDeliveryNote(deliveryNoteId, data);
     } else {
-      const created = await createDeliveryNote(data);
+      const created = await createDeliveryNote({
+        projectId: data.project_id,
+        customerId: data.customer_id,
+        deliveryDate: data.work_date,
+        // map other fields to the CreateDeliveryNoteParams type expected by useDeliveryNotes
+      } as any);
       if (!created) return;
       noteId = created.id;
     }

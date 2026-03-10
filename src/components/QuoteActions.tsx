@@ -2,9 +2,9 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Building2 } from 'lucide-react';
 import { Quote } from '@/types';
-import { 
+import {
   useAcceptQuote,
-  useCreateProject 
+  useCreateProject
 } from '@/hooks/useApi';
 
 interface QuoteActionsProps {
@@ -16,7 +16,7 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({ quote, onRefresh }) => {
   // React Query mutations
   const acceptQuoteMutation = useAcceptQuote();
   const createProjectMutation = useCreateProject();
-  
+
   const handleCreateOrder = () => {
     acceptQuoteMutation.mutate(quote.id, {
       onSuccess: () => {
@@ -30,10 +30,9 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({ quote, onRefresh }) => {
       name: quote.title,
       description: quote.description,
       customer_id: quote.customer_id,
-      status: 'neu',
-      start_date: new Date().toISOString().split('T')[0],
-      quote_id: quote.id
-    }, {
+      status: 'planned',
+      start_date: new Date().toISOString().split('T')[0]
+    } as any, {
       onSuccess: () => {
         onRefresh?.();
       }
@@ -42,16 +41,16 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({ quote, onRefresh }) => {
 
   // Check loading states
   const isLoading = acceptQuoteMutation.isPending || createProjectMutation.isPending;
-  
+
   // Show workflow buttons only for accepted/sent quotes
-  const canCreateOrder = quote.status === 'accepted' || quote.status === 'sent' || quote.status === 'versendet';
-  
+  const canCreateOrder = quote.status === 'accepted' || quote.status === 'sent';
+
   return (
     <div className="flex space-x-1">
       {canCreateOrder && (
-        <Button 
-          size="sm" 
-          variant="default" 
+        <Button
+          size="sm"
+          variant="default"
           onClick={handleCreateOrder}
           disabled={isLoading}
           className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -60,9 +59,9 @@ const QuoteActions: React.FC<QuoteActionsProps> = ({ quote, onRefresh }) => {
           Auftrag erstellen
         </Button>
       )}
-      <Button 
-        size="sm" 
-        variant="outline" 
+      <Button
+        size="sm"
+        variant="outline"
         onClick={handleDirectProjectConvert}
         disabled={isLoading}
         title="Direkt zu Projekt (überspringt Auftrag)"

@@ -57,6 +57,7 @@ import {
     useSendOffer,
     useAcceptOffer,
     useRejectOffer,
+    useDuplicateOffer,
 } from "@/hooks/useApi";
 import { OfferStatusBadge } from "./offers";
 import AddOfferDialog from "./AddOfferDialog";
@@ -97,6 +98,7 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
     );
 
     const deleteOfferMutation = useDeleteOffer();
+    const duplicateOfferMutation = useDuplicateOffer();
     const sendOfferMutation = useSendOffer();
     const acceptOfferMutation = useAcceptOffer();
     const rejectOfferMutation = useRejectOffer();
@@ -241,6 +243,22 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
         }
     };
 
+    const handleDuplicateOffer = async (offer: Offer) => {
+        try {
+            await duplicateOfferMutation.mutateAsync(offer.id);
+            toast({
+                title: "Angebot dupliziert",
+                description: `Kopie von ${offer.offer_number} wurde als Entwurf erstellt.`,
+            });
+        } catch (error: any) {
+            toast({
+                title: "Fehler",
+                description: error.message || "Angebot konnte nicht dupliziert werden.",
+                variant: "destructive",
+            });
+        }
+    };
+
     const openAcceptDialog = (offer: Offer) => {
         setSelectedOffer(offer);
         setIsAcceptDialogOpen(true);
@@ -281,25 +299,15 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Card className="bg-white border-slate-200 shadow-sm">
                     <CardContent className="p-5 flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-slate-500">Alle Angebote</p>
-                            <h3 className="text-2xl font-bold text-slate-900 mt-1">{offers.length}</h3>
+                            <p className="text-sm font-medium text-slate-500">Offen (Volumen)</p>
+                            <h3 className="text-xl font-bold text-amber-600 mt-1">{formatCurrency(openVolume)}</h3>
+                            <p className="text-xs text-slate-400 mt-0.5">{statusCounts.draft + statusCounts.sent} Angebote</p>
                         </div>
-                        <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center">
-                            <FileText className="h-6 w-6 text-slate-600" />
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="bg-white border-slate-200 shadow-sm">
-                    <CardContent className="p-5 flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-slate-500">Offen / Im Gespräch</p>
-                            <h3 className="text-2xl font-bold text-slate-900 mt-1">{statusCounts.draft + statusCounts.sent}</h3>
-                        </div>
-                        <div className="h-12 w-12 rounded-full bg-amber-50 flex items-center justify-center">
+                        <div className="h-12 w-12 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
                             <Clock className="h-6 w-6 text-amber-600" />
                         </div>
                     </CardContent>
@@ -308,21 +316,48 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                     <CardContent className="p-5 flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-slate-500">Angenommen</p>
-                            <h3 className="text-2xl font-bold text-slate-900 mt-1">{statusCounts.accepted}</h3>
+                            <h3 className="text-xl font-bold text-emerald-600 mt-1">{formatCurrency(acceptedVolume)}</h3>
+                            <p className="text-xs text-slate-400 mt-0.5">{statusCounts.accepted} Angebote</p>
                         </div>
-                        <div className="h-12 w-12 rounded-full bg-emerald-50 flex items-center justify-center">
-                            <CheckCircle className="h-6 w-6 text-emerald-600" />
+                        <div className="h-12 w-12 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                            <TrendingUp className="h-6 w-6 text-emerald-600" />
                         </div>
                     </CardContent>
                 </Card>
                 <Card className="bg-white border-slate-200 shadow-sm">
                     <CardContent className="p-5 flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-slate-500">Auftragsvolumen (offen)</p>
-                            <h3 className="text-2xl font-bold text-slate-900 mt-1">{formatCurrency(totalValue)}</h3>
+                            <p className="text-sm font-medium text-slate-500">Verloren</p>
+                            <h3 className="text-xl font-bold text-rose-600 mt-1">{formatCurrency(lostVolume)}</h3>
+                            <p className="text-xs text-slate-400 mt-0.5">{statusCounts.rejected + statusCounts.expired} Angebote</p>
                         </div>
-                        <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center">
-                            <Euro className="h-6 w-6 text-slate-600" />
+                        <div className="h-12 w-12 rounded-full bg-rose-50 flex items-center justify-center flex-shrink-0">
+                            <TrendingDown className="h-6 w-6 text-rose-600" />
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="bg-white border-slate-200 shadow-sm">
+                    <CardContent className="p-5 flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-slate-500">Konversionsrate</p>
+                            {(() => {
+                                const sentTotal = statusCounts.sent + statusCounts.accepted + statusCounts.rejected;
+                                const rate = sentTotal > 0 ? Math.round((statusCounts.accepted / sentTotal) * 100) : null;
+                                return (
+                                    <>
+                                        <h3 className={`text-xl font-bold mt-1 ${rate === null ? 'text-slate-400' :
+                                                rate >= 60 ? 'text-emerald-600' :
+                                                    rate >= 30 ? 'text-amber-600' : 'text-rose-600'
+                                            }`}>{rate !== null ? `${rate}%` : '–'}</h3>
+                                        <p className="text-xs text-slate-400 mt-0.5">
+                                            {rate !== null ? `${statusCounts.accepted} von ${sentTotal} angenommen` : 'Noch keine Daten'}
+                                        </p>
+                                    </>
+                                );
+                            })()}
+                        </div>
+                        <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center flex-shrink-0">
+                            <CheckCircle className="h-6 w-6 text-slate-600" />
                         </div>
                     </CardContent>
                 </Card>
@@ -378,9 +413,22 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                         <FileText className="h-8 w-8 text-slate-400" />
                                     </div>
                                     <h3 className="text-lg font-medium text-slate-900 mb-1">Keine Angebote gefunden</h3>
-                                    <p className="text-sm text-slate-500 max-w-sm">
-                                        {searchTerm ? `Keine Ergebnisse für "${searchTerm}" gefunden.` : 'Sie haben noch keine Angebote angelegt.'}
+                                    <p className="text-sm text-slate-500 max-w-sm mb-4">
+                                        {searchTerm
+                                            ? `Keine Ergebnisse für "${searchTerm}" gefunden.`
+                                            : statusFilter !== 'all'
+                                                ? `Keine Angebote mit Status "${statusFilter}" vorhanden.`
+                                                : 'Noch keine Angebote angelegt. Erstellen Sie Ihr erstes Angebot.'}
                                     </p>
+                                    {!searchTerm && statusFilter === 'all' && (
+                                        <Button
+                                            onClick={() => navigate('/offers/wizard')}
+                                            className="bg-slate-900 hover:bg-slate-800 text-white"
+                                        >
+                                            <Plus className="h-4 w-4 mr-2" />
+                                            Erstes Angebot erstellen
+                                        </Button>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="overflow-x-auto">
@@ -484,6 +532,11 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                                             </DropdownMenuItem>
                                                                         </>
                                                                     )}
+                                                                    <DropdownMenuSeparator />
+                                                                    <DropdownMenuItem onClick={() => handleDuplicateOffer(offer)}>
+                                                                        <Copy className="h-4 w-4 mr-2" />
+                                                                        {offer.status === 'rejected' ? 'Erneut anbieten (Kopie)' : 'Duplizieren'}
+                                                                    </DropdownMenuItem>
                                                                     {offer.status === 'draft' && (
                                                                         <>
                                                                             <DropdownMenuSeparator />
@@ -512,36 +565,7 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                 </TabsContent>
             </Tabs>
 
-            {/* Volumen-Summary - always visible */}
-            <div className="grid grid-cols-3 gap-4">
-                <div className="bg-white border border-slate-200 rounded-lg p-4 flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
-                        <Clock className="h-4 w-4 text-amber-600" />
-                    </div>
-                    <div>
-                        <p className="text-xs text-slate-500 font-medium">Offen</p>
-                        <p className="text-lg font-bold text-slate-900">{formatCurrency(openVolume)}</p>
-                    </div>
-                </div>
-                <div className="bg-white border border-slate-200 rounded-lg p-4 flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                        <TrendingUp className="h-4 w-4 text-emerald-600" />
-                    </div>
-                    <div>
-                        <p className="text-xs text-slate-500 font-medium">Angenommen</p>
-                        <p className="text-lg font-bold text-emerald-700">{formatCurrency(acceptedVolume)}</p>
-                    </div>
-                </div>
-                <div className="bg-white border border-slate-200 rounded-lg p-4 flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full bg-rose-50 flex items-center justify-center flex-shrink-0">
-                        <TrendingDown className="h-4 w-4 text-rose-600" />
-                    </div>
-                    <div>
-                        <p className="text-xs text-slate-500 font-medium">Verloren</p>
-                        <p className="text-lg font-bold text-rose-700">{formatCurrency(lostVolume)}</p>
-                    </div>
-                </div>
-            </div>
+
 
             <AddOfferDialog
                 isOpen={isAddDialogOpen}

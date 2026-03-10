@@ -78,12 +78,14 @@ import {
 
 interface DeliveryNoteListProps {
   projectId?: string;
+  customerId?: string;
   showProjectColumn?: boolean;
   isManagerView?: boolean; // Show approval actions
 }
 
 export function DeliveryNoteList({
   projectId,
+  customerId,
   showProjectColumn = false,
   isManagerView = false,
 }: DeliveryNoteListProps) {
@@ -361,6 +363,7 @@ export function DeliveryNoteList({
       {projectId && (
         <DeliveryNoteForm
           projectId={projectId}
+          customerId={customerId || ''}
           deliveryNoteId={editingId}
           open={formOpen}
           onOpenChange={setFormOpen}

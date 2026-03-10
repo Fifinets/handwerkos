@@ -21,7 +21,10 @@ export type OfferStatus = z.infer<typeof OfferStatusEnum>;
 export const OfferItemTypeEnum = z.enum([
   'labor',
   'material',
+  'material_lump_sum',
   'lump_sum',
+  'travel',
+  'small_material',
   'text',
   'title',
   'other',
@@ -263,12 +266,15 @@ export const OFFER_STATUS_COLORS: Record<OfferStatus, string> = {
 };
 
 export const OFFER_ITEM_TYPE_LABELS: Record<OfferItemType, string> = {
-  labor: 'Arbeitsleistung',
+  labor: 'Arbeitsstunden',
   material: 'Material',
-  lump_sum: 'Pauschale',
+  material_lump_sum: 'Materialpauschale',
+  lump_sum: 'Pauschalposition',
+  travel: 'Fahrtkosten',
+  small_material: 'Kleinmaterial',
   text: 'Text',
   title: 'Titel',
-  other: 'Sonstiges',
+  other: 'Sonstige Leistung',
   page_break: 'Seitenumbruch',
 };
 

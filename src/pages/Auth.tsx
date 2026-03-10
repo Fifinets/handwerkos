@@ -120,8 +120,11 @@ const Auth: React.FC = () => {
           <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl" />
         </div>
 
-        <div className="relative">
-          <span className="text-white text-xl font-bold tracking-tight">HandwerkOS</span>
+        <div className="relative flex items-center gap-3">
+          <div className="w-auto h-20 -my-5 flex items-center justify-center flex-shrink-0">
+            <img src="/logo.png" alt="Logo" className="w-auto h-full object-contain" />
+          </div>
+          <span className="font-['Inter'] font-medium text-[1.25rem] tracking-tight text-white">HandwerkOS</span>
         </div>
 
         <div className="relative space-y-8">
@@ -164,8 +167,11 @@ const Auth: React.FC = () => {
 
       {/* Right Panel */}
       <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-12 bg-white overflow-y-auto">
-        <div className="lg:hidden mb-10">
-          <span className="text-slate-900 text-lg font-bold">HandwerkOS</span>
+        <div className="lg:hidden mb-10 flex items-center justify-center gap-3">
+          <div className="w-auto h-20 -my-5 flex items-center justify-center flex-shrink-0">
+            <img src="/logo.png" alt="Logo" className="w-auto h-full object-contain" />
+          </div>
+          <span className="font-['Inter'] font-medium text-[1.25rem] tracking-tight text-slate-900">HandwerkOS</span>
         </div>
 
         <div className="w-full max-w-md">

@@ -94,7 +94,7 @@ export const useDeliveryNotes = () => {
   const fetchDeliveryNotes = useCallback(async () => {
     try {
       setIsLoading(true)
-      
+
       // Use Android plugin if available
       if (isAndroid() && androidDeliveryNotes) {
         try {
@@ -134,7 +134,7 @@ export const useDeliveryNotes = () => {
           console.warn('Android delivery notes failed, falling back to web:', androidError)
         }
       }
-      
+
       // Try to fetch from database, but don't fail if tables don't exist
       try {
         const { data, error } = await supabase
@@ -156,7 +156,7 @@ export const useDeliveryNotes = () => {
         if (error && !error.message.includes('relation') && !error.message.includes('does not exist')) {
           throw error
         }
-        
+
         setDeliveryNotes(data || [])
       } catch (error: any) {
         // If tables don't exist, just use empty array
@@ -218,7 +218,7 @@ export const useDeliveryNotes = () => {
           }
         ])
       }
-      
+
     } catch (error: any) {
       console.error('Error in fetchDeliveryNotes:', error)
       setDeliveryNotes([])
@@ -229,8 +229,8 @@ export const useDeliveryNotes = () => {
 
   // Sign delivery note function (enhanced with Android support)
   const signDeliveryNote = useCallback(async (
-    deliveryNoteId: string, 
-    signatureData: { svg: string }, 
+    deliveryNoteId: string,
+    signatureData: { svg: string },
     signerName: string
   ) => {
     try {
@@ -243,7 +243,7 @@ export const useDeliveryNotes = () => {
             width: 400,
             height: 200
           }
-          
+
           const result = await androidDeliveryNotes.signNote(deliveryNoteId, signerName, androidSignatureData)
           if (result.success) {
             toast.success('Lieferschein erfolgreich signiert (Android)')
@@ -254,7 +254,7 @@ export const useDeliveryNotes = () => {
           console.warn('Android delivery note signing failed, falling back to web:', androidError)
         }
       }
-      
+
       // Try to call RPC function if it exists
       try {
         const { data, error } = await supabase.rpc('rpc_sign_delivery_note', {
@@ -274,20 +274,20 @@ export const useDeliveryNotes = () => {
         if (error.message.includes('function') || error.message.includes('does not exist')) {
           // Mock signing if RPC doesn't exist
           console.warn('RPC function not found, using mock signing')
-          
+
           // Update local state to simulate signing
-          setDeliveryNotes(prev => prev.map(note => 
+          setDeliveryNotes(prev => prev.map(note =>
             note.id === deliveryNoteId
               ? {
-                  ...note,
-                  signature_data: signatureData,
-                  signed_at: new Date().toISOString(),
-                  signed_by_name: signerName,
-                  status: 'signed' as const
-                }
+                ...note,
+                signature_data: signatureData,
+                signed_at: new Date().toISOString(),
+                signed_by_name: signerName,
+                status: 'signed' as const
+              }
               : note
           ))
-          
+
           toast.success('Lieferschein erfolgreich signiert (Demo-Modus)')
           return { id: deliveryNoteId }
         }
@@ -304,7 +304,7 @@ export const useDeliveryNotes = () => {
   const createDeliveryNote = useCallback(async (params: CreateDeliveryNoteParams) => {
     try {
       setIsCreating(true)
-      
+
       // Mock creation for now
       const mockNote: DeliveryNote = {
         id: `mock-${Date.now()}`,
@@ -328,7 +328,7 @@ export const useDeliveryNotes = () => {
 
       setDeliveryNotes(prev => [mockNote, ...prev])
       toast.success('Lieferschein erstellt (Demo-Modus)')
-      
+
       return mockNote
     } catch (error: any) {
       console.error('Error creating delivery note:', error)
@@ -339,6 +339,13 @@ export const useDeliveryNotes = () => {
     }
   }, [])
 
+  const updateDeliveryNote = async (id: string, data: any) => { };
+  const fetchDeliveryNote = async (id: string) => null;
+  const addItem = async (noteId: string, item: any) => { };
+  const removeItem = async (itemId: string) => { };
+  const submitForApproval = async (noteId: string) => { };
+  const currentDeliveryNote = null;
+
   return {
     deliveryNotes,
     isLoading,
@@ -346,5 +353,11 @@ export const useDeliveryNotes = () => {
     fetchDeliveryNotes,
     createDeliveryNote,
     signDeliveryNote,
+    updateDeliveryNote,
+    fetchDeliveryNote,
+    addItem,
+    removeItem,
+    submitForApproval,
+    currentDeliveryNote,
   }
 }

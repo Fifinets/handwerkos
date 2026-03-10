@@ -10,12 +10,12 @@ import { OfferItemsEditor } from '@/components/offers/OfferItemsEditor';
 import { OfferStatusBadge } from '@/components/offers/OfferStatusBadge';
 import { OfferEmailDialog } from '@/components/offers/OfferEmailDialog';
 import {
-    useOffer, useUpdateOffer, useCreateOffer, useCustomers,
+    useOffer, useUpdateOffer, useCreateOffer, useCustomers, useProjects,
     useSendOffer, useAcceptOffer, useRejectOffer, useCancelOffer, useSyncOfferItems
 } from '@/hooks/useApi';
 import { useAuth } from '@/hooks/useAuth';
 import { OfferItem, OfferItemCreate } from '@/types/offer';
-import { Customer } from '@/types';
+import { Customer, Project } from '@/types';
 import {
     Select,
     SelectContent,
@@ -52,11 +52,14 @@ export default function OfferEditorPage() {
     const { toast } = useToast();
     const isNew = !id || id === 'new';
     const { user } = useAuth();
-    const currentDate = new Date().toLocaleDateString('de-DE');
-    // Calculate validity date (14 days)
-    const validUntilDate = new Date();
-    validUntilDate.setDate(validUntilDate.getDate() + 14);
-    const validUntilString = validUntilDate.toLocaleDateString('de-DE');
+
+    // For new offers: dates default to today/+14 days. For existing: loaded from DB.
+    const todayStr = new Date().toLocaleDateString('de-DE');
+    const defaultValidUntil = (() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 14);
+        return d.toISOString().split('T')[0];
+    })();
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [title, setTitle] = useState(isNew ? 'Neues Angebot' : 'Lade...');
@@ -65,6 +68,7 @@ export default function OfferEditorPage() {
     const [subject, setSubject] = useState(isNew ? 'Angebot: Badsanierung Musterstraße' : '');
     const [introText, setIntroText] = useState(isNew ? 'Sehr geehrte Damen und Herren, anbei erhalten Sie unser Angebot:' : '');
     const [finalText, setFinalText] = useState(isNew ? 'Wir freuen uns auf Ihre Auftragserteilung.' : '');
+    const [validUntil, setValidUntil] = useState(defaultValidUntil);
     const [isReverseCharge, setIsReverseCharge] = useState(false);
     const [showLaborShare, setShowLaborShare] = useState(true);
 
@@ -75,6 +79,7 @@ export default function OfferEditorPage() {
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+    const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const [isEmailOpen, setIsEmailOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -95,17 +100,26 @@ export default function OfferEditorPage() {
     const { data: customersData } = useCustomers();
     const customers = customersData?.items || [];
 
+    // Default config to fetch all projects, or could depend on selectedCustomer
+    const { data: projectsData } = useProjects({ limit: 1000 });
+    const allProjects = projectsData?.items || [];
+    const customerProjects = selectedCustomer ? allProjects.filter(p => p.customer_id === selectedCustomer.id) : [];
 
-    // Sync selectedCustomer with offer data when loaded
+    // Sync selectedCustomer and selectedProject with offer data when loaded
     React.useEffect(() => {
         if (offer) {
             if (customers.length > 0 && !selectedCustomer) {
                 const c = customers.find(c => c.id === offer.customer_id);
                 if (c) setSelectedCustomer(c);
             }
+            if (allProjects.length > 0 && !selectedProject && (offer as any).project_id) {
+                const p = allProjects.find(pr => pr.id === (offer as any).project_id);
+                if (p) setSelectedProject(p);
+            }
             if (offer.project_name) setSubject(offer.project_name);
             if (offer.intro_text !== undefined) setIntroText(offer.intro_text || '');
             if (offer.final_text !== undefined) setFinalText(offer.final_text || '');
+            if (offer.valid_until) setValidUntil(offer.valid_until);
             if (offer.is_reverse_charge !== undefined) setIsReverseCharge(offer.is_reverse_charge);
             if (offer.show_labor_share !== undefined) setShowLaborShare(offer.show_labor_share);
             // We might want to store intro text in the DB too if we want it persisted, 
@@ -126,7 +140,7 @@ export default function OfferEditorPage() {
                 setItems(mappedItems);
             }
         }
-    }, [offer, customers, selectedCustomer]); // removed items dependency to avoid loops
+    }, [offer, customers, selectedCustomer, allProjects, selectedProject]); // removed items dependency to avoid loops
 
     // Mock data for UI development if isNew
     // State for items
@@ -179,24 +193,21 @@ export default function OfferEditorPage() {
                     toast({ title: "Fehler", description: "Bitte wählen Sie einen Kunden aus.", variant: "destructive" });
                     return;
                 }
-
                 // Determine a standard valid_until date (e.g., 14 days from now)
                 const validUntil = new Date();
                 validUntil.setDate(validUntil.getDate() + 14);
 
                 const result = await createOfferMutation.mutateAsync({
                     data: {
-                        project_name: subject,
-                        valid_until: validUntil.toISOString().split('T')[0],
+                        ...(selectedProject ? { project_id: selectedProject.id, project_name: subject || selectedProject.name } : { project_name: subject }),
+                        valid_until: validUntil || defaultValidUntil,
                         customer_id: selectedCustomer.id,
-                        customer_name: selectedCustomer.company_name,
-                        customer_address: `${selectedCustomer.address}, ${selectedCustomer.postal_code} ${selectedCustomer.city} `,
-                        contact_person: selectedCustomer.contact_person || undefined,
+                        customer_name: selectedCustomer.company_name || `${selectedCustomer.first_name || ''} ${selectedCustomer.last_name || ''}`.trim(),
                         intro_text: introText,
                         final_text: finalText,
                         is_reverse_charge: isReverseCharge,
                         show_labor_share: showLaborShare,
-                    },
+                    } as any,
                     items: items,
                 });
                 setLastSavedAt(new Date());
@@ -208,18 +219,18 @@ export default function OfferEditorPage() {
                     id: id!,
                     data: {
                         project_name: subject,
+                        ...(selectedProject?.id || (offer as any)?.project_id ? { project_id: selectedProject?.id || (offer as any)?.project_id } : {}),
+                        valid_until: validUntil || undefined,
                         // Update customer if selected
                         ...(selectedCustomer ? {
                             customer_id: selectedCustomer.id,
-                            customer_name: selectedCustomer.company_name,
-                            customer_address: `${selectedCustomer.address}, ${selectedCustomer.postal_code} ${selectedCustomer.city}`,
-                            contact_person: selectedCustomer.contact_person || undefined
+                            customer_name: selectedCustomer.company_name || `${selectedCustomer.first_name || ''} ${selectedCustomer.last_name || ''}`.trim(),
                         } : {}),
                         intro_text: introText,
                         final_text: finalText,
                         is_reverse_charge: isReverseCharge,
                         show_labor_share: showLaborShare,
-                    },
+                    } as any,
                 });
 
                 // Sync items separately
@@ -306,9 +317,17 @@ export default function OfferEditorPage() {
             description = 'Neuer Textbaustein';
             unit = 'psch';
         } else if (type === 'position') {
-            itemType = 'labor';
-            description = 'Neue Position';
-            unit = 'Std';
+            if (data) {
+                // Quick-add template from sidebar (B2)
+                itemType = (data.item_type as OfferItem['item_type']) || 'labor';
+                description = data.description || 'Neue Position';
+                unit = data.unit || 'Std';
+                unitPrice = data.unit_price_net ?? 0;
+            } else {
+                itemType = 'labor';
+                description = 'Neue Position';
+                unit = 'Std';
+            }
         } else if (type === 'page_break') {
             itemType = 'page_break';
             description = '--- Seitenumbruch ---';
@@ -465,6 +484,7 @@ export default function OfferEditorPage() {
                                                             const customer = customers.find(c => c.id === val);
                                                             if (customer) {
                                                                 setSelectedCustomer(customer);
+                                                                setSelectedProject(null); // Reset project on customer change
                                                             }
                                                         }}
                                                         disabled={isLocked}
@@ -473,8 +493,7 @@ export default function OfferEditorPage() {
                                                             {(selectedCustomer || offer) ? (
                                                                 <div className="text-sm text-gray-600 pointer-events-none text-left">
                                                                     <p className="font-bold text-gray-900 mb-1">{selectedCustomer?.company_name || offer?.customer_name}</p>
-                                                                    <p>{selectedCustomer?.contact_person || offer?.contact_person}</p>
-                                                                    <p>{selectedCustomer?.address || offer?.customer_address}</p>
+                                                                    <p>{selectedCustomer?.address || (offer as any)?.snapshot_customer_address}</p>
                                                                     <p>{selectedCustomer ? `${selectedCustomer.postal_code} ${selectedCustomer.city}` : ''}</p>
                                                                 </div>
                                                             ) : (
@@ -484,6 +503,36 @@ export default function OfferEditorPage() {
                                                         <SelectContent>
                                                             {customers.map(c => (
                                                                 <SelectItem key={c.id} value={c.id}>{c.company_name}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-4">
+                                                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider print:hidden">Projekt *</span>
+                                                <div className="mt-2 text-left">
+                                                    <Select
+                                                        value={selectedProject?.id || (offer as any)?.project_id}
+                                                        onValueChange={(val) => {
+                                                            const project = customerProjects.find(p => p.id === val);
+                                                            if (project) {
+                                                                setSelectedProject(project);
+                                                            }
+                                                        }}
+                                                        disabled={isLocked || !selectedCustomer}
+                                                    >
+                                                        <SelectTrigger className="w-full h-auto border-none shadow-none text-left p-0 font-normal text-gray-900 bg-transparent hover:bg-gray-50 focus:ring-0 [&>svg]:hidden print:p-0">
+                                                            {(selectedProject || ((offer as any)?.project_id && allProjects.find(p => p.id === (offer as any).project_id))) ? (
+                                                                <div className="text-sm text-gray-600 pointer-events-none text-left">
+                                                                    <p className="font-bold text-gray-900 mb-1">{selectedProject?.name || allProjects.find(p => p.id === (offer as any)?.project_id)?.name}</p>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-gray-400 italic">Projekt auswählen...</span>
+                                                            )}
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {customerProjects.map(p => (
+                                                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                                                             ))}
                                                         </SelectContent>
                                                     </Select>
@@ -502,13 +551,19 @@ export default function OfferEditorPage() {
                                                 )}
 
                                                 <span className="text-gray-500">Datum</span>
-                                                <span className="font-medium">{currentDate}</span>
+                                                <span className="font-medium">{offer?.offer_date ? new Date(offer.offer_date).toLocaleDateString('de-DE') : todayStr}</span>
 
                                                 <span className="text-gray-500">Bearbeiter</span>
                                                 <span className="font-medium">{user?.user_metadata?.first_name || 'Mitarbeiter'}</span>
 
                                                 <span className="text-gray-500">Gültig bis</span>
-                                                <span className="font-medium">{validUntilString}</span>
+                                                <input
+                                                    type="date"
+                                                    value={validUntil}
+                                                    onChange={(e) => { setValidUntil(e.target.value); markDirty(); }}
+                                                    disabled={isLocked}
+                                                    className="font-medium bg-transparent border-b border-dashed border-gray-300 focus:outline-none focus:border-blue-500 text-sm py-0.5"
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -630,6 +685,6 @@ export default function OfferEditorPage() {
                     </div>
                 </DialogContent>
             </Dialog>
-        </div>
+        </div >
     );
 }

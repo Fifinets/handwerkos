@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { 
-  Calendar, 
-  Clock, 
-  Users, 
-  FileText, 
-  DollarSign, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  Calendar,
+  Clock,
+  Users,
+  FileText,
+  DollarSign,
+  AlertTriangle,
+  CheckCircle,
   Building2,
   MapPin,
   Phone,
@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ORDER_STATUS_LABELS, ORDER_STATUS_TRANSITIONS, OrderStatus } from "@/types/order";
 
 interface Order {
   id: string;
@@ -152,11 +153,15 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({ isOpen, onClose, orde
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Angebot': return 'bg-blue-100 text-blue-800';
-      case 'Bestätigt': return 'bg-green-100 text-green-800';
-      case 'In Bearbeitung': return 'bg-yellow-100 text-yellow-800';
-      case 'Abgeschlossen': return 'bg-gray-100 text-gray-800';
-      case 'Storniert': return 'bg-red-100 text-red-800';
+      case 'created':
+      case 'open':
+        return 'bg-blue-100 text-blue-800';
+      case 'confirmed': return 'bg-green-100 text-green-800';
+      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
+      case 'completed':
+      case 'invoiced':
+        return 'bg-gray-100 text-gray-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -173,30 +178,21 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({ isOpen, onClose, orde
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'Angebot': return <FileText className="h-5 w-5 text-blue-600" />;
-      case 'Bestätigt': return <CheckCircle className="h-5 w-5 text-green-600" />;
-      case 'In Bearbeitung': return <Clock className="h-5 w-5 text-yellow-600" />;
-      case 'Abgeschlossen': return <CheckCircle className="h-5 w-5 text-gray-600" />;
-      case 'Storniert': return <AlertTriangle className="h-5 w-5 text-red-600" />;
+      case 'created':
+      case 'open':
+        return <FileText className="h-5 w-5 text-blue-600" />;
+      case 'confirmed': return <CheckCircle className="h-5 w-5 text-green-600" />;
+      case 'in_progress': return <Clock className="h-5 w-5 text-yellow-600" />;
+      case 'completed':
+      case 'invoiced':
+        return <CheckCircle className="h-5 w-5 text-gray-600" />;
+      case 'cancelled': return <AlertTriangle className="h-5 w-5 text-red-600" />;
       default: return <FileText className="h-5 w-5 text-gray-600" />;
     }
   };
 
   const getNextStatuses = (currentStatus: string): string[] => {
-    switch (currentStatus) {
-      case 'Angebot':
-        return ['Bestätigt', 'Storniert'];
-      case 'Bestätigt':
-        return ['In Bearbeitung'];
-      case 'In Bearbeitung':
-        return ['Abgeschlossen', 'Storniert'];
-      case 'Abgeschlossen':
-        return [];
-      case 'Storniert':
-        return ['Angebot'];
-      default:
-        return [];
-    }
+    return ORDER_STATUS_TRANSITIONS[currentStatus as OrderStatus] || [];
   };
 
   if (loading) {
@@ -232,7 +228,7 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({ isOpen, onClose, orde
   }
 
   const nextStatuses = getNextStatuses(order.status);
-  const isOverdue = order.due_date && new Date(order.due_date) < new Date() && order.status !== 'Abgeschlossen';
+  const isOverdue = order.due_date && new Date(order.due_date) < new Date() && order.status !== 'completed' && order.status !== 'invoiced';
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -246,7 +242,7 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({ isOpen, onClose, orde
               </DialogTitle>
               <DialogDescription className="flex items-center gap-4 mt-2">
                 <Badge className={getStatusColor(order.status)}>
-                  {getStatusIcon(order.status)} {order.status}
+                  {getStatusIcon(order.status)} <span className="ml-1">{ORDER_STATUS_LABELS[order.status as OrderStatus] || order.status}</span>
                 </Badge>
                 <Badge className={getPriorityColor(order.priority)}>
                   {order.priority}
@@ -294,13 +290,13 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({ isOpen, onClose, orde
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Status</p>
-                      <p className="text-lg font-bold">{order.status}</p>
+                      <p className="text-lg font-bold">{ORDER_STATUS_LABELS[order.status as OrderStatus] || order.status}</p>
                     </div>
                     {getStatusIcon(order.status)}
                   </div>
@@ -314,11 +310,10 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({ isOpen, onClose, orde
                       <p className="text-sm text-gray-600">Priorität</p>
                       <p className="text-lg font-bold">{order.priority}</p>
                     </div>
-                    <AlertTriangle className={`h-8 w-8 ${
-                      order.priority === 'Dringend' ? 'text-red-500' : 
-                      order.priority === 'Hoch' ? 'text-orange-500' : 
-                      'text-blue-500'
-                    }`} />
+                    <AlertTriangle className={`h-8 w-8 ${order.priority === 'Dringend' ? 'text-red-500' :
+                      order.priority === 'Hoch' ? 'text-orange-500' :
+                        'text-blue-500'
+                      }`} />
                   </div>
                 </CardContent>
               </Card>
@@ -348,7 +343,7 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({ isOpen, onClose, orde
                       <p className="text-sm text-gray-600">Titel</p>
                       <p className="font-medium text-lg">{order.title}</p>
                     </div>
-                    
+
                     {order.description && (
                       <div>
                         <p className="text-sm text-gray-600">Beschreibung</p>
@@ -453,7 +448,7 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({ isOpen, onClose, orde
                           className="w-full justify-start"
                           onClick={() => handleStatusChange(nextStatus)}
                         >
-                          {getStatusIcon(nextStatus)} {nextStatus}
+                          {getStatusIcon(nextStatus)} <span className="ml-2">{ORDER_STATUS_LABELS[nextStatus as OrderStatus] || nextStatus}</span>
                         </Button>
                       ))}
                     </CardContent>

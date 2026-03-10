@@ -5,19 +5,18 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  FileText, 
-  Receipt, 
-  Plus, 
-  Search, 
-  Send, 
+import {
+  FileText,
+  Receipt,
+  Plus,
+  Search,
+  Send,
   Eye,
   Edit,
   Download,
   Mail
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { AddQuoteDialog } from './AddQuoteDialog';
 import { AddInvoiceDialog } from './AddInvoiceDialog';
 import QuoteActions from './QuoteActions';
 import {
@@ -66,25 +65,24 @@ interface Invoice {
 
 export function DocumentModule() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [showAddQuote, setShowAddQuote] = useState(false);
-  const [showAddInvoice, setShowAddInvoice] = useState(false);
+  const [isAddInvoiceOpen, setIsAddInvoiceOpen] = useState(false);
   const { toast } = useToast();
 
   // React Query hooks
   const { data: quotesResponse, isLoading: quotesLoading } = useQuotes();
   const { data: invoicesResponse, isLoading: invoicesLoading } = useInvoices();
   const { data: documentsResponse, isLoading: documentsLoading } = useDocuments();
-  
+
   const queryClient = useQueryClient();
   const createQuoteMutation = useCreateQuote();
   const createInvoiceMutation = useCreateInvoice();
   const updateQuoteMutation = useUpdateQuote();
-  
+
   // Extract data from responses
   const quotes = quotesResponse?.items || [];
   const invoices = invoicesResponse?.items || [];
   const documents = documentsResponse?.items || [];
-  
+
   // Loading state
   const isLoading = quotesLoading || invoicesLoading || documentsLoading;
 
@@ -148,15 +146,15 @@ export function DocumentModule() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Dokumente</h1>
         <div className="flex items-center gap-4">
-          <Button 
-            onClick={() => setShowAddQuote(true)}
+          <Button
+            onClick={() => { /* TODO: Implement AddQuoteDialog or remove button */ }}
             className="bg-blue-600 hover:bg-blue-700 rounded-full"
           >
             <Plus className="h-4 w-4 mr-2" />
             Angebot erstellen
           </Button>
-          <Button 
-            onClick={() => setShowAddInvoice(true)}
+          <Button
+            onClick={() => setIsAddInvoiceOpen(true)}
             className="bg-blue-600 hover:bg-blue-700 rounded-full"
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -233,7 +231,7 @@ export function DocumentModule() {
                 <p className="text-muted-foreground mb-4">
                   {searchTerm ? 'Keine Angebote entsprechen Ihren Suchkriterien.' : 'Erstellen Sie Ihr erstes Angebot.'}
                 </p>
-                <Button onClick={() => setShowAddQuote(true)}>
+                <Button onClick={() => { /* TODO: Implement AddQuoteDialog or remove button */ }}>
                   <Plus className="h-4 w-4 mr-2" />
                   Angebot erstellen
                 </Button>
@@ -248,13 +246,12 @@ export function DocumentModule() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="font-semibold">{quote.quote_number}</h3>
-                          <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs ${
-                            quote.status === 'Entwurf' ? 'bg-gray-100 text-gray-800' :
-                            quote.status === 'Versendet' ? 'bg-blue-100 text-blue-800' :
-                            quote.status === 'Angenommen' ? 'bg-green-100 text-green-800' :
-                            quote.status === 'Abgelehnt' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
+                          <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs ${quote.status === 'Entwurf' ? 'bg-gray-100 text-gray-800' :
+                              quote.status === 'Versendet' ? 'bg-blue-100 text-blue-800' :
+                                quote.status === 'Angenommen' ? 'bg-green-100 text-green-800' :
+                                  quote.status === 'Abgelehnt' ? 'bg-red-100 text-red-800' :
+                                    'bg-gray-100 text-gray-800'
+                            }`}>
                             {quote.status}
                           </span>
                         </div>
@@ -344,7 +341,7 @@ export function DocumentModule() {
                 <p className="text-muted-foreground mb-4">
                   {searchTerm ? 'Keine Rechnungen entsprechen Ihren Suchkriterien.' : 'Erstellen Sie Ihre erste Rechnung.'}
                 </p>
-                <Button onClick={() => setShowAddInvoice(true)}>
+                <Button onClick={() => setIsAddInvoiceOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Rechnung erstellen
                 </Button>
@@ -384,8 +381,8 @@ export function DocumentModule() {
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
-                            variant="ghost" 
-                            size="sm" 
+                            variant="ghost"
+                            size="sm"
                             title="Per E-Mail versenden"
                             onClick={() => handleSendEmail('invoice', invoice.id, invoice)}
                             disabled={false}
@@ -417,13 +414,9 @@ export function DocumentModule() {
         </TabsContent>
       </Tabs>
 
-      <AddQuoteDialog 
-        open={showAddQuote} 
-        onOpenChange={setShowAddQuote} 
-      />
-      <AddInvoiceDialog 
-        open={showAddInvoice} 
-        onOpenChange={setShowAddInvoice} 
+      <AddInvoiceDialog
+        open={isAddInvoiceOpen}
+        onOpenChange={setIsAddInvoiceOpen}
       />
     </div>
   );

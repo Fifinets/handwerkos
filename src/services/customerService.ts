@@ -105,6 +105,17 @@ export class CustomerService {
         }
       }
 
+      // Generate display_name if not provided
+      if (!validatedData.display_name) {
+        if (validatedData.customer_type === 'business' && validatedData.company_name) {
+          validatedData.display_name = validatedData.company_name;
+        } else if (validatedData.contact_person) {
+          validatedData.display_name = validatedData.contact_person;
+        } else {
+          validatedData.display_name = 'Unbekannter Kunde';
+        }
+      }
+
       // Try inserting – if customer_number is a duplicate, generate a unique fallback
       const { data: created, error } = await supabase
         .from('customers')
@@ -141,7 +152,20 @@ export class CustomerService {
       const validatedData = validateInput(CustomerUpdateSchema, data);
 
       // Check if customer exists and user has permission
-      await this.getCustomer(id);
+      const existingCustomer = await this.getCustomer(id);
+
+      // Generate display_name if not provided and customer type changed or names changed
+      if (!validatedData.display_name) {
+        const customerType = validatedData.customer_type || existingCustomer.customer_type || 'business';
+        const companyName = validatedData.company_name !== undefined ? validatedData.company_name : existingCustomer.company_name;
+        const contactPerson = validatedData.contact_person !== undefined ? validatedData.contact_person : existingCustomer.contact_person;
+
+        if (customerType === 'business' && companyName) {
+          validatedData.display_name = companyName;
+        } else if (contactPerson) {
+          validatedData.display_name = contactPerson;
+        }
+      }
 
       const query = supabase
         .from('customers')
@@ -183,6 +207,48 @@ export class CustomerService {
           API_ERROR_CODES.BUSINESS_RULE_VIOLATION,
           'Kunde kann nicht gelöscht werden, da noch Angebote vorhanden sind.',
           { relatedQuotes: relatedQuotes.length }
+        );
+      }
+
+      const { data: relatedOffers } = await supabase
+        .from('offers')
+        .select('id')
+        .eq('customer_id', id)
+        .limit(1);
+
+      if (relatedOffers && relatedOffers.length > 0) {
+        throw new ApiError(
+          API_ERROR_CODES.BUSINESS_RULE_VIOLATION,
+          'Kunde kann nicht gelöscht werden, da noch Angebote (Offers) vorhanden sind.',
+          { relatedOffers: relatedOffers.length }
+        );
+      }
+
+      const { data: relatedOrders } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('customer_id', id)
+        .limit(1);
+
+      if (relatedOrders && relatedOrders.length > 0) {
+        throw new ApiError(
+          API_ERROR_CODES.BUSINESS_RULE_VIOLATION,
+          'Kunde kann nicht gelöscht werden, da noch Aufträge zugeordnet sind.',
+          { relatedOrders: relatedOrders.length }
+        );
+      }
+
+      const { data: relatedInvoices } = await supabase
+        .from('invoices')
+        .select('id')
+        .eq('customer_id', id)
+        .limit(1);
+
+      if (relatedInvoices && relatedInvoices.length > 0) {
+        throw new ApiError(
+          API_ERROR_CODES.BUSINESS_RULE_VIOLATION,
+          'Kunde kann nicht gelöscht werden, da noch Rechnungen vorhanden sind.',
+          { relatedInvoices: relatedInvoices.length }
         );
       }
 

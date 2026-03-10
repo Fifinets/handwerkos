@@ -18,7 +18,7 @@ export interface WorkflowStep {
 }
 
 export interface WorkflowChain {
-  quoteId?: string;
+  offerId?: string;
   orderId?: string;
   projectId?: string;
   invoiceId?: string;
@@ -79,10 +79,10 @@ class WorkflowService {
       // 3. Quote-Status aktualisieren
       await supabase
         .from('quotes')
-        .update({ 
+        .update({
           status: 'accepted',
           workflow_target_type: 'order',
-          workflow_target_id: newOrder.id 
+          workflow_target_id: newOrder.id
         })
         .eq('id', quoteId);
 
@@ -173,10 +173,10 @@ class WorkflowService {
       // 4. Order-Status aktualisieren
       await supabase
         .from('orders')
-        .update({ 
+        .update({
           status: 'in_progress',
           workflow_target_type: 'project',
-          workflow_target_id: newProject.id 
+          workflow_target_id: newProject.id
         })
         .eq('id', orderId);
 
@@ -255,9 +255,9 @@ class WorkflowService {
       // 3. Projekt aktualisieren
       await supabase
         .from('projects')
-        .update({ 
+        .update({
           workflow_target_type: 'invoice',
-          workflow_target_id: newInvoice.id 
+          workflow_target_id: newInvoice.id
         })
         .eq('id', projectId);
 
@@ -300,7 +300,7 @@ class WorkflowService {
         .in('status', ['geplant', 'in_bearbeitung']);
 
       const warnings = [];
-      
+
       for (const project of projects || []) {
         if (project.budget && project.budget > 0) {
           // Hier würde normalerweise die tatsächlichen Ausgaben berechnet
@@ -334,7 +334,7 @@ class WorkflowService {
   private async createOrUpdateWorkflowChain(chain: WorkflowChain): Promise<void> {
     try {
       const chainData = {
-        quote_id: chain.quoteId || null,
+        offer_id: chain.offerId || null,
         order_id: chain.orderId || null,
         project_id: chain.projectId || null,
         invoice_id: chain.invoiceId || null,
@@ -348,8 +348,8 @@ class WorkflowService {
       const existingChainQuery = supabase
         .from('workflow_chains')
         .select('id');
-      
-      if (chain.quoteId) existingChainQuery.eq('quote_id', chain.quoteId);
+
+      if (chain.offerId) existingChainQuery.eq('offer_id', chain.offerId);
       else if (chain.orderId) existingChainQuery.eq('order_id', chain.orderId);
       else if (chain.projectId) existingChainQuery.eq('project_id', chain.projectId);
 
@@ -378,7 +378,7 @@ class WorkflowService {
   /**
    * Lädt eine Workflow-Kette
    */
-  private async getWorkflowChain(id: string, type: 'quote' | 'order' | 'project'): Promise<WorkflowChain | null> {
+  private async getWorkflowChain(id: string, type: 'offer' | 'order' | 'project'): Promise<WorkflowChain | null> {
     try {
       const column = `${type}_id`;
       const { data } = await supabase
@@ -390,7 +390,7 @@ class WorkflowService {
       if (!data) return null;
 
       return {
-        quoteId: data.quote_id,
+        offerId: data.offer_id,
         orderId: data.order_id,
         projectId: data.project_id,
         invoiceId: data.invoice_id,
@@ -447,7 +447,7 @@ class WorkflowService {
       .select('*, customers(company_name)')
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
-    
+
     return data || [];
   }
 
@@ -457,7 +457,7 @@ class WorkflowService {
       .select('*')
       .in('status', ['geplant', 'in_bearbeitung'])
       .lt('end_date', new Date().toISOString().split('T')[0]);
-    
+
     return data || [];
   }
 
@@ -467,7 +467,7 @@ class WorkflowService {
       .select('*, customers(company_name)')
       .eq('status', 'sent')
       .lt('due_date', new Date().toISOString().split('T')[0]);
-    
+
     return data || [];
   }
 
@@ -480,7 +480,7 @@ class WorkflowService {
   }) {
     return await withApproval('aiScheduleApply', {
       reason: 'KI-Planung soll auf den Kalender angewendet werden.',
-      metadata: { 
+      metadata: {
         projectId: schedule.projectId,
         employeeCount: schedule.employeeAssignments?.length || 0
       },
