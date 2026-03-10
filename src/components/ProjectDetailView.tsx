@@ -641,47 +641,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           {/* ── Overview Tab ──────────────────────────────────── */}
           <TabsContent value="overview" className="px-6 pb-6 pt-5 space-y-5 min-h-[500px] mt-0">
 
-            {/* KPI Cards — Zeiten erfasst / Material / Angebotssumme */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Card className="bg-white border-slate-200 shadow-sm rounded-xl">
-                <CardContent className="p-5 flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-slate-500 mb-1">Zeiten erfasst</p>
-                    <p className="text-2xl font-bold text-slate-900">{project.stats.total_hours_logged} h</p>
-                    <p className="text-xs text-slate-400 mt-0.5">erfasst</p>
-                  </div>
-                  <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
-                    <Clock className="h-5 w-5 text-slate-500" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white border-slate-200 shadow-sm rounded-xl">
-                <CardContent className="p-5 flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-slate-500 mb-1">Material</p>
-                    <p className="text-2xl font-bold text-slate-900">{formatCurrency(project.stats.total_material_cost)}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{project.stats.documents_count > 0 ? `${project.stats.documents_count} Positionen` : 'keine Einträge'}</p>
-                  </div>
-                  <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
-                    <Package className="h-5 w-5 text-slate-500" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white border-slate-200 shadow-sm rounded-xl">
-                <CardContent className="p-5 flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-slate-500 mb-1">Angebotssumme</p>
-                    <p className="text-2xl font-bold text-slate-900">{formatCurrency(project.budget_planned)}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">Netto · exkl. MwSt.</p>
-                  </div>
-                  <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
-                    <DollarSign className="h-5 w-5 text-slate-500" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
 
             {/* Main 2-col grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
