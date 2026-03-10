@@ -4,29 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-  Calendar,
   Clock,
   Users,
-  FileText,
-  DollarSign,
   AlertTriangle,
   MapPin,
   Phone,
   Mail,
-  Edit,
   Plus,
-  Download,
   MessageSquare,
-  Package
+  CheckCircle2,
+  Image as ImageIcon
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ProjectDashboardData,
   ProjectPermissions,
-  TimeEntry,
-  MaterialEntry,
-  ProjectDocument,
-  ProjectComment,
   getProjectPermissions,
   PROJECT_STATUS_CONFIG,
   UserRole,
@@ -46,7 +38,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
   const { toast } = useToast();
   const [project, setProject] = useState<ProjectDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState<UserRole>('mitarbeiter');
   const [permissions, setPermissions] = useState<ProjectPermissions>({
     can_view: false,
     can_edit_basic_data: false,
@@ -63,8 +54,14 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
   const [isMaterialFormOpen, setIsMaterialFormOpen] = useState(false);
   const [isAddTeamMemberOpen, setIsAddTeamMemberOpen] = useState(false);
   const [availableEmployees, setAvailableEmployees] = useState<any[]>([]);
-  const [checklistItems, setChecklistItems] = useState<{ id: string; text: string; done: boolean }[]>([]);
   const [newChecklistItem, setNewChecklistItem] = useState('');
+
+  // NEW STATE
+  const [projectOffers, setProjectOffers] = useState<any[]>([]);
+  const [milestones, setMilestones] = useState<{id:string; title:string; is_completed:boolean; due_date?:string; priority?:string}[]>([]);
+  const [photos, setPhotos] = useState<{id:string; file_url?:string; file_path?:string}[]>([]);
+  const [totalHours, setTotalHours] = useState(0);
+  const [teamAssignments, setTeamAssignments] = useState<any[]>([]);
 
   useEffect(() => {
     if (isOpen && projectId) {
@@ -130,106 +127,126 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         customerData = customer;
       }
 
-      // Calculate real statistics from database
+      // ====== NEW: CALCULATE DATA FROM TABLES ======
 
-      // Get real time entries for this project (with fallback)
-      const { data: timeEntries, error: timeError } = await supabase
+      // 1. TIME ENTRIES: Calculate total hours from time_entries
+      const { data: timeEntriesData, error: timeError } = await supabase
         .from('time_entries')
-        .select('hours_worked')
+        .select('start_time, end_time, break_duration')
         .eq('project_id', projectId);
 
-      if (timeError) {
-        console.log('Time entries table might not exist yet:', timeError.message);
+      let calculatedTotalHours = 0;
+      if (!timeError && timeEntriesData && timeEntriesData.length > 0) {
+        calculatedTotalHours = timeEntriesData.reduce((sum, entry) => {
+          if (entry.start_time && entry.end_time) {
+            const start = new Date(entry.start_time).getTime();
+            const end = new Date(entry.end_time).getTime();
+            const breakMs = (entry.break_duration || 0) * 60 * 1000;
+            const workedMs = end - start - breakMs;
+            const hours = workedMs / (1000 * 60 * 60);
+            return sum + Math.max(0, hours);
+          }
+          return sum;
+        }, 0);
       }
+      setTotalHours(calculatedTotalHours);
 
-      // Calculate total hours from real time entries (fallback to 0 if no data)
-      const totalHours = timeEntries?.reduce((sum, entry) => sum + (entry.hours_worked || 0), 0) || 0;
+      // 2. TEAM ASSIGNMENTS: Get from project_team_assignments (not project_team_members)
+      let teamMembersProcessed = [];
+      try {
+        const { data: teamAssignmentsData, error: teamError } = await supabase
+          .from('project_team_assignments')
+          .select('id, employee_id')
+          .eq('project_id', projectId);
 
-      // Get real material costs for this project (with fallback)
-      const { data: materialEntries, error: materialError } = await supabase
-        .from('material_entries')
-        .select('total_cost')
-        .eq('project_id', projectId);
+        if (!teamError && teamAssignmentsData && teamAssignmentsData.length > 0) {
+          const employeeIds = teamAssignmentsData.map((ta: any) => ta.employee_id);
+          const { data: employeeDetails } = await supabase
+            .from('employees')
+            .select('id, first_name, last_name, email')
+            .in('id', employeeIds);
 
-      if (materialError) {
-        console.log('Material entries table might not exist yet:', materialError.message);
-      }
-
-      // Calculate total material costs from real data (fallback to 0 if no data)
-      const totalMaterialCost = materialEntries?.reduce((sum, entry) => sum + (entry.total_cost || 0), 0) || 0;
-
-      // Get assigned team members for this project (with fallback)
-      // First try simple query without join
-      const { data: teamMemberIds, error: teamIdsError } = await supabase
-        .from('project_team_members')
-        .select('employee_id')
-        .eq('project_id', projectId);
-
-      console.log('Team member IDs for project:', { teamMemberIds, teamIdsError, projectId });
-
-      let teamMembers = [];
-      let teamError = teamIdsError;
-
-      // If we have team member IDs, fetch their details
-      if (teamMemberIds && teamMemberIds.length > 0) {
-        const employeeIds = teamMemberIds.map(tm => tm.employee_id);
-
-        const { data: employeeDetails, error: employeeError } = await supabase
-          .from('employees')
-          .select('id, first_name, last_name, email')
-          .in('id', employeeIds);
-
-        console.log('Employee details:', { employeeDetails, employeeError, employeeIds });
-
-        if (employeeDetails) {
-          teamMembers = teamMemberIds.map(tm => ({
-            employee_id: tm.employee_id,
-            employees: employeeDetails.find(emp => emp.id === tm.employee_id)
-          })).filter(tm => tm.employees); // Only include if employee details found
+          if (employeeDetails) {
+            teamMembersProcessed = teamAssignmentsData.map((ta: any) => ({
+              id: ta.employee_id,
+              name: `${employeeDetails.find(e => e.id === ta.employee_id)?.first_name || ''} ${employeeDetails.find(e => e.id === ta.employee_id)?.last_name || ''}`.trim(),
+              role: 'team_member',
+              email: employeeDetails.find(e => e.id === ta.employee_id)?.email || '',
+              hours_this_week: 0
+            })).filter((tm: any) => tm.name);
+          }
         }
-
-        teamError = employeeError;
+      } catch (error) {
+        console.log('Team assignments table might not exist:', error);
       }
+      setTeamAssignments(teamMembersProcessed);
 
-      console.log('Team members query result:', { teamMembers, teamError, projectId });
+      // 3. MATERIALS: Get from project_materials and sum total_price
+      let totalMaterialCost = 0;
+      try {
+        const { data: materialsData, error: materialError } = await supabase
+          .from('project_materials')
+          .select('total_price')
+          .eq('project_id', projectId);
 
-      // Additional debug: Check what's in the project_team_members table
-      const { data: allTeamMembers, error: allTeamError } = await supabase
-        .from('project_team_members')
-        .select('*');
-      console.log('All team members in database:', { allTeamMembers, allTeamError });
-
-      if (teamError) {
-        console.log('Project team members table might not exist yet:', teamError.message);
-        // If table doesn't exist, show helpful message to user
-        if (teamError.message.includes('relation "public.project_team_members" does not exist')) {
-          console.log('project_team_members table needs to be created. Please apply the migration.');
+        if (!materialError && materialsData && materialsData.length > 0) {
+          totalMaterialCost = materialsData.reduce((sum, entry) => sum + (entry.total_price || 0), 0);
         }
+      } catch (error) {
+        console.log('Project materials table might not exist:', error);
       }
 
-      // Get project comments count (with fallback)
-      const { data: comments, error: commentsError } = await supabase
-        .from('project_comments')
-        .select('id')
-        .eq('project_id', projectId);
+      // 4. OFFERS: Get offers where project_id = projectId and sum gross_total
+      let processedOffers = [];
+      try {
+        const { data: offersData, error: offersError } = await supabase
+          .from('offers')
+          .select('id, total_amount, status')
+          .eq('project_id', projectId);
 
-      if (commentsError) {
-        console.log('Project comments table might not exist yet:', commentsError.message);
+        if (!offersError && offersData && offersData.length > 0) {
+          processedOffers = offersData;
+        }
+      } catch (error) {
+        console.log('Offers table query error:', error);
       }
+      setProjectOffers(processedOffers);
 
-      // Get project documents count (with fallback)
-      const { data: documents, error: documentsError } = await supabase
-        .from('project_documents')
-        .select('id')
-        .eq('project_id', projectId);
+      // 5. MILESTONES: Get from project_milestones
+      let processedMilestones: any[] = [];
+      try {
+        const { data: milestonesData, error: milestonesError } = await supabase
+          .from('project_milestones')
+          .select('id, title, is_completed')
+          .eq('project_id', projectId);
 
-      if (documentsError) {
-        console.log('Project documents table might not exist yet:', documentsError.message);
+        if (!milestonesError && milestonesData && milestonesData.length > 0) {
+          processedMilestones = milestonesData;
+        }
+      } catch (error) {
+        console.log('Project milestones table might not exist:', error);
       }
+      setMilestones(processedMilestones);
 
-      // Calculate budget utilization
+      // 6. PHOTOS: Get from project_documents where document_type = 'image'
+      let processedPhotos: any[] = [];
+      try {
+        const { data: photosData, error: photosError } = await supabase
+          .from('project_documents')
+          .select('id, file_url, file_path')
+          .eq('project_id', projectId);
+
+        if (!photosError && photosData && photosData.length > 0) {
+          processedPhotos = photosData;
+        }
+      } catch (error) {
+        console.log('Project documents table might not exist:', error);
+      }
+      setPhotos(processedPhotos);
+
+      // Calculate real statistics from database
+      const totalProjectCost = totalMaterialCost + (calculatedTotalHours * 50); // Assuming 50€/hour
       const projectBudget = projectData.budget || 0;
-      const totalProjectCost = totalMaterialCost + (totalHours * 50); // Assuming 50€/hour
       const budgetUtilization = projectBudget > 0 ? Math.round((totalProjectCost / projectBudget) * 100) : 0;
 
       // Calculate days active and remaining
@@ -247,7 +264,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         start_date: projectData.start_date || new Date().toISOString().split('T')[0],
         planned_end_date: projectData.end_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         status: ((projectData.status as ProjectStatus) ?? 'geplant') as ProjectStatus,
-        project_address: projectData.location || projectData.address || 'Nicht angegeben',
+        project_address: projectData.site || projectData.location || 'Nicht angegeben',
         project_description: projectData.description || 'Keine Beschreibung',
         budget_planned: projectBudget,
         linked_invoices: [],
@@ -255,7 +272,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         created_at: projectData.created_at || new Date().toISOString(),
         updated_at: projectData.updated_at || new Date().toISOString(),
         created_by: currentUser.user.id,
-        assigned_team: teamMembers?.map(tm => tm.employee_id) || [],
+        assigned_team: teamMembersProcessed.map(tm => tm.id) || [],
 
         customer: customerData ? {
           company_name: customerData.company_name || 'Unbekanntes Unternehmen',
@@ -270,107 +287,50 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         },
 
         stats: {
-          total_hours_logged: totalHours,
+          total_hours_logged: calculatedTotalHours,
           total_material_cost: totalMaterialCost,
           total_project_cost: totalProjectCost,
           budget_utilization: budgetUtilization,
           days_active: daysActive,
           days_remaining: daysRemaining,
-          team_size: teamMembers?.length || 0,
-          documents_count: documents?.length || 0,
-          comments_count: comments?.length || 0,
+          team_size: teamMembersProcessed.length || 0,
+          documents_count: processedPhotos.length || 0,
+          comments_count: 0,
           last_activity: new Date().toISOString()
         },
 
-        recent_activities: [], // Will be populated with real data below
+        recent_activities: [],
 
-        team_members: teamMembers?.map(tm => ({
-          id: tm.employee_id,
-          name: `${tm.employees.first_name} ${tm.employees.last_name}`.trim(),
-          role: 'team_member',
-          email: tm.employees.email,
-          hours_this_week: 0 // TODO: Calculate from time entries
-        })) || [],
+        team_members: teamMembersProcessed || [],
 
         permissions: getProjectPermissions('admin', true)
       };
 
       // Set permissions based on user role (mock for now)
       const currentUserRole: UserRole = 'admin'; // This should come from user profile
-      setUserRole(currentUserRole);
       setPermissions(getProjectPermissions(currentUserRole, true));
 
       // Get real project activities
       const activities = [];
 
-      // Get recent comments
-      if (comments && comments.length > 0) {
-        const { data: recentComments } = await supabase
-          .from('project_comments')
-          .select('id, content, created_at, profiles!inner(first_name, last_name)')
-          .eq('project_id', projectId)
-          .order('created_at', { ascending: false })
-          .limit(5);
-
-        if (recentComments) {
-          recentComments.forEach(comment => {
-            activities.push({
-              id: `comment_${comment.id}`,
-              project_id: projectId,
-              event_type: 'comment',
-              title: 'Neuer Kommentar hinzugefügt',
-              description: comment.content.substring(0, 100) + (comment.content.length > 100 ? '...' : ''),
-              user_name: `${comment.profiles.first_name} ${comment.profiles.last_name}`,
-              user_role: 'team_member',
-              timestamp: comment.created_at
-            });
-          });
-        }
-      }
-
       // Get recent time entries
-      if (timeEntries && timeEntries.length > 0) {
+      if (timeEntriesData && timeEntriesData.length > 0) {
         const { data: recentTimeEntries } = await supabase
           .from('time_entries')
-          .select('id, hours_worked, work_date, profiles!inner(first_name, last_name)')
+          .select('id, start_time, created_at')
           .eq('project_id', projectId)
           .order('created_at', { ascending: false })
           .limit(3);
 
         if (recentTimeEntries) {
-          recentTimeEntries.forEach(entry => {
+          recentTimeEntries.forEach((entry: any) => {
             activities.push({
               id: `time_${entry.id}`,
               project_id: projectId,
               event_type: 'time',
               title: 'Arbeitszeit erfasst',
-              description: `${entry.hours_worked}h am ${new Date(entry.work_date).toLocaleDateString('de-DE')}`,
-              user_name: `${entry.profiles.first_name} ${entry.profiles.last_name}`,
-              user_role: 'team_member',
-              timestamp: entry.work_date
-            });
-          });
-        }
-      }
-
-      // Get recent material entries
-      if (materialEntries && materialEntries.length > 0) {
-        const { data: recentMaterialEntries } = await supabase
-          .from('material_entries')
-          .select('id, material_name, quantity, total_cost, created_at, profiles!inner(first_name, last_name)')
-          .eq('project_id', projectId)
-          .order('created_at', { ascending: false })
-          .limit(3);
-
-        if (recentMaterialEntries) {
-          recentMaterialEntries.forEach(entry => {
-            activities.push({
-              id: `material_${entry.id}`,
-              project_id: projectId,
-              event_type: 'material',
-              title: 'Material hinzugefügt',
-              description: `${entry.material_name} (${entry.quantity}x) - ${entry.total_cost}€`,
-              user_name: `${entry.profiles.first_name} ${entry.profiles.last_name}`,
+              description: `${new Date(entry.start_time).toLocaleDateString('de-DE')}`,
+              user_name: 'Team-Mitglied',
               user_role: 'team_member',
               timestamp: entry.created_at
             });
@@ -429,9 +389,9 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
 
   const handleAddTeamMember = async (employeeId: string) => {
     try {
-      // Add team member to project_team_members table
+      // Add team member to project_team_assignments table
       const { error } = await supabase
-        .from('project_team_members')
+        .from('project_team_assignments')
         .insert({
           project_id: projectId,
           employee_id: employeeId,
@@ -461,6 +421,122 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       toast({
         title: "Fehler",
         description: "Ein unerwarteter Fehler ist aufgetreten",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const toggleMilestoneCompletion = async (milestoneId: string, completed: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('project_milestones')
+        .update({ is_completed: completed })
+        .eq('id', milestoneId);
+
+      if (error) throw error;
+
+      setMilestones(prev =>
+        prev.map(m => m.id === milestoneId ? { ...m, is_completed: completed } : m)
+      );
+
+      toast({
+        title: "Erfolg",
+        description: completed ? "Meilenstein abgeschlossen" : "Meilenstein als offen markiert"
+      });
+    } catch (error) {
+      console.error('Error updating milestone:', error);
+      toast({
+        title: "Fehler",
+        description: "Meilenstein konnte nicht aktualisiert werden",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const addMilestone = async (title: string) => {
+    if (!title.trim()) {
+      toast({
+        title: "Fehler",
+        description: "Meilenstein-Titel kann nicht leer sein",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const newMilestone = {
+        project_id: projectId,
+        title: title.trim(),
+        is_completed: false
+      };
+
+      const { data, error } = await supabase
+        .from('project_milestones')
+        .insert(newMilestone as any)
+        .select();
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setMilestones(prev => [...prev, data[0]]);
+        setNewChecklistItem('');
+        toast({
+          title: "Erfolg",
+          description: "Meilenstein hinzugefügt"
+        });
+      }
+    } catch (error) {
+      console.error('Error adding milestone:', error);
+      toast({
+        title: "Fehler",
+        description: "Meilenstein konnte nicht hinzugefügt werden",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const uploadPhoto = async (file: File) => {
+    if (!file) return;
+
+    try {
+      const fileName = `${projectId}/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('project_documents')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicData } = supabase.storage
+        .from('project_documents')
+        .getPublicUrl(fileName);
+
+      const newDocument = {
+        project_id: projectId,
+        document_type: 'image',
+        file_path: fileName,
+        file_url: publicData.publicUrl,
+        name: file.name
+      };
+
+      const { data, error } = await supabase
+        .from('project_documents')
+        .insert(newDocument as any)
+        .select();
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setPhotos(prev => [...prev, data[0]]);
+        toast({
+          title: "Erfolg",
+          description: "Foto hochgeladen"
+        });
+      }
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      toast({
+        title: "Fehler",
+        description: "Foto konnte nicht hochgeladen werden",
         variant: "destructive"
       });
     }
@@ -546,7 +622,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
   }
 
   const statusConfig = getStatusConfig(project.status);
-  console.log('Project status:', project.status, 'Status config:', statusConfig);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -730,14 +805,14 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                     )}
                   </CardHeader>
                   <CardContent className="p-0">
-                    {project.team_members.length === 0 ? (
+                    {teamAssignments.length === 0 ? (
                       <div className="p-6 text-center">
                         <Users className="h-8 w-8 text-slate-200 mx-auto mb-2" />
                         <p className="text-xs text-slate-400">Noch keine Teammitglieder zugewiesen</p>
                       </div>
                     ) : (
                       <div className="divide-y divide-slate-100">
-                        {project.team_members.map(member => (
+                        {teamAssignments.map(member => (
                           <div key={member.id} className="flex items-center gap-3 px-5 py-3">
                             <div className="h-8 w-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0">
                               <span className="text-slate-600 font-semibold text-xs">{member.name?.charAt(0)?.toUpperCase() || 'U'}</span>
@@ -810,31 +885,83 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
               </div>
             </div>
 
+            {/* Erfasste Zeit + Angebotssumme — 2-col row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+              {/* Erfasste Zeit */}
+              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3 flex flex-row items-center justify-between">
+                  <CardTitle className="text-sm font-semibold text-slate-700 m-0">Erfasste Zeit</CardTitle>
+                  {permissions.can_add_time && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs border-slate-200 text-slate-600 hover:bg-slate-50"
+                      onClick={() => setIsTimeFormOpen(true)}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Erfassen
+                    </Button>
+                  )}
+                </CardHeader>
+                <CardContent className="p-5">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-slate-900">{totalHours.toFixed(1)}</p>
+                    <p className="text-xs text-slate-400 mt-1">Stunden insgesamt</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Angebotssumme */}
+              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3">
+                  <CardTitle className="text-sm font-semibold text-slate-700">Angebotssumme</CardTitle>
+                </CardHeader>
+                <CardContent className="p-5">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-slate-900">{formatCurrency(projectOffers.reduce((sum, o) => sum + (o.total_amount || 0), 0))}</p>
+                    <p className="text-xs text-slate-400 mt-1">von {projectOffers.length} Angeboten</p>
+                    <div className="mt-3 flex gap-2 justify-center flex-wrap">
+                      {projectOffers.filter(o => o.status === 'accepted').length > 0 && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-50 border border-green-200 text-xs font-medium text-green-700">
+                          <CheckCircle2 className="h-3 w-3" />
+                          {projectOffers.filter(o => o.status === 'accepted').length} akzeptiert
+                        </span>
+                      )}
+                      {projectOffers.filter(o => o.status === 'pending').length > 0 && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-50 border border-yellow-200 text-xs font-medium text-yellow-700">
+                          {projectOffers.filter(o => o.status === 'pending').length} ausstehend
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
             {/* Checkliste + Fotos — 2-col row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
-              {/* Checkliste */}
+              {/* Checkliste (Milestones) */}
               <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
                 <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3">
                   <CardTitle className="text-sm font-semibold text-slate-700">Checkliste</CardTitle>
                 </CardHeader>
                 <CardContent className="p-5">
                   <div className="space-y-2 mb-4">
-                    {checklistItems.length === 0 && (
-                      <p className="text-xs text-slate-400 text-center py-3">Noch keine Punkte. Füge den ersten hinzu.</p>
+                    {milestones.length === 0 && (
+                      <p className="text-xs text-slate-400 text-center py-3">Noch keine Meilensteine. Füge einen hinzu.</p>
                     )}
-                    {checklistItems.map(item => (
+                    {milestones.map(item => (
                       <label key={item.id} className="flex items-center gap-3 cursor-pointer group">
                         <input
                           type="checkbox"
-                          checked={item.done}
-                          onChange={() => setChecklistItems(prev =>
-                            prev.map(i => i.id === item.id ? { ...i, done: !i.done } : i)
-                          )}
+                          checked={item.is_completed}
+                          onChange={() => toggleMilestoneCompletion(item.id, !item.is_completed)}
                           className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 flex-shrink-0"
                         />
-                        <span className={`text-sm ${item.done ? 'line-through text-slate-400' : 'text-slate-700'}`}>
-                          {item.text}
+                        <span className={`text-sm ${item.is_completed ? 'line-through text-slate-400' : 'text-slate-700'}`}>
+                          {item.title}
                         </span>
                       </label>
                     ))}
@@ -846,19 +973,15 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                       onChange={e => setNewChecklistItem(e.target.value)}
                       onKeyDown={e => {
                         if (e.key === 'Enter' && newChecklistItem.trim()) {
-                          setChecklistItems(prev => [...prev, { id: Date.now().toString(), text: newChecklistItem.trim(), done: false }]);
-                          setNewChecklistItem('');
+                          addMilestone(newChecklistItem);
                         }
                       }}
-                      placeholder="+ Punkt hinzufügen"
+                      placeholder="+ Meilenstein hinzufügen"
                       className="flex-1 text-sm text-teal-600 placeholder:text-teal-500 bg-transparent border-none outline-none px-0 py-1"
                     />
                     {newChecklistItem.trim() && (
                       <button
-                        onClick={() => {
-                          setChecklistItems(prev => [...prev, { id: Date.now().toString(), text: newChecklistItem.trim(), done: false }]);
-                          setNewChecklistItem('');
-                        }}
+                        onClick={() => addMilestone(newChecklistItem)}
                         className="text-xs text-teal-600 hover:text-teal-700 font-medium"
                       >
                         Hinzufügen
@@ -872,19 +995,47 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
               <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
                 <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3 flex flex-row items-center justify-between">
                   <CardTitle className="text-sm font-semibold text-slate-700 m-0">Fotos</CardTitle>
-                  <button className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1 font-medium">
-                    <Plus className="h-3.5 w-3.5" />
-                    Hochladen
-                  </button>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        uploadPhoto(e.target.files[0]);
+                      }
+                    }}
+                    style={{ display: 'none' }}
+                    id="photo-upload"
+                  />
+                  <label htmlFor="photo-upload" className="cursor-pointer">
+                    <Button size="sm" variant="outline" className="h-7 text-xs border-slate-200 text-slate-600 hover:bg-slate-50" asChild>
+                      <span>
+                        <Plus className="h-3.5 w-3.5 mr-1" />
+                        Hochladen
+                      </span>
+                    </Button>
+                  </label>
                 </CardHeader>
                 <CardContent className="p-5">
-                  <div className="text-center py-8">
-                    <FileText className="h-8 w-8 text-slate-200 mx-auto mb-2" />
-                    <p className="text-xs text-slate-400">Noch keine Fotos hochgeladen</p>
-                    <button className="mt-3 text-xs text-teal-600 hover:text-teal-700 font-medium">
-                      + Erstes Foto hinzufügen
-                    </button>
-                  </div>
+                  {photos.length === 0 ? (
+                    <div className="text-center py-8">
+                      <ImageIcon className="h-8 w-8 text-slate-200 mx-auto mb-2" />
+                      <p className="text-xs text-slate-400">Noch keine Fotos hochgeladen</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      {photos.map(photo => (
+                        <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
+                          {photo.file_url && (
+                            <img
+                              src={photo.file_url}
+                              alt="Project photo"
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -902,7 +1053,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                   </div>
                 ) : (
                   <div className="space-y-0 divide-y divide-slate-50">
-                    {project.recent_activities.map((activity, idx) => (
+                    {project.recent_activities.map((activity) => (
                       <div key={activity.id} className="flex items-start gap-4 py-3">
                         <div className="h-8 w-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0">
                           <Clock className="h-3.5 w-3.5 text-slate-400" />
@@ -986,16 +1137,16 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs >
+        </Tabs>
 
         {/* Time Entry Form */}
-        < TimeEntryForm
+        <TimeEntryForm
           isOpen={isTimeFormOpen}
           onClose={() => setIsTimeFormOpen(false)}
           projectId={project.id}
           onTimeEntryAdded={(entry) => {
             console.log('Time entry added:', entry);
-            // TODO: Add to project time entries list
+            fetchProjectData();
             toast({
               title: "Erfolg",
               description: "Arbeitszeit wurde erfasst"
@@ -1010,7 +1161,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           projectId={project.id}
           onMaterialEntryAdded={(entry) => {
             console.log('Material entry added:', entry);
-            // TODO: Add to project material entries list
+            fetchProjectData();
             toast({
               title: "Erfolg",
               description: "Material wurde erfasst"
@@ -1061,8 +1212,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             </Dialog>
           )
         }
-      </DialogContent >
-    </Dialog >
+      </DialogContent>
+    </Dialog>
   );
 };
 
