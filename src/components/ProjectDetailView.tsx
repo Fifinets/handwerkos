@@ -16,7 +16,8 @@ import {
   Edit,
   Plus,
   Download,
-  MessageSquare
+  MessageSquare,
+  Package
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -62,6 +63,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
   const [isMaterialFormOpen, setIsMaterialFormOpen] = useState(false);
   const [isAddTeamMemberOpen, setIsAddTeamMemberOpen] = useState(false);
   const [availableEmployees, setAvailableEmployees] = useState<any[]>([]);
+  const [checklistItems, setChecklistItems] = useState<{ id: string; text: string; done: boolean }[]>([]);
+  const [newChecklistItem, setNewChecklistItem] = useState('');
 
   useEffect(() => {
     if (isOpen && projectId) {
@@ -638,41 +641,46 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           {/* ── Overview Tab ──────────────────────────────────── */}
           <TabsContent value="overview" className="px-6 pb-6 pt-5 space-y-5 min-h-[500px] mt-0">
 
-            {/* KPI Cards — 3 columns matching mockup */}
+            {/* KPI Cards — Zeiten erfasst / Material / Angebotssumme */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {[
-                {
-                  label: 'Gesamtstunden',
-                  value: `${project.stats.total_hours_logged} h`,
-                  sub: 'erfasst',
-                  icon: Clock,
-                },
-                {
-                  label: 'Materialkosten',
-                  value: formatCurrency(project.stats.total_material_cost),
-                  sub: `${project.stats.team_size > 0 ? project.stats.team_size + ' Pos.' : 'keine Einträge'}`,
-                  icon: DollarSign,
-                },
-                {
-                  label: 'Budget-Nutzung',
-                  value: `${project.stats.budget_utilization} %`,
-                  sub: project.budget_planned > 0 ? `von ${formatCurrency(project.budget_planned)}` : 'kein Budget',
-                  icon: AlertTriangle,
-                },
-              ].map((kpi, i) => (
-                <Card key={i} className="bg-white border-slate-200 shadow-sm rounded-xl">
-                  <CardContent className="p-5 flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-medium text-slate-500 mb-1">{kpi.label}</p>
-                      <p className="text-2xl font-bold text-slate-900">{kpi.value}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">{kpi.sub}</p>
-                    </div>
-                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
-                      <kpi.icon className="h-5 w-5 text-slate-500" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              <Card className="bg-white border-slate-200 shadow-sm rounded-xl">
+                <CardContent className="p-5 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-slate-500 mb-1">Zeiten erfasst</p>
+                    <p className="text-2xl font-bold text-slate-900">{project.stats.total_hours_logged} h</p>
+                    <p className="text-xs text-slate-400 mt-0.5">erfasst</p>
+                  </div>
+                  <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+                    <Clock className="h-5 w-5 text-slate-500" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white border-slate-200 shadow-sm rounded-xl">
+                <CardContent className="p-5 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-slate-500 mb-1">Material</p>
+                    <p className="text-2xl font-bold text-slate-900">{formatCurrency(project.stats.total_material_cost)}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{project.stats.documents_count > 0 ? `${project.stats.documents_count} Positionen` : 'keine Einträge'}</p>
+                  </div>
+                  <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+                    <Package className="h-5 w-5 text-slate-500" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white border-slate-200 shadow-sm rounded-xl">
+                <CardContent className="p-5 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-slate-500 mb-1">Angebotssumme</p>
+                    <p className="text-2xl font-bold text-slate-900">{formatCurrency(project.budget_planned)}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Netto · exkl. MwSt.</p>
+                  </div>
+                  <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+                    <DollarSign className="h-5 w-5 text-slate-500" />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             {/* Main 2-col grid */}
@@ -842,6 +850,116 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                 </Card>
               </div>
             </div>
+
+            {/* Checkliste + Fotos — 2-col row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+              {/* Checkliste */}
+              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3">
+                  <CardTitle className="text-sm font-semibold text-slate-700">Checkliste</CardTitle>
+                </CardHeader>
+                <CardContent className="p-5">
+                  <div className="space-y-2 mb-4">
+                    {checklistItems.length === 0 && (
+                      <p className="text-xs text-slate-400 text-center py-3">Noch keine Punkte. Füge den ersten hinzu.</p>
+                    )}
+                    {checklistItems.map(item => (
+                      <label key={item.id} className="flex items-center gap-3 cursor-pointer group">
+                        <input
+                          type="checkbox"
+                          checked={item.done}
+                          onChange={() => setChecklistItems(prev =>
+                            prev.map(i => i.id === item.id ? { ...i, done: !i.done } : i)
+                          )}
+                          className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 flex-shrink-0"
+                        />
+                        <span className={`text-sm ${item.done ? 'line-through text-slate-400' : 'text-slate-700'}`}>
+                          {item.text}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newChecklistItem}
+                      onChange={e => setNewChecklistItem(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && newChecklistItem.trim()) {
+                          setChecklistItems(prev => [...prev, { id: Date.now().toString(), text: newChecklistItem.trim(), done: false }]);
+                          setNewChecklistItem('');
+                        }
+                      }}
+                      placeholder="+ Punkt hinzufügen"
+                      className="flex-1 text-sm text-teal-600 placeholder:text-teal-500 bg-transparent border-none outline-none px-0 py-1"
+                    />
+                    {newChecklistItem.trim() && (
+                      <button
+                        onClick={() => {
+                          setChecklistItems(prev => [...prev, { id: Date.now().toString(), text: newChecklistItem.trim(), done: false }]);
+                          setNewChecklistItem('');
+                        }}
+                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                      >
+                        Hinzufügen
+                      </button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Fotos */}
+              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3 flex flex-row items-center justify-between">
+                  <CardTitle className="text-sm font-semibold text-slate-700 m-0">Fotos</CardTitle>
+                  <button className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1 font-medium">
+                    <Plus className="h-3.5 w-3.5" />
+                    Hochladen
+                  </button>
+                </CardHeader>
+                <CardContent className="p-5">
+                  <div className="text-center py-8">
+                    <FileText className="h-8 w-8 text-slate-200 mx-auto mb-2" />
+                    <p className="text-xs text-slate-400">Noch keine Fotos hochgeladen</p>
+                    <button className="mt-3 text-xs text-teal-600 hover:text-teal-700 font-medium">
+                      + Erstes Foto hinzufügen
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Aktivitäts-Timeline — volle Breite */}
+            <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+              <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3">
+                <CardTitle className="text-sm font-semibold text-slate-700">Aktivitäts-Timeline</CardTitle>
+              </CardHeader>
+              <CardContent className="p-5">
+                {project.recent_activities.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Clock className="h-8 w-8 text-slate-200 mx-auto mb-2" />
+                    <p className="text-xs text-slate-400">Noch keine Aktivitäten vorhanden</p>
+                  </div>
+                ) : (
+                  <div className="space-y-0 divide-y divide-slate-50">
+                    {project.recent_activities.map((activity, idx) => (
+                      <div key={activity.id} className="flex items-start gap-4 py-3">
+                        <div className="h-8 w-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0">
+                          <Clock className="h-3.5 w-3.5 text-slate-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-slate-800">{activity.title}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">{activity.user_name}</p>
+                        </div>
+                        <span className="text-xs text-slate-400 whitespace-nowrap flex-shrink-0">{formatDateTime(activity.timestamp)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
           </TabsContent>
 
           <TabsContent value="time" className="space-y-4 min-h-[600px] mt-0">
