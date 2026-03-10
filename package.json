@@ -1,5 +1,5 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "handwerkos",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -11,20 +11,14 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "echo 'No tests configured yet' && exit 0",
+    "test": "vitest",
     "db:init": "npx supabase init",
     "db:start": "npx supabase start",
     "db:reset": "npx supabase db reset",
     "db:push": "npx supabase db push",
     "db:diff": "npx supabase db diff --schema public --local --name",
     "db:migrate": "supabase db push",
-    "db:seed": "echo 'DB seed not implemented yet' && exit 0",
-    "worker": "echo 'Worker not implemented yet' && exit 0",
-    "api:test": "echo 'API tests not implemented yet' && exit 0",
-    "api:docs": "echo 'API documentation not implemented yet' && exit 0",
-    "export:datev": "echo 'DATEV export not implemented yet' && exit 0",
-    "backup:db": "echo 'Database backup not implemented yet' && exit 0",
-    "audit:compliance": "echo 'Compliance audit not implemented yet' && exit 0"
+    "db:seed": "supabase db seed"
   },
   "dependencies": {
     "@capacitor-community/keep-awake": "^7.1.0",

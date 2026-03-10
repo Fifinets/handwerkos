@@ -42,3 +42,24 @@ local.properties
 ios/App/Pods/
 ios/App/build/
 ai-bot/.env
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Debug/Temp files
+push_out*.txt
+error.txt
+push_error.txt
+db_help.txt
+list.txt
+temp_handwerkos_files.txt
+migration_list_output.txt
+
+# Backups
+.git_backup_local/
+supabase/migrations_backup/
+
+# OS
+Thumbs.db

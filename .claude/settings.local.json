@@ -16,7 +16,8 @@
       "Bash(npx cap open:*)",
       "Bash(git pull:*)",
       "Bash(git rm:*)",
-      "Bash(npx tsc --noEmit)"
+      "Bash(npx tsc --noEmit)",
+      "Bash(grep -l \"hourly_wage\\\\|vacation\\\\|customer_rls\\\\|employee_invitation\\\\|security_issues\" \"c:/HandwerkOS/supabase/migrations/\"*.sql)"
     ],
     "deny": []
   }

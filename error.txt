@@ -1,9 +1,0 @@
-Connecting to local database...
-Remote migration versions not found in local migrations directory.
-
-Make sure your local git repo is up-to-date. If the error persists, try repairing the migration history table:
-supabase migration repair --status reverted 20260206
-
-And update local migrations to match remote database:
-supabase db pull
-
