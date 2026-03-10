@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -11,8 +10,6 @@ import {
   FileText,
   DollarSign,
   AlertTriangle,
-  CheckCircle,
-  Building2,
   MapPin,
   Phone,
   Mail,
@@ -550,228 +547,239 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] lg:max-w-6xl max-h-[95vh] rounded-[24px] bg-[#f8fafc] shadow-xl overflow-y-auto border border-slate-200 p-6 md:p-8">
+      <DialogContent className="max-w-[95vw] lg:max-w-6xl max-h-[95vh] rounded-2xl bg-white shadow-xl overflow-y-auto border border-slate-200 p-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <DialogHeader className="pb-4 mb-4">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="h-14 w-14 bg-indigo-50 rounded-[18px] flex items-center justify-center flex-shrink-0 border border-indigo-100/50">
-                  <Building2 className="h-7 w-7 text-indigo-600" />
-                </div>
-                <div>
-                  <DialogTitle className="text-3xl font-bold flex flex-col sm:flex-row sm:items-center gap-3 text-slate-900">
+
+          {/* ── Dialog Header ─────────────────────────────────── */}
+          <DialogHeader className="px-6 pt-6 pb-0">
+            {/* Title row */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 mb-1">
+                  <DialogTitle className="text-2xl font-semibold text-slate-900 leading-tight truncate">
                     {project.project_name}
                   </DialogTitle>
-                  <DialogDescription className="flex items-center gap-3 mt-1.5">
-                    <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-100/50 px-2 py-0.5 rounded-[6px] font-medium shadow-none">
-                      <CheckCircle className="h-3.5 w-3.5 mr-1" /> Erledigt
-                    </Badge>
-                    <span className="text-slate-500 font-medium text-sm">ID: {generateShortId(project.id)}</span>
-                  </DialogDescription>
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold ${statusConfig.color} bg-slate-50`}>
+                    {statusConfig.label}
+                  </span>
                 </div>
-              </div>
-              <div className="flex items-center gap-4 bg-white px-5 py-3 rounded-[16px] border border-slate-200 shadow-sm ml-auto">
-                <div className="text-right">
-                  <p className="text-xs font-medium text-slate-500 mb-0.5">Aktuelle Projektkosten</p>
-                  <div className="flex items-baseline justify-end gap-1">
-                    <p className="text-2xl font-bold text-emerald-600 leading-none">{formatCurrency(project.stats.total_project_cost)}</p>
-                  </div>
-                  {project.budget_planned && project.budget_planned > 0 && (
-                    <p className="text-[10px] font-medium text-slate-400 mt-1">von {formatCurrency(project.budget_planned)} Budget</p>
+                <DialogDescription className="text-sm text-slate-500 flex items-center gap-2">
+                  <span className="font-mono text-xs text-slate-400">{generateShortId(project.id)}</span>
+                  {project.project_address && project.project_address !== 'Nicht angegeben' && (
+                    <>
+                      <span className="text-slate-300">·</span>
+                      <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{project.project_address}</span>
+                    </>
                   )}
-                </div>
+                </DialogDescription>
+              </div>
+
+              {/* Budget chip */}
+              <div className="flex-shrink-0 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-right">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">Projektkosten</p>
+                <p className="text-xl font-bold text-slate-900">{formatCurrency(project.stats.total_project_cost)}</p>
+                {project.budget_planned > 0 && (
+                  <p className="text-[10px] text-slate-400 mt-0.5">von {formatCurrency(project.budget_planned)}</p>
+                )}
               </div>
             </div>
 
-            {/* Tabs direkt im Header */}
-            <TabsList className="bg-slate-100 border border-slate-200/60 p-1 rounded-full grid w-full grid-cols-5 mt-8 h-12">
-              <TabsTrigger value="overview" className="rounded-full h-full data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 transition-all font-medium text-slate-500 hover:text-slate-700">Übersicht</TabsTrigger>
-              <TabsTrigger value="time" className="rounded-full h-full data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 transition-all font-medium text-slate-500 hover:text-slate-700">Zeiten</TabsTrigger>
-              <TabsTrigger value="materials" className="rounded-full h-full data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 transition-all font-medium text-slate-500 hover:text-slate-700">Material</TabsTrigger>
-              <TabsTrigger value="documents" className="rounded-full h-full data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 transition-all font-medium text-slate-500 hover:text-slate-700">Dokumente</TabsTrigger>
-              <TabsTrigger value="comments" className="rounded-full h-full data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 transition-all font-medium text-slate-500 hover:text-slate-700">Kommentare</TabsTrigger>
+            {/* Status Pipeline */}
+            {(() => {
+              const stages = [
+                { key: 'anfrage', label: 'Anfrage' },
+                { key: 'besichtigung', label: 'Besichtigung' },
+                { key: 'geplant', label: 'Geplant' },
+                { key: 'in_bearbeitung', label: 'In Arbeit' },
+                { key: 'abgeschlossen', label: 'Fertig' },
+              ];
+              const currentIdx = stages.findIndex(s => s.key === project.status);
+              return (
+                <div className="flex items-center gap-0 mb-4">
+                  {stages.map((stage, idx) => {
+                    const isDone = idx < currentIdx;
+                    const isActive = idx === currentIdx;
+                    return (
+                      <React.Fragment key={stage.key}>
+                        <div className="flex-1 flex flex-col items-center">
+                          <div className={`h-1.5 w-full rounded-full ${isDone ? 'bg-teal-500' : isActive ? 'bg-teal-300' : 'bg-slate-200'
+                            }`} />
+                          <span className={`text-[10px] mt-1 font-medium hidden sm:block ${isActive ? 'text-teal-600' : isDone ? 'text-slate-500' : 'text-slate-300'
+                            }`}>{stage.label}</span>
+                        </div>
+                        {idx < stages.length - 1 && <div className="w-0" />}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
+            {/* Tabs */}
+            <TabsList className="bg-slate-100/80 border border-slate-200/60 p-1 rounded-full grid w-full grid-cols-5 h-11">
+              {[
+                { value: 'overview', label: 'Übersicht' },
+                { value: 'time', label: 'Zeiten' },
+                { value: 'materials', label: 'Material' },
+                { value: 'documents', label: 'Dokumente' },
+                { value: 'comments', label: 'Kommentare' },
+              ].map(tab => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="rounded-full text-sm data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-teal-600 data-[state=active]:font-semibold transition-all text-slate-500 hover:text-slate-700"
+                >
+                  {tab.label}
+                </TabsTrigger>
+              ))}
             </TabsList>
           </DialogHeader>
 
-          <TabsContent value="overview" className="space-y-6 min-h-[600px] mt-0">
-            {/* Project Statistics Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="border-0 shadow-sm bg-white rounded-[20px] relative overflow-hidden group h-[100px]">
-                <div className="absolute right-0 top-0 bottom-0 w-24 bg-blue-50/50 rounded-l-full" />
-                <CardContent className="p-5 flex items-center justify-between h-full relative z-10 w-full">
-                  <div className="flex flex-col h-full justify-between">
-                    <p className="text-[13px] font-medium text-slate-500 mb-1">Gesamtstunden</p>
-                    <p className="text-4xl font-bold text-slate-900 leading-none">{project.stats.total_hours_logged}<span className="text-lg text-slate-500 font-medium ml-1">h</span></p>
-                  </div>
-                  <div className="h-[46px] w-[46px] rounded-full bg-white flex items-center justify-center text-blue-600 border border-blue-100 shadow-sm">
-                    <Clock className="h-5 w-5" />
-                  </div>
-                </CardContent>
-              </Card>
+          {/* ── Overview Tab ──────────────────────────────────── */}
+          <TabsContent value="overview" className="px-6 pb-6 pt-5 space-y-5 min-h-[500px] mt-0">
 
-              <Card className="border-0 shadow-sm bg-white rounded-[20px] relative overflow-hidden group h-[100px]">
-                <div className="absolute right-0 top-0 bottom-0 w-24 bg-emerald-50/50 rounded-l-full" />
-                <CardContent className="p-5 flex items-center justify-between h-full relative z-10 w-full">
-                  <div className="flex flex-col h-full justify-between">
-                    <p className="text-[13px] font-medium text-slate-500 mb-1">Materialkosten</p>
-                    <p className="text-3xl font-bold text-slate-900 leading-none">{formatCurrency(project.stats.total_material_cost).replace(',00', '')}</p>
-                  </div>
-                  <div className="h-[46px] w-[46px] rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100 shadow-sm">
-                    <DollarSign className="h-5 w-5" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-sm bg-white rounded-[20px] relative overflow-hidden group h-[100px]">
-                <div className="absolute right-0 top-0 bottom-0 w-24 bg-emerald-50/50 rounded-l-full" />
-                <CardContent className="p-5 flex items-center justify-between h-full relative z-10 w-full">
-                  <div className="flex flex-col h-full justify-between">
-                    <p className="text-[13px] font-medium text-slate-500 mb-1">Budget-Nutzung</p>
-                    <p className="text-4xl font-bold text-slate-900 leading-none">{project.stats.budget_utilization}<span className="text-lg text-slate-500 font-medium ml-1">%</span></p>
-                  </div>
-                  <div className="h-[46px] w-[46px] rounded-full bg-white flex items-center justify-center text-emerald-600 border border-emerald-100 shadow-sm">
-                    <AlertTriangle className="h-5 w-5 stroke-[2.5]" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-sm bg-white rounded-[20px] relative overflow-hidden group h-[100px]">
-                <div className="absolute right-0 top-0 bottom-0 w-24 bg-purple-50/50 rounded-l-full" />
-                <CardContent className="p-5 flex items-center justify-between h-full relative z-10 w-full">
-                  <div className="flex flex-col h-full justify-between">
-                    <p className="text-[13px] font-medium text-slate-500 mb-1">Team-Größe</p>
-                    <p className="text-4xl font-bold text-slate-900 leading-none">{project.stats.team_size}</p>
-                  </div>
-                  <div className="h-[46px] w-[46px] rounded-full bg-purple-50 flex items-center justify-center text-purple-600 border border-purple-100 shadow-sm">
-                    <Users className="h-5 w-5" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Project Details */}
-              <div className="lg:col-span-2 space-y-6">
-                <Card className="border-slate-200 shadow-sm bg-white rounded-[20px] overflow-hidden">
-                  <CardHeader className="border-b border-slate-100 pb-4 bg-slate-50">
-                    <CardTitle className="text-lg font-semibold text-slate-800">Projektdetails</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6 pt-6">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex flex-wrap items-center gap-4 md:gap-6">
-                        <div className="text-sm">
-                          <span className="text-slate-500 font-medium">Start:</span>
-                          <span className="ml-2 px-2.5 py-1 bg-white border border-slate-200 rounded-md shadow-sm font-medium">{formatDate(project.start_date)}</span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-slate-500 font-medium">Ende:</span>
-                          <span className="ml-2 px-2.5 py-1 bg-white border border-slate-200 rounded-md shadow-sm font-medium">{formatDate(project.planned_end_date)}</span>
-                        </div>
-                      </div>
+            {/* KPI Cards — 3 columns matching mockup */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                {
+                  label: 'Gesamtstunden',
+                  value: `${project.stats.total_hours_logged} h`,
+                  sub: 'erfasst',
+                  icon: Clock,
+                },
+                {
+                  label: 'Materialkosten',
+                  value: formatCurrency(project.stats.total_material_cost),
+                  sub: `${project.stats.team_size > 0 ? project.stats.team_size + ' Pos.' : 'keine Einträge'}`,
+                  icon: DollarSign,
+                },
+                {
+                  label: 'Budget-Nutzung',
+                  value: `${project.stats.budget_utilization} %`,
+                  sub: project.budget_planned > 0 ? `von ${formatCurrency(project.budget_planned)}` : 'kein Budget',
+                  icon: AlertTriangle,
+                },
+              ].map((kpi, i) => (
+                <Card key={i} className="bg-white border-slate-200 shadow-sm rounded-xl">
+                  <CardContent className="p-5 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-slate-500 mb-1">{kpi.label}</p>
+                      <p className="text-2xl font-bold text-slate-900">{kpi.value}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{kpi.sub}</p>
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
-                      <div>
-                        <p className="text-sm font-medium text-slate-500 mb-1.5">Standort</p>
-                        <p className="font-medium flex items-center gap-2 text-slate-900 bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm">
-                          <MapPin className="h-4 w-4 text-slate-400" />
-                          {project.project_address}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-500 mb-1.5">Verbleibende Tage</p>
-                        <div className="flex items-center gap-2 text-slate-900 bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm">
-                          <Clock className="h-4 w-4 text-blue-500" />
-                          <p className="font-medium">{project.stats.days_remaining} Tage</p>
-                        </div>
-                      </div>
+                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+                      <kpi.icon className="h-5 w-5 text-slate-500" />
                     </div>
                   </CardContent>
                 </Card>
+              ))}
+            </div>
 
-                {/* Customer Information */}
-                <Card className="border-slate-200 shadow-sm bg-white rounded-[20px] overflow-hidden">
-                  <CardHeader className="border-b border-slate-100 pb-4 bg-slate-50">
-                    <CardTitle className="text-lg font-semibold text-slate-800">Kundeninformationen</CardTitle>
+            {/* Main 2-col grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+              {/* Left col — Details + Customer */}
+              <div className="lg:col-span-2 space-y-5">
+
+                {/* Projektdetails */}
+                <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                  <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3">
+                    <CardTitle className="text-sm font-semibold text-slate-700">Projektdetails</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4 pt-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-                        <p className="text-sm font-medium text-slate-500 mb-1">Unternehmen</p>
-                        <p className="font-semibold text-slate-900 text-lg">{project.customer.company_name}</p>
+                  <CardContent className="p-5 space-y-4">
+                    <div className="flex items-center gap-6 text-sm">
+                      <div>
+                        <span className="text-slate-400 mr-1.5">Start:</span>
+                        <span className="font-medium text-slate-800">{formatDate(project.start_date)}</span>
                       </div>
-                      <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-                        <p className="text-sm font-medium text-slate-500 mb-1">Ansprechpartner</p>
-                        <p className="font-medium text-slate-900">{project.customer.contact_person}</p>
+                      <div>
+                        <span className="text-slate-400 mr-1.5">Ende:</span>
+                        <span className="font-medium text-slate-800">{formatDate(project.planned_end_date)}</span>
+                      </div>
+                      <div className="ml-auto flex items-center gap-1.5 text-slate-500">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span className="text-sm">{project.stats.days_remaining} Tage verbleibend</span>
                       </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-4 mt-2">
-                      <div className="flex-1 flex items-center gap-3 bg-slate-50 px-4 py-3 rounded-xl border border-slate-100">
-                        <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                          <Mail className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <span className="text-sm font-medium text-slate-700">{project.customer.email}</span>
+                    <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+                      <MapPin className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                      <span>{project.project_address}</span>
+                    </div>
+                    {project.project_description && project.project_description !== 'Keine Beschreibung' && (
+                      <p className="text-sm text-slate-500 leading-relaxed">{project.project_description}</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Kundeninformationen */}
+                <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                  <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3">
+                    <CardTitle className="text-sm font-semibold text-slate-700">Kundeninformationen</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-5">
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <p className="text-xs text-slate-400 mb-1">Unternehmen</p>
+                        <p className="font-semibold text-slate-900">{project.customer.company_name}</p>
                       </div>
+                      <div>
+                        <p className="text-xs text-slate-400 mb-1">Ansprechpartner</p>
+                        <p className="font-medium text-slate-800">{project.customer.contact_person}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <a href={`mailto:${project.customer.email}`} className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 hover:bg-slate-100 transition-colors flex-1">
+                        <Mail className="h-4 w-4 text-slate-400" />
+                        <span className="truncate">{project.customer.email}</span>
+                      </a>
                       {project.customer.phone && (
-                        <div className="flex-1 flex items-center gap-3 bg-slate-50 px-4 py-3 rounded-xl border border-slate-100">
-                          <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                            <Phone className="h-4 w-4 text-emerald-600" />
-                          </div>
-                          <span className="text-sm font-medium text-slate-700">{project.customer.phone}</span>
-                        </div>
+                        <a href={`tel:${project.customer.phone}`} className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 hover:bg-slate-100 transition-colors flex-1">
+                          <Phone className="h-4 w-4 text-slate-400" />
+                          <span>{project.customer.phone}</span>
+                        </a>
                       )}
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Right Sidebar */}
-              <div className="space-y-6">
-                {/* Team Members */}
-                <Card className="border-slate-200 shadow-sm bg-white rounded-[20px] overflow-hidden">
-                  <CardHeader className="border-b border-slate-100 pb-4 bg-slate-50 flex flex-row items-center justify-between">
-                    <CardTitle className="text-lg font-semibold text-slate-800 m-0">
-                      Team-Mitglieder
-                    </CardTitle>
+              {/* Right col — Team + Status + Aktivitäten */}
+              <div className="space-y-5">
+
+                {/* Team-Mitglieder */}
+                <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                  <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3 flex flex-row items-center justify-between">
+                    <CardTitle className="text-sm font-semibold text-slate-700 m-0">Team-Mitglieder</CardTitle>
                     {permissions.can_manage_team && (
                       <Button
                         size="sm"
-                        className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-sm"
-                        onClick={() => {
-                          loadAvailableEmployees();
-                          setIsAddTeamMemberOpen(true);
-                        }}
+                        variant="outline"
+                        className="h-7 text-xs border-slate-200 text-slate-600 hover:bg-slate-50"
+                        onClick={() => { loadAvailableEmployees(); setIsAddTeamMemberOpen(true); }}
                       >
-                        <Plus className="h-4 w-4 mr-1.5" />
+                        <Plus className="h-3 w-3 mr-1" />
                         Hinzufügen
                       </Button>
                     )}
                   </CardHeader>
-                  <CardContent className="space-y-0 p-0">
+                  <CardContent className="p-0">
                     {project.team_members.length === 0 ? (
                       <div className="p-6 text-center">
-                        <Users className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-                        <p className="text-sm text-slate-500 font-medium">Noch keine Teammitglieder zugewiesen</p>
+                        <Users className="h-8 w-8 text-slate-200 mx-auto mb-2" />
+                        <p className="text-xs text-slate-400">Noch keine Teammitglieder zugewiesen</p>
                       </div>
                     ) : (
                       <div className="divide-y divide-slate-100">
                         {project.team_members.map(member => (
-                          <div key={member.id} className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors">
-                            <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-100 to-blue-100 border border-indigo-200 flex items-center justify-center flex-shrink-0">
-                                <span className="text-indigo-700 font-semibold text-sm">
-                                  {member.name ? member.name.charAt(0).toUpperCase() : 'U'}
-                                </span>
-                              </div>
-                              <div>
-                                <p className="font-semibold text-slate-800">{member.name || 'Unbekannt'}</p>
-                                <p className="text-xs text-slate-500 font-medium">{member.email || 'Keine E-Mail'}</p>
-                              </div>
+                          <div key={member.id} className="flex items-center gap-3 px-5 py-3">
+                            <div className="h-8 w-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0">
+                              <span className="text-slate-600 font-semibold text-xs">{member.name?.charAt(0)?.toUpperCase() || 'U'}</span>
                             </div>
-                            <div className="text-right bg-white px-2.5 py-1.5 rounded-lg border border-slate-100 shadow-sm">
-                              <p className="text-sm font-bold text-slate-700">{member.hours_this_week || 0}h</p>
-                              <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Diese Woche</p>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-slate-800 truncate">{member.name}</p>
+                              <p className="text-xs text-slate-400 truncate">{member.email}</p>
                             </div>
+                            <span className="text-xs font-semibold text-slate-500">{member.hours_this_week || 0}h</span>
                           </div>
                         ))}
                       </div>
@@ -779,24 +787,23 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                   </CardContent>
                 </Card>
 
-                {/* Status Management */}
-                {permissions.can_change_status && (
-                  <Card className="border-slate-200 shadow-sm bg-white rounded-[20px] overflow-hidden">
-                    <CardHeader className="border-b border-slate-100 pb-4 bg-slate-50">
-                      <CardTitle className="text-lg font-semibold text-slate-800">Status ändern</CardTitle>
+                {/* Status ändern */}
+                {permissions.can_change_status && statusConfig.nextStates.length > 0 && (
+                  <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                    <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3">
+                      <CardTitle className="text-sm font-semibold text-slate-700">Status ändern</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-2 pt-6">
+                    <CardContent className="p-3 space-y-2">
                       {statusConfig.nextStates.map(nextStatus => {
                         const nextConfig = getStatusConfig(nextStatus);
                         return (
                           <Button
                             key={nextStatus}
                             variant="outline"
-                            className="w-full justify-start h-11 bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-sm group"
+                            className="w-full justify-start h-9 text-sm border-slate-200 bg-white hover:bg-slate-50 text-slate-700"
                             onClick={() => handleStatusChange(nextStatus)}
                           >
-                            <span className={`mr-2 group-hover:scale-110 transition-transform ${nextConfig.color}`}>{nextConfig.icon}</span>
-                            <span className="font-medium text-slate-700">{nextConfig.label}</span>
+                            {nextConfig.label}
                           </Button>
                         );
                       })}
@@ -804,29 +811,28 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                   </Card>
                 )}
 
-                {/* Recent Activities */}
-                <Card className="border-slate-200 shadow-sm bg-white rounded-[20px] overflow-hidden">
-                  <CardHeader className="border-b border-slate-100 pb-4 bg-slate-50">
-                    <CardTitle className="text-lg font-semibold text-slate-800">Letzte Aktivitäten</CardTitle>
+                {/* Letzte Aktivitäten */}
+                <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                  <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3">
+                    <CardTitle className="text-sm font-semibold text-slate-700">Letzte Aktivitäten</CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-6">
+                  <CardContent className="p-4">
                     {project.recent_activities.length === 0 ? (
-                      <div className="text-center py-4">
-                        <Clock className="h-8 w-8 text-slate-300 mx-auto mb-2" />
-                        <p className="text-sm text-slate-500">Noch keine Aktivitäten</p>
+                      <div className="text-center py-6">
+                        <Clock className="h-7 w-7 text-slate-200 mx-auto mb-2" />
+                        <p className="text-xs text-slate-400">Noch keine Aktivitäten</p>
                       </div>
                     ) : (
-                      <div className="space-y-5 relative before:absolute before:inset-0 before:ml-1.5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent ml-2">
-                        {project.recent_activities.map((activity, index) => (
-                          <div key={activity.id} className="relative flex items-start gap-4 before:absolute before:left-0 before:h-full before:w-[2px] before:bg-slate-200 pl-4 before:-ml-[17px] first:before:bg-gradient-to-b first:before:from-transparent first:before:to-slate-200 last:before:bg-gradient-to-t last:before:from-transparent last:before:to-slate-200">
-                            <div className="absolute left-[-22px] top-1.5 h-3 w-3 rounded-full bg-blue-500 border-[3px] border-white shadow-sm ring-1 ring-slate-200" />
-                            <div className="flex-1 bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                              <p className="text-sm font-semibold text-slate-800">{activity.title}</p>
-                              <p className="text-xs text-slate-600 mt-1 mb-2 leading-relaxed">{activity.description}</p>
-                              <div className="flex items-center gap-2 mt-auto pt-2 border-t border-slate-50">
-                                <span className="text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">{activity.user_name}</span>
-                                <span className="text-[11px] text-slate-400 font-medium">{formatDateTime(activity.timestamp)}</span>
-                              </div>
+                      <div className="space-y-3">
+                        {project.recent_activities.slice(0, 6).map(activity => (
+                          <div key={activity.id} className="flex gap-3">
+                            <div className="flex flex-col items-center gap-1 pt-1">
+                              <div className="h-2 w-2 rounded-full bg-slate-300 flex-shrink-0" />
+                              <div className="w-px flex-1 bg-slate-100" />
+                            </div>
+                            <div className="pb-3 flex-1 min-w-0">
+                              <p className="text-sm font-medium text-slate-800 leading-tight">{activity.title}</p>
+                              <p className="text-xs text-slate-400 mt-0.5">{activity.user_name} · {formatDateTime(activity.timestamp)}</p>
                             </div>
                           </div>
                         ))}
