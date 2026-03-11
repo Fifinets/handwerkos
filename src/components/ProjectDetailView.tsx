@@ -13,7 +13,8 @@ import {
   Plus,
   MessageSquare,
   CheckCircle2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  X
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -55,12 +56,15 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
   const [isAddTeamMemberOpen, setIsAddTeamMemberOpen] = useState(false);
   const [availableEmployees, setAvailableEmployees] = useState<any[]>([]);
   const [newChecklistItem, setNewChecklistItem] = useState('');
+  const [isLinkOfferOpen, setIsLinkOfferOpen] = useState(false);
+  const [availableOffers, setAvailableOffers] = useState<any[]>([]);
 
   // NEW STATE
   const [projectOffers, setProjectOffers] = useState<any[]>([]);
   const [milestones, setMilestones] = useState<{id:string; title:string; is_completed:boolean; due_date?:string; priority?:string}[]>([]);
   const [photos, setPhotos] = useState<{id:string; file_url?:string; file_path?:string}[]>([]);
   const [totalHours, setTotalHours] = useState(0);
+  const [plannedHours, setPlannedHours] = useState(0);
   const [teamAssignments, setTeamAssignments] = useState<any[]>([]);
 
   // Customer projects modal
@@ -215,16 +219,45 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       try {
         const { data: offersData, error: offersError } = await supabase
           .from('offers')
-          .select('id, total_amount, status')
+          .select('id, snapshot_gross_total, snapshot_net_total, status, offer_number')
           .eq('project_id', targetId);
 
         if (!offersError && offersData && offersData.length > 0) {
-          processedOffers = offersData;
+          // Calculate totals from offer_items if snapshot is null
+          processedOffers = await Promise.all(offersData.map(async (offer) => {
+            if (offer.snapshot_gross_total) return offer;
+
+            const { data: items } = await supabase
+              .from('offer_items')
+              .select('quantity, unit_price_net, vat_rate')
+              .eq('offer_id', offer.id);
+
+            const netTotal = (items || []).reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price_net || 0)), 0);
+            const grossTotal = (items || []).reduce((sum, item) => {
+              const net = (item.quantity || 0) * (item.unit_price_net || 0);
+              return sum + net * (1 + (item.vat_rate || 19) / 100);
+            }, 0);
+
+            return { ...offer, snapshot_net_total: netTotal, snapshot_gross_total: grossTotal };
+          }));
         }
       } catch (error) {
         console.log('Offers table query error:', error);
       }
       setProjectOffers(processedOffers);
+
+      // Calculate planned hours from all linked offer items
+      let totalPlannedHours = 0;
+      if (processedOffers.length > 0) {
+        const offerIds = processedOffers.map((o: any) => o.id);
+        const { data: allItems } = await supabase
+          .from('offer_items')
+          .select('planned_hours_item')
+          .in('offer_id', offerIds);
+
+        totalPlannedHours = (allItems || []).reduce((sum, item) => sum + (item.planned_hours_item || 0), 0);
+      }
+      setPlannedHours(totalPlannedHours);
 
       // 5. MILESTONES: Get from project_milestones
       let processedMilestones: any[] = [];
@@ -389,7 +422,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         .from('employees')
         .select('id, first_name, last_name, email, position')
         .eq('company_id', profile.company_id)
-        .eq('status', 'active');
+        .in('status', ['active', 'aktiv']);
 
       // Filter out employees who are already in the project
       const currentTeamIds = project?.assigned_team || [];
@@ -442,6 +475,91 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       });
     } finally {
       setLoadingCustomerProjects(false);
+    }
+  };
+
+  const loadAvailableOffers = async () => {
+    try {
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser?.user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', currentUser.user.id)
+        .single();
+
+      if (!profile?.company_id) return;
+
+      // Fetch offers that are NOT yet linked to a project
+      const { data: offers } = await supabase
+        .from('offers')
+        .select('id, offer_number, snapshot_customer_name, snapshot_gross_total, snapshot_net_total, status')
+        .eq('company_id', profile.company_id)
+        .eq('customer_id', project.customer_id)
+        .is('project_id', null)
+        .order('created_at', { ascending: false });
+
+      // For each offer, calculate total from items if snapshot is null
+      const offersWithTotals = await Promise.all((offers || []).map(async (offer) => {
+        if (offer.snapshot_gross_total) return offer;
+
+        const { data: items } = await supabase
+          .from('offer_items')
+          .select('quantity, unit_price_net, vat_rate')
+          .eq('offer_id', offer.id);
+
+        const netTotal = (items || []).reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price_net || 0)), 0);
+        const grossTotal = (items || []).reduce((sum, item) => {
+          const net = (item.quantity || 0) * (item.unit_price_net || 0);
+          return sum + net * (1 + (item.vat_rate || 19) / 100);
+        }, 0);
+
+        return { ...offer, snapshot_net_total: netTotal, snapshot_gross_total: grossTotal };
+      }));
+
+      setAvailableOffers(offersWithTotals);
+    } catch (error) {
+      console.error('Error loading offers:', error);
+    }
+  };
+
+  const linkOfferToProject = async (offerId: string) => {
+    try {
+      const { error } = await supabase
+        .from('offers')
+        .update({ project_id: currentProjectId })
+        .eq('id', offerId);
+
+      if (error) {
+        toast({ title: "Fehler", description: "Angebot konnte nicht verknüpft werden: " + error.message, variant: "destructive" });
+        return;
+      }
+
+      toast({ title: "Erfolg", description: "Angebot mit Projekt verknüpft" });
+      setIsLinkOfferOpen(false);
+      fetchProjectData(currentProjectId);
+    } catch (error) {
+      console.error('Error linking offer:', error);
+    }
+  };
+
+  const unlinkOffer = async (offerId: string) => {
+    try {
+      const { error } = await supabase
+        .from('offers')
+        .update({ project_id: null })
+        .eq('id', offerId);
+
+      if (error) {
+        toast({ title: "Fehler", description: "Verknüpfung konnte nicht entfernt werden: " + error.message, variant: "destructive" });
+        return;
+      }
+
+      toast({ title: "Entfernt", description: "Angebot wurde vom Projekt getrennt" });
+      fetchProjectData(currentProjectId);
+    } catch (error) {
+      console.error('Error unlinking offer:', error);
     }
   };
 
@@ -683,7 +801,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] lg:max-w-6xl max-h-[95vh] rounded-2xl bg-white shadow-xl overflow-y-auto border border-slate-200 p-0">
+      <DialogContent className="max-w-[95vw] lg:max-w-6xl h-[95vh] rounded-2xl bg-white shadow-xl overflow-y-auto border border-slate-200 p-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
 
           {/* ── Dialog Header ─────────────────────────────────── */}
@@ -735,13 +853,18 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                   {stages.map((stage, idx) => {
                     const isDone = idx < currentIdx;
                     const isActive = idx === currentIdx;
+                    const canClick = permissions.can_change_status && stage.key !== project.status;
                     return (
                       <React.Fragment key={stage.key}>
-                        <div className="flex-1 flex flex-col items-center">
-                          <div className={`h-1.5 w-full rounded-full ${isDone ? 'bg-teal-500' : isActive ? 'bg-teal-300' : 'bg-slate-200'
-                            }`} />
+                        <div
+                          className={`flex-1 flex flex-col items-center ${canClick ? 'cursor-pointer group' : ''}`}
+                          onClick={() => canClick && handleStatusChange(stage.key)}
+                          title={canClick ? `Status auf "${stage.label}" setzen` : ''}
+                        >
+                          <div className={`h-1.5 w-full rounded-full transition-colors ${isDone ? 'bg-teal-500' : isActive ? 'bg-teal-300' : 'bg-slate-200'
+                            } ${canClick ? 'group-hover:bg-teal-400' : ''}`} />
                           <span className={`text-[10px] mt-1 font-medium hidden sm:block ${isActive ? 'text-teal-600' : isDone ? 'text-slate-500' : 'text-slate-300'
-                            }`}>{stage.label}</span>
+                            } ${canClick ? 'group-hover:text-teal-600' : ''}`}>{stage.label}</span>
                         </div>
                         {idx < stages.length - 1 && <div className="w-0" />}
                       </React.Fragment>
@@ -796,35 +919,95 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                 </CardHeader>
                 <CardContent className="p-5">
                   <div className="text-center">
-                    <p className="text-3xl font-bold text-slate-900">{totalHours.toFixed(1)}</p>
-                    <p className="text-xs text-slate-400 mt-1">Stunden insgesamt</p>
+                    <p className="text-3xl font-bold text-slate-900">
+                      {totalHours.toFixed(1)}{plannedHours > 0 && <span className="text-lg font-normal text-slate-400"> / {plannedHours.toFixed(1)}</span>}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {plannedHours > 0 ? 'Stunden erfasst / Stunden aus Angebot' : 'Stunden insgesamt'}
+                    </p>
+                    {plannedHours > 0 && (
+                      <div className="mt-3 h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${totalHours / plannedHours > 1 ? 'bg-red-500' : totalHours / plannedHours > 0.8 ? 'bg-yellow-500' : 'bg-teal-500'}`}
+                          style={{ width: `${Math.min(100, (totalHours / plannedHours) * 100)}%` }}
+                        />
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
 
               {/* Angebotssumme */}
               <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3">
-                  <CardTitle className="text-sm font-semibold text-slate-700">Angebotssumme</CardTitle>
+                <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3 flex flex-row items-center justify-between">
+                  <CardTitle className="text-sm font-semibold text-slate-700 m-0">Angebotssumme</CardTitle>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs border-slate-200 text-slate-600 hover:bg-slate-50"
+                    onClick={() => { loadAvailableOffers(); setIsLinkOfferOpen(!isLinkOfferOpen); }}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Verknüpfen
+                  </Button>
                 </CardHeader>
                 <CardContent className="p-5">
-                  <div className="text-center">
-                    <p className="text-3xl font-bold text-slate-900">{formatCurrency(projectOffers.reduce((sum, o) => sum + (o.total_amount || 0), 0))}</p>
-                    <p className="text-xs text-slate-400 mt-1">von {projectOffers.length} Angeboten</p>
-                    <div className="mt-3 flex gap-2 justify-center flex-wrap">
-                      {projectOffers.filter(o => o.status === 'accepted').length > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-50 border border-green-200 text-xs font-medium text-green-700">
-                          <CheckCircle2 className="h-3 w-3" />
-                          {projectOffers.filter(o => o.status === 'accepted').length} akzeptiert
-                        </span>
-                      )}
-                      {projectOffers.filter(o => o.status === 'pending').length > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-50 border border-yellow-200 text-xs font-medium text-yellow-700">
-                          {projectOffers.filter(o => o.status === 'pending').length} ausstehend
-                        </span>
+                  {isLinkOfferOpen && (
+                    <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+                      <p className="text-xs font-medium text-slate-600 mb-2">Angebot auswählen:</p>
+                      {availableOffers.length === 0 ? (
+                        <p className="text-xs text-slate-400 text-center py-2">Keine unverknüpften Angebote vorhanden</p>
+                      ) : (
+                        <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+                          {availableOffers.map(offer => (
+                            <button
+                              key={offer.id}
+                              onClick={() => linkOfferToProject(offer.id)}
+                              className="w-full flex items-center justify-between p-2.5 rounded-md border border-slate-200 bg-white hover:bg-teal-50 hover:border-teal-300 transition-colors text-left"
+                            >
+                              <div>
+                                <p className="text-sm font-medium text-slate-800">{offer.offer_number}</p>
+                                <p className="text-xs text-slate-400">{offer.snapshot_customer_name}</p>
+                              </div>
+                              <span className="text-sm font-semibold text-slate-700">{formatCurrency(offer.snapshot_gross_total || 0)}</span>
+                            </button>
+                          ))}
+                        </div>
                       )}
                     </div>
+                  )}
+                  <div className="text-center mb-3">
+                    <p className="text-3xl font-bold text-slate-900">{formatCurrency(projectOffers.reduce((sum, o) => sum + (o.snapshot_gross_total || 0), 0))}</p>
+                    <p className="text-xs text-slate-400 mt-1">von {projectOffers.length} Angeboten</p>
                   </div>
+                  {projectOffers.length > 0 && (
+                    <div className="space-y-1.5 border-t border-slate-100 pt-3">
+                      {projectOffers.map(offer => (
+                        <div key={offer.id} className="flex items-center justify-between p-2 rounded-md bg-slate-50 border border-slate-100">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-slate-700">{offer.offer_number}</span>
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
+                              offer.status === 'accepted' ? 'bg-green-50 text-green-700 border border-green-200' :
+                              offer.status === 'rejected' ? 'bg-red-50 text-red-700 border border-red-200' :
+                              'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                            }`}>
+                              {offer.status === 'accepted' ? 'Akzeptiert' : offer.status === 'rejected' ? 'Abgelehnt' : 'Ausstehend'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-slate-800">{formatCurrency(offer.snapshot_gross_total || 0)}</span>
+                            <button
+                              onClick={() => unlinkOffer(offer.id)}
+                              className="text-slate-300 hover:text-red-500 transition-colors p-0.5"
+                              title="Verknüpfung entfernen"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -924,82 +1107,10 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                 </CardContent>
               </Card>
 
-              {/* Fotos */}
-              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3 flex flex-row items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-slate-700 m-0">Fotos</CardTitle>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        uploadPhoto(e.target.files[0]);
-                      }
-                    }}
-                    style={{ display: 'none' }}
-                    id="photo-upload"
-                  />
-                  <label htmlFor="photo-upload" className="cursor-pointer">
-                    <Button size="sm" variant="outline" className="h-7 text-xs border-slate-200 text-slate-600 hover:bg-slate-50" asChild>
-                      <span>
-                        <Plus className="h-3.5 w-3.5 mr-1" />
-                        Hochladen
-                      </span>
-                    </Button>
-                  </label>
-                </CardHeader>
-                <CardContent className="p-5">
-                  {photos.length === 0 ? (
-                    <div className="text-center py-8">
-                      <ImageIcon className="h-8 w-8 text-slate-200 mx-auto mb-2" />
-                      <p className="text-xs text-slate-400">Noch keine Fotos hochgeladen</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-3">
-                      {photos.map(photo => (
-                        <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
-                          {photo.file_url && (
-                            <img
-                              src={photo.file_url}
-                              alt="Project photo"
-                              className="w-full h-full object-cover"
-                            />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
             </div>
 
-            {/* Zeile 3 – Status ändern + Fotos */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-
-              {/* Status ändern */}
-              {permissions.can_change_status && statusConfig.nextStates.length > 0 && (
-                <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                  <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3">
-                    <CardTitle className="text-sm font-semibold text-slate-700">Status ändern</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-3 space-y-2">
-                    {statusConfig.nextStates.map(nextStatus => {
-                      const nextConfig = getStatusConfig(nextStatus);
-                      return (
-                        <Button
-                          key={nextStatus}
-                          variant="outline"
-                          className="w-full justify-start h-9 text-sm border-slate-200 bg-white hover:bg-slate-50 text-slate-700"
-                          onClick={() => handleStatusChange(nextStatus)}
-                        >
-                          {nextConfig.label}
-                        </Button>
-                      );
-                    })}
-                  </CardContent>
-                </Card>
-              )}
-
+            {/* Zeile 3 – Fotos */}
+            <div className="grid grid-cols-1 gap-5">
               {/* Fotos */}
               <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
                 <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3 flex flex-row items-center justify-between">

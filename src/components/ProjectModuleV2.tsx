@@ -144,6 +144,15 @@ const ProjectModuleV2 = () => {
 
             console.log('Fetching employees for companyId:', companyId);
 
+            // Auto-cleanup: delete employees stuck in 'eingeladen' status for >24h
+            const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+            await supabase
+                .from('employees')
+                .delete()
+                .eq('company_id', companyId)
+                .eq('status', 'eingeladen')
+                .lt('created_at', twentyFourHoursAgo);
+
             // 1. Fetch employees basic data
             const { data: employeesData, error: employeesError } = await supabase
                 .from('employees')
@@ -195,7 +204,7 @@ const ProjectModuleV2 = () => {
                 .filter(employee => {
                     // Inclusion filter: handle various 'active' status strings
                     const status = (employee.status || '').toLowerCase();
-                    return status === 'aktiv' || status === 'active' || status === '' || status === 'eingeladen';
+                    return status === 'aktiv' || status === 'active';
                 })
                 .map(employee => {
                     const profile = profilesData.find(p => p.id === employee.user_id);

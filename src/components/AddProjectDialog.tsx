@@ -168,7 +168,7 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
     e.preventDefault();
 
     // Validierung
-    if (!formData.name || !formData.customer_id || !formData.budget) {
+    if (!formData.name || !formData.customer_id) {
       toast({
         title: "Fehler",
         description: "Bitte füllen Sie alle Pflichtfelder aus.",
@@ -230,30 +230,20 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
 
         const teamMemberInserts = teamMemberIds.map(employeeId => ({
           project_id: newProject.id,
-          employee_id: employeeId,
-          assigned_at: new Date().toISOString()
+          employee_id: employeeId
         }));
 
-        const { error: teamError } = await (supabase.from as any)('project_team_members')
+        const { error: teamError } = await supabase
+          .from('project_team_assignments')
           .insert(teamMemberInserts);
 
         if (teamError) {
           console.error('Error adding team members:', teamError);
-
-          // If table doesn't exist, provide helpful message
-          if (teamError.message?.includes('relation "public.project_team_members" does not exist')) {
-            toast({
-              title: "Setup erforderlich",
-              description: "Die Datenbank-Tabelle für Team-Zuweisungen muss erstellt werden. Bitte wenden Sie sich an den Administrator.",
-              variant: "destructive"
-            });
-          } else {
-            toast({
-              title: "Warnung",
-              description: "Projekt wurde erstellt, aber Team-Mitglieder konnten nicht zugewiesen werden: " + teamError.message,
-              variant: "destructive"
-            });
-          }
+          toast({
+            title: "Warnung",
+            description: "Projekt wurde erstellt, aber Team-Mitglieder konnten nicht zugewiesen werden: " + teamError.message,
+            variant: "destructive"
+          });
         } else {
           console.log('Team members successfully added to project');
           toast({
@@ -380,17 +370,6 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="budget">Budget *</Label>
-            <Input
-              id="budget"
-              value={formData.budget}
-              onChange={(e) => handleInputChange('budget', e.target.value)}
-              placeholder="z.B. 15000 oder €15.000"
-              required
-            />
           </div>
 
           <div>
