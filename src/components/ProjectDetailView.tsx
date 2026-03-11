@@ -68,11 +68,19 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
   const [customerProjects, setCustomerProjects] = useState<any[]>([]);
   const [loadingCustomerProjects, setLoadingCustomerProjects] = useState(false);
 
+  // Internal project ID tracking (allows switching projects within the dialog)
+  const [currentProjectId, setCurrentProjectId] = useState(projectId);
+
+  // Sync with prop when it changes
   useEffect(() => {
-    if (isOpen && projectId) {
+    setCurrentProjectId(projectId);
+  }, [projectId]);
+
+  useEffect(() => {
+    if (isOpen && currentProjectId) {
       fetchProjectData();
     }
-  }, [isOpen, projectId]);
+  }, [isOpen, currentProjectId]);
 
   const fetchProjectData = async () => {
     setLoading(true);
@@ -108,7 +116,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
         .select('*')
-        .eq('id', projectId)
+        .eq('id', currentProjectId)
         .eq('company_id', profile.company_id)
         .single();
 
@@ -138,7 +146,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       const { data: timeEntriesData, error: timeError } = await supabase
         .from('time_entries')
         .select('start_time, end_time, break_duration')
-        .eq('project_id', projectId);
+        .eq('project_id', currentProjectId);
 
       let calculatedTotalHours = 0;
       if (!timeError && timeEntriesData && timeEntriesData.length > 0) {
@@ -162,7 +170,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         const { data: teamAssignmentsData, error: teamError } = await supabase
           .from('project_team_assignments')
           .select('id, employee_id')
-          .eq('project_id', projectId);
+          .eq('project_id', currentProjectId);
 
         if (!teamError && teamAssignmentsData && teamAssignmentsData.length > 0) {
           const employeeIds = teamAssignmentsData.map((ta: any) => ta.employee_id);
@@ -192,7 +200,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         const { data: materialsData, error: materialError } = await supabase
           .from('project_materials')
           .select('total_price')
-          .eq('project_id', projectId);
+          .eq('project_id', currentProjectId);
 
         if (!materialError && materialsData && materialsData.length > 0) {
           totalMaterialCost = materialsData.reduce((sum, entry) => sum + (entry.total_price || 0), 0);
@@ -207,7 +215,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         const { data: offersData, error: offersError } = await supabase
           .from('offers')
           .select('id, total_amount, status')
-          .eq('project_id', projectId);
+          .eq('project_id', currentProjectId);
 
         if (!offersError && offersData && offersData.length > 0) {
           processedOffers = offersData;
@@ -223,7 +231,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         const { data: milestonesData, error: milestonesError } = await supabase
           .from('project_milestones')
           .select('id, title, is_completed')
-          .eq('project_id', projectId);
+          .eq('project_id', currentProjectId);
 
         if (!milestonesError && milestonesData && milestonesData.length > 0) {
           processedMilestones = milestonesData;
@@ -239,7 +247,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         const { data: photosData, error: photosError } = await supabase
           .from('project_documents')
           .select('id, file_url, file_path')
-          .eq('project_id', projectId);
+          .eq('project_id', currentProjectId);
 
         if (!photosError && photosData && photosData.length > 0) {
           processedPhotos = photosData;
@@ -323,7 +331,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         const { data: recentTimeEntries } = await supabase
           .from('time_entries')
           .select('id, start_time, created_at')
-          .eq('project_id', projectId)
+          .eq('project_id', currentProjectId)
           .order('created_at', { ascending: false })
           .limit(3);
 
@@ -331,7 +339,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           recentTimeEntries.forEach((entry: any) => {
             activities.push({
               id: `time_${entry.id}`,
-              project_id: projectId,
+              project_id: currentProjectId,
               event_type: 'time',
               title: 'Arbeitszeit erfasst',
               description: `${new Date(entry.start_time).toLocaleDateString('de-DE')}`,
@@ -442,7 +450,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       const { error } = await supabase
         .from('project_team_assignments')
         .insert({
-          project_id: projectId,
+          project_id: currentProjectId,
           employee_id: employeeId,
           assigned_at: new Date().toISOString()
         });
@@ -514,7 +522,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
 
     try {
       const newMilestone = {
-        project_id: projectId,
+        project_id: currentProjectId,
         title: title.trim(),
         is_completed: false
       };
@@ -548,7 +556,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
     if (!file) return;
 
     try {
-      const fileName = `${projectId}/${Date.now()}_${file.name}`;
+      const fileName = `${currentProjectId}/${Date.now()}_${file.name}`;
       const { error: uploadError } = await supabase.storage
         .from('project_documents')
         .upload(fileName, file);
@@ -560,7 +568,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         .getPublicUrl(fileName);
 
       const newDocument = {
-        project_id: projectId,
+        project_id: currentProjectId,
         document_type: 'image',
         file_path: fileName,
         file_url: publicData.publicUrl,
@@ -1304,9 +1312,12 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                     key={proj.id}
                     onClick={() => {
                       setIsCustomerProjectsOpen(false);
-                      onClose();
+                      setCurrentProjectId(proj.id);
+                      setActiveTab('overview');
                     }}
-                    className="w-full text-left p-4 border border-slate-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-all"
+                    className={`w-full text-left p-4 border rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-all ${
+                      proj.id === currentProjectId ? 'border-teal-400 bg-teal-50 ring-1 ring-teal-300' : 'border-slate-200'
+                    }`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">

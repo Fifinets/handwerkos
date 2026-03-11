@@ -38,7 +38,9 @@ import {
     Filter,
     BarChart,
     HardHat,
-    FolderOpen
+    FolderOpen,
+    X,
+    ChevronDown
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -103,7 +105,8 @@ const ProjectModuleV2 = () => {
     const { toast } = useToast();
     const { companyId } = useSupabaseAuth();
     const [searchTerm, setSearchTerm] = useState("");
-    const [showCompleted, setShowCompleted] = useState(false);
+    const [statusFilter, setStatusFilter] = useState<string>("aktive");
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     // React Query hooks
     const { data: projectsResponse, isLoading: projectsLoading, error: projectsError } = useProjects();
@@ -258,6 +261,17 @@ const ProjectModuleV2 = () => {
     const projects = (projectsResponse?.items || debugProjects || []) as ProjectWithCustomers[];
     const customers = customersResponse?.items || [];
 
+    // Filter options
+    const filterOptions = [
+        { value: 'aktive', label: 'Nur aktive' },
+        { value: 'alle', label: 'Alle Projekte' },
+        { value: 'abgeschlossen', label: 'Abgeschlossen' },
+        { value: 'anfrage', label: 'Anfragen' },
+        { value: 'besichtigung', label: 'Besichtigung' },
+        { value: 'geplant', label: 'In Planung' },
+        { value: 'in_bearbeitung', label: 'In Arbeit' },
+    ];
+
     // Filter projects based on search and status
     const filteredProjects = projects.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -266,10 +280,14 @@ const ProjectModuleV2 = () => {
 
         if (!matchesSearch) return false;
 
-        // If showCompleted is false, only show active projects
-        if (!showCompleted && p.status === 'abgeschlossen') return false;
-
-        return true;
+        // Status filter
+        if (statusFilter === 'aktive') {
+            return p.status !== 'abgeschlossen';
+        } else if (statusFilter === 'alle') {
+            return true;
+        } else {
+            return p.status === statusFilter;
+        }
     });
 
     const customersWithFallback = customers.length > 0 ? customers : [
@@ -317,6 +335,15 @@ const ProjectModuleV2 = () => {
         setIsEditDialogOpen(true);
     };
 
+    // Close filter dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = () => setIsFilterOpen(false);
+        if (isFilterOpen) {
+            document.addEventListener('click', handleClickOutside);
+            return () => document.removeEventListener('click', handleClickOutside);
+        }
+    }, [isFilterOpen]);
+
     return (
         <div className="p-6 space-y-6 max-w-[1600px] mx-auto">
             <AutoFixDatabase />
@@ -337,14 +364,35 @@ const ProjectModuleV2 = () => {
                             className="pl-9 w-[250px] bg-white border-slate-200"
                         />
                     </div>
-                    <Button
-                        onClick={() => setShowCompleted(!showCompleted)}
-                        variant={showCompleted ? "default" : "outline"}
-                        className={showCompleted ? "bg-slate-900 text-white hover:bg-slate-800" : "bg-white border-slate-200"}
-                    >
-                        <Filter className="h-4 w-4 mr-2" />
-                        {showCompleted ? "Alle Projekte" : "Nur aktive"}
-                    </Button>
+                    <div className="relative">
+                        <Button
+                            onClick={(e) => { e.stopPropagation(); setIsFilterOpen(!isFilterOpen); }}
+                            variant={statusFilter !== 'aktive' ? "default" : "outline"}
+                            className={statusFilter !== 'aktive' ? "bg-slate-900 text-white hover:bg-slate-800" : "bg-white border-slate-200"}
+                        >
+                            <Filter className="h-4 w-4 mr-2" />
+                            {filterOptions.find(f => f.value === statusFilter)?.label || 'Filter'}
+                            <ChevronDown className="h-3.5 w-3.5 ml-1.5" />
+                        </Button>
+                        {isFilterOpen && (
+                            <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 py-1 min-w-[180px]">
+                                {filterOptions.map(option => (
+                                    <button
+                                        key={option.value}
+                                        onClick={() => {
+                                            setStatusFilter(option.value);
+                                            setIsFilterOpen(false);
+                                        }}
+                                        className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-50 transition-colors ${
+                                            statusFilter === option.value ? 'bg-slate-100 font-medium text-slate-900' : 'text-slate-600'
+                                        }`}
+                                    >
+                                        {option.label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                     <Button onClick={() => setIsAddDialogOpen(true)} className="bg-slate-900 hover:bg-slate-800 text-white">
                         <Plus className="h-4 w-4 mr-2" />
                         Neues Projekt
@@ -404,8 +452,22 @@ const ProjectModuleV2 = () => {
                 {/* Main List Area (2/3 width) */}
                 <div className="lg:col-span-2 space-y-6">
                     <Card className="bg-white border-slate-200 shadow-sm">
-                        <CardHeader className="border-b border-slate-100 pb-4">
+                        <CardHeader className="border-b border-slate-100 pb-4 flex flex-row items-center justify-between">
                             <CardTitle className="text-lg font-semibold text-slate-800">Projektliste</CardTitle>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-slate-500">{filteredProjects.length} Projekte</span>
+                                {statusFilter !== 'aktive' && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setStatusFilter('aktive')}
+                                        className="h-7 text-xs text-slate-500 hover:text-slate-700"
+                                    >
+                                        <X className="h-3 w-3 mr-1" />
+                                        Filter zurücksetzen
+                                    </Button>
+                                )}
+                            </div>
                         </CardHeader>
                         <CardContent className="p-0">
                             {isLoading ? (
