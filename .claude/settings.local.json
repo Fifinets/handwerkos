@@ -18,7 +18,10 @@
       "Bash(git rm:*)",
       "Bash(npx tsc --noEmit)",
       "Bash(grep -l \"hourly_wage\\\\|vacation\\\\|customer_rls\\\\|employee_invitation\\\\|security_issues\" \"c:/HandwerkOS/supabase/migrations/\"*.sql)",
-      "Bash(npx tsc --noEmit src/components/ProjectDetailView.tsx)"
+      "Bash(npx tsc --noEmit src/components/ProjectDetailView.tsx)",
+      "mcp__claude_ai_Supabase__list_projects",
+      "mcp__claude_ai_Netlify__netlify-user-services-reader",
+      "mcp__claude_ai_Netlify__netlify-project-services-updater"
     ],
     "deny": []
   }
