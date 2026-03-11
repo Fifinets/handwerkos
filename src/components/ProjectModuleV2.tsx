@@ -103,6 +103,7 @@ const ProjectModuleV2 = () => {
     const { toast } = useToast();
     const { companyId } = useSupabaseAuth();
     const [searchTerm, setSearchTerm] = useState("");
+    const [showCompleted, setShowCompleted] = useState(false);
 
     // React Query hooks
     const { data: projectsResponse, isLoading: projectsLoading, error: projectsError } = useProjects();
@@ -257,12 +258,19 @@ const ProjectModuleV2 = () => {
     const projects = (projectsResponse?.items || debugProjects || []) as ProjectWithCustomers[];
     const customers = customersResponse?.items || [];
 
-    // Filter projects based on search
-    const filteredProjects = projects.filter(p =>
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.project_number && p.project_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (p.customers?.company_name && p.customers.company_name.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    // Filter projects based on search and status
+    const filteredProjects = projects.filter(p => {
+        const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (p.project_number && p.project_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (p.customers?.company_name && p.customers.company_name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+        if (!matchesSearch) return false;
+
+        // If showCompleted is false, only show active projects
+        if (!showCompleted && p.status === 'abgeschlossen') return false;
+
+        return true;
+    });
 
     const customersWithFallback = customers.length > 0 ? customers : [
         {
@@ -329,9 +337,13 @@ const ProjectModuleV2 = () => {
                             className="pl-9 w-[250px] bg-white border-slate-200"
                         />
                     </div>
-                    <Button variant="outline" className="bg-white border-slate-200">
+                    <Button
+                        onClick={() => setShowCompleted(!showCompleted)}
+                        variant={showCompleted ? "default" : "outline"}
+                        className={showCompleted ? "bg-slate-900 text-white hover:bg-slate-800" : "bg-white border-slate-200"}
+                    >
                         <Filter className="h-4 w-4 mr-2" />
-                        Filter
+                        {showCompleted ? "Alle Projekte" : "Nur aktive"}
                     </Button>
                     <Button onClick={() => setIsAddDialogOpen(true)} className="bg-slate-900 hover:bg-slate-800 text-white">
                         <Plus className="h-4 w-4 mr-2" />
@@ -422,31 +434,12 @@ const ProjectModuleV2 = () => {
                                 </div>
                             ) : (
                                 <div className="divide-y divide-slate-100">
-                                    {filteredProjects.filter(p => p.status !== 'abgeschlossen').map((project) => (
+                                    {filteredProjects.map((project) => (
                                         <div
                                             key={project.id}
-                                            className="p-4 hover:bg-slate-50 transition-colors cursor-pointer group"
-                                            onDoubleClick={() => handleDoubleClickProject(project)}
-                                        >
-                                            <ProjectRow
-                                                id={generateShortId(project.id)}
-                                                project_number={project.project_number}
-                                                name={project.name}
-                                                status={project.status as any}
-                                                budget={extractBudgetFromDescription(project.description || '') || project.budget || 0}
-                                                start={project.start_date}
-                                                end={project.end_date}
-                                                onOpen={() => handleDoubleClickProject(project)}
-                                                onEdit={() => handleEditProject(project)}
-                                            />
-                                        </div>
-                                    ))}
-
-                                    {/* Show completed projects at the bottom slightly faded if search is active */}
-                                    {searchTerm && filteredProjects.filter(p => p.status === 'abgeschlossen').map((project) => (
-                                        <div
-                                            key={project.id}
-                                            className="p-4 hover:bg-slate-50 transition-colors cursor-pointer opacity-70 hover:opacity-100"
+                                            className={`p-4 hover:bg-slate-50 transition-colors cursor-pointer group ${
+                                                project.status === 'abgeschlossen' ? 'opacity-70 hover:opacity-100' : ''
+                                            }`}
                                             onDoubleClick={() => handleDoubleClickProject(project)}
                                         >
                                             <ProjectRow
