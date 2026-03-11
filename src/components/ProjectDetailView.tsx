@@ -63,6 +63,11 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
   const [totalHours, setTotalHours] = useState(0);
   const [teamAssignments, setTeamAssignments] = useState<any[]>([]);
 
+  // Customer projects modal
+  const [isCustomerProjectsOpen, setIsCustomerProjectsOpen] = useState(false);
+  const [customerProjects, setCustomerProjects] = useState<any[]>([]);
+  const [loadingCustomerProjects, setLoadingCustomerProjects] = useState(false);
+
   useEffect(() => {
     if (isOpen && projectId) {
       fetchProjectData();
@@ -384,6 +389,50 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       setAvailableEmployees(available);
     } catch (error) {
       console.error('Error loading available employees:', error);
+    }
+  };
+
+  const loadCustomerProjects = async (customerId: string) => {
+    setLoadingCustomerProjects(true);
+    try {
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser?.user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', currentUser.user.id)
+        .single();
+
+      if (!profile?.company_id) return;
+
+      // Get all projects for this customer
+      const { data: projects, error } = await supabase
+        .from('projects')
+        .select('id, name, status, start_date, end_date')
+        .eq('customer_id', customerId)
+        .eq('company_id', profile.company_id)
+        .order('created_at', { ascending: false });
+
+      if (!error && projects) {
+        setCustomerProjects(projects);
+        setIsCustomerProjectsOpen(true);
+      } else {
+        toast({
+          title: "Fehler",
+          description: "Kundenprojekte konnten nicht geladen werden",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error loading customer projects:', error);
+      toast({
+        title: "Fehler",
+        description: "Ein Fehler ist aufgetreten",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingCustomerProjects(false);
     }
   };
 
@@ -1075,7 +1124,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
               </Card>
 
               {/* Kundeninformationen */}
-              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden cursor-pointer hover:border-teal-300 hover:shadow-md transition-all" onClick={() => project.customer_id && loadCustomerProjects(project.customer_id)}>
                 <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3">
                   <CardTitle className="text-sm font-semibold text-slate-700">Kundeninformationen</CardTitle>
                 </CardHeader>
@@ -1083,7 +1132,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
                       <p className="text-xs text-slate-400 mb-1">Unternehmen</p>
-                      <p className="font-semibold text-slate-900">{project.customer.company_name}</p>
+                      <p className="font-semibold text-slate-900 hover:text-teal-600 transition-colors">{project.customer.company_name}</p>
                     </div>
                     <div>
                       <p className="text-xs text-slate-400 mb-1">Ansprechpartner</p>
@@ -1091,12 +1140,12 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                     </div>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-3">
-                    <a href={`mailto:${project.customer.email}`} className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 hover:bg-slate-100 transition-colors flex-1">
+                    <a href={`mailto:${project.customer.email}`} onClick={e => e.stopPropagation()} className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 hover:bg-slate-100 transition-colors flex-1">
                       <Mail className="h-4 w-4 text-slate-400" />
                       <span className="truncate">{project.customer.email}</span>
                     </a>
                     {project.customer.phone && (
-                      <a href={`tel:${project.customer.phone}`} className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 hover:bg-slate-100 transition-colors flex-1">
+                      <a href={`tel:${project.customer.phone}`} onClick={e => e.stopPropagation()} className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 hover:bg-slate-100 transition-colors flex-1">
                         <Phone className="h-4 w-4 text-slate-400" />
                         <span>{project.customer.phone}</span>
                       </a>
@@ -1230,6 +1279,59 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             </Dialog>
           )
         }
+
+        {/* Customer Projects Dialog */}
+        <Dialog open={isCustomerProjectsOpen} onOpenChange={setIsCustomerProjectsOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Projekte für {project?.customer.company_name}</DialogTitle>
+              <DialogDescription>
+                Alle Projekte dieses Kunden. Klicken Sie auf ein Projekt, um es zu öffnen.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 max-h-[500px] overflow-y-auto">
+              {loadingCustomerProjects ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600"></div>
+                </div>
+              ) : customerProjects.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-slate-500">Keine weiteren Projekte für diesen Kunden</p>
+                </div>
+              ) : (
+                customerProjects.map(proj => (
+                  <button
+                    key={proj.id}
+                    onClick={() => {
+                      setIsCustomerProjectsOpen(false);
+                      onClose();
+                    }}
+                    className="w-full text-left p-4 border border-slate-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-all"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-semibold text-slate-900">{proj.name}</p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {proj.start_date && `von ${new Date(proj.start_date).toLocaleDateString('de-DE')}`}
+                          {proj.end_date && ` bis ${new Date(proj.end_date).toLocaleDateString('de-DE')}`}
+                        </p>
+                      </div>
+                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                        proj.status === 'abgeschlossen' ? 'bg-green-100 text-green-700' :
+                        proj.status === 'in_bearbeitung' ? 'bg-blue-100 text-blue-700' :
+                        'bg-slate-100 text-slate-700'
+                      }`}>
+                        {proj.status === 'abgeschlossen' ? 'Fertig' :
+                         proj.status === 'in_bearbeitung' ? 'In Arbeit' :
+                         proj.status === 'geplant' ? 'Geplant' : proj.status}
+                      </span>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
