@@ -38,9 +38,7 @@ import {
     Filter,
     BarChart,
     HardHat,
-    FolderOpen,
-    X,
-    ChevronDown
+    FolderOpen
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -106,7 +104,6 @@ const ProjectModuleV2 = () => {
     const { companyId } = useSupabaseAuth();
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("aktive");
-    const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     // React Query hooks
     const { data: projectsResponse, isLoading: projectsLoading, error: projectsError } = useProjects();
@@ -335,15 +332,6 @@ const ProjectModuleV2 = () => {
         setIsEditDialogOpen(true);
     };
 
-    // Close filter dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = () => setIsFilterOpen(false);
-        if (isFilterOpen) {
-            document.addEventListener('click', handleClickOutside);
-            return () => document.removeEventListener('click', handleClickOutside);
-        }
-    }, [isFilterOpen]);
-
     return (
         <div className="p-6 space-y-6 max-w-[1600px] mx-auto">
             <AutoFixDatabase />
@@ -364,40 +352,40 @@ const ProjectModuleV2 = () => {
                             className="pl-9 w-[250px] bg-white border-slate-200"
                         />
                     </div>
-                    <div className="relative">
-                        <Button
-                            onClick={(e) => { e.stopPropagation(); setIsFilterOpen(!isFilterOpen); }}
-                            variant={statusFilter !== 'aktive' ? "default" : "outline"}
-                            className={statusFilter !== 'aktive' ? "bg-slate-900 text-white hover:bg-slate-800" : "bg-white border-slate-200"}
-                        >
-                            <Filter className="h-4 w-4 mr-2" />
-                            {filterOptions.find(f => f.value === statusFilter)?.label || 'Filter'}
-                            <ChevronDown className="h-3.5 w-3.5 ml-1.5" />
-                        </Button>
-                        {isFilterOpen && (
-                            <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 py-1 min-w-[180px]">
-                                {filterOptions.map(option => (
-                                    <button
-                                        key={option.value}
-                                        onClick={() => {
-                                            setStatusFilter(option.value);
-                                            setIsFilterOpen(false);
-                                        }}
-                                        className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-50 transition-colors ${
-                                            statusFilter === option.value ? 'bg-slate-100 font-medium text-slate-900' : 'text-slate-600'
-                                        }`}
-                                    >
-                                        {option.label}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
                     <Button onClick={() => setIsAddDialogOpen(true)} className="bg-slate-900 hover:bg-slate-800 text-white">
                         <Plus className="h-4 w-4 mr-2" />
                         Neues Projekt
                     </Button>
                 </div>
+            </div>
+
+            {/* Filter Chips */}
+            <div className="flex items-center gap-2 flex-wrap">
+                <Filter className="h-4 w-4 text-slate-400 mr-1" />
+                {filterOptions.map(option => (
+                    <button
+                        key={option.value}
+                        onClick={() => setStatusFilter(option.value)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                            statusFilter === option.value
+                                ? 'bg-slate-900 text-white border-slate-900'
+                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                        }`}
+                    >
+                        {option.label}
+                        {option.value !== 'aktive' && option.value !== 'alle' && (
+                            <span className="ml-1.5 opacity-70">
+                                {projects.filter(p => p.status === option.value).length}
+                            </span>
+                        )}
+                        {option.value === 'aktive' && (
+                            <span className="ml-1.5 opacity-70">{activeProjectsCount}</span>
+                        )}
+                        {option.value === 'alle' && (
+                            <span className="ml-1.5 opacity-70">{projects.length}</span>
+                        )}
+                    </button>
+                ))}
             </div>
 
             {/* KPI Cards Row */}
@@ -454,20 +442,7 @@ const ProjectModuleV2 = () => {
                     <Card className="bg-white border-slate-200 shadow-sm">
                         <CardHeader className="border-b border-slate-100 pb-4 flex flex-row items-center justify-between">
                             <CardTitle className="text-lg font-semibold text-slate-800">Projektliste</CardTitle>
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm text-slate-500">{filteredProjects.length} Projekte</span>
-                                {statusFilter !== 'aktive' && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => setStatusFilter('aktive')}
-                                        className="h-7 text-xs text-slate-500 hover:text-slate-700"
-                                    >
-                                        <X className="h-3 w-3 mr-1" />
-                                        Filter zurücksetzen
-                                    </Button>
-                                )}
-                            </div>
+                            <span className="text-sm text-slate-500">{filteredProjects.length} Projekte</span>
                         </CardHeader>
                         <CardContent className="p-0">
                             {isLoading ? (

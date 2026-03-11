@@ -78,11 +78,12 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
 
   useEffect(() => {
     if (isOpen && currentProjectId) {
-      fetchProjectData();
+      fetchProjectData(currentProjectId);
     }
   }, [isOpen, currentProjectId]);
 
-  const fetchProjectData = async () => {
+  const fetchProjectData = async (fetchId?: string) => {
+    const targetId = fetchId || currentProjectId;
     setLoading(true);
     try {
       // Get current user and their role
@@ -116,7 +117,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
         .select('*')
-        .eq('id', currentProjectId)
+        .eq('id', targetId)
         .eq('company_id', profile.company_id)
         .single();
 
@@ -146,7 +147,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       const { data: timeEntriesData, error: timeError } = await supabase
         .from('time_entries')
         .select('start_time, end_time, break_duration')
-        .eq('project_id', currentProjectId);
+        .eq('project_id', targetId);
 
       let calculatedTotalHours = 0;
       if (!timeError && timeEntriesData && timeEntriesData.length > 0) {
@@ -170,7 +171,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         const { data: teamAssignmentsData, error: teamError } = await supabase
           .from('project_team_assignments')
           .select('id, employee_id')
-          .eq('project_id', currentProjectId);
+          .eq('project_id', targetId);
 
         if (!teamError && teamAssignmentsData && teamAssignmentsData.length > 0) {
           const employeeIds = teamAssignmentsData.map((ta: any) => ta.employee_id);
@@ -200,7 +201,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         const { data: materialsData, error: materialError } = await supabase
           .from('project_materials')
           .select('total_price')
-          .eq('project_id', currentProjectId);
+          .eq('project_id', targetId);
 
         if (!materialError && materialsData && materialsData.length > 0) {
           totalMaterialCost = materialsData.reduce((sum, entry) => sum + (entry.total_price || 0), 0);
@@ -215,7 +216,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         const { data: offersData, error: offersError } = await supabase
           .from('offers')
           .select('id, total_amount, status')
-          .eq('project_id', currentProjectId);
+          .eq('project_id', targetId);
 
         if (!offersError && offersData && offersData.length > 0) {
           processedOffers = offersData;
@@ -231,7 +232,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         const { data: milestonesData, error: milestonesError } = await supabase
           .from('project_milestones')
           .select('id, title, is_completed')
-          .eq('project_id', currentProjectId);
+          .eq('project_id', targetId);
 
         if (!milestonesError && milestonesData && milestonesData.length > 0) {
           processedMilestones = milestonesData;
@@ -247,7 +248,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         const { data: photosData, error: photosError } = await supabase
           .from('project_documents')
           .select('id, file_url, file_path')
-          .eq('project_id', currentProjectId);
+          .eq('project_id', targetId);
 
         if (!photosError && photosData && photosData.length > 0) {
           processedPhotos = photosData;
@@ -331,7 +332,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         const { data: recentTimeEntries } = await supabase
           .from('time_entries')
           .select('id, start_time, created_at')
-          .eq('project_id', currentProjectId)
+          .eq('project_id', targetId)
           .order('created_at', { ascending: false })
           .limit(3);
 
@@ -339,7 +340,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           recentTimeEntries.forEach((entry: any) => {
             activities.push({
               id: `time_${entry.id}`,
-              project_id: currentProjectId,
+              project_id: targetId,
               event_type: 'time',
               title: 'Arbeitszeit erfasst',
               description: `${new Date(entry.start_time).toLocaleDateString('de-DE')}`,
