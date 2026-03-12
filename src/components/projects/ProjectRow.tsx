@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Edit } from "lucide-react";
+import { MoreVertical } from "lucide-react";
 
 type Props = {
   id: string;
@@ -96,35 +96,28 @@ export default function ProjectRow(p: Props) {
     >
       <div className="flex items-center justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          {/* Status-Badge */}
-          <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs ${st.cls}`}>{st.label}</span>
-
           {/* Titel */}
-          <strong className="mr-2">{p.name}</strong>
+          <strong className="mr-1">{p.name}</strong>
 
           {/* Project Number Pill */}
           <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-blue-50 text-blue-700 border-blue-200">
             {p.project_number || generateProjectNumber(p.id)}
           </span>
         </div>
-        
-        {/* Budget and Edit Button - top right */}
-        <div className="flex items-center gap-3">
-          <div className="text-right">
-            <strong className="text-green-600 text-lg">€{(p.budget || 0).toLocaleString("de-DE")}</strong>
-          </div>
+
+        {/* Status + Menu - top right */}
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs ${st.cls}`}>{st.label}</span>
           {p.onEdit && (
-            <Button
-              variant="outline"
-              size="sm"
+            <button
               onClick={(e) => {
                 e.stopPropagation();
                 p.onEdit?.();
               }}
-              className="h-8 w-8 p-0"
+              className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
             >
-              <Edit className="h-4 w-4" />
-            </Button>
+              <MoreVertical className="h-4 w-4" />
+            </button>
           )}
         </div>
       </div>

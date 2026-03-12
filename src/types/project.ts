@@ -45,22 +45,17 @@ export interface TimeEntry {
   project_id: string;
   employee_id: string;
   employee_name: string;
-  
+
   work_date: string;
   start_time: string;
   end_time: string;
+  break_duration_min: number;
   total_hours: number;
-  
+
   task_description: string;
-  category: 'planung' | 'ausfuehrung' | 'nacharbeit' | 'dokumentation' | 'sonstiges';
-  
-  is_overtime: boolean;
-  overtime_hours?: number;
-  
+
   created_at: string;
-  approved_by?: string;
-  approved_at?: string;
-  
+
   // Kostenberechnung
   hourly_rate?: number;
   total_cost?: number;
@@ -272,8 +267,9 @@ export interface TimeEntryFormData {
   work_date: string;
   start_time: string;
   end_time: string;
+  break_duration_min: number;
   task_description: string;
-  category: TimeEntry['category'];
+  employee_id?: string;
 }
 
 export interface MaterialEntryFormData {

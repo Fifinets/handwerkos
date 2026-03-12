@@ -117,6 +117,9 @@ const MobileEmployeeApp: React.FC = () => {
   const [isFirstVisit, setIsFirstVisit] = useState(true);
   const [showVacationDialog, setShowVacationDialog] = useState(false);
   const [vacationBalance, setVacationBalance] = useState({ available: 0, total: 0 });
+  const [workingHoursConfig, setWorkingHoursConfig] = useState<{ start_time: string; end_time: string; break_duration: number } | null>(null);
+  const [todayWorkedHours, setTodayWorkedHours] = useState(0);
+  const [weekOvertimeHours, setWeekOvertimeHours] = useState(0);
 
   // Quick Actions State
   const [quickMaterialEntry, setQuickMaterialEntry] = useState({
@@ -157,6 +160,9 @@ const MobileEmployeeApp: React.FC = () => {
 
     // Load vacation balance
     loadVacationBalance();
+
+    // Load working hours config and overtime
+    loadWorkingHoursAndOvertime();
 
     // Check if first visit
     const hasSeenOnboarding = localStorage.getItem('handwerkos-onboarding-completed');
@@ -321,6 +327,99 @@ const MobileEmployeeApp: React.FC = () => {
       }
     } catch (error) {
       console.error('Error loading vacation balance:', error);
+    }
+  };
+
+  const loadWorkingHoursAndOvertime = async () => {
+    if (!user?.id || !isOnline) return;
+
+    try {
+      // Get employee record
+      const { data: employee } = await supabase
+        .from('employees')
+        .select('id, company_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!employee) return;
+
+      // Load working hours config (employee-specific or default)
+      const { data: config } = await supabase
+        .from('working_hours_config')
+        .select('start_time, end_time, break_duration, working_days')
+        .or(`employee_id.eq.${employee.id},is_default.eq.true`)
+        .order('is_default', { ascending: true })
+        .limit(1)
+        .single();
+
+      if (config) {
+        setWorkingHoursConfig({
+          start_time: config.start_time,
+          end_time: config.end_time,
+          break_duration: config.break_duration || 0
+        });
+
+        // Calculate daily expected hours
+        const [sh, sm] = config.start_time.split(':').map(Number);
+        const [eh, em] = config.end_time.split(':').map(Number);
+        const dailyExpectedHours = (eh * 60 + em - sh * 60 - sm - (config.break_duration || 0)) / 60;
+
+        // Get today's time entries
+        const today = new Date().toISOString().split('T')[0];
+        const { data: todayEntries } = await supabase
+          .from('time_entries')
+          .select('start_time, end_time, break_duration')
+          .eq('employee_id', employee.id)
+          .gte('start_time', `${today}T00:00:00`)
+          .lt('start_time', `${today}T23:59:59`);
+
+        const todayHours = (todayEntries || []).reduce((sum, e) => {
+          if (e.start_time && e.end_time) {
+            const start = new Date(e.start_time).getTime();
+            const end = new Date(e.end_time).getTime();
+            const breakMs = (e.break_duration || 0) * 60 * 1000;
+            return sum + Math.max(0, (end - start - breakMs) / (1000 * 60 * 60));
+          }
+          return sum;
+        }, 0);
+        setTodayWorkedHours(Math.round(todayHours * 10) / 10);
+
+        // Get this week's entries (Monday to now)
+        const now = new Date();
+        const dayOfWeek = now.getDay();
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+        monday.setHours(0, 0, 0, 0);
+
+        const { data: weekEntries } = await supabase
+          .from('time_entries')
+          .select('start_time, end_time, break_duration')
+          .eq('employee_id', employee.id)
+          .gte('start_time', monday.toISOString());
+
+        const weekHours = (weekEntries || []).reduce((sum, e) => {
+          if (e.start_time && e.end_time) {
+            const start = new Date(e.start_time).getTime();
+            const end = new Date(e.end_time).getTime();
+            const breakMs = (e.break_duration || 0) * 60 * 1000;
+            return sum + Math.max(0, (end - start - breakMs) / (1000 * 60 * 60));
+          }
+          return sum;
+        }, 0);
+
+        // Calculate expected hours for days that have passed this week
+        const workingDays = config.working_days || [1, 2, 3, 4, 5];
+        let expectedDays = 0;
+        for (let d = new Date(monday); d <= now; d.setDate(d.getDate() + 1)) {
+          const dow = d.getDay();
+          if (workingDays.includes(dow)) expectedDays++;
+        }
+        const expectedWeekHours = expectedDays * dailyExpectedHours;
+        const overtime = Math.round((weekHours - expectedWeekHours) * 10) / 10;
+        setWeekOvertimeHours(overtime);
+      }
+    } catch (error) {
+      console.error('Error loading working hours:', error);
     }
   };
 
@@ -898,6 +997,50 @@ const MobileEmployeeApp: React.FC = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Arbeitszeit-Übersicht */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-sm text-gray-700">Heute</h3>
+            {workingHoursConfig && (
+              <span className="text-xs text-gray-400">
+                {workingHoursConfig.start_time.slice(0,5)} – {workingHoursConfig.end_time.slice(0,5)} Uhr
+              </span>
+            )}
+          </div>
+          <div className="flex items-end gap-1 mb-2">
+            <span className="text-3xl font-bold">{todayWorkedHours.toFixed(1)}</span>
+            <span className="text-gray-400 text-sm mb-1">
+              / {workingHoursConfig ? ((parseInt(workingHoursConfig.end_time) - parseInt(workingHoursConfig.start_time)) - (workingHoursConfig.break_duration / 60)).toFixed(1) : '8.0'}h
+            </span>
+          </div>
+          {workingHoursConfig && (
+            <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden mb-3">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  todayWorkedHours > ((parseInt(workingHoursConfig.end_time) - parseInt(workingHoursConfig.start_time)) - workingHoursConfig.break_duration / 60)
+                    ? 'bg-orange-500' : 'bg-blue-500'
+                }`}
+                style={{ width: `${Math.min(100, (todayWorkedHours / ((parseInt(workingHoursConfig.end_time) - parseInt(workingHoursConfig.start_time)) - workingHoursConfig.break_duration / 60)) * 100)}%` }}
+              />
+            </div>
+          )}
+          {weekOvertimeHours !== 0 && (
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
+              weekOvertimeHours > 0 ? 'bg-orange-50 border border-orange-200' : 'bg-blue-50 border border-blue-200'
+            }`}>
+              <Clock className="h-4 w-4 flex-shrink-0" style={{ color: weekOvertimeHours > 0 ? '#ea580c' : '#2563eb' }} />
+              <span className={`text-sm font-medium ${weekOvertimeHours > 0 ? 'text-orange-700' : 'text-blue-700'}`}>
+                {weekOvertimeHours > 0
+                  ? `${weekOvertimeHours.toFixed(1)}h Überstunden diese Woche`
+                  : `${Math.abs(weekOvertimeHours).toFixed(1)}h unter Soll diese Woche`
+                }
+              </span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Quick Actions */}
       <Card>

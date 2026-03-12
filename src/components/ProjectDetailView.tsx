@@ -66,6 +66,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
   const [totalHours, setTotalHours] = useState(0);
   const [plannedHours, setPlannedHours] = useState(0);
   const [teamAssignments, setTeamAssignments] = useState<any[]>([]);
+  const [timeEntries, setTimeEntries] = useState<any[]>([]);
 
   // Customer projects modal
   const [isCustomerProjectsOpen, setIsCustomerProjectsOpen] = useState(false);
@@ -150,8 +151,9 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       // 1. TIME ENTRIES: Calculate total hours from time_entries
       const { data: timeEntriesData, error: timeError } = await supabase
         .from('time_entries')
-        .select('start_time, end_time, break_duration')
-        .eq('project_id', targetId);
+        .select('id, employee_id, start_time, end_time, break_duration, description, status')
+        .eq('project_id', targetId)
+        .order('start_time', { ascending: false });
 
       let calculatedTotalHours = 0;
       if (!timeError && timeEntriesData && timeEntriesData.length > 0) {
@@ -169,6 +171,30 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       }
       setTotalHours(calculatedTotalHours);
 
+      // Enrich time entries with employee names
+      if (timeEntriesData && timeEntriesData.length > 0) {
+        const empIds = [...new Set(timeEntriesData.map(e => e.employee_id).filter(Boolean))];
+        let empMap: Record<string, string> = {};
+        if (empIds.length > 0) {
+          const { data: empData } = await supabase
+            .from('employees')
+            .select('id, first_name, last_name')
+            .in('id', empIds);
+          (empData || []).forEach(e => {
+            empMap[e.id] = `${e.first_name || ''} ${e.last_name || ''}`.trim();
+          });
+        }
+        setTimeEntries(timeEntriesData.map(entry => ({
+          ...entry,
+          employee_name: empMap[entry.employee_id] || 'Unbekannt',
+          hours: entry.start_time && entry.end_time
+            ? Math.max(0, (new Date(entry.end_time).getTime() - new Date(entry.start_time).getTime() - (entry.break_duration || 0) * 60 * 1000) / (1000 * 60 * 60))
+            : 0
+        })));
+      } else {
+        setTimeEntries([]);
+      }
+
       // 2. TEAM ASSIGNMENTS: Get from project_team_assignments (not project_team_members)
       let teamMembersProcessed = [];
       try {
@@ -185,13 +211,35 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             .in('id', employeeIds);
 
           if (employeeDetails) {
-            teamMembersProcessed = teamAssignmentsData.map((ta: any) => ({
-              id: ta.employee_id,
-              name: `${employeeDetails.find(e => e.id === ta.employee_id)?.first_name || ''} ${employeeDetails.find(e => e.id === ta.employee_id)?.last_name || ''}`.trim(),
-              role: 'team_member',
-              email: employeeDetails.find(e => e.id === ta.employee_id)?.email || '',
-              hours_this_week: 0
-            })).filter((tm: any) => tm.name);
+            // Get time entries for this project to calculate per-employee hours
+            const { data: projectTimeEntries } = await supabase
+              .from('time_entries')
+              .select('employee_id, start_time, end_time, break_duration')
+              .eq('project_id', targetId);
+
+            teamMembersProcessed = teamAssignmentsData.map((ta: any) => {
+              const emp = employeeDetails.find(e => e.id === ta.employee_id);
+              // Calculate hours for this employee on this project
+              const empHours = (projectTimeEntries || [])
+                .filter(te => te.employee_id === ta.employee_id)
+                .reduce((sum, te) => {
+                  if (te.start_time && te.end_time) {
+                    const start = new Date(te.start_time).getTime();
+                    const end = new Date(te.end_time).getTime();
+                    const breakMs = (te.break_duration || 0) * 60 * 1000;
+                    return sum + Math.max(0, (end - start - breakMs) / (1000 * 60 * 60));
+                  }
+                  return sum;
+                }, 0);
+
+              return {
+                id: ta.employee_id,
+                name: `${emp?.first_name || ''} ${emp?.last_name || ''}`.trim(),
+                role: 'team_member',
+                email: emp?.email || '',
+                hours_this_week: Math.round(empHours * 10) / 10
+              };
+            }).filter((tm: any) => tm.name);
           }
         }
       } catch (error) {
@@ -771,11 +819,11 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
   if (loading) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-[98vw] max-h-[98vh] w-full h-full overflow-y-auto">
-          <div className="flex items-center justify-center py-8">
+        <DialogContent className="max-w-[95vw] lg:max-w-6xl h-[95vh] rounded-2xl bg-white shadow-xl border border-slate-200 p-0">
+          <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Projektdaten werden geladen...</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto"></div>
+              <p className="mt-3 text-sm text-slate-500">Projektdaten werden geladen...</p>
             </div>
           </div>
         </DialogContent>
@@ -985,7 +1033,14 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                       {projectOffers.map(offer => (
                         <div key={offer.id} className="flex items-center justify-between p-2 rounded-md bg-slate-50 border border-slate-100">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-slate-700">{offer.offer_number}</span>
+                            <a
+                              href={`/manager2/offers/${offer.id}/edit`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs font-medium text-teal-600 hover:text-teal-800 hover:underline"
+                            >
+                              {offer.offer_number}
+                            </a>
                             <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
                               offer.status === 'accepted' ? 'bg-green-50 text-green-700 border border-green-200' :
                               offer.status === 'rejected' ? 'bg-red-50 text-red-700 border border-red-200' :
@@ -1192,21 +1247,66 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
 
           </TabsContent>
 
-          <TabsContent value="time" className="space-y-4 min-h-[600px] mt-0">
+          <TabsContent value="time" className="px-6 pb-6 pt-5 space-y-4 min-h-[600px] mt-0">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Zeiterfassung</h3>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-800">Zeiterfassung</h3>
+                <p className="text-xs text-slate-400">{timeEntries.length} Einträge · {totalHours.toFixed(1)}h gesamt</p>
+              </div>
               {permissions.can_add_time && (
-                <Button onClick={() => setIsTimeFormOpen(true)}>
+                <Button onClick={() => setIsTimeFormOpen(true)} className="bg-slate-800 hover:bg-slate-900 text-white">
                   <Plus className="h-4 w-4 mr-2" />
                   Zeit erfassen
                 </Button>
               )}
             </div>
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-gray-500">Zeiteinträge werden hier angezeigt...</p>
-              </CardContent>
-            </Card>
+
+            {timeEntries.length === 0 ? (
+              <Card className="bg-white border-slate-200 shadow-sm rounded-xl">
+                <CardContent className="p-8 text-center">
+                  <Clock className="h-10 w-10 text-slate-200 mx-auto mb-3" />
+                  <p className="text-sm text-slate-400">Noch keine Zeiteinträge vorhanden</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                <div className="divide-y divide-slate-100">
+                  {timeEntries.map(entry => {
+                    const date = new Date(entry.start_time);
+                    const startStr = new Date(entry.start_time).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+                    const endStr = entry.end_time ? new Date(entry.end_time).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '–';
+                    const dateStr = date.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+
+                    return (
+                      <div key={entry.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50 transition-colors">
+                        <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex flex-col items-center justify-center">
+                          <span className="text-xs font-bold text-slate-700">{date.getDate()}</span>
+                          <span className="text-[10px] text-slate-400 uppercase">{date.toLocaleDateString('de-DE', { month: 'short' })}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-sm font-medium text-slate-800">{entry.employee_name}</span>
+                            <span className="text-xs text-slate-400">{dateStr}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-slate-500">
+                            <span>{startStr} – {endStr}</span>
+                            {entry.break_duration > 0 && (
+                              <span className="text-slate-300">· {entry.break_duration}min Pause</span>
+                            )}
+                          </div>
+                          {entry.description && (
+                            <p className="text-xs text-slate-400 mt-1 truncate">{entry.description}</p>
+                          )}
+                        </div>
+                        <div className="flex-shrink-0 text-right">
+                          <span className="text-sm font-bold text-slate-800">{entry.hours.toFixed(1)}h</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
           </TabsContent>
 
           {/* ── Details Tab ────────────────────────────────────── */}
@@ -1331,13 +1431,45 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           isOpen={isTimeFormOpen}
           onClose={() => setIsTimeFormOpen(false)}
           projectId={project.id}
-          onTimeEntryAdded={(entry) => {
-            console.log('Time entry added:', entry);
-            fetchProjectData();
-            toast({
-              title: "Erfolg",
-              description: "Arbeitszeit wurde erfasst"
-            });
+          teamMembers={teamAssignments}
+          onTimeEntryAdded={async (entry) => {
+            try {
+              const { data: currentUser } = await supabase.auth.getUser();
+              if (!currentUser?.user) return;
+
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('company_id')
+                .eq('id', currentUser.user.id)
+                .single();
+
+              const startTime = new Date(`${entry.work_date}T${entry.start_time}`);
+              const endTime = new Date(`${entry.work_date}T${entry.end_time}`);
+
+              const { error } = await supabase
+                .from('time_entries')
+                .insert({
+                  employee_id: entry.employee_id,
+                  project_id: currentProjectId,
+                  company_id: profile?.company_id,
+                  start_time: startTime.toISOString(),
+                  end_time: endTime.toISOString(),
+                  break_duration: entry.break_duration_min || 0,
+                  description: entry.task_description,
+                  status: 'completed'
+                });
+
+              if (error) {
+                console.error('Error saving time entry:', error);
+                toast({ title: "Fehler", description: "Arbeitszeit konnte nicht gespeichert werden: " + error.message, variant: "destructive" });
+                return;
+              }
+
+              fetchProjectData(currentProjectId);
+            } catch (error) {
+              console.error('Error saving time entry:', error);
+              toast({ title: "Fehler", description: "Arbeitszeit konnte nicht gespeichert werden.", variant: "destructive" });
+            }
           }}
         />
 
