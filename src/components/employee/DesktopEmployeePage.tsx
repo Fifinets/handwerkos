@@ -132,7 +132,7 @@ export function DesktopEmployeePage() {
     try {
       // Fetch projects where employee is team member
       const { data: teamProjects, error } = await supabase
-        .from('project_team_members')
+        .from('project_team_assignments')
         .select(`
           project_id,
           projects (
@@ -176,7 +176,7 @@ export function DesktopEmployeePage() {
 
     try {
       const { data, error } = await supabase
-        .from('project_time_entries')
+        .from('time_entries')
         .select(`
           id,
           project_id,
