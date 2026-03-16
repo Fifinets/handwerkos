@@ -14,7 +14,8 @@ import {
   MessageSquare,
   CheckCircle2,
   Image as ImageIcon,
-  X
+  X,
+  ClipboardList
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -67,6 +68,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
   const [plannedHours, setPlannedHours] = useState(0);
   const [teamAssignments, setTeamAssignments] = useState<any[]>([]);
   const [timeEntries, setTimeEntries] = useState<any[]>([]);
+  const [deliveryNotes, setDeliveryNotes] = useState<any[]>([]);
+  const [deliveryNoteMaterials, setDeliveryNoteMaterials] = useState<any[]>([]);
 
   // Customer projects modal
   const [isCustomerProjectsOpen, setIsCustomerProjectsOpen] = useState(false);
@@ -172,25 +175,32 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       setTotalHours(calculatedTotalHours);
 
       // Enrich time entries with employee names
+      let totalLaborCost = 0;
       if (timeEntriesData && timeEntriesData.length > 0) {
         const empIds = [...new Set(timeEntriesData.map(e => e.employee_id).filter(Boolean))];
         let empMap: Record<string, string> = {};
+        let hourlyRateMap: Record<string, number> = {};
         if (empIds.length > 0) {
           const { data: empData } = await supabase
             .from('employees')
-            .select('id, first_name, last_name')
+            .select('id, first_name, last_name, hourly_rate')
             .in('id', empIds);
           (empData || []).forEach(e => {
             empMap[e.id] = `${e.first_name || ''} ${e.last_name || ''}`.trim();
+            if (e.hourly_rate) hourlyRateMap[e.id] = e.hourly_rate;
           });
         }
-        setTimeEntries(timeEntriesData.map(entry => ({
-          ...entry,
-          employee_name: empMap[entry.employee_id] || 'Unbekannt',
-          hours: entry.start_time && entry.end_time
+        setTimeEntries(timeEntriesData.map(entry => {
+          const hours = entry.start_time && entry.end_time
             ? Math.max(0, (new Date(entry.end_time).getTime() - new Date(entry.start_time).getTime() - (entry.break_duration || 0) * 60 * 1000) / (1000 * 60 * 60))
-            : 0
-        })));
+            : 0;
+          totalLaborCost += hours * (hourlyRateMap[entry.employee_id] || 0);
+          return {
+            ...entry,
+            employee_name: empMap[entry.employee_id] || 'Unbekannt',
+            hours,
+          };
+        }));
       } else {
         setTimeEntries([]);
       }
@@ -339,8 +349,128 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       }
       setPhotos(processedPhotos);
 
+      // 7. DELIVERY NOTES: Get delivery notes for this project
+      let dnHours = 0;
+      let dnMaterials: any[] = [];
+      let dnPhotos: any[] = [];
+      let dnList: any[] = [];
+      try {
+        // First try simple query to check if table exists and has data
+        const { data: dnData, error: dnError } = await supabase
+          .from('delivery_notes')
+          .select(`
+            *,
+            delivery_note_items(*)
+          `)
+          .eq('project_id', targetId)
+          .order('work_date', { ascending: false });
+
+        if (dnError) {
+          console.error('Delivery notes fetch error:', dnError);
+        }
+
+        if (dnData && dnData.length > 0) {
+          // Fetch employee names separately to avoid FK disambiguation issues
+          const empIds = [...new Set(dnData.map((dn: any) => dn.employee_id).filter(Boolean))];
+          let empMap: Record<string, { first_name: string; last_name: string }> = {};
+          if (empIds.length > 0) {
+            const { data: empData } = await supabase
+              .from('employees')
+              .select('id, first_name, last_name')
+              .in('id', empIds);
+            (empData || []).forEach((e: any) => {
+              empMap[e.id] = { first_name: e.first_name, last_name: e.last_name };
+            });
+          }
+
+          dnList = dnData.map((dn: any) => ({
+            ...dn,
+            employee: empMap[dn.employee_id] || null,
+          }));
+
+          // Sum hours from delivery notes
+          dnHours = dnData.reduce((sum: number, dn: any) => {
+            if (dn.start_time && dn.end_time) {
+              const [sh, sm] = dn.start_time.split(':').map(Number);
+              const [eh, em] = dn.end_time.split(':').map(Number);
+              const gross = (eh * 60 + em) - (sh * 60 + sm);
+              const net = gross - (dn.break_minutes ?? 0);
+              return sum + Math.max(0, net / 60);
+            }
+            return sum;
+          }, 0);
+
+          // Collect materials and photos from items
+          dnList.forEach((dn: any) => {
+            const empName = dn.employee
+              ? `${dn.employee.first_name} ${dn.employee.last_name}`
+              : '';
+            (dn.delivery_note_items || []).forEach((item: any) => {
+              if (item.item_type === 'material' && item.material_name) {
+                dnMaterials.push({
+                  ...item,
+                  work_date: dn.work_date,
+                  employee_name: empName,
+                  delivery_note_number: dn.delivery_note_number,
+                });
+              }
+              if (item.item_type === 'photo' && item.photo_url) {
+                dnPhotos.push({
+                  id: item.id,
+                  file_url: item.photo_url,
+                  caption: item.photo_caption,
+                  work_date: dn.work_date,
+                });
+              }
+            });
+          });
+        }
+      } catch (error) {
+        console.error('[DN-DEBUG] EXCEPTION:', error);
+      }
+      setDeliveryNotes(dnList);
+      setDeliveryNoteMaterials(dnMaterials);
+
+      // Add delivery note hours to team member totals
+      if (dnList.length > 0 && teamMembersProcessed.length > 0) {
+        const dnHoursByEmployee: Record<string, number> = {};
+        dnList.forEach((dn: any) => {
+          if (dn.start_time && dn.end_time) {
+            const [sh, sm] = dn.start_time.split(':').map(Number);
+            const [eh, em] = dn.end_time.split(':').map(Number);
+            const gross = (eh * 60 + em) - (sh * 60 + sm);
+            const net = Math.max(0, gross - (dn.break_minutes ?? 0)) / 60;
+            // Primary employee
+            if (dn.employee_id) {
+              dnHoursByEmployee[dn.employee_id] = (dnHoursByEmployee[dn.employee_id] || 0) + net;
+            }
+            // Additional employees
+            if (dn.additional_employee_ids && Array.isArray(dn.additional_employee_ids)) {
+              dn.additional_employee_ids.forEach((empId: string) => {
+                dnHoursByEmployee[empId] = (dnHoursByEmployee[empId] || 0) + net;
+              });
+            }
+          }
+        });
+        teamMembersProcessed = teamMembersProcessed.map((tm: any) => ({
+          ...tm,
+          hours_this_week: Math.round(((tm.hours_this_week || 0) + (dnHoursByEmployee[tm.id] || 0)) * 10) / 10,
+        }));
+        setTeamAssignments(teamMembersProcessed);
+      }
+
+      // Add delivery note hours to total
+      calculatedTotalHours += dnHours;
+      setTotalHours(calculatedTotalHours);
+
+      // Add delivery note photos to photos list
+      const allPhotos = [...processedPhotos, ...dnPhotos];
+      setPhotos(allPhotos);
+
       // Calculate real statistics from database
-      const totalProjectCost = totalMaterialCost + (calculatedTotalHours * 50); // Assuming 50€/hour
+      // Also add labor cost from delivery notes (using employee hourly_rate fetched in DN loop below)
+      const totalProjectCost = totalMaterialCost + totalLaborCost; // labor from time_entries with real rates
+      // DN labor added after delivery note loop via totalLaborCost update
       const projectBudget = projectData.budget || 0;
       const budgetUtilization = projectBudget > 0 ? Math.round((totalProjectCost / projectBudget) * 100) : 0;
 
@@ -432,6 +562,32 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           });
         }
       }
+
+      // Add delivery note activities
+      dnList.forEach((dn: any) => {
+        const empName = dn.employee
+          ? `${dn.employee.first_name} ${dn.employee.last_name}`
+          : 'Mitarbeiter';
+        const materialCount = (dn.delivery_note_items || []).filter((i: any) => i.item_type === 'material').length;
+        let desc = new Date(dn.work_date).toLocaleDateString('de-DE');
+        if (dn.start_time && dn.end_time) {
+          const [sh, sm] = dn.start_time.split(':').map(Number);
+          const [eh, em] = dn.end_time.split(':').map(Number);
+          const net = ((eh * 60 + em) - (sh * 60 + sm) - (dn.break_minutes ?? 0)) / 60;
+          desc += ` · ${net.toFixed(1)}h`;
+        }
+        if (materialCount > 0) desc += ` · ${materialCount} Material`;
+        activities.push({
+          id: `dn_${dn.id}`,
+          project_id: targetId,
+          event_type: 'delivery_note',
+          title: `Lieferschein ${dn.delivery_note_number || ''}`,
+          description: desc,
+          user_name: empName,
+          user_role: 'team_member',
+          timestamp: dn.created_at,
+        });
+      });
 
       // Sort activities by timestamp (newest first)
       activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -971,7 +1127,9 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                       {totalHours.toFixed(1)}{plannedHours > 0 && <span className="text-lg font-normal text-slate-400"> / {plannedHours.toFixed(1)}</span>}
                     </p>
                     <p className="text-xs text-slate-400 mt-1">
-                      {plannedHours > 0 ? 'Stunden erfasst / Stunden aus Angebot' : 'Stunden insgesamt'}
+                      {deliveryNotes.length > 0
+                        ? `${deliveryNotes.length} Lieferschein(e) + Zeiteinträge`
+                        : plannedHours > 0 ? 'Stunden erfasst / Stunden aus Angebot' : 'Stunden insgesamt'}
                     </p>
                     {plannedHours > 0 && (
                       <div className="mt-3 h-2 w-full rounded-full bg-slate-100 overflow-hidden">
@@ -1230,12 +1388,19 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                   <div className="space-y-0 divide-y divide-slate-50">
                     {project.recent_activities.map((activity) => (
                       <div key={activity.id} className="flex items-start gap-4 py-3">
-                        <div className="h-8 w-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0">
-                          <Clock className="h-3.5 w-3.5 text-slate-400" />
+                        <div className={`h-8 w-8 rounded-full border flex items-center justify-center flex-shrink-0 ${
+                          activity.event_type === 'delivery_note'
+                            ? 'bg-teal-50 border-teal-200'
+                            : 'bg-slate-100 border-slate-200'
+                        }`}>
+                          {activity.event_type === 'delivery_note'
+                            ? <ClipboardList className="h-3.5 w-3.5 text-teal-500" />
+                            : <Clock className="h-3.5 w-3.5 text-slate-400" />
+                          }
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-slate-800">{activity.title}</p>
-                          <p className="text-xs text-slate-500 mt-0.5">{activity.user_name}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">{activity.user_name} · {activity.description}</p>
                         </div>
                         <span className="text-xs text-slate-400 whitespace-nowrap flex-shrink-0">{formatDateTime(activity.timestamp)}</span>
                       </div>
@@ -1251,7 +1416,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-slate-800">Zeiterfassung</h3>
-                <p className="text-xs text-slate-400">{timeEntries.length} Einträge · {totalHours.toFixed(1)}h gesamt</p>
+                <p className="text-xs text-slate-400">{totalHours.toFixed(1)}h gesamt · {timeEntries.length} Zeiteinträge · {deliveryNotes.length} Lieferscheine</p>
               </div>
               {permissions.can_add_time && (
                 <Button onClick={() => setIsTimeFormOpen(true)} className="bg-slate-800 hover:bg-slate-900 text-white">
@@ -1261,15 +1426,74 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
               )}
             </div>
 
-            {timeEntries.length === 0 ? (
-              <Card className="bg-white border-slate-200 shadow-sm rounded-xl">
-                <CardContent className="p-8 text-center">
-                  <Clock className="h-10 w-10 text-slate-200 mx-auto mb-3" />
-                  <p className="text-sm text-slate-400">Noch keine Zeiteinträge vorhanden</p>
-                </CardContent>
-              </Card>
-            ) : (
+            {/* Delivery Note Hours */}
+            {deliveryNotes.length > 0 && (
               <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                <CardHeader className="border-b border-slate-100 bg-teal-50/50 px-5 py-3">
+                  <CardTitle className="text-sm font-semibold text-teal-700 m-0 flex items-center gap-2">
+                    <ClipboardList className="h-4 w-4" />
+                    Aus Lieferscheinen
+                  </CardTitle>
+                </CardHeader>
+                <div className="divide-y divide-slate-100">
+                  {deliveryNotes.map((dn: any) => {
+                    const date = new Date(dn.work_date);
+                    const startStr = dn.start_time ? dn.start_time.substring(0, 5) : '–';
+                    const endStr = dn.end_time ? dn.end_time.substring(0, 5) : '–';
+                    const dateStr = date.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+                    let hours = 0;
+                    if (dn.start_time && dn.end_time) {
+                      const [sh, sm] = dn.start_time.split(':').map(Number);
+                      const [eh, em] = dn.end_time.split(':').map(Number);
+                      hours = Math.max(0, ((eh * 60 + em) - (sh * 60 + sm) - (dn.break_minutes ?? 0)) / 60);
+                    }
+                    const empName = dn.employee
+                      ? `${dn.employee.first_name} ${dn.employee.last_name}`
+                      : 'Mitarbeiter';
+
+                    return (
+                      <div key={dn.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50 transition-colors">
+                        <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-teal-50 border border-teal-200 flex flex-col items-center justify-center">
+                          <span className="text-xs font-bold text-teal-700">{date.getDate()}</span>
+                          <span className="text-[10px] text-teal-500 uppercase">{date.toLocaleDateString('de-DE', { month: 'short' })}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-sm font-medium text-slate-800">{empName}</span>
+                            <span className="text-xs text-slate-400">{dateStr}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 bg-teal-100 text-teal-700 rounded font-medium">{dn.delivery_note_number}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-slate-500">
+                            <span>{startStr} – {endStr}</span>
+                            {dn.break_minutes > 0 && (
+                              <span className="text-slate-300">· {dn.break_minutes}min Pause</span>
+                            )}
+                          </div>
+                          {dn.description && (
+                            <p className="text-xs text-slate-400 mt-1 truncate">{dn.description}</p>
+                          )}
+                        </div>
+                        <div className="flex-shrink-0 text-right">
+                          <span className="text-sm font-bold text-teal-700">{hours.toFixed(1)}h</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
+
+            {/* Regular Time Entries */}
+            {timeEntries.length > 0 && (
+              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                {deliveryNotes.length > 0 && (
+                  <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3">
+                    <CardTitle className="text-sm font-semibold text-slate-700 m-0 flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Manuelle Zeiteinträge
+                    </CardTitle>
+                  </CardHeader>
+                )}
                 <div className="divide-y divide-slate-100">
                   {timeEntries.map(entry => {
                     const date = new Date(entry.start_time);
@@ -1305,6 +1529,15 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                     );
                   })}
                 </div>
+              </Card>
+            )}
+
+            {timeEntries.length === 0 && deliveryNotes.length === 0 && (
+              <Card className="bg-white border-slate-200 shadow-sm rounded-xl">
+                <CardContent className="p-8 text-center">
+                  <Clock className="h-10 w-10 text-slate-200 mx-auto mb-3" />
+                  <p className="text-sm text-slate-400">Noch keine Zeiteinträge vorhanden</p>
+                </CardContent>
               </Card>
             )}
           </TabsContent>
@@ -1378,36 +1611,181 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
 
           <TabsContent value="materials" className="space-y-4 min-h-[600px] mt-0">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Materialverwaltung</h3>
-              {permissions.can_add_materials && (
-                <Button onClick={() => setIsMaterialFormOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Material hinzufügen
-                </Button>
-              )}
+              <h3 className="text-lg font-semibold">Material aus Lieferscheinen</h3>
+              <p className="text-sm text-slate-500">{deliveryNoteMaterials.length} Positionen</p>
             </div>
             <Card>
               <CardContent className="p-4">
-                <p className="text-gray-500">Materialeinträge werden hier angezeigt...</p>
+                {deliveryNoteMaterials.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">Noch keine Materialien erfasst. Materialien werden über Lieferscheine hinzugefügt.</p>
+                ) : (
+                  <div className="divide-y">
+                    {deliveryNoteMaterials.map((mat: any) => (
+                      <div key={mat.id} className="flex items-center justify-between py-3">
+                        <div>
+                          <p className="font-medium text-sm">{mat.material_name}</p>
+                          <p className="text-xs text-slate-500">
+                            {mat.employee_name} · {new Date(mat.work_date).toLocaleDateString('de-DE')}
+                            {mat.delivery_note_number && ` · ${mat.delivery_note_number}`}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium">
+                            {mat.material_quantity} {mat.material_unit}
+                          </p>
+                          {mat.unit_price && (
+                            <p className="text-xs text-slate-500">
+                              {((mat.unit_price || 0) * (mat.material_quantity || 0)).toFixed(2)} €
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {deliveryNoteMaterials.some((m: any) => m.unit_price) && (
+                      <div className="flex justify-between pt-3 font-medium text-sm">
+                        <span>Gesamt</span>
+                        <span>
+                          {deliveryNoteMaterials.reduce((sum: number, m: any) =>
+                            sum + ((m.unit_price || 0) * (m.material_quantity || 0)), 0
+                          ).toFixed(2)} €
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="documents" className="space-y-4 min-h-[600px] mt-0">
+          <TabsContent value="documents" className="px-6 pb-6 pt-5 space-y-4 min-h-[600px] mt-0">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Dokumente</h3>
-              {permissions.can_upload_files && (
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Datei hochladen
-                </Button>
-              )}
+              <div>
+                <h3 className="text-lg font-semibold text-slate-800">Dokumente</h3>
+                <p className="text-xs text-slate-400">{deliveryNotes.length} Lieferschein(e)</p>
+              </div>
             </div>
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-gray-500">Projektdokumente werden hier angezeigt...</p>
-              </CardContent>
-            </Card>
+
+            {/* Delivery Notes as Documents */}
+            {deliveryNotes.length > 0 ? (
+              <div className="space-y-3">
+                {deliveryNotes.map((dn: any) => {
+                  const empName = dn.employee
+                    ? `${dn.employee.first_name} ${dn.employee.last_name}`
+                    : 'Mitarbeiter';
+                  const dateStr = new Date(dn.work_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                  const startStr = dn.start_time ? dn.start_time.substring(0, 5) : '–';
+                  const endStr = dn.end_time ? dn.end_time.substring(0, 5) : '–';
+                  let hours = 0;
+                  if (dn.start_time && dn.end_time) {
+                    const [sh, sm] = dn.start_time.split(':').map(Number);
+                    const [eh, em] = dn.end_time.split(':').map(Number);
+                    hours = Math.max(0, ((eh * 60 + em) - (sh * 60 + sm) - (dn.break_minutes ?? 0)) / 60);
+                  }
+                  const materials = (dn.delivery_note_items || []).filter((i: any) => i.item_type === 'material');
+                  const photos = (dn.delivery_note_items || []).filter((i: any) => i.item_type === 'photo');
+
+                  return (
+                    <Card key={dn.id} className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                      {/* Header */}
+                      <div className="flex items-center gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+                        <div className="p-2 rounded-lg bg-teal-50">
+                          <ClipboardList className="h-5 w-5 text-teal-600" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-slate-800">{dn.delivery_note_number || 'Lieferschein'}</span>
+                            <span className="text-xs text-slate-400">{dateStr}</span>
+                          </div>
+                          <p className="text-xs text-slate-500">{empName} · {startStr}–{endStr} · {hours.toFixed(1)}h netto</p>
+                        </div>
+                      </div>
+
+                      <CardContent className="p-5 space-y-4">
+                        {/* Description */}
+                        <div>
+                          <p className="text-xs font-medium text-slate-400 mb-1">Tätigkeitsbeschreibung</p>
+                          <p className="text-sm text-slate-700 whitespace-pre-wrap">{dn.description}</p>
+                        </div>
+
+                        {/* Time Details */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          <div className="bg-slate-50 rounded-lg p-3">
+                            <p className="text-[10px] text-slate-400 uppercase tracking-wide">Datum</p>
+                            <p className="text-sm font-medium text-slate-800">{dateStr}</p>
+                          </div>
+                          <div className="bg-slate-50 rounded-lg p-3">
+                            <p className="text-[10px] text-slate-400 uppercase tracking-wide">Arbeitszeit</p>
+                            <p className="text-sm font-medium text-slate-800">{startStr} – {endStr}</p>
+                          </div>
+                          <div className="bg-slate-50 rounded-lg p-3">
+                            <p className="text-[10px] text-slate-400 uppercase tracking-wide">Pause</p>
+                            <p className="text-sm font-medium text-slate-800">{dn.break_minutes ?? 0} min</p>
+                          </div>
+                          <div className="bg-teal-50 rounded-lg p-3">
+                            <p className="text-[10px] text-teal-500 uppercase tracking-wide">Netto</p>
+                            <p className="text-sm font-bold text-teal-700">{hours.toFixed(1)}h</p>
+                          </div>
+                        </div>
+
+                        {/* Materials */}
+                        {materials.length > 0 && (
+                          <div>
+                            <p className="text-xs font-medium text-slate-400 mb-2">Materialien ({materials.length})</p>
+                            <div className="space-y-1">
+                              {materials.map((mat: any) => (
+                                <div key={mat.id} className="flex items-center justify-between py-1.5 px-3 bg-slate-50 rounded text-sm">
+                                  <span>{mat.material_quantity} {mat.material_unit} {mat.material_name}</span>
+                                  {mat.unit_price && (
+                                    <span className="text-slate-500">{((mat.unit_price || 0) * (mat.material_quantity || 0)).toFixed(2)} €</span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Photos */}
+                        {photos.length > 0 && (
+                          <div>
+                            <p className="text-xs font-medium text-slate-400 mb-2">Fotos ({photos.length})</p>
+                            <div className="grid grid-cols-3 gap-2">
+                              {photos.map((photo: any) => (
+                                <div key={photo.id}>
+                                  <img
+                                    src={photo.photo_url}
+                                    alt={photo.photo_caption || 'Foto'}
+                                    className="w-full h-24 object-cover rounded border"
+                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                  />
+                                  {photo.photo_caption && (
+                                    <p className="text-[10px] text-slate-400 mt-0.5">{photo.photo_caption}</p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Signature */}
+                        {dn.signed_at && (
+                          <div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 rounded-lg px-3 py-2">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            <span>Unterschrieben von {dn.signature_name} am {new Date(dn.signed_at).toLocaleDateString('de-DE')}</span>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            ) : (
+              <Card className="bg-white border-slate-200 shadow-sm rounded-xl">
+                <CardContent className="p-8 text-center">
+                  <ClipboardList className="h-10 w-10 text-slate-200 mx-auto mb-3" />
+                  <p className="text-sm text-slate-400">Noch keine Lieferscheine vorhanden</p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="comments" className="space-y-4 min-h-[600px] mt-0">

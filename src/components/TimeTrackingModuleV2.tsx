@@ -66,13 +66,16 @@ const TimeTrackingModuleV2 = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [projects, setProjects] = useState<{ id: string; name: string; color: string; status: string }[]>([]);
 
-  // Date range calculations
-  const rangeStart = dateRange === 'week'
-    ? startOfWeek(currentDate, { weekStartsOn: 1 })
-    : startOfMonth(currentDate);
-  const rangeEnd = dateRange === 'week'
-    ? endOfWeek(currentDate, { weekStartsOn: 1 })
-    : endOfMonth(currentDate);
+  // Date range calculations – use ISO strings as stable dependencies
+  const rangeStartStr = dateRange === 'week'
+    ? startOfWeek(currentDate, { weekStartsOn: 1 }).toISOString()
+    : startOfMonth(currentDate).toISOString();
+  const rangeEndStr = dateRange === 'week'
+    ? endOfWeek(currentDate, { weekStartsOn: 1 }).toISOString()
+    : endOfMonth(currentDate).toISOString();
+
+  const rangeStart = new Date(rangeStartStr);
+  const rangeEnd = new Date(rangeEndStr);
 
   const rangeLabel = dateRange === 'week'
     ? `${format(rangeStart, 'dd.MM.', { locale: de })} – ${format(rangeEnd, 'dd.MM.yyyy', { locale: de })}`
@@ -114,7 +117,7 @@ const TimeTrackingModuleV2 = () => {
   useEffect(() => {
     if (!companyId) return;
     fetchData();
-  }, [companyId, rangeStart, rangeEnd, employeeFilter]);
+  }, [companyId, rangeStartStr, rangeEndStr, employeeFilter]);
 
   const fetchData = async () => {
     if (!companyId) return;

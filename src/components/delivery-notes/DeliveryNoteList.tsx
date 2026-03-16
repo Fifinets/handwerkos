@@ -13,13 +13,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Table,
   TableBody,
   TableCell,
@@ -31,7 +24,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -49,10 +41,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import {
   Plus,
   Search,
@@ -60,80 +49,87 @@ import {
   Eye,
   Edit,
   Trash2,
-  Send,
-  Check,
-  X,
   Clock,
   Package,
   User,
+  Euro,
 } from 'lucide-react';
-import { useDeliveryNotes } from '@/hooks/useDeliveryNotes';
-import { DeliveryNoteStatusBadge } from './DeliveryNoteStatusBadge';
+import { useDeliveryNotes, type DeliveryNote } from '@/hooks/useDeliveryNotes';
 import { DeliveryNoteForm } from './DeliveryNoteForm';
-import {
-  type DeliveryNoteStatus,
-  type DeliveryNoteWithRelations,
-  DELIVERY_NOTE_STATUS_LABELS,
-} from '@/types';
 
 interface DeliveryNoteListProps {
   projectId?: string;
   customerId?: string;
   showProjectColumn?: boolean;
-  isManagerView?: boolean; // Show approval actions
 }
+
+// Calculate net hours from a delivery note
+const calcNetHours = (note: DeliveryNote): string | null => {
+  if (!note.start_time || !note.end_time) return null;
+  const [sh, sm] = note.start_time.split(':').map(Number);
+  const [eh, em] = note.end_time.split(':').map(Number);
+  const gross = (eh * 60 + em) - (sh * 60 + sm);
+  const net = gross - (note.break_minutes ?? 0);
+  if (net <= 0) return null;
+  return (net / 60).toFixed(1);
+};
+
+// Calculate total cost of a delivery note (labor + materials)
+const calcNoteCost = (note: DeliveryNote): { labor: number; materials: number; total: number } | null => {
+  const hours = calcNetHours(note);
+  const hourlyRate = note.employee?.hourly_rate;
+  const laborCost = hours && hourlyRate ? parseFloat(hours) * hourlyRate : null;
+  const materialCost = (note.delivery_note_items || [])
+    .filter(i => i.item_type === 'material')
+    .reduce((sum, i) => sum + ((i.unit_price || 0) * (i.material_quantity || 0)), 0);
+  if (laborCost === null && materialCost === 0) return null;
+  const labor = laborCost ?? 0;
+  return { labor, materials: materialCost, total: labor + materialCost };
+};
 
 export function DeliveryNoteList({
   projectId,
   customerId,
   showProjectColumn = false,
-  isManagerView = false,
 }: DeliveryNoteListProps) {
   const {
     deliveryNotes,
     isLoading,
     fetchDeliveryNotes,
     deleteDeliveryNote,
-    submitForApproval,
-    approve,
-    reject,
-    canEdit,
-    canSubmit,
-    canApprove,
-  } = useDeliveryNotes({ projectId });
+  } = useDeliveryNotes();
 
-  // State
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<DeliveryNoteStatus | 'all'>('all');
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | undefined>();
-  const [viewingNote, setViewingNote] = useState<DeliveryNoteWithRelations | null>(null);
+  const [viewingNote, setViewingNote] = useState<DeliveryNote | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
-  const [rejectingId, setRejectingId] = useState<string | null>(null);
-  const [rejectReason, setRejectReason] = useState('');
 
-  // Fetch on mount and when filters change
   useEffect(() => {
-    fetchDeliveryNotes({
-      status: statusFilter === 'all' ? undefined : statusFilter,
-      search: searchTerm || undefined,
-    });
-  }, [fetchDeliveryNotes, statusFilter, searchTerm]);
+    fetchDeliveryNotes({ project_id: projectId });
+  }, [projectId]);
 
-  // Handlers
+  // Client-side search filter
+  const filtered = deliveryNotes.filter((note) => {
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    const empName = note.employee
+      ? `${note.employee.first_name} ${note.employee.last_name}`.toLowerCase()
+      : '';
+    const projectName = note.project?.name?.toLowerCase() || '';
+    const noteNum = (note.delivery_note_number || '').toLowerCase();
+    const desc = note.description.toLowerCase();
+    return empName.includes(term) || projectName.includes(term) || noteNum.includes(term) || desc.includes(term);
+  });
+
   const handleNew = () => {
     setEditingId(undefined);
     setFormOpen(true);
   };
 
-  const handleEdit = (note: DeliveryNoteWithRelations) => {
+  const handleEdit = (note: DeliveryNote) => {
     setEditingId(note.id);
     setFormOpen(true);
-  };
-
-  const handleView = (note: DeliveryNoteWithRelations) => {
-    setViewingNote(note);
   };
 
   const handleDelete = async () => {
@@ -143,39 +139,20 @@ export function DeliveryNoteList({
     }
   };
 
-  const handleSubmit = async (id: string) => {
-    await submitForApproval(id);
-  };
-
-  const handleApprove = async (id: string) => {
-    await approve(id);
-  };
-
-  const handleReject = async () => {
-    if (rejectingId && rejectReason.length >= 10) {
-      await reject(rejectingId, rejectReason);
-      setRejectDialogOpen(false);
-      setRejectingId(null);
-      setRejectReason('');
+  const formatDate = (date: string) => {
+    try {
+      return format(new Date(date), 'dd.MM.yyyy', { locale: de });
+    } catch {
+      return date;
     }
   };
 
-  const openRejectDialog = (id: string) => {
-    setRejectingId(id);
-    setRejectReason('');
-    setRejectDialogOpen(true);
-  };
-
-  // Format date
-  const formatDate = (date: string) => {
-    return format(new Date(date), 'dd.MM.yyyy', { locale: de });
-  };
-
-  // Format time
   const formatTime = (time: string | null) => {
     if (!time) return '-';
     return time.substring(0, 5);
   };
+
+  const colSpan = showProjectColumn ? 8 : 7;
 
   return (
     <Card>
@@ -183,49 +160,25 @@ export function DeliveryNoteList({
         <div className="flex items-center justify-between">
           <div>
             <CardTitle>Lieferscheine</CardTitle>
-            <CardDescription>
-              {isManagerView
-                ? 'Lieferscheine prüfen und freigeben'
-                : 'Arbeitszeit und Material dokumentieren'}
-            </CardDescription>
+            <CardDescription>Arbeitszeit und Material dokumentieren</CardDescription>
           </div>
-          {!isManagerView && projectId && (
-            <Button onClick={handleNew}>
-              <Plus className="h-4 w-4 mr-2" />
-              Neuer Lieferschein
-            </Button>
-          )}
+          <Button onClick={handleNew}>
+            <Plus className="h-4 w-4 mr-2" />
+            Neuer Lieferschein
+          </Button>
         </div>
       </CardHeader>
 
       <CardContent>
-        {/* Filters */}
-        <div className="flex gap-4 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Suchen..."
-              className="pl-9"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <Select
-            value={statusFilter}
-            onValueChange={(v) => setStatusFilter(v as DeliveryNoteStatus | 'all')}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Alle Status</SelectItem>
-              {Object.entries(DELIVERY_NOTE_STATUS_LABELS).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Search */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Mitarbeiter, Projekt, Nr., Beschreibung..."
+            className="pl-9"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
 
         {/* Table */}
@@ -239,120 +192,112 @@ export function DeliveryNoteList({
                 <TableHead>Mitarbeiter</TableHead>
                 <TableHead>Zeit</TableHead>
                 <TableHead>Material</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-[100px]">Aktionen</TableHead>
+                <TableHead>Kosten</TableHead>
+                <TableHead>Beschreibung</TableHead>
+                <TableHead className="w-[60px]" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={showProjectColumn ? 8 : 7} className="text-center py-8">
+                  <TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">
                     Lade Lieferscheine...
                   </TableCell>
                 </TableRow>
-              ) : deliveryNotes.length === 0 ? (
+              ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={showProjectColumn ? 8 : 7} className="text-center py-8">
+                  <TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">
                     Keine Lieferscheine gefunden
                   </TableCell>
                 </TableRow>
               ) : (
-                deliveryNotes.map((note) => (
-                  <TableRow key={note.id}>
-                    <TableCell className="font-mono text-sm">
-                      {note.delivery_note_number}
-                    </TableCell>
-                    <TableCell>{formatDate(note.work_date)}</TableCell>
-                    {showProjectColumn && (
-                      <TableCell>{note.project?.name || '-'}</TableCell>
-                    )}
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        {note.created_by_employee
-                          ? `${note.created_by_employee.first_name} ${note.created_by_employee.last_name}`
-                          : '-'}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        {note.work_hours ? `${note.work_hours} Std.` : `${formatTime(note.start_time)} - ${formatTime(note.end_time)}`}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Package className="h-4 w-4 text-muted-foreground" />
-                        {note.items?.filter((i) => i.item_type === 'material').length || 0}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <DeliveryNoteStatusBadge status={note.status} />
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleView(note)}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            Ansehen
-                          </DropdownMenuItem>
+                filtered.map((note) => {
+                  const netHours = calcNetHours(note);
+                  const noteCost = calcNoteCost(note);
+                  const materialCount = (note.delivery_note_items || []).filter(
+                    (i) => i.item_type === 'material'
+                  ).length;
+                  const empName = note.employee
+                    ? `${note.employee.first_name} ${note.employee.last_name}`
+                    : '—';
 
-                          {canEdit(note) && (
+                  return (
+                    <TableRow key={note.id}>
+                      <TableCell className="font-mono text-sm">
+                        {note.delivery_note_number || '—'}
+                      </TableCell>
+                      <TableCell>{formatDate(note.work_date)}</TableCell>
+                      {showProjectColumn && (
+                        <TableCell className="max-w-[150px] truncate">
+                          {note.project?.name || '—'}
+                        </TableCell>
+                      )}
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          <User className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-sm">{empName}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-sm">
+                            {netHours
+                              ? `${netHours}h`
+                              : `${formatTime(note.start_time)}–${formatTime(note.end_time)}`}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-sm">{materialCount}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {noteCost ? (
+                          <div className="flex items-center gap-1 text-sm">
+                            <Euro className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>{noteCost.total.toFixed(2)}</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
+                        {note.description}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setViewingNote(note)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Ansehen
+                            </DropdownMenuItem>
+
                             <DropdownMenuItem onClick={() => handleEdit(note)}>
                               <Edit className="h-4 w-4 mr-2" />
                               Bearbeiten
                             </DropdownMenuItem>
-                          )}
 
-                          {canSubmit(note) && (
-                            <DropdownMenuItem onClick={() => handleSubmit(note.id)}>
-                              <Send className="h-4 w-4 mr-2" />
-                              Einreichen
+                            <DropdownMenuItem
+                              onClick={() => setDeleteConfirmId(note.id)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Löschen
                             </DropdownMenuItem>
-                          )}
-
-                          {isManagerView && canApprove(note) && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => handleApprove(note.id)}
-                                className="text-green-600"
-                              >
-                                <Check className="h-4 w-4 mr-2" />
-                                Freigeben
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => openRejectDialog(note.id)}
-                                className="text-red-600"
-                              >
-                                <X className="h-4 w-4 mr-2" />
-                                Ablehnen
-                              </DropdownMenuItem>
-                            </>
-                          )}
-
-                          {canEdit(note) && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => setDeleteConfirmId(note.id)}
-                                className="text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Löschen
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -360,104 +305,142 @@ export function DeliveryNoteList({
       </CardContent>
 
       {/* Form Dialog */}
-      {projectId && (
-        <DeliveryNoteForm
-          projectId={projectId}
-          customerId={customerId || ''}
-          deliveryNoteId={editingId}
-          open={formOpen}
-          onOpenChange={setFormOpen}
-          onSuccess={() => fetchDeliveryNotes()}
-        />
-      )}
+      <DeliveryNoteForm
+        projectId={projectId || ''}
+        customerId={customerId}
+        deliveryNoteId={editingId}
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        onSuccess={() => fetchDeliveryNotes({ project_id: projectId })}
+      />
 
       {/* View Dialog */}
       <Dialog open={!!viewingNote} onOpenChange={(open) => !open && setViewingNote(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              Lieferschein {viewingNote?.delivery_note_number}
+              Lieferschein {viewingNote?.delivery_note_number || ''}
             </DialogTitle>
           </DialogHeader>
 
           {viewingNote && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <Label className="text-muted-foreground">Datum</Label>
+                  <p className="text-muted-foreground">Datum</p>
                   <p className="font-medium">{formatDate(viewingNote.work_date)}</p>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">Status</Label>
-                  <p>
-                    <DeliveryNoteStatusBadge status={viewingNote.status} />
+                  <p className="text-muted-foreground">Arbeitszeit</p>
+                  <p className="font-medium">
+                    {formatTime(viewingNote.start_time)} – {formatTime(viewingNote.end_time)}
+                    {calcNetHours(viewingNote) && ` (${calcNetHours(viewingNote)}h netto)`}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">Arbeitszeit</Label>
+                  <p className="text-muted-foreground">Mitarbeiter</p>
                   <p className="font-medium">
-                    {formatTime(viewingNote.start_time)} - {formatTime(viewingNote.end_time)}
-                    {viewingNote.work_hours && ` (${viewingNote.work_hours} Std.)`}
+                    {viewingNote.employee
+                      ? `${viewingNote.employee.first_name} ${viewingNote.employee.last_name}`
+                      : '—'}
                   </p>
                 </div>
-                <div>
-                  <Label className="text-muted-foreground">Mitarbeiter</Label>
-                  <p className="font-medium">
-                    {viewingNote.created_by_employee
-                      ? `${viewingNote.created_by_employee.first_name} ${viewingNote.created_by_employee.last_name}`
-                      : '-'}
-                  </p>
-                </div>
+                {viewingNote.project && (
+                  <div>
+                    <p className="text-muted-foreground">Projekt</p>
+                    <p className="font-medium">{viewingNote.project.name}</p>
+                  </div>
+                )}
+                {viewingNote.signed_at && (
+                  <div>
+                    <p className="text-muted-foreground">Unterschrift</p>
+                    <p className="font-medium text-green-700">
+                      ✓ {viewingNote.signature_name} ({formatDate(viewingNote.signed_at)})
+                    </p>
+                  </div>
+                )}
               </div>
+
+              {/* Cost summary */}
+              {(() => {
+                const cost = calcNoteCost(viewingNote);
+                if (!cost) return null;
+                return (
+                  <div className="rounded-md border p-3 bg-muted/40 space-y-1">
+                    <p className="text-sm font-medium flex items-center gap-1.5">
+                      <Euro className="h-4 w-4" /> Kostenübersicht
+                    </p>
+                    <div className="grid grid-cols-3 gap-2 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Lohnkosten</p>
+                        <p className="font-medium">{cost.labor.toFixed(2)} €</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Materialkosten</p>
+                        <p className="font-medium">{cost.materials.toFixed(2)} €</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Gesamt</p>
+                        <p className="font-semibold">{cost.total.toFixed(2)} €</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div>
-                <Label className="text-muted-foreground">Beschreibung</Label>
-                <p className="mt-1 whitespace-pre-wrap">{viewingNote.description}</p>
+                <p className="text-sm text-muted-foreground">Tätigkeitsbeschreibung</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm">{viewingNote.description}</p>
               </div>
 
-              {viewingNote.items && viewingNote.items.length > 0 && (
+              {/* Materials */}
+              {(viewingNote.delivery_note_items || []).filter(i => i.item_type === 'material').length > 0 && (
                 <div>
-                  <Label className="text-muted-foreground">Material & Fotos</Label>
-                  <div className="mt-2 space-y-2">
-                    {viewingNote.items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center gap-2 p-2 bg-muted rounded"
-                      >
-                        {item.item_type === 'material' ? (
-                          <>
-                            <Package className="h-4 w-4" />
-                            <span>
-                              {item.material_quantity} {item.material_unit} {item.material_name}
+                  <p className="text-sm text-muted-foreground mb-2">Materialien</p>
+                  <div className="space-y-1">
+                    {(viewingNote.delivery_note_items || [])
+                      .filter(i => i.item_type === 'material')
+                      .map((item) => (
+                        <div key={item.id} className="flex items-center gap-2 p-2 bg-muted rounded text-sm">
+                          <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="flex-1">
+                            {item.material_quantity} {item.material_unit} {item.material_name}
+                          </span>
+                          {item.unit_price && (
+                            <span className="text-muted-foreground">
+                              {((item.unit_price || 0) * (item.material_quantity || 0)).toFixed(2)} €
                             </span>
-                            {item.is_additional_work && (
-                              <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
-                                Zusatzarbeit
-                              </span>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            <img
-                              src={item.photo_url || ''}
-                              alt={item.photo_caption || 'Foto'}
-                              className="h-16 w-16 object-cover rounded"
-                            />
-                            <span>{item.photo_caption}</span>
-                          </>
-                        )}
-                      </div>
-                    ))}
+                          )}
+                        </div>
+                      ))}
                   </div>
                 </div>
               )}
 
-              {viewingNote.rejection_reason && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded">
-                  <Label className="text-red-800">Ablehnungsgrund</Label>
-                  <p className="mt-1 text-red-700">{viewingNote.rejection_reason}</p>
+              {/* Photos */}
+              {(viewingNote.delivery_note_items || []).filter(i => i.item_type === 'photo').length > 0 && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Fotos</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(viewingNote.delivery_note_items || [])
+                      .filter(i => i.item_type === 'photo')
+                      .map((item) => (
+                        <div key={item.id} className="space-y-1">
+                          <img
+                            src={item.photo_url || ''}
+                            alt={item.photo_caption || 'Foto'}
+                            className="w-full h-32 object-cover rounded border"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                          {item.photo_caption && (
+                            <p className="text-xs text-muted-foreground">{item.photo_caption}</p>
+                          )}
+                        </div>
+                      ))}
+                  </div>
                 </div>
               )}
+
             </div>
           )}
         </DialogContent>
@@ -474,47 +457,16 @@ export function DeliveryNoteList({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Löschen
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Reject Dialog */}
-      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Lieferschein ablehnen</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Ablehnungsgrund *</Label>
-              <Textarea
-                placeholder="Bitte begründen Sie die Ablehnung (mind. 10 Zeichen)..."
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                className="mt-2"
-              />
-              <p className="text-sm text-muted-foreground mt-1">
-                {rejectReason.length}/10 Zeichen (Minimum)
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
-              Abbrechen
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleReject}
-              disabled={rejectReason.length < 10}
-            >
-              Ablehnen
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Card>
   );
 }

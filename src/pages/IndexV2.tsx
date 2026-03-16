@@ -14,6 +14,7 @@ import MachineModule from "@/components/MachineModule";
 import FinanceModuleV2 from "@/components/FinanceModuleV2";
 import PlannerModuleV2 from "@/components/PlannerModuleV2";
 import TimeTrackingModuleV2 from "@/components/TimeTrackingModuleV2";
+import DeliveryNotesModule from "@/components/DeliveryNotesModule";
 import { DocumentModule } from "@/components/DocumentModule";
 import { CompanySettingsSimple as CompanySettingsModule } from "@/components/CompanySettingsSimple";
 import EmailModuleV2 from "@/components/EmailModuleV2";
@@ -86,6 +87,8 @@ const IndexV2 = () => {
                 return <PlannerModuleV2 />;
             case 'timetracking':
                 return <TimeTrackingModuleV2 />;
+            case 'delivery-notes':
+                return <DeliveryNotesModule />;
             case 'vacation':
                 return <VacationManagement />;
             case 'company-settings':

@@ -34,14 +34,10 @@ import {
   ClipboardList,
   Clock,
   Plane,
-  CheckSquare,
   Receipt,
   MoreHorizontal,
   Eye,
   Edit,
-  Send,
-  Check,
-  X,
   Plus,
   User,
   LogOut,
@@ -55,8 +51,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useNavigate } from 'react-router-dom';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
-type TabValue = 'projects' | 'delivery-notes' | 'timesheet' | 'vacation' | 'approvals' | 'invoices';
+type TabValue = 'projects' | 'delivery-notes' | 'timesheet' | 'vacation' | 'invoices';
 
 interface Project {
   id: string;
@@ -87,10 +84,8 @@ export function DesktopEmployeePage() {
     isLoading: permissionsLoading,
     isManager,
     can,
-    canApproveDeliveryNote,
     canViewInvoices,
     canEditDeliveryNote,
-    canSubmitDeliveryNote,
   } = useEmployeePermissions();
 
   // State
@@ -104,10 +99,7 @@ export function DesktopEmployeePage() {
     deliveryNotes,
     isLoading: notesLoading,
     fetchDeliveryNotes,
-    submitForApproval,
-    approve,
-    reject,
-  } = useDeliveryNotes({});
+  } = useDeliveryNotes();
 
   // Delivery Note Form State
   const [deliveryNoteFormOpen, setDeliveryNoteFormOpen] = useState(false);
@@ -219,30 +211,6 @@ export function DesktopEmployeePage() {
     setDeliveryNoteFormOpen(true);
   };
 
-  const handleSubmitDeliveryNote = async (noteId: string) => {
-    const success = await submitForApproval(noteId);
-    if (success) {
-      toast({ title: 'Lieferschein eingereicht', description: 'Wartet auf Freigabe' });
-    }
-  };
-
-  const handleApproveDeliveryNote = async (noteId: string) => {
-    const success = await approve(noteId);
-    if (success) {
-      toast({ title: 'Freigegeben', description: 'Lieferschein wurde freigegeben' });
-    }
-  };
-
-  const handleRejectDeliveryNote = async (noteId: string) => {
-    const reason = prompt('Ablehnungsgrund (min. 10 Zeichen):');
-    if (reason && reason.length >= 10) {
-      const success = await reject(noteId, reason);
-      if (success) {
-        toast({ title: 'Abgelehnt', description: 'Lieferschein wurde abgelehnt' });
-      }
-    }
-  };
-
   // Format helpers
   const formatDate = (date: string | undefined) => {
     if (!date) return '-';
@@ -305,22 +273,26 @@ export function DesktopEmployeePage() {
     );
   }
 
-  // Filter delivery notes for approvals tab
-  const pendingApprovals = deliveryNotes.filter(dn => dn.status === 'submitted');
+  const navItems: { id: TabValue; icon: any; label: string }[] = [
+    { id: 'projects', icon: Building2, label: 'Meine Projekte' },
+    { id: 'delivery-notes', icon: ClipboardList, label: 'Lieferscheine' },
+    { id: 'timesheet', icon: Clock, label: 'Zeiterfassung' },
+    { id: 'vacation', icon: Plane, label: 'Urlaub' },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r flex flex-col">
+    <div className="min-h-screen w-full bg-slate-50 flex">
+      {/* Dark Sidebar – same style as Manager */}
+      <aside className="w-64 bg-slate-950 border-r border-slate-800 flex flex-col flex-shrink-0">
         {/* User Info */}
-        <div className="p-4 border-b">
+        <div className="p-4 border-b border-slate-800/60">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <User className="h-5 w-5 text-primary" />
+            <div className="h-10 w-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center">
+              <User className="h-5 w-5 text-slate-300" />
             </div>
             <div>
-              <p className="font-medium">{employee.first_name} {employee.last_name}</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm font-medium text-slate-200">{employee.first_name} {employee.last_name}</p>
+              <p className="text-xs text-slate-500">
                 {isManager ? 'Manager' : 'Mitarbeiter'}
               </p>
             </div>
@@ -328,116 +300,64 @@ export function DesktopEmployeePage() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-2">
-          <ul className="space-y-1">
-            <li>
+        <nav className="flex-1 py-4 px-2">
+          <div className="space-y-0.5">
+            {navItems.map(item => (
               <button
-                onClick={() => setActiveTab('projects')}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                  activeTab === 'projects'
-                    ? 'bg-primary/10 text-primary'
-                    : 'hover:bg-gray-100'
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-left transition-colors ${
+                  activeTab === item.id
+                    ? 'bg-slate-800 text-teal-400 font-medium'
+                    : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
                 }`}
               >
-                <Building2 className="h-5 w-5" />
-                Meine Projekte
+                <item.icon className={`h-5 w-5 ${activeTab === item.id ? 'text-teal-400' : 'text-slate-400'}`} />
+                <span className="text-sm">{item.label}</span>
               </button>
-            </li>
-            <li>
-              <button
-                onClick={() => setActiveTab('delivery-notes')}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                  activeTab === 'delivery-notes'
-                    ? 'bg-primary/10 text-primary'
-                    : 'hover:bg-gray-100'
-                }`}
-              >
-                <ClipboardList className="h-5 w-5" />
-                Lieferscheine
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => setActiveTab('timesheet')}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                  activeTab === 'timesheet'
-                    ? 'bg-primary/10 text-primary'
-                    : 'hover:bg-gray-100'
-                }`}
-              >
-                <Clock className="h-5 w-5" />
-                Zeiterfassung
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => setActiveTab('vacation')}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                  activeTab === 'vacation'
-                    ? 'bg-primary/10 text-primary'
-                    : 'hover:bg-gray-100'
-                }`}
-              >
-                <Plane className="h-5 w-5" />
-                Urlaub
-              </button>
-            </li>
+            ))}
 
-            {/* Conditional: Approvals (Manager or grant) */}
-            {canApproveDeliveryNote() && (
-              <li className="pt-4 border-t mt-4">
-                <button
-                  onClick={() => setActiveTab('approvals')}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                    activeTab === 'approvals'
-                      ? 'bg-primary/10 text-primary'
-                      : 'hover:bg-gray-100'
-                  }`}
-                >
-                  <CheckSquare className="h-5 w-5" />
-                  Freigaben
-                  {pendingApprovals.length > 0 && (
-                    <Badge variant="destructive" className="ml-auto">
-                      {pendingApprovals.length}
-                    </Badge>
-                  )}
-                </button>
-              </li>
-            )}
-
-            {/* Conditional: Invoices (only with grant) */}
+            {/* Conditional: Invoices */}
             {canViewInvoices() && (
-              <li>
-                <button
-                  onClick={() => setActiveTab('invoices')}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                    activeTab === 'invoices'
-                      ? 'bg-primary/10 text-primary'
-                      : 'hover:bg-gray-100'
-                  }`}
-                >
-                  <Receipt className="h-5 w-5" />
-                  Rechnungen
-                </button>
-              </li>
+              <button
+                onClick={() => setActiveTab('invoices')}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-left transition-colors ${
+                  activeTab === 'invoices'
+                    ? 'bg-slate-800 text-teal-400 font-medium'
+                    : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                }`}
+              >
+                <Receipt className={`h-5 w-5 ${activeTab === 'invoices' ? 'text-teal-400' : 'text-slate-400'}`} />
+                <span className="text-sm">Rechnungen</span>
+              </button>
             )}
-          </ul>
+          </div>
         </nav>
 
         {/* Logout */}
-        <div className="p-2 border-t">
+        <div className="p-2 border-t border-slate-800/60">
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-red-600 hover:bg-red-50 transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-left text-red-400 hover:bg-red-950/30 transition-colors"
           >
             <LogOut className="h-5 w-5" />
-            Abmelden
+            <span className="text-sm">Abmelden</span>
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 p-6 overflow-auto">
+      {/* Main area with header */}
+      <div className="flex-1 flex flex-col min-h-screen">
+        {/* Top Header – same style as Manager */}
+        <header className="h-16 border-b border-slate-200 bg-white sticky top-0 z-30 shadow-sm flex items-center justify-between px-6">
+          <h2 className="text-lg font-semibold text-slate-800">Mitarbeiter Arbeitsbereich</h2>
+          <div className="flex items-center space-x-3">
+            <ThemeToggle />
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="flex-1 p-6 overflow-auto">
         {/* Projects Tab */}
         {activeTab === 'projects' && (
           <div>
@@ -549,9 +469,9 @@ export function DesktopEmployeePage() {
                     deliveryNotes.map((note) => (
                       <TableRow key={note.id}>
                         <TableCell className="font-mono text-sm">
-                          {note.delivery_note_number || note.number || '-'}
+                          {note.delivery_note_number || '-'}
                         </TableCell>
-                        <TableCell>{formatDate(note.work_date || note.delivery_date)}</TableCell>
+                        <TableCell>{formatDate(note.work_date)}</TableCell>
                         <TableCell>{note.project?.name || '-'}</TableCell>
                         <TableCell className="max-w-xs truncate">
                           {note.description || '-'}
@@ -581,14 +501,6 @@ export function DesktopEmployeePage() {
                                 </DropdownMenuItem>
                               )}
 
-                              {canSubmitDeliveryNote(note) && (
-                                <DropdownMenuItem
-                                  onClick={() => handleSubmitDeliveryNote(note.id)}
-                                >
-                                  <Send className="h-4 w-4 mr-2" />
-                                  Einreichen
-                                </DropdownMenuItem>
-                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -684,78 +596,6 @@ export function DesktopEmployeePage() {
         )}
 
         {/* Approvals Tab (Manager / with grant) */}
-        {activeTab === 'approvals' && canApproveDeliveryNote() && (
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h1 className="text-2xl font-bold">Freigaben</h1>
-                <p className="text-muted-foreground">
-                  Lieferscheine zur Freigabe ({pendingApprovals.length} offen)
-                </p>
-              </div>
-            </div>
-
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nr.</TableHead>
-                    <TableHead>Datum</TableHead>
-                    <TableHead>Mitarbeiter</TableHead>
-                    <TableHead>Projekt</TableHead>
-                    <TableHead>Beschreibung</TableHead>
-                    <TableHead className="w-[150px]">Aktion</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pendingApprovals.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        Keine offenen Freigaben
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    pendingApprovals.map((note) => (
-                      <TableRow key={note.id}>
-                        <TableCell className="font-mono text-sm">
-                          {note.delivery_note_number || note.number || '-'}
-                        </TableCell>
-                        <TableCell>{formatDate(note.work_date || note.delivery_date)}</TableCell>
-                        <TableCell>
-                          {note.created_by_employee
-                            ? `${note.created_by_employee.first_name} ${note.created_by_employee.last_name}`
-                            : '-'}
-                        </TableCell>
-                        <TableCell>{note.project?.name || '-'}</TableCell>
-                        <TableCell className="max-w-xs truncate">
-                          {note.description || '-'}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="default"
-                              onClick={() => handleApproveDeliveryNote(note.id)}
-                            >
-                              <Check className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleRejectDeliveryNote(note.id)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </Card>
-          </div>
-        )}
 
         {/* Invoices Tab (only with grant) */}
         {activeTab === 'invoices' && canViewInvoices() && (
@@ -800,6 +640,7 @@ export function DesktopEmployeePage() {
         isOpen={vacationDialogOpen}
         onClose={() => setVacationDialogOpen(false)}
       />
+      </div>
     </div>
   );
 }

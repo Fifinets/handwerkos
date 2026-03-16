@@ -1,363 +1,465 @@
-import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/integrations/supabase/client'
-import { toast } from 'sonner'
-import { isAndroid, useAndroidDeliveryNotes } from '@/utils/androidPlugins'
+import { useState, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { toast } from 'sonner';
 
-interface DeliveryNote {
-  id: string
-  number: string
-  project_id: string | null
-  customer_id: string
-  company_id: string
-  status: 'draft' | 'sent' | 'signed' | 'cancelled'
-  delivery_date: string
-  delivery_address: any
-  total_work_minutes: number
-  total_break_minutes: number
-  signature_data: any
-  signed_at: string | null
-  signed_by_name: string | null
-  pdf_url: string | null
-  pdf_generated_at: string | null
-  created_at: string
-  updated_at: string
-  project?: {
-    id: string
-    name: string
-    customer: {
-      id: string
-      name: string
-      email: string | null
-      phone: string | null
-    }
-  }
-  delivery_note_items?: DeliveryNoteItem[]
-  delivery_note_time_segments?: Array<{
-    time_segment: {
-      started_at: string
-      ended_at: string
-      duration_minutes: number
-    }
-  }>
+// ============================================================================
+// TYPES matching our DB schema
+// ============================================================================
+
+export interface DeliveryNoteItem {
+  id: string;
+  delivery_note_id: string;
+  item_type: 'material' | 'photo';
+  material_name: string | null;
+  material_quantity: number | null;
+  material_unit: string | null;
+  unit_price: number | null;
+  photo_url: string | null;
+  photo_caption: string | null;
+  sort_order: number;
+  created_at: string;
 }
 
-interface DeliveryNoteItem {
-  id: string
-  delivery_note_id: string
-  item_type: 'time' | 'material' | 'service'
-  time_segment_id: string | null
-  material_id: string | null
-  description: string
-  quantity: number
-  unit: string
-  unit_price: number | null
-  total_price: number | null
-  sort_order: number
-  time_segment?: {
-    started_at: string
-    ended_at: string | null
-    duration_minutes_computed: number
-    segment_type: string
-    description: string | null
-  }
-  material?: {
-    name: string
-    unit: string
-    unit_price: number
-  }
+export interface DeliveryNote {
+  id: string;
+  company_id: string;
+  project_id: string;
+  customer_id: string | null;
+  employee_id: string;
+  delivery_note_number: string | null;
+  work_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  break_minutes: number;
+  description: string;
+  status: 'draft' | 'submitted' | 'approved' | 'rejected' | 'invoiced';
+  submitted_at: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  rejection_reason: string | null;
+  signature_data: string | null;
+  signature_name: string | null;
+  signed_at: string | null;
+  additional_employee_ids: string[] | null;
+  created_at: string;
+  updated_at: string;
+  // Relations
+  project?: { id: string; name: string } | null;
+  employee?: { id: string; first_name: string; last_name: string; hourly_rate?: number } | null;
+  delivery_note_items?: DeliveryNoteItem[];
 }
 
-interface CreateDeliveryNoteParams {
-  projectId: string
-  customerId: string
-  deliveryDate?: string
-  timeSegmentIds?: string[]
-  materialItems?: Array<{
-    materialId?: string
-    description: string
-    quantity: number
-    unit?: string
-    unitPrice?: number
-  }>
-  deliveryAddress?: any
+export interface DeliveryNoteCreateData {
+  project_id: string;
+  customer_id?: string;
+  work_date: string;
+  start_time?: string;
+  end_time?: string;
+  break_minutes?: number;
+  description: string;
+  signature_data?: string;
+  signature_name?: string;
+  additional_employee_ids?: string[];
 }
+
+export interface DeliveryNoteItemCreateData {
+  item_type: 'material' | 'photo';
+  material_name?: string;
+  material_quantity?: number;
+  material_unit?: string;
+  unit_price?: number;
+  photo_url?: string;
+  photo_caption?: string;
+  sort_order?: number;
+}
+
+export interface DeliveryNoteFilters {
+  employee_id?: string;
+  project_id?: string;
+  status?: string | string[];
+  work_date_from?: string;
+  work_date_to?: string;
+}
+
+// ============================================================================
+// HOOK
+// ============================================================================
 
 export const useDeliveryNotes = () => {
-  const [deliveryNotes, setDeliveryNotes] = useState<DeliveryNote[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [isCreating, setIsCreating] = useState(false)
+  const { companyId, user, isManager } = useSupabaseAuth();
+  const [deliveryNotes, setDeliveryNotes] = useState<DeliveryNote[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Get Android-specific hooks if on Android platform
-  const androidDeliveryNotes = isAndroid() ? useAndroidDeliveryNotes() : null
+  // Get employee ID for current user
+  const getEmployeeId = useCallback(async (): Promise<string | null> => {
+    if (!user) return null;
+    const { data } = await supabase
+      .from('employees')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    return data?.id ?? null;
+  }, [user]);
 
-  // Fallback function that works without database tables (enhanced with Android support)
-  const fetchDeliveryNotes = useCallback(async () => {
+  // -------------------------------------------------------------------------
+  // FETCH
+  // -------------------------------------------------------------------------
+
+  const fetchDeliveryNotes = useCallback(async (filters?: DeliveryNoteFilters) => {
+    if (!companyId) return;
+    setIsLoading(true);
+    setError(null);
+
     try {
-      setIsLoading(true)
+      let query = supabase
+        .from('delivery_notes')
+        .select(`
+          *,
+          project:projects(id, name),
+          employee:employees!employee_id(id, first_name, last_name, hourly_rate),
+          delivery_note_items(*)
+        `)
+        .eq('company_id', companyId)
+        .order('work_date', { ascending: false })
+        .order('created_at', { ascending: false });
 
-      // Use Android plugin if available
-      if (isAndroid() && androidDeliveryNotes) {
-        try {
-          const notes = await androidDeliveryNotes.getPendingNotes()
-          const mappedNotes: DeliveryNote[] = notes.map(note => ({
-            id: note.id,
-            number: note.number,
-            project_id: 'android-project',
-            customer_id: 'android-customer',
-            company_id: 'android-company',
-            status: note.status as any,
-            delivery_date: new Date(note.createdAt).toISOString().split('T')[0],
-            delivery_address: null,
-            total_work_minutes: 0,
-            total_break_minutes: 0,
-            signature_data: null,
-            signed_at: null,
-            signed_by_name: null,
-            pdf_url: null,
-            pdf_generated_at: null,
-            created_at: new Date(note.createdAt).toISOString(),
-            updated_at: new Date(note.createdAt).toISOString(),
-            project: {
-              id: 'android-project',
-              name: note.projectName,
-              customer: {
-                id: 'android-customer',
-                name: note.customerName,
-                email: null,
-                phone: null
-              }
-            }
-          }))
-          setDeliveryNotes(mappedNotes)
-          return
-        } catch (androidError) {
-          console.warn('Android delivery notes failed, falling back to web:', androidError)
+      // For non-managers: only show own delivery notes
+      if (!isManager) {
+        const employeeId = await getEmployeeId();
+        if (employeeId) {
+          query = query.eq('employee_id', employeeId);
         }
       }
 
-      // Try to fetch from database, but don't fail if tables don't exist
-      try {
-        const { data, error } = await supabase
-          .from('delivery_notes')
-          .select(`
-            *,
-            project:projects(
-              id,
-              name,
-              customer:customers(id, name, email, phone)
-            ),
-            delivery_note_items(*),
-            delivery_note_time_segments(
-              time_segment:time_segments(started_at, ended_at, duration_minutes)
-            )
-          `)
-          .order('created_at', { ascending: false })
-
-        if (error && !error.message.includes('relation') && !error.message.includes('does not exist')) {
-          throw error
+      // Apply optional filters
+      if (filters?.employee_id) {
+        query = query.eq('employee_id', filters.employee_id);
+      }
+      if (filters?.project_id) {
+        query = query.eq('project_id', filters.project_id);
+      }
+      if (filters?.status) {
+        if (Array.isArray(filters.status)) {
+          query = query.in('status', filters.status);
+        } else {
+          query = query.eq('status', filters.status);
         }
-
-        setDeliveryNotes(data || [])
-      } catch (error: any) {
-        // If tables don't exist, just use empty array
-        console.warn('Delivery notes tables not found, using mock data:', error.message)
-        setDeliveryNotes([
-          // Mock delivery note for demonstration
-          {
-            id: 'mock-1',
-            number: 'LS-2024-000001',
-            project_id: 'mock-project-1',
-            customer_id: 'mock-customer-1',
-            company_id: 'mock-company-1',
-            status: 'sent' as const,
-            delivery_date: new Date().toISOString().split('T')[0],
-            delivery_address: null,
-            total_work_minutes: 480,
-            total_break_minutes: 60,
-            signature_data: null,
-            signed_at: null,
-            signed_by_name: null,
-            pdf_url: null,
-            pdf_generated_at: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            project: {
-              id: 'mock-project-1',
-              name: 'Beispiel Baustelle',
-              customer: {
-                id: 'mock-customer-1',
-                name: 'Max Mustermann GmbH',
-                email: 'max@example.com',
-                phone: '+49 123 456789'
-              }
-            },
-            delivery_note_items: [
-              {
-                id: 'mock-item-1',
-                delivery_note_id: 'mock-1',
-                item_type: 'time' as const,
-                time_segment_id: 'mock-time-1',
-                material_id: null,
-                description: 'Arbeitszeit',
-                quantity: 8,
-                unit: 'Stunden',
-                unit_price: 45.00,
-                total_price: 360.00,
-                sort_order: 1
-              }
-            ],
-            delivery_note_time_segments: [
-              {
-                time_segment: {
-                  started_at: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-                  ended_at: new Date().toISOString(),
-                  duration_minutes: 480
-                }
-              }
-            ]
-          }
-        ])
+      }
+      if (filters?.work_date_from) {
+        query = query.gte('work_date', filters.work_date_from);
+      }
+      if (filters?.work_date_to) {
+        query = query.lte('work_date', filters.work_date_to);
       }
 
-    } catch (error: any) {
-      console.error('Error in fetchDeliveryNotes:', error)
-      setDeliveryNotes([])
+      const { data, error: fetchError } = await query;
+      if (fetchError) throw fetchError;
+
+      setDeliveryNotes((data as DeliveryNote[]) || []);
+    } catch (err: any) {
+      console.error('Error fetching delivery notes:', err);
+      setError(err.message);
+      setDeliveryNotes([]);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [androidDeliveryNotes])
+  }, [companyId, isManager, getEmployeeId]);
 
-  // Sign delivery note function (enhanced with Android support)
-  const signDeliveryNote = useCallback(async (
-    deliveryNoteId: string,
-    signatureData: { svg: string },
-    signerName: string
-  ) => {
-    try {
-      // Use Android plugin if available
-      if (isAndroid() && androidDeliveryNotes) {
-        try {
-          // Convert SVG to Android-compatible signature format
-          const androidSignatureData = {
-            paths: [], // Would need to parse SVG paths
-            width: 400,
-            height: 200
-          }
+  // -------------------------------------------------------------------------
+  // CREATE
+  // -------------------------------------------------------------------------
 
-          const result = await androidDeliveryNotes.signNote(deliveryNoteId, signerName, androidSignatureData)
-          if (result.success) {
-            toast.success('Lieferschein erfolgreich signiert (Android)')
-            await fetchDeliveryNotes()
-            return result
-          }
-        } catch (androidError) {
-          console.warn('Android delivery note signing failed, falling back to web:', androidError)
-        }
-      }
+  const createDeliveryNote = useCallback(async (data: DeliveryNoteCreateData): Promise<DeliveryNote | null> => {
+    if (!companyId) return null;
 
-      // Try to call RPC function if it exists
-      try {
-        const { data, error } = await supabase.rpc('rpc_sign_delivery_note', {
-          p_delivery_note_id: deliveryNoteId,
-          p_signature_data: signatureData,
-          p_signer_name: signerName
-        })
-
-        if (error && !error.message.includes('function') && !error.message.includes('does not exist')) {
-          throw error
-        }
-
-        toast.success('Lieferschein erfolgreich signiert')
-        await fetchDeliveryNotes() // Refresh the list
-        return data
-      } catch (error: any) {
-        if (error.message.includes('function') || error.message.includes('does not exist')) {
-          // Mock signing if RPC doesn't exist
-          console.warn('RPC function not found, using mock signing')
-
-          // Update local state to simulate signing
-          setDeliveryNotes(prev => prev.map(note =>
-            note.id === deliveryNoteId
-              ? {
-                ...note,
-                signature_data: signatureData,
-                signed_at: new Date().toISOString(),
-                signed_by_name: signerName,
-                status: 'signed' as const
-              }
-              : note
-          ))
-
-          toast.success('Lieferschein erfolgreich signiert (Demo-Modus)')
-          return { id: deliveryNoteId }
-        }
-        throw error
-      }
-    } catch (error: any) {
-      console.error('Error signing delivery note:', error)
-      toast.error('Fehler beim Signieren des Lieferscheins')
-      throw error
+    const employeeId = await getEmployeeId();
+    if (!employeeId) {
+      toast.error('Mitarbeiter-Profil nicht gefunden');
+      return null;
     }
-  }, [fetchDeliveryNotes, androidDeliveryNotes])
 
-  // Simple create function
-  const createDeliveryNote = useCallback(async (params: CreateDeliveryNoteParams) => {
-    try {
-      setIsCreating(true)
-
-      // Mock creation for now
-      const mockNote: DeliveryNote = {
-        id: `mock-${Date.now()}`,
-        number: `LS-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(6, '0')}`,
-        project_id: params.projectId,
-        customer_id: params.customerId,
-        company_id: 'mock-company',
+    const { data: result, error: insertError } = await supabase
+      .from('delivery_notes')
+      .insert({
+        company_id: companyId,
+        employee_id: employeeId,
+        project_id: data.project_id,
+        customer_id: data.customer_id || null,
+        work_date: data.work_date,
+        start_time: data.start_time || null,
+        end_time: data.end_time || null,
+        break_minutes: data.break_minutes ?? 0,
+        description: data.description,
         status: 'draft',
-        delivery_date: params.deliveryDate || new Date().toISOString().split('T')[0],
-        delivery_address: params.deliveryAddress,
-        total_work_minutes: 0,
-        total_break_minutes: 0,
-        signature_data: null,
-        signed_at: null,
-        signed_by_name: null,
-        pdf_url: null,
-        pdf_generated_at: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }
+        signature_data: data.signature_data || null,
+        signature_name: data.signature_name || null,
+        signed_at: data.signature_data ? new Date().toISOString() : null,
+        additional_employee_ids: data.additional_employee_ids || [],
+      })
+      .select(`*, project:projects(id, name), employee:employees!employee_id(id, first_name, last_name, hourly_rate), delivery_note_items(*)`)
+      .single();
 
-      setDeliveryNotes(prev => [mockNote, ...prev])
-      toast.success('Lieferschein erstellt (Demo-Modus)')
-
-      return mockNote
-    } catch (error: any) {
-      console.error('Error creating delivery note:', error)
-      toast.error('Fehler beim Erstellen des Lieferscheins')
-      throw error
-    } finally {
-      setIsCreating(false)
+    if (insertError) {
+      console.error('Error creating delivery note:', insertError);
+      toast.error(`Lieferschein konnte nicht erstellt werden: ${insertError.message}`);
+      return null;
     }
-  }, [])
 
-  const updateDeliveryNote = async (id: string, data: any) => { };
-  const fetchDeliveryNote = async (id: string) => null;
-  const addItem = async (noteId: string, item: any) => { };
-  const removeItem = async (itemId: string) => { };
-  const submitForApproval = async (noteId: string) => { };
-  const currentDeliveryNote = null;
+    toast.success('Lieferschein als Entwurf gespeichert');
+    setDeliveryNotes(prev => [result as DeliveryNote, ...prev]);
+    return result as DeliveryNote;
+  }, [companyId, getEmployeeId]);
+
+  // -------------------------------------------------------------------------
+  // UPDATE
+  // -------------------------------------------------------------------------
+
+  const updateDeliveryNote = useCallback(async (id: string, data: Partial<DeliveryNoteCreateData>): Promise<boolean> => {
+    const { error: updateError } = await supabase
+      .from('delivery_notes')
+      .update({
+        ...(data.work_date !== undefined && { work_date: data.work_date }),
+        ...(data.start_time !== undefined && { start_time: data.start_time }),
+        ...(data.end_time !== undefined && { end_time: data.end_time }),
+        ...(data.break_minutes !== undefined && { break_minutes: data.break_minutes }),
+        ...(data.description !== undefined && { description: data.description }),
+        ...(data.project_id !== undefined && { project_id: data.project_id }),
+        ...(data.customer_id !== undefined && { customer_id: data.customer_id }),
+        ...(data.additional_employee_ids !== undefined && { additional_employee_ids: data.additional_employee_ids }),
+      })
+      .eq('id', id)
+      .eq('status', 'draft'); // Only draft can be updated
+
+    if (updateError) {
+      console.error('Error updating delivery note:', updateError);
+      toast.error('Lieferschein konnte nicht aktualisiert werden');
+      return false;
+    }
+
+    await fetchDeliveryNotes();
+    return true;
+  }, [fetchDeliveryNotes]);
+
+  // -------------------------------------------------------------------------
+  // DELETE
+  // -------------------------------------------------------------------------
+
+  const deleteDeliveryNote = useCallback(async (id: string): Promise<boolean> => {
+    const { error: deleteError } = await supabase
+      .from('delivery_notes')
+      .delete()
+      .eq('id', id)
+      .eq('status', 'draft');
+
+    if (deleteError) {
+      console.error('Error deleting delivery note:', deleteError);
+      toast.error('Lieferschein konnte nicht gelöscht werden');
+      return false;
+    }
+
+    toast.success('Lieferschein gelöscht');
+    setDeliveryNotes(prev => prev.filter(n => n.id !== id));
+    return true;
+  }, []);
+
+  // -------------------------------------------------------------------------
+  // ITEMS
+  // -------------------------------------------------------------------------
+
+  const addItem = useCallback(async (noteId: string, item: DeliveryNoteItemCreateData): Promise<DeliveryNoteItem | null> => {
+    const { data, error: insertError } = await supabase
+      .from('delivery_note_items')
+      .insert({
+        delivery_note_id: noteId,
+        item_type: item.item_type,
+        material_name: item.material_name || null,
+        material_quantity: item.material_quantity || null,
+        material_unit: item.material_unit || null,
+        unit_price: item.unit_price || null,
+        photo_url: item.photo_url || null,
+        photo_caption: item.photo_caption || null,
+        sort_order: item.sort_order ?? 0,
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Error adding item:', insertError);
+      toast.error('Position konnte nicht hinzugefügt werden');
+      return null;
+    }
+
+    // Update local state
+    setDeliveryNotes(prev => prev.map(n =>
+      n.id === noteId
+        ? { ...n, delivery_note_items: [...(n.delivery_note_items || []), data as DeliveryNoteItem] }
+        : n
+    ));
+
+    return data as DeliveryNoteItem;
+  }, []);
+
+  const removeItem = useCallback(async (itemId: string, noteId: string): Promise<boolean> => {
+    const { error: deleteError } = await supabase
+      .from('delivery_note_items')
+      .delete()
+      .eq('id', itemId);
+
+    if (deleteError) {
+      console.error('Error removing item:', deleteError);
+      toast.error('Position konnte nicht entfernt werden');
+      return false;
+    }
+
+    setDeliveryNotes(prev => prev.map(n =>
+      n.id === noteId
+        ? { ...n, delivery_note_items: (n.delivery_note_items || []).filter(i => i.id !== itemId) }
+        : n
+    ));
+
+    return true;
+  }, []);
+
+  // -------------------------------------------------------------------------
+  // STATUS TRANSITIONS
+  // -------------------------------------------------------------------------
+
+  const submitForApproval = useCallback(async (noteId: string): Promise<boolean> => {
+    const { error: updateError } = await supabase
+      .from('delivery_notes')
+      .update({ status: 'submitted', submitted_at: new Date().toISOString() })
+      .eq('id', noteId)
+      .eq('status', 'draft');
+
+    if (updateError) {
+      console.error('Error submitting delivery note:', updateError);
+      toast.error('Einreichen fehlgeschlagen');
+      return false;
+    }
+
+    toast.success('Lieferschein eingereicht');
+    setDeliveryNotes(prev => prev.map(n =>
+      n.id === noteId ? { ...n, status: 'submitted', submitted_at: new Date().toISOString() } : n
+    ));
+    return true;
+  }, []);
+
+  const approve = useCallback(async (noteId: string): Promise<boolean> => {
+    const employeeId = await getEmployeeId();
+
+    const { error: updateError } = await supabase
+      .from('delivery_notes')
+      .update({
+        status: 'approved',
+        approved_by: employeeId,
+        approved_at: new Date().toISOString(),
+        rejection_reason: null,
+      })
+      .eq('id', noteId)
+      .eq('status', 'submitted');
+
+    if (updateError) {
+      console.error('Error approving delivery note:', updateError);
+      toast.error('Freigabe fehlgeschlagen');
+      return false;
+    }
+
+    toast.success('Lieferschein freigegeben');
+    setDeliveryNotes(prev => prev.map(n =>
+      n.id === noteId ? { ...n, status: 'approved', approved_at: new Date().toISOString() } : n
+    ));
+    return true;
+  }, [getEmployeeId]);
+
+  const reject = useCallback(async (noteId: string, reason: string): Promise<boolean> => {
+    const { error: updateError } = await supabase
+      .from('delivery_notes')
+      .update({ status: 'rejected', rejection_reason: reason })
+      .eq('id', noteId)
+      .eq('status', 'submitted');
+
+    if (updateError) {
+      console.error('Error rejecting delivery note:', updateError);
+      toast.error('Ablehnung fehlgeschlagen');
+      return false;
+    }
+
+    toast.success('Lieferschein abgelehnt');
+    setDeliveryNotes(prev => prev.map(n =>
+      n.id === noteId ? { ...n, status: 'rejected', rejection_reason: reason } : n
+    ));
+    return true;
+  }, []);
+
+  const signDeliveryNote = useCallback(async (
+    noteId: string,
+    signatureData: string,
+    signerName: string,
+  ): Promise<boolean> => {
+    const { error: updateError } = await supabase
+      .from('delivery_notes')
+      .update({
+        signature_data: signatureData,
+        signature_name: signerName,
+        signed_at: new Date().toISOString(),
+      })
+      .eq('id', noteId);
+
+    if (updateError) {
+      console.error('Error signing delivery note:', updateError);
+      toast.error('Unterschrift konnte nicht gespeichert werden');
+      return false;
+    }
+
+    toast.success('Unterschrift gespeichert');
+    setDeliveryNotes(prev => prev.map(n =>
+      n.id === noteId
+        ? { ...n, signature_data: signatureData, signature_name: signerName, signed_at: new Date().toISOString() }
+        : n
+    ));
+    return true;
+  }, []);
+
+  // -------------------------------------------------------------------------
+  // FETCH SINGLE
+  // -------------------------------------------------------------------------
+
+  const fetchDeliveryNote = useCallback(async (id: string): Promise<DeliveryNote | null> => {
+    const { data, error: fetchError } = await supabase
+      .from('delivery_notes')
+      .select(`
+        *,
+        project:projects(id, name),
+        employee:employees!employee_id(id, first_name, last_name, hourly_rate),
+        delivery_note_items(*)
+      `)
+      .eq('id', id)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching delivery note:', fetchError);
+      return null;
+    }
+
+    return data as DeliveryNote;
+  }, []);
 
   return {
     deliveryNotes,
     isLoading,
-    isCreating,
+    error,
     fetchDeliveryNotes,
-    createDeliveryNote,
-    signDeliveryNote,
-    updateDeliveryNote,
     fetchDeliveryNote,
+    createDeliveryNote,
+    updateDeliveryNote,
+    deleteDeliveryNote,
     addItem,
     removeItem,
     submitForApproval,
-    currentDeliveryNote,
-  }
-}
+    approve,
+    reject,
+    signDeliveryNote,
+  };
+};
