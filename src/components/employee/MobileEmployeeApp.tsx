@@ -42,7 +42,6 @@ interface Project {
   id: string;
   name: string;
   status: string;
-  location: string;
   priority: 'low' | 'normal' | 'high' | 'urgent';
   assignedTo: string[];
   deadline?: string;
@@ -437,7 +436,6 @@ const MobileEmployeeApp: React.FC = () => {
             id,
             name,
             status,
-            location,
             start_date,
             end_date,
             priority
@@ -461,7 +459,6 @@ const MobileEmployeeApp: React.FC = () => {
         id: assignment.projects.id,
         name: assignment.projects.name,
         status: assignment.projects.status || 'in_bearbeitung',
-        location: assignment.projects.location || 'Nicht angegeben',
         priority: assignment.projects.priority || 'normal',
         assignedTo: [user.id],
         deadline: assignment.projects.end_date
@@ -1188,7 +1185,7 @@ const MobileEmployeeApp: React.FC = () => {
                 <h4 className="font-semibold text-sm">{project.name}</h4>
                 <p className="text-gray-600 text-xs flex items-center gap-1">
                   <MapPin className="h-3 w-3" />
-                  {project.location}
+                  {project.status}
                 </p>
               </div>
               <Badge

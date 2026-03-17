@@ -19,7 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface Project {
   id: string;
   name: string;
-  location: string;
+  location?: string;
 }
 
 interface LocationBasedTimeTrackingProps {
@@ -133,8 +133,7 @@ const LocationBasedTimeTracking: React.FC<LocationBasedTimeTrackingProps> = ({ e
           project_id,
           projects (
             id,
-            name,
-            location
+            name
           )
         `)
         .eq('employee_id', employee.id)
@@ -146,7 +145,7 @@ const LocationBasedTimeTracking: React.FC<LocationBasedTimeTrackingProps> = ({ e
         setAssignedProject({
           id: assignment.projects.id,
           name: assignment.projects.name,
-          location: assignment.projects.location || ''
+          location: ''
         });
       }
     } catch (error) {

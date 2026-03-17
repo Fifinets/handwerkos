@@ -46,7 +46,7 @@ export interface DeliveryNote {
   updated_at: string;
   // Relations
   project?: { id: string; name: string } | null;
-  employee?: { id: string; first_name: string; last_name: string; hourly_rate?: number } | null;
+  employee?: { id: string; first_name: string; last_name: string; hourly_wage?: number } | null;
   delivery_note_items?: DeliveryNoteItem[];
 }
 
@@ -118,7 +118,7 @@ export const useDeliveryNotes = () => {
         .select(`
           *,
           project:projects(id, name),
-          employee:employees!employee_id(id, first_name, last_name, hourly_rate),
+          employee:employees!employee_id(id, first_name, last_name, hourly_wage),
           delivery_note_items(*)
         `)
         .eq('company_id', companyId)
@@ -198,7 +198,7 @@ export const useDeliveryNotes = () => {
         signed_at: data.signature_data ? new Date().toISOString() : null,
         additional_employee_ids: data.additional_employee_ids || [],
       })
-      .select(`*, project:projects(id, name), employee:employees!employee_id(id, first_name, last_name, hourly_rate), delivery_note_items(*)`)
+      .select(`*, project:projects(id, name), employee:employees!employee_id(id, first_name, last_name, hourly_wage), delivery_note_items(*)`)
       .single();
 
     if (insertError) {
@@ -432,7 +432,7 @@ export const useDeliveryNotes = () => {
       .select(`
         *,
         project:projects(id, name),
-        employee:employees!employee_id(id, first_name, last_name, hourly_rate),
+        employee:employees!employee_id(id, first_name, last_name, hourly_wage),
         delivery_note_items(*)
       `)
       .eq('id', id)

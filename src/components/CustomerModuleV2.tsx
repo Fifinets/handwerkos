@@ -51,6 +51,13 @@ const CustomerModuleV2 = () => {
 
     const customers = customersResponse?.items || [];
 
+    // Real KPI calculations
+    const now = new Date();
+    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const newThisMonth = customers.filter(c => c.created_at >= firstOfMonth).length;
+    const activeCount = customers.filter(c => c.status === 'Aktiv' || c.status === 'Premium').length;
+    const premiumCount = customers.filter(c => c.status === 'Premium').length;
+
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'Aktiv': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
@@ -119,7 +126,7 @@ const CustomerModuleV2 = () => {
                     <CardContent className="p-5 flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-slate-500">Aktive Kunden</p>
-                            <h3 className="text-2xl font-bold text-slate-900 mt-1">{customers.filter(c => c.status === 'Aktiv' || c.status === 'Premium').length}</h3>
+                            <h3 className="text-2xl font-bold text-slate-900 mt-1">{activeCount}</h3>
                         </div>
                         <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center">
                             <Users className="h-6 w-6 text-slate-600" />
@@ -130,7 +137,7 @@ const CustomerModuleV2 = () => {
                     <CardContent className="p-5 flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-slate-500">Premium Kunden</p>
-                            <h3 className="text-2xl font-bold text-slate-900 mt-1">{customers.filter(c => c.status === 'Premium').length}</h3>
+                            <h3 className="text-2xl font-bold text-slate-900 mt-1">{premiumCount}</h3>
                         </div>
                         <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center">
                             <UserCheck className="h-6 w-6 text-slate-600" />
@@ -141,7 +148,7 @@ const CustomerModuleV2 = () => {
                     <CardContent className="p-5 flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-slate-500">Neu im Monat</p>
-                            <h3 className="text-2xl font-bold text-slate-900 mt-1">12</h3>
+                            <h3 className="text-2xl font-bold text-slate-900 mt-1">{newThisMonth}</h3>
                         </div>
                         <div className="h-12 w-12 rounded-full bg-emerald-50 flex items-center justify-center">
                             <TrendingUp className="h-6 w-6 text-emerald-600" />
@@ -151,8 +158,8 @@ const CustomerModuleV2 = () => {
                 <Card className="bg-white border-slate-200 shadow-sm">
                     <CardContent className="p-5 flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-slate-500">Kundenumfang</p>
-                            <h3 className="text-2xl font-bold text-slate-900 mt-1">€124.5K</h3>
+                            <p className="text-sm font-medium text-slate-500">Gesamt</p>
+                            <h3 className="text-2xl font-bold text-slate-900 mt-1">{customers.length}</h3>
                         </div>
                         <div className="h-12 w-12 rounded-full bg-amber-50 flex items-center justify-center">
                             <Euro className="h-6 w-6 text-amber-600" />
@@ -278,9 +285,58 @@ const CustomerModuleV2 = () => {
                 </TabsContent>
 
                 <TabsContent value="map" className="m-0">
-                    <Card className="bg-white border-slate-200 shadow-sm p-12 text-center text-slate-500">
-                        Kundenkarte wird geladen...
-                    </Card>
+                    {filteredCustomers.length === 0 ? (
+                        <Card className="bg-white border-slate-200 shadow-sm p-12 text-center text-slate-500">
+                            Keine Kunden gefunden
+                        </Card>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {filteredCustomers.map((customer) => (
+                                <Card
+                                    key={customer.id}
+                                    className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                                    onClick={() => handleEditCustomer(customer)}
+                                >
+                                    <CardContent className="p-5">
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-10 w-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 font-semibold">
+                                                    {(customer.company_name || customer.contact_person || 'U')[0].toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <p className="font-semibold text-slate-900 text-sm">{customer.company_name || 'Privatkunde'}</p>
+                                                    <p className="text-xs text-slate-500">{customer.contact_person}</p>
+                                                </div>
+                                            </div>
+                                            <Badge variant="outline" className={`text-xs font-normal ${getStatusColor(customer.status || 'Aktiv')}`}>
+                                                {customer.status || 'Aktiv'}
+                                            </Badge>
+                                        </div>
+                                        <div className="space-y-1.5 text-xs text-slate-600">
+                                            {customer.email && (
+                                                <div className="flex items-center gap-1.5">
+                                                    <Mail className="h-3 w-3 text-slate-400" />
+                                                    <span className="truncate">{customer.email}</span>
+                                                </div>
+                                            )}
+                                            {customer.phone && (
+                                                <div className="flex items-center gap-1.5">
+                                                    <Phone className="h-3 w-3 text-slate-400" />
+                                                    {customer.phone}
+                                                </div>
+                                            )}
+                                            {(customer.city || customer.address) && (
+                                                <div className="flex items-center gap-1.5">
+                                                    <MapPin className="h-3 w-3 text-slate-400" />
+                                                    <span className="truncate">{formatAddress(customer) || '-'}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
                 </TabsContent>
             </Tabs>
 

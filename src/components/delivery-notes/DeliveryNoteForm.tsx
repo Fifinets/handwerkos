@@ -41,12 +41,15 @@ interface MaterialItem {
   material_quantity: number;
   material_unit: string;
   unit_price?: number;
+  markup_percent: number;  // Aufschlag %
+  vat_rate: number;        // MwSt-Satz (19 oder 7)
 }
 
 interface PhotoItem {
   id?: string;
   photo_url: string;
   photo_caption: string;
+  localPreview?: string; // blob URL for immediate preview
 }
 
 interface ProjectOption {
@@ -103,7 +106,7 @@ export function DeliveryNoteForm({
   // Track if user manually changed the break (to not auto-override)
   const [breakManuallySet, setBreakManuallySet] = useState(false);
   // Employees for multi-select
-  const [allEmployees, setAllEmployees] = useState<{ id: string; name: string; hourly_rate: number }[]>([]);
+  const [allEmployees, setAllEmployees] = useState<{ id: string; name: string; hourly_wage: number }[]>([]);
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [currentEmployeeId, setCurrentEmployeeId] = useState<string | null>(null);
   // Fallback hourly rate if employee has none configured in DB
@@ -120,7 +123,7 @@ export function DeliveryNoteForm({
 
   // Fetch projects and employees for dropdown
   useEffect(() => {
-    if (!open || !companyId) return;
+    if (!open || !companyId || !user?.id) return;
     supabase
       .from('projects')
       .select('id, name, customers(company_name)')
@@ -140,22 +143,22 @@ export function DeliveryNoteForm({
     // Fetch employees for multi-select + get current user's employee ID
     supabase
       .from('employees')
-      .select('id, first_name, last_name, hourly_rate, user_id')
+      .select('id, first_name, last_name, hourly_wage, user_id')
       .eq('company_id', companyId)
       .order('first_name')
       .then(({ data }) => {
         const emps = (data || []).map((e: any) => ({
           id: e.id,
           name: `${e.first_name} ${e.last_name}`.trim(),
-          hourly_rate: e.hourly_rate ?? 0,
+          hourly_wage: e.hourly_wage ?? 0,
           user_id: e.user_id,
         }));
         setAllEmployees(emps);
         // Find current user's employee record
-        const me = emps.find((e: any) => e.user_id === user?.id);
+        const me = emps.find((e: any) => e.user_id === user.id);
         if (me) setCurrentEmployeeId(me.id);
       });
-  }, [open, companyId]);
+  }, [open, companyId, user?.id]);
 
   // Auto-break calculation — only if user hasn't manually set it
   const autoBreak = calcAutoBreak(formData.start_time, formData.end_time);
@@ -207,6 +210,8 @@ export function DeliveryNoteForm({
               material_quantity: i.material_quantity ?? 1,
               material_unit: i.material_unit || 'Stk',
               unit_price: i.unit_price ?? undefined,
+              markup_percent: 0,
+              vat_rate: 19,
             }));
 
           const photoItems = (note.delivery_note_items || [])
@@ -256,7 +261,7 @@ export function DeliveryNoteForm({
 
   // Material handlers
   const addMaterial = () => {
-    setMaterials([...materials, { material_name: '', material_quantity: 1, material_unit: 'Stk' }]);
+    setMaterials([...materials, { material_name: '', material_quantity: 1, material_unit: 'Stk', markup_percent: 0, vat_rate: 19 }]);
   };
 
   const updateMaterial = (index: number, field: keyof MaterialItem, value: any) => {
@@ -281,6 +286,12 @@ export function DeliveryNoteForm({
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Immediate local preview
+    const localPreview = URL.createObjectURL(file);
+    const newIndex = photos.length;
+    setPhotos(prev => [...prev, { photo_url: '', photo_caption: '', localPreview }]);
+
     setUploadingPhoto(true);
     try {
       const ext = file.name.split('.').pop();
@@ -290,11 +301,15 @@ export function DeliveryNoteForm({
         .upload(fileName, file, { upsert: false });
       if (error) throw error;
       const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(data.path);
-      setPhotos([...photos, { photo_url: publicUrl, photo_caption: '' }]);
-    } catch {
-      setPhotos([...photos, { photo_url: '', photo_caption: '' }]);
+      // Update with real URL, keep local preview as fallback
+      setPhotos(prev => prev.map((p, i) => i === newIndex ? { ...p, photo_url: publicUrl } : p));
+    } catch (err) {
+      console.error('Photo upload failed:', err);
+      toast.error('Foto-Upload fehlgeschlagen — lokale Vorschau bleibt erhalten');
     } finally {
       setUploadingPhoto(false);
+      // Reset file input so same file can be re-selected
+      e.target.value = '';
     }
   };
 
@@ -389,23 +404,32 @@ export function DeliveryNoteForm({
     }
   };
 
-  const materialTotal = materials.reduce(
-    (sum, m) => sum + (m.material_quantity || 0) * (m.unit_price || 0),
-    0
-  );
+  // Material cost helpers
+  const calcLineNet = (m: MaterialItem) => {
+    const base = (m.material_quantity || 0) * (m.unit_price || 0);
+    return base * (1 + (m.markup_percent || 0) / 100);
+  };
+  const calcLineGross = (m: MaterialItem) => calcLineNet(m) * (1 + (m.vat_rate || 19) / 100);
+
+  const materialNetto = materials.reduce((sum, m) => sum + calcLineNet(m), 0);
+  const materialMwst = materials.reduce((sum, m) => sum + (calcLineGross(m) - calcLineNet(m)), 0);
+  const materialBrutto = materialNetto + materialMwst;
+  // For backward compat: totalCost uses netto
+  const materialTotal = materialNetto;
 
   // Cost calculations
   const currentEmp = allEmployees.find(e => e.id === currentEmployeeId);
   const workerCount = 1 + selectedEmployeeIds.length;
-  const dbHourlyRate = (currentEmp?.hourly_rate ?? 0) +
+  const dbHourlyRate = (currentEmp?.hourly_wage ?? 0) +
     selectedEmployeeIds.reduce((sum, id) => {
       const emp = allEmployees.find(e => e.id === id);
-      return sum + (emp?.hourly_rate ?? 0);
+      return sum + (emp?.hourly_wage ?? 0);
     }, 0);
   const hasDbRate = dbHourlyRate > 0;
   const totalHourlyRate = hasDbRate ? dbHourlyRate : manualHourlyRate * workerCount;
   const laborCost = netHours * totalHourlyRate;
-  const totalCost = laborCost + materialTotal;
+  const totalCostNetto = laborCost + materialNetto;
+  const totalCostBrutto = laborCost + materialBrutto;
 
   // Available employees for selection (exclude current user)
   const availableEmployees = allEmployees.filter(e => e.id !== currentEmployeeId);
@@ -469,9 +493,9 @@ export function DeliveryNoteForm({
             <TabsTrigger value="materials" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
               Material ({materials.length})
-              {materialTotal > 0 && (
+              {materialBrutto > 0 && (
                 <span className="ml-1 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">
-                  {materialTotal.toFixed(0)}€
+                  {materialBrutto.toFixed(0)}€
                 </span>
               )}
             </TabsTrigger>
@@ -482,7 +506,7 @@ export function DeliveryNoteForm({
           </TabsList>
 
           {/* ---- DETAILS TAB ---- */}
-          <TabsContent value="details" className="space-y-4 mt-4">
+          <TabsContent value="details" className="space-y-4 mt-4 min-h-[600px]">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="work_date">Datum *</Label>
@@ -607,7 +631,7 @@ export function DeliveryNoteForm({
                     return (
                       <span key={id} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-md text-sm">
                         {emp.name}
-                        {emp.hourly_rate > 0 && <span className="text-blue-400 text-xs">({emp.hourly_rate}€/h)</span>}
+                        {emp.hourly_wage > 0 && <span className="text-blue-400 text-xs">({emp.hourly_wage}€/h)</span>}
                         <button
                           type="button"
                           onClick={() => setSelectedEmployeeIds(prev => prev.filter(x => x !== id))}
@@ -637,7 +661,7 @@ export function DeliveryNoteForm({
                       .filter(e => !selectedEmployeeIds.includes(e.id))
                       .map(emp => (
                         <SelectItem key={emp.id} value={emp.id}>
-                          {emp.name}{emp.hourly_rate > 0 ? ` (${emp.hourly_rate}€/h)` : ''}
+                          {emp.name}{emp.hourly_wage > 0 ? ` (${emp.hourly_wage}€/h)` : ''}
                         </SelectItem>
                       ))}
                   </SelectContent>
@@ -655,42 +679,70 @@ export function DeliveryNoteForm({
                   <Euro className="h-4 w-4" />
                   Kostenzusammenfassung
                 </Label>
-                <div className="flex justify-between items-center text-sm gap-2">
-                  <span className="text-muted-foreground shrink-0">
-                    Arbeitskosten ({netHours.toFixed(1)}h
-                    {workerCount > 1 ? ` × ${workerCount} Pers.` : ''}
-                    {totalHourlyRate > 0 ? ` × ${(totalHourlyRate / workerCount).toFixed(0)}€/h` : ''})
-                  </span>
-                  {hasDbRate ? (
-                    <span className="font-medium">{laborCost.toFixed(2)} €</span>
-                  ) : (
-                    <div className="flex items-center gap-1.5 ml-auto">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={1}
-                        placeholder="Stundensatz"
-                        value={manualHourlyRate || ''}
-                        onChange={(e) => setManualHourlyRate(parseFloat(e.target.value) || 0)}
-                        className="w-28 h-7 text-right text-sm"
-                      />
-                      <span className="text-muted-foreground text-xs whitespace-nowrap">€/h</span>
-                      {manualHourlyRate > 0 && (
-                        <span className="font-medium whitespace-nowrap">{laborCost.toFixed(2)} €</span>
-                      )}
+                {/* Show per-worker breakdown */}
+                <div className="space-y-1">
+                  {currentEmp && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        {currentEmp.name} ({netHours.toFixed(1)}h × {currentEmp.hourly_wage > 0 ? `${currentEmp.hourly_wage}€/h` : 'kein Satz'})
+                      </span>
+                      <span className="font-medium">
+                        {currentEmp.hourly_wage > 0 ? `${(netHours * currentEmp.hourly_wage).toFixed(2)} €` : '—'}
+                      </span>
                     </div>
                   )}
+                  {selectedEmployeeIds.map(id => {
+                    const emp = allEmployees.find(e => e.id === id);
+                    if (!emp) return null;
+                    return (
+                      <div key={id} className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          {emp.name} ({netHours.toFixed(1)}h × {emp.hourly_wage > 0 ? `${emp.hourly_wage}€/h` : 'kein Satz'})
+                        </span>
+                        <span className="font-medium">
+                          {emp.hourly_wage > 0 ? `${(netHours * emp.hourly_wage).toFixed(2)} €` : '—'}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
-                {materialTotal > 0 && (
+                {!hasDbRate && (
+                  <div className="flex items-center gap-1.5 text-sm">
+                    <span className="text-amber-600 text-xs">Kein Stundensatz hinterlegt — manuell eingeben:</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={1}
+                      placeholder="€/h"
+                      value={manualHourlyRate || ''}
+                      onChange={(e) => setManualHourlyRate(parseFloat(e.target.value) || 0)}
+                      className="w-20 h-7 text-right text-sm"
+                    />
+                    <span className="text-muted-foreground text-xs">€/h</span>
+                  </div>
+                )}
+                {hasDbRate && (
+                  <div className="flex justify-between text-sm border-t pt-1">
+                    <span className="text-muted-foreground">Lohnkosten gesamt</span>
+                    <span className="font-medium">{laborCost.toFixed(2)} €</span>
+                  </div>
+                )}
+                {materialNetto > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Materialkosten</span>
-                    <span className="font-medium">{materialTotal.toFixed(2)} €</span>
+                    <span className="text-muted-foreground">Material netto</span>
+                    <span className="font-medium">{materialNetto.toFixed(2)} €</span>
+                  </div>
+                )}
+                {materialMwst > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Material MwSt</span>
+                    <span className="font-medium">{materialMwst.toFixed(2)} €</span>
                   </div>
                 )}
                 <div className="flex justify-between border-t pt-2 text-sm font-semibold">
-                  <span>Gesamt</span>
+                  <span>Gesamt (brutto)</span>
                   <span className="text-blue-600">
-                    {totalHourlyRate > 0 || materialTotal > 0 ? `${totalCost.toFixed(2)} €` : '—'}
+                    {totalHourlyRate > 0 || materialNetto > 0 ? `${totalCostBrutto.toFixed(2)} €` : '—'}
                   </span>
                 </div>
               </div>
@@ -698,111 +750,165 @@ export function DeliveryNoteForm({
           </TabsContent>
 
           {/* ---- MATERIALS TAB ---- */}
-          <TabsContent value="materials" className="space-y-4 mt-4">
+          <TabsContent value="materials" className="space-y-4 mt-4 min-h-[600px]">
             {materials.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-4">
                 Noch keine Materialien eingetragen.
               </p>
             )}
-            {materials.map((material, index) => (
-              <Card key={index}>
-                <CardContent className="pt-4">
-                  <div className="flex gap-2">
-                    <div className="flex-1 grid grid-cols-4 gap-2">
-                      <div className="col-span-2">
-                        <Label className="text-xs">Bezeichnung</Label>
-                        <Input
-                          placeholder="z.B. Zement 25kg"
-                          value={material.material_name}
-                          onChange={(e) => updateMaterial(index, 'material_name', e.target.value)}
-                        />
+            {materials.map((material, index) => {
+              const lineNet = calcLineNet(material);
+              const lineGross = calcLineGross(material);
+              return (
+                <Card key={index}>
+                  <CardContent className="pt-4 space-y-2">
+                    <div className="flex gap-2">
+                      <div className="flex-1 grid grid-cols-4 gap-2">
+                        <div className="col-span-2">
+                          <Label className="text-xs">Bezeichnung</Label>
+                          <Input
+                            placeholder="z.B. Zement 25kg"
+                            value={material.material_name}
+                            onChange={(e) => updateMaterial(index, 'material_name', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Menge</Label>
+                          <Input
+                            type="number"
+                            min={0.01}
+                            step={0.01}
+                            value={material.material_quantity}
+                            onChange={(e) =>
+                              updateMaterial(index, 'material_quantity', parseFloat(e.target.value) || 0)
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Einheit</Label>
+                          <Input
+                            placeholder="Stk"
+                            value={material.material_unit}
+                            onChange={(e) => updateMaterial(index, 'material_unit', e.target.value)}
+                          />
+                        </div>
                       </div>
+                      <div className="self-end">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive"
+                          onClick={() => removeMaterial(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    {/* Price row: EK netto, Aufschlag, MwSt */}
+                    <div className="grid grid-cols-3 gap-2">
                       <div>
-                        <Label className="text-xs">Menge</Label>
+                        <Label className="text-xs">EK netto (€)</Label>
                         <Input
                           type="number"
-                          min={0.01}
                           step={0.01}
-                          value={material.material_quantity}
+                          min={0}
+                          placeholder="0.00"
+                          value={material.unit_price ?? ''}
                           onChange={(e) =>
-                            updateMaterial(index, 'material_quantity', parseFloat(e.target.value) || 0)
+                            updateMaterial(index, 'unit_price', parseFloat(e.target.value) || undefined)
                           }
+                          className="h-8 text-sm"
                         />
                       </div>
                       <div>
-                        <Label className="text-xs">Einheit</Label>
+                        <Label className="text-xs">Aufschlag %</Label>
                         <Input
-                          placeholder="Stk"
-                          value={material.material_unit}
-                          onChange={(e) => updateMaterial(index, 'material_unit', e.target.value)}
+                          type="number"
+                          step={1}
+                          min={0}
+                          placeholder="0"
+                          value={material.markup_percent || ''}
+                          onChange={(e) =>
+                            updateMaterial(index, 'markup_percent', parseFloat(e.target.value) || 0)
+                          }
+                          className="h-8 text-sm"
                         />
                       </div>
+                      <div>
+                        <Label className="text-xs">MwSt %</Label>
+                        <Select
+                          value={String(material.vat_rate)}
+                          onValueChange={(v) => updateMaterial(index, 'vat_rate', Number(v))}
+                        >
+                          <SelectTrigger className="h-8 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="19">19%</SelectItem>
+                            <SelectItem value="7">7%</SelectItem>
+                            <SelectItem value="0">0%</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <div className="self-end">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive"
-                        onClick={() => removeMaterial(index)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Label className="text-xs text-muted-foreground">Einzelpreis €</Label>
-                    <Input
-                      type="number"
-                      step={0.01}
-                      className="w-28 h-7 text-sm"
-                      placeholder="optional"
-                      value={material.unit_price ?? ''}
-                      onChange={(e) =>
-                        updateMaterial(index, 'unit_price', parseFloat(e.target.value) || undefined)
-                      }
-                    />
-                    {material.unit_price && material.material_quantity ? (
-                      <span className="text-xs text-muted-foreground ml-auto">
-                        = {(material.unit_price * material.material_quantity).toFixed(2)} €
-                      </span>
+                    {/* Line total */}
+                    {material.unit_price ? (
+                      <div className="flex justify-between text-xs text-muted-foreground bg-muted/50 rounded px-2 py-1.5">
+                        <span>
+                          {material.material_quantity} × {material.unit_price.toFixed(2)}€
+                          {material.markup_percent > 0 && ` + ${material.markup_percent}%`}
+                          {' '}= {lineNet.toFixed(2)}€ netto
+                        </span>
+                        <span className="font-medium text-foreground">
+                          {lineGross.toFixed(2)}€ brutto
+                        </span>
+                      </div>
                     ) : null}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
             <Button type="button" variant="outline" className="w-full" onClick={addMaterial}>
               <Plus className="h-4 w-4 mr-2" />
               Material hinzufügen
             </Button>
             {/* Cost summary on materials tab */}
-            {(totalCost > 0 || materialTotal > 0) && (
+            {materialNetto > 0 && (
               <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 border space-y-1.5">
                 <p className="text-xs font-semibold flex items-center gap-1.5 text-muted-foreground uppercase tracking-wide">
-                  <Euro className="h-3.5 w-3.5" /> Kostenübersicht
+                  <Euro className="h-3.5 w-3.5" /> Materialkosten
                 </p>
-                {totalHourlyRate > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Lohnkosten ({netHours.toFixed(1)}h)</span>
-                    <span>{laborCost.toFixed(2)} €</span>
-                  </div>
-                )}
-                {materialTotal > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Materialkosten</span>
-                    <span>{materialTotal.toFixed(2)} €</span>
-                  </div>
-                )}
-                <div className="flex justify-between border-t pt-1.5 text-sm font-semibold">
-                  <span>Gesamt</span>
-                  <span className="text-blue-600">{totalCost.toFixed(2)} €</span>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Netto</span>
+                  <span>{materialNetto.toFixed(2)} €</span>
                 </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">MwSt</span>
+                  <span>{materialMwst.toFixed(2)} €</span>
+                </div>
+                <div className="flex justify-between border-t pt-1.5 text-sm font-semibold">
+                  <span>Material brutto</span>
+                  <span className="text-blue-600">{materialBrutto.toFixed(2)} €</span>
+                </div>
+                {totalHourlyRate > 0 && (
+                  <>
+                    <div className="flex justify-between text-sm border-t pt-1.5">
+                      <span className="text-muted-foreground">+ Lohnkosten ({netHours.toFixed(1)}h)</span>
+                      <span>{laborCost.toFixed(2)} €</span>
+                    </div>
+                    <div className="flex justify-between border-t pt-1.5 text-sm font-bold">
+                      <span>Gesamtkosten</span>
+                      <span className="text-blue-600">{totalCostBrutto.toFixed(2)} €</span>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </TabsContent>
 
           {/* ---- PHOTOS TAB ---- */}
-          <TabsContent value="photos" className="space-y-4 mt-4">
+          <TabsContent value="photos" className="space-y-4 mt-4 min-h-[600px]">
             {photos.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-4">
                 Noch keine Fotos hinzugefügt.
@@ -813,22 +919,32 @@ export function DeliveryNoteForm({
                 <CardContent className="pt-4">
                   <div className="flex gap-4">
                     <div className="flex-1 space-y-2">
-                      {photo.photo_url && (
+                      {(photo.localPreview || photo.photo_url) && (
                         <img
-                          src={photo.photo_url}
+                          src={photo.localPreview || photo.photo_url}
                           alt={photo.photo_caption || 'Foto'}
-                          className="w-full max-h-40 object-cover rounded border"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          className="w-full max-h-48 object-cover rounded border"
+                          onError={(e) => {
+                            // If remote URL fails but we have local preview, try that
+                            const img = e.target as HTMLImageElement;
+                            if (photo.localPreview && img.src !== photo.localPreview) {
+                              img.src = photo.localPreview;
+                            } else {
+                              img.style.display = 'none';
+                            }
+                          }}
                         />
                       )}
-                      <div>
-                        <Label className="text-xs">Foto-URL</Label>
-                        <Input
-                          placeholder="https://..."
-                          value={photo.photo_url}
-                          onChange={(e) => updatePhoto(index, 'photo_url', e.target.value)}
-                        />
-                      </div>
+                      {!photo.localPreview && (
+                        <div>
+                          <Label className="text-xs">Foto-URL</Label>
+                          <Input
+                            placeholder="https://..."
+                            value={photo.photo_url}
+                            onChange={(e) => updatePhoto(index, 'photo_url', e.target.value)}
+                          />
+                        </div>
+                      )}
                       <div>
                         <Label className="text-xs">Beschreibung</Label>
                         <Input

@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useDeleteCustomer } from "@/hooks/useApi";
 import { Trash2 } from "lucide-react";
+import { CustomerContactsSection } from "./customers/CustomerContactsSection";
+import { CustomerNotesSection } from "./customers/CustomerNotesSection";
 
 interface Customer {
   id: string;
@@ -203,11 +205,11 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
               <TabsTrigger value="adresse">ADRESSE</TabsTrigger>
               <TabsTrigger value="konditionen">KONDITIONEN</TabsTrigger>
               <TabsTrigger value="zahlungsdaten">ZAHLUNGSDATEN</TabsTrigger>
-              <TabsTrigger value="zugprd">ZUGPRD 2.0 STANDARD</TabsTrigger>
+              <TabsTrigger value="historie">HISTORIE</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="ansprechpartner" className="space-y-4 h-[320px]">
-              <div className="grid grid-cols-2 gap-4">
+            <TabsContent value="ansprechpartner" className="space-y-4 min-h-[320px]">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="anrede">Anrede</Label>
                   <Select value={formData.anrede} onValueChange={(value) => handleInputChange('anrede', value)}>
@@ -227,6 +229,16 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
                     id="company_name"
                     value={formData.company_name}
                     onChange={(e) => handleInputChange('company_name', e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="contact_person">Hauptkontakt *</Label>
+                  <Input
+                    id="contact_person"
+                    value={formData.contact_person}
+                    onChange={(e) => handleInputChange('contact_person', e.target.value)}
+                    placeholder="z.B. Max Mustermann"
                     required
                   />
                 </div>
@@ -250,6 +262,13 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
                   />
                 </div>
               </div>
+
+              {/* Weitere Ansprechpartner aus customer_contacts */}
+              {customer && (
+                <div className="border-t pt-4 mt-2">
+                  <CustomerContactsSection customerId={customer.id} />
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="kontaktdetails" className="space-y-4 h-[320px]">
@@ -312,16 +331,6 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="fax">Fax</Label>
-                  <Input
-                    id="fax"
-                    value={formData.fax}
-                    onChange={(e) => handleInputChange('fax', e.target.value)}
-                  />
-                </div>
-              </div>
             </TabsContent>
 
             <TabsContent value="adresse" className="space-y-4 h-[320px]">
@@ -390,18 +399,33 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="preisgruppe">Preisgruppe</Label>
-                <Select value={formData.preisgruppe} onValueChange={(value) => handleInputChange('preisgruppe', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Gruppe wählen" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Standard">Standard</SelectItem>
-                    <SelectItem value="Premium">Premium</SelectItem>
-                    <SelectItem value="VIP">VIP</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="preisgruppe">Preisgruppe</Label>
+                  <Select value={formData.preisgruppe} onValueChange={(value) => handleInputChange('preisgruppe', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Gruppe wählen" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Standard">Standard</SelectItem>
+                      <SelectItem value="Premium">Premium</SelectItem>
+                      <SelectItem value="VIP">VIP</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="status">Kundenstatus</Label>
+                  <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Aktiv">Aktiv</SelectItem>
+                      <SelectItem value="Premium">Premium</SelectItem>
+                      <SelectItem value="Inaktiv">Inaktiv</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </TabsContent>
 
@@ -446,54 +470,10 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
               </div>
             </TabsContent>
 
-            <TabsContent value="zugprd" className="space-y-4 h-[320px]">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="zugprd_status">Status</Label>
-                  <Select value={formData.zugprd_status} onValueChange={(value) => handleInputChange('zugprd_status', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Aktiv">Aktiv</SelectItem>
-                      <SelectItem value="Inaktiv">Inaktiv</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="status">Kundenstatus</Label>
-                  <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Aktiv">Aktiv</SelectItem>
-                      <SelectItem value="Premium">Premium</SelectItem>
-                      <SelectItem value="Inaktiv">Inaktiv</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <div>
-                  <Label htmlFor="benutzer_id">Benutzer-ID</Label>
-                  <Input
-                    id="benutzer_id"
-                    value={formData.benutzer_id}
-                    onChange={(e) => handleInputChange('benutzer_id', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="passwort">Passwort</Label>
-                  <Input
-                    id="passwort"
-                    type="password"
-                    value={formData.passwort}
-                    onChange={(e) => handleInputChange('passwort', e.target.value)}
-                  />
-                </div>
-              </div>
+            <TabsContent value="historie" className="min-h-[320px]">
+              {customer && (
+                <CustomerNotesSection customerId={customer.id} />
+              )}
             </TabsContent>
           </Tabs>
 

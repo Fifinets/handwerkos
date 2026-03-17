@@ -183,11 +183,11 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         if (empIds.length > 0) {
           const { data: empData } = await supabase
             .from('employees')
-            .select('id, first_name, last_name, hourly_rate')
+            .select('id, first_name, last_name, hourly_wage')
             .in('id', empIds);
           (empData || []).forEach(e => {
             empMap[e.id] = `${e.first_name || ''} ${e.last_name || ''}`.trim();
-            if (e.hourly_rate) hourlyRateMap[e.id] = e.hourly_rate;
+            if (e.hourly_wage) hourlyRateMap[e.id] = e.hourly_wage;
           });
         }
         setTimeEntries(timeEntriesData.map(entry => {
@@ -370,16 +370,16 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         }
 
         if (dnData && dnData.length > 0) {
-          // Fetch employee names separately to avoid FK disambiguation issues
+          // Fetch employee names + hourly_wage separately to avoid FK disambiguation issues
           const empIds = [...new Set(dnData.map((dn: any) => dn.employee_id).filter(Boolean))];
-          let empMap: Record<string, { first_name: string; last_name: string }> = {};
+          let empMap: Record<string, { first_name: string; last_name: string; hourly_wage: number }> = {};
           if (empIds.length > 0) {
             const { data: empData } = await supabase
               .from('employees')
-              .select('id, first_name, last_name')
+              .select('id, first_name, last_name, hourly_wage')
               .in('id', empIds);
             (empData || []).forEach((e: any) => {
-              empMap[e.id] = { first_name: e.first_name, last_name: e.last_name };
+              empMap[e.id] = { first_name: e.first_name, last_name: e.last_name, hourly_wage: e.hourly_wage ?? 0 };
             });
           }
 
@@ -459,6 +459,23 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         setTeamAssignments(teamMembersProcessed);
       }
 
+      // Add delivery note labor costs using real hourly rates
+      dnList.forEach((dn: any) => {
+        if (dn.start_time && dn.end_time && dn.employee) {
+          const [sh, sm] = dn.start_time.split(':').map(Number);
+          const [eh, em] = dn.end_time.split(':').map(Number);
+          const gross = (eh * 60 + em) - (sh * 60 + sm);
+          const net = Math.max(0, gross - (dn.break_minutes ?? 0)) / 60;
+          totalLaborCost += net * (dn.employee.hourly_wage || 0);
+        }
+        // Material costs from delivery note items
+        (dn.delivery_note_items || []).forEach((item: any) => {
+          if (item.item_type === 'material' && item.unit_price && item.material_quantity) {
+            totalMaterialCost += item.unit_price * item.material_quantity;
+          }
+        });
+      });
+
       // Add delivery note hours to total
       calculatedTotalHours += dnHours;
       setTotalHours(calculatedTotalHours);
@@ -468,9 +485,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       setPhotos(allPhotos);
 
       // Calculate real statistics from database
-      // Also add labor cost from delivery notes (using employee hourly_rate fetched in DN loop below)
-      const totalProjectCost = totalMaterialCost + totalLaborCost; // labor from time_entries with real rates
-      // DN labor added after delivery note loop via totalLaborCost update
+      const totalProjectCost = totalMaterialCost + totalLaborCost;
       const projectBudget = projectData.budget || 0;
       const budgetUtilization = projectBudget > 0 ? Math.round((totalProjectCost / projectBudget) * 100) : 0;
 

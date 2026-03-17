@@ -1,4 +1,4 @@
-// List of delivery notes with filtering and actions
+// List of delivery notes with filtering, approval actions, and status chips
 
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -24,6 +26,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -39,6 +42,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -53,9 +57,26 @@ import {
   Package,
   User,
   Euro,
+  CheckCircle,
+  XCircle,
+  Send,
+  PenTool,
 } from 'lucide-react';
 import { useDeliveryNotes, type DeliveryNote } from '@/hooks/useDeliveryNotes';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { DeliveryNoteStatusBadge } from './DeliveryNoteStatusBadge';
 import { DeliveryNoteForm } from './DeliveryNoteForm';
+import SignatureCapture from '@/components/SignatureCapture';
+
+type StatusFilter = 'all' | 'draft' | 'submitted' | 'approved' | 'rejected';
+
+const STATUS_CHIPS: { value: StatusFilter; label: string }[] = [
+  { value: 'all', label: 'Alle' },
+  { value: 'draft', label: 'Entwürfe' },
+  { value: 'submitted', label: 'Eingereicht' },
+  { value: 'approved', label: 'Freigegeben' },
+  { value: 'rejected', label: 'Abgelehnt' },
+];
 
 interface DeliveryNoteListProps {
   projectId?: string;
@@ -77,7 +98,7 @@ const calcNetHours = (note: DeliveryNote): string | null => {
 // Calculate total cost of a delivery note (labor + materials)
 const calcNoteCost = (note: DeliveryNote): { labor: number; materials: number; total: number } | null => {
   const hours = calcNetHours(note);
-  const hourlyRate = note.employee?.hourly_rate;
+  const hourlyRate = note.employee?.hourly_wage;
   const laborCost = hours && hourlyRate ? parseFloat(hours) * hourlyRate : null;
   const materialCost = (note.delivery_note_items || [])
     .filter(i => i.item_type === 'material')
@@ -92,25 +113,39 @@ export function DeliveryNoteList({
   customerId,
   showProjectColumn = false,
 }: DeliveryNoteListProps) {
+  const { isManager } = useSupabaseAuth();
   const {
     deliveryNotes,
     isLoading,
     fetchDeliveryNotes,
     deleteDeliveryNote,
+    submitForApproval,
+    approve,
+    reject,
+    signDeliveryNote,
   } = useDeliveryNotes();
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | undefined>();
   const [viewingNote, setViewingNote] = useState<DeliveryNote | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  // Rejection dialog
+  const [rejectingNoteId, setRejectingNoteId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  // Signature dialog
+  const [signingNoteId, setSigningNoteId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDeliveryNotes({ project_id: projectId });
   }, [projectId]);
 
-  // Client-side search filter
+  // Client-side filtering (search + status)
   const filtered = deliveryNotes.filter((note) => {
+    // Status filter
+    if (statusFilter !== 'all' && note.status !== statusFilter) return false;
+    // Search filter
     if (!searchTerm.trim()) return true;
     const term = searchTerm.toLowerCase();
     const empName = note.employee
@@ -121,6 +156,15 @@ export function DeliveryNoteList({
     const desc = note.description.toLowerCase();
     return empName.includes(term) || projectName.includes(term) || noteNum.includes(term) || desc.includes(term);
   });
+
+  // Status counts for chips
+  const statusCounts = {
+    all: deliveryNotes.length,
+    draft: deliveryNotes.filter(n => n.status === 'draft').length,
+    submitted: deliveryNotes.filter(n => n.status === 'submitted').length,
+    approved: deliveryNotes.filter(n => n.status === 'approved').length,
+    rejected: deliveryNotes.filter(n => n.status === 'rejected').length,
+  };
 
   const handleNew = () => {
     setEditingId(undefined);
@@ -139,6 +183,24 @@ export function DeliveryNoteList({
     }
   };
 
+  const handleApprove = async (noteId: string) => {
+    await approve(noteId);
+    fetchDeliveryNotes({ project_id: projectId });
+  };
+
+  const handleReject = async () => {
+    if (!rejectingNoteId || !rejectionReason.trim()) return;
+    await reject(rejectingNoteId, rejectionReason);
+    setRejectingNoteId(null);
+    setRejectionReason('');
+    fetchDeliveryNotes({ project_id: projectId });
+  };
+
+  const handleSubmit = async (noteId: string) => {
+    await submitForApproval(noteId);
+    fetchDeliveryNotes({ project_id: projectId });
+  };
+
   const formatDate = (date: string) => {
     try {
       return format(new Date(date), 'dd.MM.yyyy', { locale: de });
@@ -152,7 +214,7 @@ export function DeliveryNoteList({
     return time.substring(0, 5);
   };
 
-  const colSpan = showProjectColumn ? 8 : 7;
+  const colSpan = showProjectColumn ? 9 : 8;
 
   return (
     <Card>
@@ -170,6 +232,32 @@ export function DeliveryNoteList({
       </CardHeader>
 
       <CardContent>
+        {/* Status Filter Chips */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {STATUS_CHIPS.map(chip => (
+            <button
+              key={chip.value}
+              onClick={() => setStatusFilter(chip.value)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                statusFilter === chip.value
+                  ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
+              }`}
+            >
+              {chip.label}
+              {statusCounts[chip.value] > 0 && (
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                  statusFilter === chip.value
+                    ? 'bg-white/20 text-white dark:bg-slate-900/20 dark:text-slate-900'
+                    : 'bg-slate-200 dark:bg-slate-700'
+                }`}>
+                  {statusCounts[chip.value]}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
         {/* Search */}
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -193,7 +281,7 @@ export function DeliveryNoteList({
                 <TableHead>Zeit</TableHead>
                 <TableHead>Material</TableHead>
                 <TableHead>Kosten</TableHead>
-                <TableHead>Beschreibung</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="w-[60px]" />
               </TableRow>
             </TableHeader>
@@ -264,8 +352,8 @@ export function DeliveryNoteList({
                           <span className="text-sm text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
-                        {note.description}
+                      <TableCell>
+                        <DeliveryNoteStatusBadge status={note.status as any} />
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -280,18 +368,66 @@ export function DeliveryNoteList({
                               Ansehen
                             </DropdownMenuItem>
 
-                            <DropdownMenuItem onClick={() => handleEdit(note)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Bearbeiten
-                            </DropdownMenuItem>
+                            {note.status === 'draft' && (
+                              <>
+                                <DropdownMenuItem onClick={() => handleEdit(note)}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Bearbeiten
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleSubmit(note.id)}>
+                                  <Send className="h-4 w-4 mr-2" />
+                                  Einreichen
+                                </DropdownMenuItem>
+                              </>
+                            )}
 
-                            <DropdownMenuItem
-                              onClick={() => setDeleteConfirmId(note.id)}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Löschen
-                            </DropdownMenuItem>
+                            {/* Manager approval actions */}
+                            {isManager && note.status === 'submitted' && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleApprove(note.id)}
+                                  className="text-green-700 focus:text-green-700"
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  Freigeben
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => { setRejectingNoteId(note.id); setRejectionReason(''); }}
+                                  className="text-red-600 focus:text-red-600"
+                                >
+                                  <XCircle className="h-4 w-4 mr-2" />
+                                  Ablehnen
+                                </DropdownMenuItem>
+                              </>
+                            )}
+
+                            {note.status === 'draft' && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => setDeleteConfirmId(note.id)}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Löschen
+                                </DropdownMenuItem>
+                              </>
+                            )}
+
+                            {/* Signature action - available for submitted/approved notes without signature */}
+                            {!note.signed_at && (note.status === 'submitted' || note.status === 'approved') && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => setSigningNoteId(note.id)}
+                                  className="text-blue-600 focus:text-blue-600"
+                                >
+                                  <PenTool className="h-4 w-4 mr-2" />
+                                  Unterschreiben
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -318,8 +454,9 @@ export function DeliveryNoteList({
       <Dialog open={!!viewingNote} onOpenChange={(open) => !open && setViewingNote(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="flex items-center gap-3">
               Lieferschein {viewingNote?.delivery_note_number || ''}
+              {viewingNote && <DeliveryNoteStatusBadge status={viewingNote.status as any} />}
             </DialogTitle>
           </DialogHeader>
 
@@ -360,6 +497,14 @@ export function DeliveryNoteList({
                   </div>
                 )}
               </div>
+
+              {/* Rejection reason */}
+              {viewingNote.status === 'rejected' && viewingNote.rejection_reason && (
+                <div className="rounded-md border border-red-200 bg-red-50 p-3">
+                  <p className="text-sm font-medium text-red-700">Ablehnungsgrund:</p>
+                  <p className="text-sm text-red-600 mt-1">{viewingNote.rejection_reason}</p>
+                </div>
+              )}
 
               {/* Cost summary */}
               {(() => {
@@ -441,8 +586,72 @@ export function DeliveryNoteList({
                 </div>
               )}
 
+              {/* Manager approval buttons in view dialog */}
+              {isManager && viewingNote.status === 'submitted' && (
+                <div className="flex gap-2 pt-2 border-t">
+                  <Button
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                    onClick={async () => {
+                      await handleApprove(viewingNote.id);
+                      setViewingNote(null);
+                    }}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Freigeben
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={() => {
+                      setRejectingNoteId(viewingNote.id);
+                      setRejectionReason('');
+                      setViewingNote(null);
+                    }}
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Ablehnen
+                  </Button>
+                </div>
+              )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Rejection Reason Dialog */}
+      <Dialog open={!!rejectingNoteId} onOpenChange={(open) => { if (!open) { setRejectingNoteId(null); setRejectionReason(''); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Lieferschein ablehnen</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Ablehnungsgrund *</Label>
+              <Textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Warum wird dieser Lieferschein abgelehnt?"
+                rows={4}
+                className="mt-1"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Mindestens 10 Zeichen
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setRejectingNoteId(null); setRejectionReason(''); }}>
+              Abbrechen
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={rejectionReason.trim().length < 10}
+              onClick={handleReject}
+            >
+              <XCircle className="h-4 w-4 mr-2" />
+              Ablehnen
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -466,6 +675,19 @@ export function DeliveryNoteList({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Signature Capture Dialog */}
+      <SignatureCapture
+        isOpen={!!signingNoteId}
+        onClose={() => setSigningNoteId(null)}
+        onSave={async (signature) => {
+          if (!signingNoteId) return;
+          await signDeliveryNote(signingNoteId, signature.svg, signature.name);
+          setSigningNoteId(null);
+          fetchDeliveryNotes({ project_id: projectId });
+        }}
+        title="Lieferschein unterschreiben"
+        description="Bitte unterschreiben Sie zur Bestätigung des Erhalts der Leistungen"
+      />
 
     </Card>
   );

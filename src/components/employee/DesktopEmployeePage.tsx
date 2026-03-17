@@ -60,7 +60,6 @@ interface Project {
   name: string;
   customer_name?: string;
   status: string;
-  location?: string;
   start_date?: string;
   end_date?: string;
 }
@@ -131,7 +130,6 @@ export function DesktopEmployeePage() {
             id,
             name,
             status,
-            location,
             start_date,
             end_date,
             customers (
@@ -149,7 +147,6 @@ export function DesktopEmployeePage() {
           id: tp.projects.id,
           name: tp.projects.name,
           status: tp.projects.status,
-          location: tp.projects.location,
           start_date: tp.projects.start_date,
           end_date: tp.projects.end_date,
           customer_name: tp.projects.customers?.company_name,

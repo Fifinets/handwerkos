@@ -7,30 +7,10 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
   }
   public: {
     Tables: {
@@ -609,6 +589,70 @@ export type Database = {
           },
         ]
       }
+      customer_notes: {
+        Row: {
+          company_id: string
+          content: string
+          created_at: string | null
+          customer_id: string
+          employee_id: string | null
+          follow_up_date: string | null
+          follow_up_done: boolean | null
+          id: string
+          note_type: string
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          content: string
+          created_at?: string | null
+          customer_id: string
+          employee_id?: string | null
+          follow_up_date?: string | null
+          follow_up_done?: boolean | null
+          id?: string
+          note_type?: string
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          content?: string
+          created_at?: string | null
+          customer_id?: string
+          employee_id?: string | null
+          follow_up_date?: string | null
+          follow_up_done?: boolean | null
+          id?: string
+          note_type?: string
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_notes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_notes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_notes_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
@@ -727,6 +771,174 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_note_items: {
+        Row: {
+          created_at: string
+          delivery_note_id: string
+          id: string
+          item_type: string
+          material_name: string | null
+          material_quantity: number | null
+          material_unit: string | null
+          photo_caption: string | null
+          photo_url: string | null
+          sort_order: number
+          unit_price: number | null
+        }
+        Insert: {
+          created_at?: string
+          delivery_note_id: string
+          id?: string
+          item_type: string
+          material_name?: string | null
+          material_quantity?: number | null
+          material_unit?: string | null
+          photo_caption?: string | null
+          photo_url?: string | null
+          sort_order?: number
+          unit_price?: number | null
+        }
+        Update: {
+          created_at?: string
+          delivery_note_id?: string
+          id?: string
+          item_type?: string
+          material_name?: string | null
+          material_quantity?: number | null
+          material_unit?: string | null
+          photo_caption?: string | null
+          photo_url?: string | null
+          sort_order?: number
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_note_items_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_notes: {
+        Row: {
+          additional_employee_ids: string[] | null
+          approved_at: string | null
+          approved_by: string | null
+          break_minutes: number
+          company_id: string
+          created_at: string
+          customer_id: string | null
+          delivery_note_number: string | null
+          description: string
+          employee_id: string
+          end_time: string | null
+          id: string
+          project_id: string
+          rejection_reason: string | null
+          signature_data: string | null
+          signature_name: string | null
+          signed_at: string | null
+          start_time: string | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          work_date: string
+        }
+        Insert: {
+          additional_employee_ids?: string[] | null
+          approved_at?: string | null
+          approved_by?: string | null
+          break_minutes?: number
+          company_id: string
+          created_at?: string
+          customer_id?: string | null
+          delivery_note_number?: string | null
+          description?: string
+          employee_id: string
+          end_time?: string | null
+          id?: string
+          project_id: string
+          rejection_reason?: string | null
+          signature_data?: string | null
+          signature_name?: string | null
+          signed_at?: string | null
+          start_time?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          work_date: string
+        }
+        Update: {
+          additional_employee_ids?: string[] | null
+          approved_at?: string | null
+          approved_by?: string | null
+          break_minutes?: number
+          company_id?: string
+          created_at?: string
+          customer_id?: string | null
+          delivery_note_number?: string | null
+          description?: string
+          employee_id?: string
+          end_time?: string | null
+          id?: string
+          project_id?: string
+          rejection_reason?: string | null
+          signature_data?: string | null
+          signature_name?: string | null
+          signed_at?: string | null
+          start_time?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_notes_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "employee_assigned_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -2217,7 +2429,7 @@ export type Database = {
           offer_date: string
           offer_number: string
           payment_terms: string | null
-          project_id: string
+          project_id: string | null
           project_location: string | null
           project_name: string
           show_labor_share: boolean | null
@@ -2261,7 +2473,7 @@ export type Database = {
           offer_date?: string
           offer_number: string
           payment_terms?: string | null
-          project_id: string
+          project_id?: string | null
           project_location?: string | null
           project_name: string
           show_labor_share?: boolean | null
@@ -2305,7 +2517,7 @@ export type Database = {
           offer_date?: string
           offer_number?: string
           payment_terms?: string | null
-          project_id?: string
+          project_id?: string | null
           project_location?: string | null
           project_name?: string
           show_labor_share?: boolean | null
@@ -4599,13 +4811,11 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       user_role: ["manager", "employee", "customer", "craftsman"],
     },
   },
 } as const
-
+A new version of Supabase CLI is available: v2.78.1 (currently installed v2.76.6)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

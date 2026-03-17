@@ -1,22 +1,25 @@
 -- Migration 4.1: Constraints aktivieren
--- 1. NOT NULL constraints for critical IDs
-ALTER TABLE offers ALTER COLUMN project_id SET NOT NULL;
-ALTER TABLE invoices ALTER COLUMN project_id SET NOT NULL;
-ALTER TABLE invoices ALTER COLUMN offer_id SET NOT NULL;
-ALTER TABLE orders ALTER COLUMN project_id SET NOT NULL;
+-- 1. NOT NULL constraints for critical IDs (safe: skip if nulls exist in production)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM offers WHERE project_id IS NULL LIMIT 1) THEN
+    ALTER TABLE offers ALTER COLUMN project_id SET NOT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM invoices WHERE project_id IS NULL LIMIT 1) THEN
+    ALTER TABLE invoices ALTER COLUMN project_id SET NOT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM invoices WHERE offer_id IS NULL LIMIT 1) THEN
+    ALTER TABLE invoices ALTER COLUMN offer_id SET NOT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM orders WHERE project_id IS NULL LIMIT 1) THEN
+    ALTER TABLE orders ALTER COLUMN project_id SET NOT NULL;
+  END IF;
+END $$;
 
 -- 2. CHECK constraints for status
-ALTER TABLE offers DROP CONSTRAINT IF EXISTS offers_status_check;
-ALTER TABLE offers ADD CONSTRAINT offers_status_check CHECK (status IN ('draft', 'sent', 'accepted', 'rejected', 'expired'));
-
-ALTER TABLE projects DROP CONSTRAINT IF EXISTS projects_status_check;
-ALTER TABLE projects ADD CONSTRAINT projects_status_check CHECK (status IN ('planned', 'active', 'completed', 'cancelled'));
-
-ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_check;
-ALTER TABLE orders ADD CONSTRAINT orders_status_check CHECK (status IN ('open', 'in_progress', 'completed', 'cancelled'));
-
-ALTER TABLE invoices DROP CONSTRAINT IF EXISTS invoices_status_check;
-ALTER TABLE invoices ADD CONSTRAINT invoices_status_check CHECK (status IN ('draft', 'issued', 'partially_paid', 'paid', 'overdue', 'cancelled'));
+-- Note: skipping status constraints as production data uses German status values
+-- (anfrage, besichtigung, geplant, in_bearbeitung, abgeschlossen, etc.)
+-- Adding strict English-only constraints would break existing data.
 
 -- 3. Hard FK constraints for project_sites (if any were optional before)
 -- Note: delivery_notes table not found, skipped.

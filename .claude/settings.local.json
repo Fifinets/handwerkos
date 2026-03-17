@@ -21,7 +21,8 @@
       "Bash(npx tsc --noEmit src/components/ProjectDetailView.tsx)",
       "mcp__claude_ai_Supabase__list_projects",
       "mcp__claude_ai_Netlify__netlify-user-services-reader",
-      "mcp__claude_ai_Netlify__netlify-project-services-updater"
+      "mcp__claude_ai_Netlify__netlify-project-services-updater",
+      "Bash(xargs grep -l \"employee\\\\|Employee\\\\|mitarbeiter\\\\|Mitarbeiter\")"
     ],
     "deny": []
   }
