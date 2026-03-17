@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Mail, Settings, Clock, DollarSign, FileText, Calendar } from "lucide-react";
+import { Building2, Mail, Settings, Clock, DollarSign, FileText, Calendar, History } from "lucide-react";
+import { AuditLogViewer } from "./AuditLogViewer";
 
 interface CompanySettings {
   id: string;
@@ -277,321 +279,349 @@ export function CompanySettingsSimple() {
         </Button>
       </div>
 
-      <div className="grid gap-6">
-        {/* Company Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              Firmeninformationen
-            </CardTitle>
-            <CardDescription>
-              Grundlegende Informationen über Ihr Unternehmen
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="company_name">Firmenname</Label>
-                <Input
-                  id="company_name"
-                  value={settings.company_name || ""}
-                  onChange={(e) => updateSetting("company_name", e.target.value)}
-                  placeholder="Ihr Firmenname"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="website">Website</Label>
-                <Input
-                  id="website"
-                  value={settings.website || ""}
-                  onChange={(e) => updateSetting("website", e.target.value)}
-                  placeholder="https://www.ihre-website.de"
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="company_address">Adresse</Label>
-              <Textarea
-                id="company_address"
-                value={settings.company_address || ""}
-                onChange={(e) => updateSetting("company_address", e.target.value)}
-                placeholder="Straße und Hausnummer"
-                rows={2}
-              />
-            </div>
-            
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="company_postal_code">Postleitzahl</Label>
-                <Input
-                  id="company_postal_code"
-                  value={settings.company_postal_code || ""}
-                  onChange={(e) => updateSetting("company_postal_code", e.target.value)}
-                  placeholder="12345"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="company_city">Stadt</Label>
-                <Input
-                  id="company_city"
-                  value={settings.company_city || ""}
-                  onChange={(e) => updateSetting("company_city", e.target.value)}
-                  placeholder="Ihre Stadt"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="company_country">Land</Label>
-                <Input
-                  id="company_country"
-                  value={settings.company_country || ""}
-                  onChange={(e) => updateSetting("company_country", e.target.value)}
-                  placeholder="Deutschland"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="general" className="w-full">
+        <TabsList className="mb-6">
+          <TabsTrigger value="general" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Allgemeine Einstellungen
+          </TabsTrigger>
+          <TabsTrigger value="audit" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Audit Log (GoBD)
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Contact Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Kontaktinformationen
-            </CardTitle>
-            <CardDescription>
-              Wie Kunden Sie erreichen können
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="company_phone">Telefon</Label>
-                <Input
-                  id="company_phone"
-                  value={settings.company_phone || ""}
-                  onChange={(e) => updateSetting("company_phone", e.target.value)}
-                  placeholder="+49 123 456789"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="company_email">E-Mail</Label>
-                <Input
-                  id="company_email"
-                  type="email"
-                  value={settings.company_email || ""}
-                  onChange={(e) => updateSetting("company_email", e.target.value)}
-                  placeholder="info@ihre-firma.de"
-                />
-              </div>
-            </div>
+        <TabsContent value="general" className="space-y-6">
+          <div className="grid gap-6">
+            {/* Company Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5" />
+                  Firmeninformationen
+                </CardTitle>
+                <CardDescription>
+                  Grundlegende Informationen über Ihr Unternehmen
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="company_name">Firmenname</Label>
+                    <Input
+                      id="company_name"
+                      value={settings.company_name || ""}
+                      onChange={(e) => updateSetting("company_name", e.target.value)}
+                      placeholder="Ihr Firmenname"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="website">Website</Label>
+                    <Input
+                      id="website"
+                      value={settings.website || ""}
+                      onChange={(e) => updateSetting("website", e.target.value)}
+                      placeholder="https://www.ihre-website.de"
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="company_address">Adresse</Label>
+                  <Textarea
+                    id="company_address"
+                    value={settings.company_address || ""}
+                    onChange={(e) => updateSetting("company_address", e.target.value)}
+                    placeholder="Straße und Hausnummer"
+                    rows={2}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="company_postal_code">Postleitzahl</Label>
+                    <Input
+                      id="company_postal_code"
+                      value={settings.company_postal_code || ""}
+                      onChange={(e) => updateSetting("company_postal_code", e.target.value)}
+                      placeholder="12345"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="company_city">Stadt</Label>
+                    <Input
+                      id="company_city"
+                      value={settings.company_city || ""}
+                      onChange={(e) => updateSetting("company_city", e.target.value)}
+                      placeholder="Ihre Stadt"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="company_country">Land</Label>
+                    <Input
+                      id="company_country"
+                      value={settings.company_country || ""}
+                      onChange={(e) => updateSetting("company_country", e.target.value)}
+                      placeholder="Deutschland"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="tax_number">Steuernummer</Label>
-                <Input
-                  id="tax_number"
-                  value={settings.tax_number || ""}
-                  onChange={(e) => updateSetting("tax_number", e.target.value)}
-                  placeholder="123/456/78901"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="vat_id">USt-IdNr.</Label>
-                <Input
-                  id="vat_id"
-                  value={settings.vat_id || ""}
-                  onChange={(e) => updateSetting("vat_id", e.target.value)}
-                  placeholder="DE123456789"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            {/* Contact Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  Kontaktinformationen
+                </CardTitle>
+                <CardDescription>
+                  Wie Kunden Sie erreichen können
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="company_phone">Telefon</Label>
+                    <Input
+                      id="company_phone"
+                      value={settings.company_phone || ""}
+                      onChange={(e) => updateSetting("company_phone", e.target.value)}
+                      placeholder="+49 123 456789"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="company_email">E-Mail</Label>
+                    <Input
+                      id="company_email"
+                      type="email"
+                      value={settings.company_email || ""}
+                      onChange={(e) => updateSetting("company_email", e.target.value)}
+                      placeholder="info@ihre-firma.de"
+                    />
+                  </div>
+                </div>
 
-        {/* Working Hours */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Arbeitszeiten
-            </CardTitle>
-            <CardDescription>
-              Standard-Arbeitszeiten für Berechnungen und Zeiterfassung
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="default_working_hours_start">Arbeitsbeginn</Label>
-                <Input
-                  id="default_working_hours_start"
-                  type="time"
-                  value={settings.default_working_hours_start || "08:00"}
-                  onChange={(e) => updateSetting("default_working_hours_start", e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="default_working_hours_end">Arbeitsende</Label>
-                <Input
-                  id="default_working_hours_end"
-                  type="time"
-                  value={settings.default_working_hours_end || "17:00"}
-                  onChange={(e) => updateSetting("default_working_hours_end", e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="default_break_duration">Pausendauer (Min.)</Label>
-                <Input
-                  id="default_break_duration"
-                  type="number"
-                  value={settings.default_break_duration || 60}
-                  onChange={(e) => updateSetting("default_break_duration", Number(e.target.value))}
-                  placeholder="60"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="tax_number">Steuernummer</Label>
+                    <Input
+                      id="tax_number"
+                      value={settings.tax_number || ""}
+                      onChange={(e) => updateSetting("tax_number", e.target.value)}
+                      placeholder="123/456/78901"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="vat_id">USt-IdNr.</Label>
+                    <Input
+                      id="vat_id"
+                      value={settings.vat_id || ""}
+                      onChange={(e) => updateSetting("vat_id", e.target.value)}
+                      placeholder="DE123456789"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Financial Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
-              Finanzeinstellungen
-            </CardTitle>
-            <CardDescription>
-              Standard-Werte für Preise und Steuern
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="default_hourly_rate">Standard-Stundensatz (€)</Label>
-                <Input
-                  id="default_hourly_rate"
-                  type="number"
-                  step="0.50"
-                  value={settings.default_hourly_rate || ""}
-                  onChange={(e) => updateSetting("default_hourly_rate", Number(e.target.value))}
-                  placeholder="50.00"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="default_overtime_rate">Überstunden-Satz (€)</Label>
-                <Input
-                  id="default_overtime_rate"
-                  type="number"
-                  step="0.50"
-                  value={settings.default_overtime_rate || ""}
-                  onChange={(e) => updateSetting("default_overtime_rate", Number(e.target.value))}
-                  placeholder="62.50"
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="default_currency">Währung</Label>
-                <Input
-                  id="default_currency"
-                  value={settings.default_currency || "EUR"}
-                  onChange={(e) => updateSetting("default_currency", e.target.value)}
-                  placeholder="EUR"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="default_tax_rate">Steuersatz (%)</Label>
-                <Input
-                  id="default_tax_rate"
-                  type="number"
-                  step="0.1"
-                  value={settings.default_tax_rate || ""}
-                  onChange={(e) => updateSetting("default_tax_rate", Number(e.target.value))}
-                  placeholder="19.0"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            {/* Working Hours */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Arbeitszeiten
+                </CardTitle>
+                <CardDescription>
+                  Standard-Arbeitszeiten für Berechnungen und Zeiterfassung
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="default_working_hours_start">Arbeitsbeginn</Label>
+                    <Input
+                      id="default_working_hours_start"
+                      type="time"
+                      value={settings.default_working_hours_start || "08:00"}
+                      onChange={(e) => updateSetting("default_working_hours_start", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="default_working_hours_end">Arbeitsende</Label>
+                    <Input
+                      id="default_working_hours_end"
+                      type="time"
+                      value={settings.default_working_hours_end || "17:00"}
+                      onChange={(e) => updateSetting("default_working_hours_end", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="default_break_duration">Pausendauer (Min.)</Label>
+                    <Input
+                      id="default_break_duration"
+                      type="number"
+                      value={settings.default_break_duration || 60}
+                      onChange={(e) => updateSetting("default_break_duration", Number(e.target.value))}
+                      placeholder="60"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Vacation Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Urlaubseinstellungen
-            </CardTitle>
-            <CardDescription>
-              Standard-Urlaubstage für neue Mitarbeiter
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="default_vacation_days">Standard Urlaubstage pro Jahr</Label>
-              <Input
-                id="default_vacation_days"
-                type="number"
-                min="0"
-                max="50"
-                value={settings.default_vacation_days || 25}
-                onChange={(e) => updateSetting("default_vacation_days", Number(e.target.value))}
-                placeholder="25"
-              />
-              <p className="text-xs text-muted-foreground">
-                Diese Anzahl wird automatisch jedem neuen Mitarbeiter bei der Erstellung zugewiesen
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+            {/* Financial Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Finanzeinstellungen
+                </CardTitle>
+                <CardDescription>
+                  Standard-Werte für Preise und Steuern
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="default_hourly_rate">Standard-Stundensatz (€)</Label>
+                    <Input
+                      id="default_hourly_rate"
+                      type="number"
+                      step="0.50"
+                      value={settings.default_hourly_rate || ""}
+                      onChange={(e) => updateSetting("default_hourly_rate", Number(e.target.value))}
+                      placeholder="50.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="default_overtime_rate">Überstunden-Satz (€)</Label>
+                    <Input
+                      id="default_overtime_rate"
+                      type="number"
+                      step="0.50"
+                      value={settings.default_overtime_rate || ""}
+                      onChange={(e) => updateSetting("default_overtime_rate", Number(e.target.value))}
+                      placeholder="62.50"
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="default_currency">Währung</Label>
+                    <Input
+                      id="default_currency"
+                      value={settings.default_currency || "EUR"}
+                      onChange={(e) => updateSetting("default_currency", e.target.value)}
+                      placeholder="EUR"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="default_tax_rate">Steuersatz (%)</Label>
+                    <Input
+                      id="default_tax_rate"
+                      type="number"
+                      step="0.1"
+                      value={settings.default_tax_rate || ""}
+                      onChange={(e) => updateSetting("default_tax_rate", Number(e.target.value))}
+                      placeholder="19.0"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Document Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Dokumenteinstellungen
-            </CardTitle>
-            <CardDescription>
-              Präfixe für automatische Nummerierung
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="invoice_prefix">Rechnungs-Präfix</Label>
-                <Input
-                  id="invoice_prefix"
-                  value={settings.invoice_prefix || ""}
-                  onChange={(e) => updateSetting("invoice_prefix", e.target.value)}
-                  placeholder="RE"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="quote_prefix">Angebots-Präfix</Label>
-                <Input
-                  id="quote_prefix"
-                  value={settings.quote_prefix || ""}
-                  onChange={(e) => updateSetting("quote_prefix", e.target.value)}
-                  placeholder="AN"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="project_prefix">Projekt-Präfix</Label>
-                <Input
-                  id="project_prefix"
-                  value={settings.project_prefix || ""}
-                  onChange={(e) => updateSetting("project_prefix", e.target.value)}
-                  placeholder="PR"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            {/* Vacation Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Urlaubseinstellungen
+                </CardTitle>
+                <CardDescription>
+                  Standard-Urlaubstage für neue Mitarbeiter
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="default_vacation_days">Standard Urlaubstage pro Jahr</Label>
+                  <Input
+                    id="default_vacation_days"
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={settings.default_vacation_days || 25}
+                    onChange={(e) => updateSetting("default_vacation_days", Number(e.target.value))}
+                    placeholder="25"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Diese Anzahl wird automatisch jedem neuen Mitarbeiter bei der Erstellung zugewiesen
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Document Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Dokumentennummerierung (Nummernkreise)
+                </CardTitle>
+                <CardDescription>
+                  Präfixe für automatische Nummerierung
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="invoice_prefix">Rechnungs-Präfix</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="invoice_prefix"
+                        value={settings.invoice_prefix || ""}
+                        onChange={(e) => updateSetting("invoice_prefix", e.target.value)}
+                        placeholder="RE-"
+                      />
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">z.B. {settings.invoice_prefix || "RE"}2024-001</span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="quote_prefix">Angebots-Präfix</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="quote_prefix"
+                        value={settings.quote_prefix || ""}
+                        onChange={(e) => updateSetting("quote_prefix", e.target.value)}
+                        placeholder="AN-"
+                      />
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">z.B. {settings.quote_prefix || "AN"}2024-001</span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="project_prefix">Projekt-Präfix</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="project_prefix"
+                        value={settings.project_prefix || ""}
+                        onChange={(e) => updateSetting("project_prefix", e.target.value)}
+                        placeholder="PR-"
+                      />
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">z.B. {settings.project_prefix || "PR"}2024-001</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="audit" className="mt-0">
+          <AuditLogViewer />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
