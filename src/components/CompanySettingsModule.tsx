@@ -380,42 +380,55 @@ export function CompanySettingsModule() {
           </CardContent>
         </Card>
 
-        {/* Document Prefixes */}
+        {/* Document Prefixes / Nummernkreise */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Dokumentennummerierung
+              Dokumentennummerierung (Nummernkreise)
             </CardTitle>
             <CardDescription>
-              Präfixe für Angebote, Aufträge und Rechnungen
+              Legen Sie hier die Präfixe (z.B. RE-, AN-) für Ihre Dokumente fest. 
+              Die fortlaufende Nummerierung wird automatisch angehängt.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="quote_prefix">Angebots-Präfix</Label>
-                <Input
-                  id="quote_prefix"
-                  value={settings.quote_prefix}
-                  onChange={(e) => updateSetting("quote_prefix", e.target.value)}
-                />
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="quote_prefix"
+                    value={settings.quote_prefix}
+                    onChange={(e) => updateSetting("quote_prefix", e.target.value)}
+                    placeholder="z.B. AN-"
+                  />
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">z.B. {settings.quote_prefix}2024-001</span>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="order_prefix">Auftrags-Präfix</Label>
-                <Input
-                  id="order_prefix"
-                  value={settings.order_prefix}
-                  onChange={(e) => updateSetting("order_prefix", e.target.value)}
-                />
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="order_prefix"
+                    value={settings.order_prefix}
+                    onChange={(e) => updateSetting("order_prefix", e.target.value)}
+                    placeholder="z.B. AU-"
+                  />
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">z.B. {settings.order_prefix}2024-001</span>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="invoice_prefix">Rechnungs-Präfix</Label>
-                <Input
-                  id="invoice_prefix"
-                  value={settings.invoice_prefix}
-                  onChange={(e) => updateSetting("invoice_prefix", e.target.value)}
-                />
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="invoice_prefix"
+                    value={settings.invoice_prefix}
+                    onChange={(e) => updateSetting("invoice_prefix", e.target.value)}
+                    placeholder="z.B. RE-"
+                  />
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">z.B. {settings.invoice_prefix}2024-001</span>
+                </div>
               </div>
             </div>
           </CardContent>

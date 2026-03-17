@@ -226,16 +226,7 @@ const AddCustomerDialog = ({ isOpen, onClose, onCustomerAdded }: AddCustomerDial
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="contact_person">Ansprechpartner *</Label>
-                <Input
-                  id="contact_person"
-                  value={formData.contact_person}
-                  onChange={(e) => handleInputChange('contact_person', e.target.value)}
-                  placeholder="z.B. Max Mustermann"
-                  required
-                />
-              </div>
+
             </TabsContent>
 
             <TabsContent value="kontaktdetails" className="space-y-4 mt-6 h-[280px]">

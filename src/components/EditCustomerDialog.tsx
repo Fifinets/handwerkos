@@ -209,7 +209,7 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
             </TabsList>
 
             <TabsContent value="ansprechpartner" className="space-y-4 min-h-[320px]">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="anrede">Anrede</Label>
                   <Select value={formData.anrede} onValueChange={(value) => handleInputChange('anrede', value)}>
@@ -229,16 +229,6 @@ const EditCustomerDialog = ({ isOpen, onClose, customer, onCustomerUpdated }: Ed
                     id="company_name"
                     value={formData.company_name}
                     onChange={(e) => handleInputChange('company_name', e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="contact_person">Hauptkontakt *</Label>
-                  <Input
-                    id="contact_person"
-                    value={formData.contact_person}
-                    onChange={(e) => handleInputChange('contact_person', e.target.value)}
-                    placeholder="z.B. Max Mustermann"
                     required
                   />
                 </div>
