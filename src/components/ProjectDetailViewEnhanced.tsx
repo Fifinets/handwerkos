@@ -43,6 +43,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { ProjectActivityTimeline } from './projects/ProjectActivityTimeline';
 
 interface Project {
   id: string;
@@ -192,7 +193,7 @@ export default function ProjectDetailViewEnhanced({ project, onUpdate }: Project
         .order('created_at', { ascending: false });
 
       if (materialsData) {
-        setMaterials(materialsData);
+        setMaterials(materialsData as Material[]);
       }
 
       // Fetch milestones
@@ -203,7 +204,7 @@ export default function ProjectDetailViewEnhanced({ project, onUpdate }: Project
         .order('due_date', { ascending: true });
 
       if (milestonesData) {
-        setMilestones(milestonesData);
+        setMilestones(milestonesData as Milestone[]);
       }
 
       // Fetch documents
@@ -364,11 +365,12 @@ export default function ProjectDetailViewEnhanced({ project, onUpdate }: Project
 
       {/* Detailed Tabs */}
       <Tabs defaultValue="team" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="team">Team & Rollen</TabsTrigger>
           <TabsTrigger value="materials">Material & Ressourcen</TabsTrigger>
           <TabsTrigger value="milestones">Meilensteine</TabsTrigger>
           <TabsTrigger value="documents">Dokumente</TabsTrigger>
+          <TabsTrigger value="activity">Aktivitäten</TabsTrigger>
         </TabsList>
 
         <TabsContent value="team" className="space-y-4 min-h-[600px]">
@@ -578,6 +580,10 @@ export default function ProjectDetailViewEnhanced({ project, onUpdate }: Project
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="activity" className="space-y-4 min-h-[600px]">
+          <ProjectActivityTimeline projectId={project.id} />
         </TabsContent>
       </Tabs>
     </div>
