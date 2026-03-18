@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,27 +19,84 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { addDays, addMonths, format, startOfWeek, subDays, subMonths } from 'date-fns';
 import { de } from 'date-fns/locale';
-
-interface Resource {
-    id: string;
-    name: string;
-    type: 'employee' | 'equipment' | 'vehicle';
-    status: 'available' | 'in_use' | 'maintenance' | 'absent';
-    details?: string;
-}
+import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { Skeleton } from "@/components/ui/skeleton";
 
 const PlannerModuleV2 = () => {
+    const { companyId } = useSupabaseAuth();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week');
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Mock data for UI demonstration
-    const mockResources: Resource[] = [
-        { id: '1', name: 'Max Mustermann', type: 'employee', status: 'in_use', details: 'Maurer' },
-        { id: '2', name: 'Anna Schmidt', type: 'employee', status: 'available', details: 'Elektriker' },
-        { id: '3', name: 'Bagger CAT 320', type: 'equipment', status: 'in_use', details: 'Baustelle Nord' },
-        { id: '4', name: 'Transporter B-WZ 123', type: 'vehicle', status: 'maintenance', details: 'Werkstatt' },
-    ];
+    const [employees, setEmployees] = useState<any[]>([]);
+    const [projects, setProjects] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (!companyId) return;
+        setIsLoading(true);
+        Promise.all([
+            supabase.from('employees')
+                .select('id, first_name, last_name, status, position')
+                .eq('company_id', companyId)
+                .eq('status', 'Aktiv'),
+            supabase.from('projects')
+                .select('id, name, status, start_date, end_date, location, project_team_assignments(employee_id, is_active)')
+                .eq('company_id', companyId)
+                .in('status', ['active', 'in_bearbeitung', 'geplant', 'planned']),
+        ]).then(([empRes, projRes]) => {
+            setEmployees(empRes.data || []);
+            setProjects(projRes.data || []);
+            setIsLoading(false);
+        });
+    }, [companyId]);
+
+    const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+    const weekDays = Array.from(
+        { length: viewMode === 'day' ? 1 : 7 },
+        (_, i) => addDays(weekStart, i)
+    );
+
+    const gridColsClass = viewMode === 'day' ? 'grid-cols-1' : 'grid-cols-7';
+
+    const getEmployeeProjects = (employeeId: string) => {
+        return projects.filter(p =>
+            p.project_team_assignments?.some((a: any) => a.employee_id === employeeId && a.is_active)
+        );
+    };
+
+    const projectOverlapsDay = (project: any, day: Date) => {
+        const dayStr = format(day, 'yyyy-MM-dd');
+        if (!project.start_date && !project.end_date) return true;
+        if (project.start_date && dayStr < project.start_date) return false;
+        if (project.end_date && dayStr > project.end_date) return false;
+        return true;
+    };
+
+    // KPI: unique assigned employee IDs
+    const assignedEmployeeIds = useMemo(() => {
+        const ids = new Set<string>();
+        projects.forEach(p => {
+            p.project_team_assignments?.forEach((a: any) => {
+                if (a.is_active) ids.add(a.employee_id);
+            });
+        });
+        return ids;
+    }, [projects]);
+
+    const assignedCount = assignedEmployeeIds.size;
+    const freeCount = employees.length - assignedCount;
+
+    // Filter employees by search term
+    const filteredEmployees = useMemo(() => {
+        if (!searchTerm.trim()) return employees;
+        const term = searchTerm.toLowerCase();
+        return employees.filter(emp =>
+            `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(term) ||
+            (emp.position || '').toLowerCase().includes(term)
+        );
+    }, [employees, searchTerm]);
 
     const navigatePrevious = () => {
         if (viewMode === 'day') setCurrentDate(subDays(currentDate, 1));
@@ -79,8 +136,45 @@ const PlannerModuleV2 = () => {
                 </div>
             </div>
 
+            {/* KPI Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Card className="bg-white border-slate-200 shadow-sm">
+                    <CardContent className="p-4 flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                            <Briefcase className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                            <div className="text-2xl font-semibold text-slate-900">{isLoading ? '—' : projects.length}</div>
+                            <div className="text-xs text-slate-500">Aktive Projekte</div>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="bg-white border-slate-200 shadow-sm">
+                    <CardContent className="p-4 flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-lg bg-amber-50 flex items-center justify-center">
+                            <Users className="h-5 w-5 text-amber-600" />
+                        </div>
+                        <div>
+                            <div className="text-2xl font-semibold text-slate-900">{isLoading ? '—' : assignedCount}</div>
+                            <div className="text-xs text-slate-500">Zugewiesene MA</div>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="bg-white border-slate-200 shadow-sm">
+                    <CardContent className="p-4 flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+                            <Users className="h-5 w-5 text-emerald-600" />
+                        </div>
+                        <div>
+                            <div className="text-2xl font-semibold text-slate-900">{isLoading ? '—' : Math.max(0, freeCount)}</div>
+                            <div className="text-xs text-slate-500">Freie MA</div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
             <div className="flex flex-col xl:flex-row gap-6">
-                {/* Left Sidebar: Filters & Resources list (collapsible on mobile, side by side on desktop) */}
+                {/* Left Sidebar: Filters & Resources list */}
                 <div className="xl:w-64 space-y-6 flex-shrink-0">
                     <Card className="bg-white border-slate-200 shadow-sm">
                         <CardHeader className="p-4 border-b border-slate-100">
@@ -88,39 +182,11 @@ const PlannerModuleV2 = () => {
                         </CardHeader>
                         <CardContent className="p-4 space-y-4">
                             <div className="space-y-2">
-                                <label className="text-xs font-medium text-slate-500">Ressourcentyp</label>
-                                <Select defaultValue="all">
-                                    <SelectTrigger className="w-full bg-slate-50 border-slate-200 text-sm h-9">
-                                        <SelectValue placeholder="Alle Typen" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Alle Typen</SelectItem>
-                                        <SelectItem value="employee">Mitarbeiter</SelectItem>
-                                        <SelectItem value="equipment">Maschinen</SelectItem>
-                                        <SelectItem value="vehicle">Fahrzeuge</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-medium text-slate-500">Status</label>
-                                <Select defaultValue="all">
-                                    <SelectTrigger className="w-full bg-slate-50 border-slate-200 text-sm h-9">
-                                        <SelectValue placeholder="Alle Status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Alle Status</SelectItem>
-                                        <SelectItem value="available">Verfügbar</SelectItem>
-                                        <SelectItem value="in_use">Im Einsatz</SelectItem>
-                                        <SelectItem value="absent">Abwesend</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
                                 <label className="text-xs font-medium text-slate-500">Suche</label>
                                 <div className="relative">
                                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                                     <Input
-                                        placeholder="Name, Gewerk..."
+                                        placeholder="Name, Position..."
                                         className="pl-8 bg-slate-50 border-slate-200 text-sm h-9"
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -132,28 +198,43 @@ const PlannerModuleV2 = () => {
 
                     <Card className="bg-white border-slate-200 shadow-sm">
                         <CardHeader className="p-4 border-b border-slate-100 flex flex-row items-center justify-between">
-                            <CardTitle className="text-sm font-semibold text-slate-800">Ressourcen</CardTitle>
-                            <Badge variant="outline" className="text-xs font-normal text-slate-500">{mockResources.length}</Badge>
+                            <CardTitle className="text-sm font-semibold text-slate-800">Mitarbeiter</CardTitle>
+                            <Badge variant="outline" className="text-xs font-normal text-slate-500">{employees.length}</Badge>
                         </CardHeader>
                         <CardContent className="p-0">
                             <div className="divide-y divide-slate-100">
-                                {mockResources.map(resource => (
-                                    <div key={resource.id} className="p-3 hover:bg-slate-50 cursor-pointer flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-8 w-8 rounded bg-slate-100 flex items-center justify-center flex-shrink-0 text-slate-500">
-                                                {resource.type === 'employee' ? <Users className="h-4 w-4" /> : <Briefcase className="h-4 w-4" />}
-                                            </div>
-                                            <div className="truncate">
-                                                <div className="text-sm font-medium text-slate-900 truncate">{resource.name}</div>
-                                                <div className="text-xs text-slate-500 truncate">{resource.details}</div>
+                                {isLoading ? (
+                                    Array.from({ length: 3 }).map((_, i) => (
+                                        <div key={i} className="p-3 flex items-center gap-3">
+                                            <Skeleton className="h-8 w-8 rounded" />
+                                            <div className="space-y-1.5 flex-1">
+                                                <Skeleton className="h-3.5 w-24" />
+                                                <Skeleton className="h-3 w-16" />
                                             </div>
                                         </div>
-                                        <div className={`h-2 w-2 rounded-full flex-shrink-0 ${resource.status === 'available' ? 'bg-emerald-500' :
-                                                resource.status === 'in_use' ? 'bg-slate-500' :
-                                                    'bg-rose-500'
-                                            }`} />
-                                    </div>
-                                ))}
+                                    ))
+                                ) : employees.length === 0 ? (
+                                    <div className="p-4 text-sm text-slate-500 text-center">Keine aktiven Mitarbeiter gefunden.</div>
+                                ) : (
+                                    employees.map(emp => {
+                                        const empProjects = getEmployeeProjects(emp.id);
+                                        const hasAssignment = empProjects.length > 0;
+                                        return (
+                                            <div key={emp.id} className="p-3 hover:bg-slate-50 cursor-pointer flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-8 w-8 rounded bg-slate-100 flex items-center justify-center flex-shrink-0 text-slate-500">
+                                                        <Users className="h-4 w-4" />
+                                                    </div>
+                                                    <div className="truncate">
+                                                        <div className="text-sm font-medium text-slate-900 truncate">{emp.first_name} {emp.last_name}</div>
+                                                        <div className="text-xs text-slate-500 truncate">{emp.position || '—'}</div>
+                                                    </div>
+                                                </div>
+                                                <div className={`h-2 w-2 rounded-full flex-shrink-0 ${hasAssignment ? 'bg-blue-500' : 'bg-emerald-500'}`} />
+                                            </div>
+                                        );
+                                    })
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -186,67 +267,77 @@ const PlannerModuleV2 = () => {
                             </Tabs>
                         </CardHeader>
                         <CardContent className="p-0 min-h-[600px]">
-                            {/* Dummy Timeline display representing the calendar grid */}
                             <div className="flex flex-col h-full bg-slate-50/50">
                                 {/* Top Axis row */}
                                 <div className="flex border-b border-slate-200 bg-white">
                                     <div className="w-48 border-r border-slate-200 p-3 font-medium text-sm text-slate-500 flex items-center bg-slate-50/50">
-                                        Ressource
+                                        Mitarbeiter
                                     </div>
-                                    <div className="flex-1 grid grid-cols-7 divide-x divide-slate-100 bg-white">
-                                        {Array.from({ length: 7 }).map((_, i) => (
-                                            <div key={i} className="p-2 text-center text-xs text-slate-500 font-medium">
-                                                Mo, {10 + i}.10
-                                            </div>
-                                        ))}
+                                    <div className={`flex-1 grid ${gridColsClass} divide-x divide-slate-100 bg-white`}>
+                                        {weekDays.map((day, i) => {
+                                            const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+                                            return (
+                                                <div key={i} className={`p-2 text-center text-xs font-medium ${isToday ? 'text-blue-600 bg-blue-50' : 'text-slate-500'}`}>
+                                                    {format(day, 'EEE', { locale: de })}
+                                                    <br />
+                                                    {format(day, 'dd.MM', { locale: de })}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
 
-                                {/* Rows per resource */}
-                                {mockResources.map(resource => (
-                                    <div key={resource.id} className="flex border-b border-slate-100 bg-white group hover:bg-slate-50/50">
-                                        <div className="w-48 border-r border-slate-200 p-3 flex flex-col justify-center bg-white group-hover:bg-slate-50/50 transition-colors">
-                                            <span className="text-sm font-medium text-slate-800 truncate">{resource.name}</span>
-                                            <span className="text-xs text-slate-500 truncate">{resource.details}</span>
+                                {/* Employee Rows */}
+                                {isLoading ? (
+                                    Array.from({ length: 4 }).map((_, idx) => (
+                                        <div key={idx} className="flex border-b border-slate-100 bg-white">
+                                            <div className="w-48 border-r border-slate-200 p-3 flex flex-col justify-center gap-1.5">
+                                                <Skeleton className="h-4 w-28" />
+                                                <Skeleton className="h-3 w-20" />
+                                            </div>
+                                            <div className={`flex-1 grid ${gridColsClass} divide-x divide-slate-100 min-h-[64px]`}>
+                                                {weekDays.map((_, i) => (
+                                                    <div key={i} className="p-1">
+                                                        {idx % 2 === 0 && i < 3 && <Skeleton className="h-5 w-full rounded" />}
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
-                                        <div className="flex-1 grid grid-cols-7 divide-x divide-slate-100 relative min-h-[64px]">
-                                            {/* Background grid */}
-                                            {Array.from({ length: 7 }).map((_, i) => (
-                                                <div key={i} className="h-full bg-white group-hover:bg-transparent transition-colors" />
-                                            ))}
-
-                                            {/* Dummy Events positioned absolutely */}
-                                            {resource.status === 'in_use' && (
-                                                <div
-                                                    className="absolute top-2 bottom-2 left-[14.28%] right-[42.85%] bg-blue-100/80 border border-blue-200 rounded text-blue-800 text-xs p-1.5 shadow-sm truncate flex flex-col justify-center cursor-pointer hover:bg-blue-100 transition-colors"
-                                                >
-                                                    <span className="font-semibold block truncate">Projekt Nordstadt</span>
-                                                    <span className="truncate opacity-80 flex items-center gap-1"><MapPin className="h-3 w-3" /> Baustelle A</span>
-                                                </div>
-                                            )}
-                                            {resource.status === 'maintenance' && (
-                                                <div
-                                                    className="absolute top-2 bottom-2 left-[57.14%] right-[0%] bg-amber-100/80 border border-amber-200 rounded text-amber-800 text-xs p-1.5 shadow-sm truncate flex flex-col justify-center cursor-pointer hover:bg-amber-100 transition-colors"
-                                                >
-                                                    <span className="font-semibold block truncate">Wartung / TÜV</span>
-                                                    <span className="truncate opacity-80 flex items-center gap-1"><Clock className="h-3 w-3" /> 08:00 - 16:00</span>
-                                                </div>
-                                            )}
-                                        </div>
+                                    ))
+                                ) : filteredEmployees.length === 0 ? (
+                                    <div className="flex items-center justify-center py-16 text-sm text-slate-500">
+                                        {employees.length === 0
+                                            ? 'Keine aktiven Mitarbeiter gefunden.'
+                                            : 'Keine Mitarbeiter für diesen Suchbegriff gefunden.'}
                                     </div>
-                                ))}
-
-                                {/* Filler rows */}
-                                {Array.from({ length: 5 }).map((_, idx) => (
-                                    <div key={`filler-${idx}`} className="flex border-b border-slate-100 bg-white flex-1">
-                                        <div className="w-48 border-r border-slate-200 p-3 bg-white" />
-                                        <div className="flex-1 grid grid-cols-7 divide-x divide-slate-100">
-                                            {Array.from({ length: 7 }).map((_, i) => (
-                                                <div key={`filler-bg-${i}`} className="h-full bg-white" />
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
+                                ) : (
+                                    filteredEmployees.map(emp => {
+                                        const empProjects = getEmployeeProjects(emp.id);
+                                        return (
+                                            <div key={emp.id} className="flex border-b border-slate-100 bg-white group hover:bg-slate-50/50">
+                                                <div className="w-48 border-r border-slate-200 p-3 flex flex-col justify-center bg-white group-hover:bg-slate-50/50 transition-colors">
+                                                    <span className="text-sm font-medium text-slate-800 truncate">{emp.first_name} {emp.last_name}</span>
+                                                    <span className="text-xs text-slate-500 truncate">{emp.position || '—'}</span>
+                                                </div>
+                                                <div className={`flex-1 grid ${gridColsClass} divide-x divide-slate-100 min-h-[64px]`}>
+                                                    {weekDays.map((day, di) => {
+                                                        const dayProjects = empProjects.filter(p => projectOverlapsDay(p, day));
+                                                        const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                                                        return (
+                                                            <div key={di} className={`p-1 ${isWeekend ? 'bg-slate-50' : ''}`}>
+                                                                {dayProjects.map(p => (
+                                                                    <div key={p.id} className="mb-1 px-1.5 py-0.5 bg-blue-100/80 border border-blue-200 rounded text-blue-800 text-[10px] truncate">
+                                                                        {p.name}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -257,4 +348,3 @@ const PlannerModuleV2 = () => {
 };
 
 export default PlannerModuleV2;
-
