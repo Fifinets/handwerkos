@@ -33,6 +33,9 @@ import {
 import { workflowService } from '@/services/WorkflowService';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { format, subMonths } from 'date-fns';
+import { de } from 'date-fns/locale';
 
 // --- Types ---
 interface DashboardData {
@@ -67,22 +70,14 @@ interface ExecutiveDashboardV2Props {
     onNavigate?: (moduleId: string) => void;
 }
 
-// --- Mock Chart Data ---
-const revenueData = [
-    { name: 'Jan', revenue: 35000, expenses: 28000 },
-    { name: 'Feb', revenue: 42000, expenses: 31000 },
-    { name: 'Mär', revenue: 45000, expenses: 32000 },
-    { name: 'Apr', revenue: 38000, expenses: 29000 },
-    { name: 'Mai', revenue: 51000, expenses: 34000 },
-    { name: 'Jun', revenue: 48000, expenses: 33000 },
-];
-
 const COLORS = ['#0ea5e9', '#10b981', '#f59e0b', '#f43f5e'];
 
 const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate }) => {
     const [timeframe, setTimeframe] = useState('this-month');
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
+    const { companyId } = useSupabaseAuth();
+    const [revenueChartData, setRevenueChartData] = useState<Array<{ name: string; revenue: number; expenses: number }>>([]);
 
     const [dashboardData, setDashboardData] = useState<DashboardData>({
         criticalAlerts: { budgetWarnings: 0, overdueProjects: 0, overdueInvoices: 0, pendingQuotes: 0 },
@@ -95,42 +90,103 @@ const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate 
         loadDashboardData();
         const interval = setInterval(loadDashboardData, 5 * 60 * 1000);
         return () => clearInterval(interval);
-    }, [timeframe]);
+    }, [companyId, timeframe]);
 
     const loadDashboardData = async () => {
+        if (!companyId) return;
         try {
             setLoading(true);
-            // Simulate API call for fetching based on timeframe
-            await new Promise(resolve => setTimeout(resolve, 600));
 
-            // Mock Data adjusted by timeframe for interactivity
-            const multiplier = timeframe === 'this-year' ? 12 : timeframe === 'last-month' ? 0.9 : 1;
+            // Parallel queries
+            const [invoicesRes, expensesRes, projectsRes, employeesRes, offersRes] = await Promise.all([
+                supabase.from('invoices').select('id, invoice_date, gross_amount, net_amount, status, due_date').eq('company_id', companyId),
+                supabase.from('expenses').select('id, expense_date, amount').eq('company_id', companyId),
+                supabase.from('projects').select('id, status').eq('company_id', companyId),
+                supabase.from('employees').select('id, status').eq('company_id', companyId).eq('status', 'Aktiv'),
+                supabase.from('offers').select('id, status').eq('company_id', companyId).in('status', ['sent', 'pending', 'versendet']),
+            ]);
+
+            const invoices = invoicesRes.data || [];
+            const expenses = expensesRes.data || [];
+            const projects = projectsRes.data || [];
+            const employees = employeesRes.data || [];
+            const offers = offersRes.data || [];
+
+            // Financial KPIs
+            const now = new Date();
+            const thisMonthStr = format(now, 'yyyy-MM');
+
+            const thisMonthInvoices = invoices.filter(i => (i.invoice_date || '').startsWith(thisMonthStr));
+            const monthlyRevenue = thisMonthInvoices.reduce((s, i) => s + (i.gross_amount || i.net_amount || 0), 0);
+
+            const thisMonthExpenses = expenses.filter(e => (e.expense_date || '').startsWith(thisMonthStr));
+            const monthlyExpenses = thisMonthExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+
+            const profit = monthlyRevenue - monthlyExpenses;
+            const profitMargin = monthlyRevenue > 0 ? (profit / monthlyRevenue) * 100 : 0;
+
+            const overdueInvoices = invoices.filter(i =>
+                i.due_date && i.due_date < format(now, 'yyyy-MM-dd') && (i.status === 'sent' || i.status === 'issued')
+            );
+            const outstandingAmount = overdueInvoices.reduce((s, i) => s + (i.gross_amount || i.net_amount || 0), 0);
+
+            // Project status
+            const activeProjects = projects.filter(p => ['active', 'in_bearbeitung'].includes(p.status));
+            const planningProjects = projects.filter(p => ['planning', 'geplant', 'planned'].includes(p.status));
+            const completedProjects = projects.filter(p => ['completed', 'abgeschlossen'].includes(p.status));
+
+            // Revenue chart: last 6 months
+            const monthlyRevMap: Record<string, { revenue: number; expenses: number }> = {};
+            for (let i = 5; i >= 0; i--) {
+                const d = subMonths(now, i);
+                const key = format(d, 'yyyy-MM');
+                monthlyRevMap[key] = { revenue: 0, expenses: 0 };
+            }
+            invoices.forEach(inv => {
+                const m = (inv.invoice_date || '').substring(0, 7);
+                if (monthlyRevMap[m] !== undefined) {
+                    monthlyRevMap[m].revenue += (inv.gross_amount || inv.net_amount || 0);
+                }
+            });
+            expenses.forEach(exp => {
+                const m = (exp.expense_date || '').substring(0, 7);
+                if (monthlyRevMap[m] !== undefined) {
+                    monthlyRevMap[m].expenses += (exp.amount || 0);
+                }
+            });
+
+            const chartData = Object.entries(monthlyRevMap).sort(([a], [b]) => a.localeCompare(b)).map(([month, data]) => ({
+                name: format(new Date(month + '-01'), 'MMM', { locale: de }),
+                revenue: data.revenue,
+                expenses: data.expenses,
+            }));
+            setRevenueChartData(chartData);
 
             setDashboardData({
                 criticalAlerts: {
-                    budgetWarnings: 1,
-                    overdueProjects: 2,
-                    overdueInvoices: 3,
-                    pendingQuotes: 5,
+                    budgetWarnings: 0,
+                    overdueProjects: 0,
+                    overdueInvoices: overdueInvoices.length,
+                    pendingQuotes: offers.length,
                 },
                 financialKPIs: {
-                    monthlyRevenue: 45000 * multiplier,
-                    monthlyExpenses: 32000 * multiplier,
-                    profit: 13000 * multiplier,
-                    profitMargin: 28.9,
-                    outstandingAmount: 8500 * (multiplier > 1 ? 1 : multiplier),
-                    revenuetrend: 12.5,
+                    monthlyRevenue,
+                    monthlyExpenses,
+                    profit,
+                    profitMargin,
+                    outstandingAmount,
+                    revenuetrend: 0,
                 },
                 projectStatus: {
-                    active: 8,
-                    planning: 12,
-                    completed: 45 * multiplier,
-                    delayed: 2,
+                    active: activeProjects.length,
+                    planning: planningProjects.length,
+                    completed: completedProjects.length,
+                    delayed: 0,
                 },
                 teamOverview: {
-                    activeEmployees: 12,
-                    todayHours: 72,
-                    utilizationRate: 85,
+                    activeEmployees: employees.length,
+                    todayHours: 0,
+                    utilizationRate: 0,
                 },
             });
         } catch (error) {
