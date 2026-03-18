@@ -1,32 +1,22 @@
-
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 
-import { ORDER_STATUS_LABELS, OrderStatus } from "@/types/order";
-
-interface Customer {
-  id: string;
-  company_name: string;
-  contact_person: string;
-}
-
-interface Offer {
-  id: string;
-  offer_number: string;
-  project: { name: string } | null;
-  snapshots?: {
-    snapshot_net_total?: number;
-    snapshot_gross_total?: number;
-  };
-  total_amount?: number; // Depending on what we fetch
-}
+const getEmployeeAvailability = (emp: any) => {
+  const activeProjects = (emp.project_team_assignments || [])
+    .filter((a: any) => a.is_active && a.projects && a.projects.status !== 'abgeschlossen' && a.projects.status !== 'storniert');
+  if (activeProjects.length === 0) return { label: 'Verfügbar', color: 'bg-emerald-100 text-emerald-700', projects: [] };
+  if (activeProjects.length >= 3) return { label: 'Ausgelastet', color: 'bg-red-100 text-red-700', projects: activeProjects };
+  return { label: `${activeProjects.length} Projekt${activeProjects.length > 1 ? 'e' : ''}`, color: 'bg-amber-100 text-amber-700', projects: activeProjects };
+};
 
 interface AddOrderDialogProps {
   open: boolean;
@@ -35,321 +25,211 @@ interface AddOrderDialogProps {
 }
 
 const AddOrderDialog = ({ open, onOpenChange, onOrderAdded }: AddOrderDialogProps) => {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [customerId, setCustomerId] = useState('');
-  const [offerId, setOfferId] = useState('');
-  const [dueDate, setDueDate] = useState('');
-  const [status, setStatus] = useState<OrderStatus>('created');
-  const [priority, setPriority] = useState('Normal');
-  const [totalAmount, setTotalAmount] = useState('');
-  const [currency, setCurrency] = useState('EUR');
-  const [notes, setNotes] = useState('');
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [offers, setOffers] = useState<Offer[]>([]);
-  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { companyId } = useSupabaseAuth();
+
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [projectSites, setProjectSites] = useState<any[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    customer_id: '',
+    employee_id: '',
+    project_site_id: '',
+    work_date: '',
+    description: '',
+  });
 
   useEffect(() => {
-    if (open) {
-      fetchCustomers();
-    }
-  }, [open]);
+    if (!companyId || !open) return;
+    Promise.all([
+      supabase.from('customers').select('id, company_name, contact_person').eq('company_id', companyId),
+      supabase.from('employees')
+        .select('id, first_name, last_name, position, project_team_assignments(is_active, projects(name, status, start_date, end_date))')
+        .eq('company_id', companyId)
+        .not('status', 'in', '("Inaktiv","Gekündigt")'),
+    ]).then(([custRes, empRes]) => {
+      setCustomers(custRes.data || []);
+      setEmployees(empRes.data || []);
+    });
+  }, [companyId, open]);
 
   useEffect(() => {
-    if (customerId) {
-      fetchOffers(customerId);
-    } else {
-      setOffers([]);
-      setOfferId('');
+    if (!formData.customer_id) {
+      setProjectSites([]);
+      return;
     }
-  }, [customerId]);
-
-  const fetchOffers = async (custId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('offers')
-        .select(`
-          id,
-          offer_number,
-          projects ( name ),
-          snapshot_net_total,
-          snapshot_gross_total
-        `)
-        .eq('status', 'accepted')
-        .eq('customer_id', custId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching offers:', error);
-        return;
-      }
-
-      const mappedOffers = (data || []).map(o => ({
-        id: o.id,
-        offer_number: o.offer_number,
-        project: Array.isArray(o.projects) ? o.projects[0] : o.projects,
-        snapshots: {
-          snapshot_net_total: o.snapshot_net_total,
-          snapshot_gross_total: o.snapshot_gross_total,
+    supabase
+      .from('project_sites')
+      .select('id, name, address, city')
+      .eq('customer_id', formData.customer_id)
+      .then(({ data }) => {
+        setProjectSites(data || []);
+        if (data && data.length === 1) {
+          setFormData(prev => ({ ...prev, project_site_id: data[0].id }));
         }
-      })) as Offer[];
-
-      setOffers(mappedOffers);
-    } catch (error) {
-      console.error('Error fetching offers:', error);
-    }
-  };
-
-  const fetchCustomers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('customers')
-        .select('id, company_name, contact_person')
-        .eq('status', 'Aktiv')
-        .order('company_name');
-
-      if (error) {
-        console.error('Error fetching customers:', error);
-        return;
-      }
-
-      setCustomers(data || []);
-    } catch (error) {
-      console.error('Error fetching customers:', error);
-    }
-  };
+      });
+  }, [formData.customer_id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title.trim() || !customerId) {
-      toast({
-        title: "Fehler",
-        description: "Bitte füllen Sie alle Pflichtfelder aus.",
-        variant: "destructive"
-      });
+    if (!formData.name || !formData.customer_id) {
+      toast({ title: "Fehler", description: "Bitte Auftragsname und Kunde ausfüllen.", variant: "destructive" });
       return;
     }
 
-    setLoading(true);
-
+    setIsSubmitting(true);
     try {
-      console.log('Adding new order...');
+      const { data: project, error } = await supabase
+        .from('projects')
+        .insert({
+          name: formData.name,
+          customer_id: formData.customer_id,
+          company_id: companyId,
+          project_site_id: formData.project_site_id || null,
+          project_type: 'kleinauftrag',
+          status: formData.work_date ? 'in_planung' : 'anfrage',
+          start_date: formData.work_date || null,
+          end_date: formData.work_date || null,
+          description: formData.description || null,
+        })
+        .select()
+        .single();
 
-      const orderData = {
-        order_number: '', // Will be auto-generated by database trigger
-        title: title.trim(),
-        description: description.trim() || null,
-        customer_id: customerId,
-        offer_id: offerId || null,
-        due_date: dueDate || null,
-        status,
-        priority,
-        total_amount: totalAmount ? parseFloat(totalAmount) : null,
-        currency,
-        notes: notes.trim() || null
-      };
+      if (error) throw error;
 
-      const { error } = await supabase
-        .from('orders')
-        .insert(orderData);
-
-      if (error) {
-        console.error('Error adding order:', error);
-        toast({
-          title: "Fehler",
-          description: "Auftrag konnte nicht erstellt werden.",
-          variant: "destructive"
+      if (formData.employee_id && project) {
+        await supabase.from('project_team_assignments').insert({
+          project_id: project.id,
+          employee_id: formData.employee_id,
         });
-        return;
       }
 
-      toast({
-        title: "Erfolg",
-        description: "Auftrag wurde erfolgreich erstellt."
-      });
-
-      // Reset form
-      setTitle('');
-      setDescription('');
-      setCustomerId('');
-      setOfferId('');
-      setDueDate('');
-      setStatus('created');
-      setPriority('Normal');
-      setTotalAmount('');
-      setCurrency('EUR');
-      setNotes('');
-
+      toast({ title: "Auftrag erstellt", description: `${formData.name} wurde als Kleinauftrag angelegt.` });
+      setFormData({ name: '', customer_id: '', employee_id: '', project_site_id: '', work_date: '', description: '' });
       onOrderAdded();
-    } catch (error) {
-      console.error('Error adding order:', error);
-      toast({
-        title: "Fehler",
-        description: "Ein unerwarteter Fehler ist aufgetreten.",
-        variant: "destructive"
-      });
+      onOpenChange(false);
+    } catch (error: any) {
+      toast({ title: "Fehler", description: error.message || "Auftrag konnte nicht erstellt werden.", variant: "destructive" });
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
+  const set = (field: string, value: string) => setFormData(prev => ({ ...prev, [field]: value }));
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Neuen Auftrag erstellen</DialogTitle>
+          <DialogTitle>Neuer Kleinauftrag</DialogTitle>
+          <DialogDescription>
+            Schnellauftrag für Reparaturen, Installationen oder kurzfristige Einsätze.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Titel *</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Auftragstitel eingeben"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="customer">Kunde *</Label>
-              <Select value={customerId} onValueChange={setCustomerId} required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Kunde auswählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.company_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <Label>Auftragsname *</Label>
+            <Input
+              value={formData.name}
+              onChange={(e) => set('name', e.target.value)}
+              placeholder="z.B. Wasserhahn Reparatur, Steckdose installieren"
+              required
+            />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="offer">Angebot (Optional)</Label>
-            <Select value={offerId} onValueChange={setOfferId} disabled={!customerId || offers.length === 0}>
+          <div>
+            <Label>Kunde *</Label>
+            <Select value={formData.customer_id} onValueChange={(v) => setFormData(prev => ({ ...prev, customer_id: v, project_site_id: '' }))}>
               <SelectTrigger>
-                <SelectValue placeholder={!customerId ? "Zuerst Kunde wählen" : offers.length === 0 ? "Keine aktiven Angebote" : "Angebot auswählen"} />
+                <SelectValue placeholder="Kunde auswählen" />
               </SelectTrigger>
               <SelectContent>
-                {offers.map((offer) => (
-                  <SelectItem key={offer.id} value={offer.id}>
-                    {offer.offer_number} {offer.project?.name ? `- ${offer.project.name}` : ''}
+                {customers.map(c => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.company_name || 'Unbekannt'}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Beschreibung</Label>
+          <div>
+            <Label>Standort</Label>
+            <Select
+              value={formData.project_site_id}
+              onValueChange={(v) => set('project_site_id', v)}
+              disabled={!formData.customer_id}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={
+                  !formData.customer_id ? "Bitte zuerst Kunde wählen"
+                    : projectSites.length === 0 ? "Keine Standorte hinterlegt"
+                      : "Standort auswählen..."
+                } />
+              </SelectTrigger>
+              <SelectContent>
+                {projectSites.map(site => (
+                  <SelectItem key={site.id} value={site.id}>
+                    {site.name ? `${site.name} - ` : ''}{site.address}, {site.city}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Mitarbeiter</Label>
+            <Select value={formData.employee_id} onValueChange={(v) => set('employee_id', v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Mitarbeiter zuweisen" />
+              </SelectTrigger>
+              <SelectContent>
+                {employees.map(emp => {
+                  const avail = getEmployeeAvailability(emp);
+                  return (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      <div className="flex items-center justify-between w-full gap-2">
+                        <span>{emp.first_name} {emp.last_name} {emp.position ? `(${emp.position})` : ''}</span>
+                        <Badge className={`text-[10px] ml-2 ${avail.color}`}>{avail.label}</Badge>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Termin</Label>
+            <Input
+              type="date"
+              value={formData.work_date}
+              onChange={(e) => set('work_date', e.target.value)}
+            />
+            <p className="text-xs text-slate-500 mt-1">Optional — ohne Datum wird der Auftrag als "Anfrage" angelegt.</p>
+          </div>
+
+          <div>
+            <Label>Beschreibung</Label>
             <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Auftragsbeschreibung eingeben"
+              value={formData.description}
+              onChange={(e) => set('description', e.target.value)}
+              placeholder="Was muss gemacht werden?"
               rows={3}
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select value={status} onValueChange={(val) => setStatus(val as OrderStatus)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(ORDER_STATUS_LABELS).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="priority">Priorität</Label>
-              <Select value={priority} onValueChange={setPriority}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Niedrig">Niedrig</SelectItem>
-                  <SelectItem value="Normal">Normal</SelectItem>
-                  <SelectItem value="Hoch">Hoch</SelectItem>
-                  <SelectItem value="Dringend">Dringend</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="dueDate">Fälligkeitsdatum</Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="totalAmount">Gesamtbetrag</Label>
-              <Input
-                id="totalAmount"
-                type="number"
-                step="0.01"
-                value={totalAmount}
-                onChange={(e) => setTotalAmount(e.target.value)}
-                placeholder="0.00"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="currency">Währung</Label>
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="EUR">EUR</SelectItem>
-                  <SelectItem value="USD">USD</SelectItem>
-                  <SelectItem value="CHF">CHF</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notizen</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Zusätzliche Notizen"
-              rows={2}
-            />
-          </div>
-
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-            >
+          <div className="flex gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
               Abbrechen
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Wird erstellt..." : "Auftrag erstellen"}
+            <Button type="submit" className="flex-1" disabled={isSubmitting}>
+              {isSubmitting ? 'Wird erstellt...' : 'Auftrag erstellen'}
             </Button>
           </div>
         </form>

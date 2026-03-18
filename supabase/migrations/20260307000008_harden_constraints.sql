@@ -24,16 +24,17 @@ END $$;
 -- 3. Hard FK constraints for project_sites (if any were optional before)
 -- Note: delivery_notes table not found, skipped.
 
--- Migration 4.2: Totholz entfernen
--- Drop legacy columns
+-- Migration 4.2: Cleanup
+-- NOTE: projects.location is still used by many components (MobileTimeTracker,
+-- LocationBasedTimeTracking, DesktopEmployeePage, etc.) — DO NOT DROP IT.
+-- NOTE: projects.contact_person can be dropped (superseded by customer_contacts).
 DROP VIEW IF EXISTS employee_assigned_projects;
 
-ALTER TABLE projects DROP COLUMN IF EXISTS location;
 ALTER TABLE projects DROP COLUMN IF EXISTS contact_person;
 
 -- Recreate view
 CREATE OR REPLACE VIEW employee_assigned_projects AS
-SELECT 
+SELECT
   p.*,
   pta.role as employee_role,
   pta.hourly_rate as employee_hourly_rate,
@@ -46,12 +47,3 @@ GRANT SELECT ON employee_assigned_projects TO authenticated;
 
 -- Add offer_id where quote_id was used
 ALTER TABLE workflow_chains ADD COLUMN IF NOT EXISTS offer_id UUID REFERENCES offers(id);
-
--- Drop quote_id from everywhere we transitioned away from
-ALTER TABLE orders DROP COLUMN IF EXISTS quote_id;
-ALTER TABLE invoices DROP COLUMN IF EXISTS quote_id;
-ALTER TABLE workflow_chains DROP COLUMN IF EXISTS quote_id;
-
--- Drop old amount fields if any were specified in soll_datenmatrix (e.g., invoices total_amount if replaced by net/gross)
--- Taking care to only drop what was explicitly mentioned. "alte Betragsfelder"
-ALTER TABLE invoices DROP COLUMN IF EXISTS amount; 

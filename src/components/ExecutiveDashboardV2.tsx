@@ -321,7 +321,7 @@ const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate 
                     <CardContent>
                         <div className="h-[300px] w-full mt-4">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={revenueData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                <BarChart data={revenueChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} dy={10} />
                                     <YAxis

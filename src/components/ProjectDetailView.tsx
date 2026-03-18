@@ -1047,26 +1047,32 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                 </DialogDescription>
               </div>
 
-              {/* Budget chip */}
-              <div className="flex-shrink-0 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-right">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">Projektkosten</p>
-                <p className="text-xl font-bold text-slate-900">{formatCurrency(project.stats.total_project_cost)}</p>
-                {project.budget_planned > 0 && (
-                  <p className="text-[10px] text-slate-400 mt-0.5">von {formatCurrency(project.budget_planned)}</p>
-                )}
-              </div>
+              {/* Budget chip – only for Projektaufträge */}
+              {project.project_type !== 'kleinauftrag' && (
+                <div className="flex-shrink-0 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-right">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">Projektkosten</p>
+                  <p className="text-xl font-bold text-slate-900">{formatCurrency(project.stats.total_project_cost)}</p>
+                  {project.budget_planned > 0 && (
+                    <p className="text-[10px] text-slate-400 mt-0.5">von {formatCurrency(project.budget_planned)}</p>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* Status Pipeline */}
-            {(() => {
+            {/* Status Pipeline – only for Projektaufträge */}
+            {project.project_type !== 'kleinauftrag' && (() => {
               const stages = [
                 { key: 'anfrage', label: 'Anfrage' },
                 { key: 'besichtigung', label: 'Besichtigung' },
-                { key: 'geplant', label: 'Geplant' },
+                { key: 'angebot', label: 'Angebot' },
+                { key: 'beauftragt', label: 'Beauftragt' },
+                { key: 'in_planung', label: 'Planung' },
                 { key: 'in_bearbeitung', label: 'In Arbeit' },
+                { key: 'abnahme', label: 'Abnahme' },
                 { key: 'abgeschlossen', label: 'Fertig' },
               ];
-              const currentIdx = stages.findIndex(s => s.key === project.status);
+              const statusKey = project.status === 'angebot_versendet' ? 'angebot' : project.status;
+              const currentIdx = stages.findIndex(s => s.key === statusKey);
               return (
                 <div className="flex items-center gap-0 mb-4">
                   {stages.map((stage, idx) => {
@@ -1117,8 +1123,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           {/* ── Overview Tab ──────────────────────────────────── */}
           <TabsContent value="overview" className="px-6 pb-6 pt-5 space-y-5 min-h-[500px] mt-0">
 
-            {/* Zeile 1 – KPIs (Erfasste Zeit + Angebotssumme) */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* Zeile 1 – KPIs */}
+            <div className={`grid grid-cols-1 ${project.project_type !== 'kleinauftrag' ? 'lg:grid-cols-2' : ''} gap-5`}>
 
               {/* Erfasste Zeit */}
               <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
@@ -1158,86 +1164,89 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                 </CardContent>
               </Card>
 
-              {/* Angebotssumme */}
-              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3 flex flex-row items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-slate-700 m-0">Angebotssumme</CardTitle>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs border-slate-200 text-slate-600 hover:bg-slate-50"
-                    onClick={() => { loadAvailableOffers(); setIsLinkOfferOpen(!isLinkOfferOpen); }}
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Verknüpfen
-                  </Button>
-                </CardHeader>
-                <CardContent className="p-5">
-                  {isLinkOfferOpen && (
-                    <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
-                      <p className="text-xs font-medium text-slate-600 mb-2">Angebot auswählen:</p>
-                      {availableOffers.length === 0 ? (
-                        <p className="text-xs text-slate-400 text-center py-2">Keine unverknüpften Angebote vorhanden</p>
-                      ) : (
-                        <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
-                          {availableOffers.map(offer => (
-                            <button
-                              key={offer.id}
-                              onClick={() => linkOfferToProject(offer.id)}
-                              className="w-full flex items-center justify-between p-2.5 rounded-md border border-slate-200 bg-white hover:bg-teal-50 hover:border-teal-300 transition-colors text-left"
-                            >
-                              <div>
-                                <p className="text-sm font-medium text-slate-800">{offer.offer_number}</p>
-                                <p className="text-xs text-slate-400">{offer.snapshot_customer_name}</p>
-                              </div>
-                              <span className="text-sm font-semibold text-slate-700">{formatCurrency(offer.snapshot_gross_total || 0)}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  <div className="text-center mb-3">
-                    <p className="text-3xl font-bold text-slate-900">{formatCurrency(projectOffers.reduce((sum, o) => sum + (o.snapshot_gross_total || 0), 0))}</p>
-                    <p className="text-xs text-slate-400 mt-1">von {projectOffers.length} Angeboten</p>
-                  </div>
-                  {projectOffers.length > 0 && (
-                    <div className="space-y-1.5 border-t border-slate-100 pt-3">
-                      {projectOffers.map(offer => (
-                        <div key={offer.id} className="flex items-center justify-between p-2 rounded-md bg-slate-50 border border-slate-100">
-                          <div className="flex items-center gap-2">
-                            <a
-                              href={`/manager2/offers/${offer.id}/edit`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs font-medium text-teal-600 hover:text-teal-800 hover:underline"
-                            >
-                              {offer.offer_number}
-                            </a>
-                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
-                              offer.status === 'accepted' ? 'bg-green-50 text-green-700 border border-green-200' :
-                              offer.status === 'rejected' ? 'bg-red-50 text-red-700 border border-red-200' :
-                              'bg-yellow-50 text-yellow-700 border border-yellow-200'
-                            }`}>
-                              {offer.status === 'accepted' ? 'Akzeptiert' : offer.status === 'rejected' ? 'Abgelehnt' : 'Ausstehend'}
-                            </span>
+              {/* Angebotssumme – only for Projektaufträge */}
+              {project.project_type !== 'kleinauftrag' && (
+                <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                  <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3 flex flex-row items-center justify-between">
+                    <CardTitle className="text-sm font-semibold text-slate-700 m-0">Angebotssumme</CardTitle>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs border-slate-200 text-slate-600 hover:bg-slate-50"
+                      onClick={() => { loadAvailableOffers(); setIsLinkOfferOpen(!isLinkOfferOpen); }}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Verknüpfen
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="p-5">
+                    {isLinkOfferOpen && (
+                      <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+                        <p className="text-xs font-medium text-slate-600 mb-2">Angebot auswählen:</p>
+                        {availableOffers.length === 0 ? (
+                          <p className="text-xs text-slate-400 text-center py-2">Keine unverknüpften Angebote vorhanden</p>
+                        ) : (
+                          <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+                            {availableOffers.map(offer => (
+                              <button
+                                key={offer.id}
+                                onClick={() => linkOfferToProject(offer.id)}
+                                className="w-full flex items-center justify-between p-2.5 rounded-md border border-slate-200 bg-white hover:bg-teal-50 hover:border-teal-300 transition-colors text-left"
+                              >
+                                <div>
+                                  <p className="text-sm font-medium text-slate-800">{offer.offer_number}</p>
+                                  <p className="text-xs text-slate-400">{offer.snapshot_customer_name}</p>
+                                </div>
+                                <span className="text-sm font-semibold text-slate-700">{formatCurrency(offer.snapshot_gross_total || 0)}</span>
+                              </button>
+                            ))}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-slate-800">{formatCurrency(offer.snapshot_gross_total || 0)}</span>
-                            <button
-                              onClick={() => unlinkOffer(offer.id)}
-                              className="text-slate-300 hover:text-red-500 transition-colors p-0.5"
-                              title="Verknüpfung entfernen"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                        )}
+                      </div>
+                    )}
+                    <div className="text-center mb-3">
+                      <p className="text-3xl font-bold text-slate-900">{formatCurrency(projectOffers.reduce((sum, o) => sum + (o.snapshot_gross_total || 0), 0))}</p>
+                      <p className="text-xs text-slate-400 mt-1">von {projectOffers.length} Angeboten</p>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+                    {projectOffers.length > 0 && (
+                      <div className="space-y-1.5 border-t border-slate-100 pt-3">
+                        {projectOffers.map(offer => (
+                          <div key={offer.id} className="flex items-center justify-between p-2 rounded-md bg-slate-50 border border-slate-100">
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={`/manager2/offers/${offer.id}/edit`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs font-medium text-teal-600 hover:text-teal-800 hover:underline"
+                              >
+                                {offer.offer_number}
+                              </a>
+                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
+                                offer.status === 'accepted' ? 'bg-green-50 text-green-700 border border-green-200' :
+                                offer.status === 'rejected' ? 'bg-red-50 text-red-700 border border-red-200' :
+                                'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                              }`}>
+                                {offer.status === 'accepted' ? 'Akzeptiert' : offer.status === 'rejected' ? 'Abgelehnt' : 'Ausstehend'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold text-slate-800">{formatCurrency(offer.snapshot_gross_total || 0)}</span>
+                              <button
+                                onClick={() => unlinkOffer(offer.id)}
+                                className="text-slate-300 hover:text-red-500 transition-colors p-0.5"
+                                title="Verknüpfung entfernen"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
             </div>
 
             {/* Zeile 2 – Team + Checkliste */}

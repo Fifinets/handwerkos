@@ -8,20 +8,35 @@ import {
     Users,
     Briefcase,
     Plus,
-    Filter,
     ChevronLeft,
     ChevronRight,
-    Clock,
-    MapPin,
     Search
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { addDays, addMonths, format, startOfWeek, subDays, subMonths } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+const PROJECT_COLORS = [
+    { bg: 'bg-blue-500', light: 'bg-blue-50', text: 'text-white', dot: 'bg-blue-500' },
+    { bg: 'bg-emerald-500', light: 'bg-emerald-50', text: 'text-white', dot: 'bg-emerald-500' },
+    { bg: 'bg-orange-500', light: 'bg-orange-50', text: 'text-white', dot: 'bg-orange-500' },
+    { bg: 'bg-purple-500', light: 'bg-purple-50', text: 'text-white', dot: 'bg-purple-500' },
+    { bg: 'bg-pink-500', light: 'bg-pink-50', text: 'text-white', dot: 'bg-pink-500' },
+    { bg: 'bg-teal-500', light: 'bg-teal-50', text: 'text-white', dot: 'bg-teal-500' },
+    { bg: 'bg-amber-500', light: 'bg-amber-50', text: 'text-white', dot: 'bg-amber-500' },
+    { bg: 'bg-indigo-500', light: 'bg-indigo-50', text: 'text-white', dot: 'bg-indigo-500' },
+    { bg: 'bg-rose-500', light: 'bg-rose-50', text: 'text-white', dot: 'bg-rose-500' },
+    { bg: 'bg-cyan-500', light: 'bg-cyan-50', text: 'text-white', dot: 'bg-cyan-500' },
+];
 
 const PlannerModuleV2 = () => {
     const { companyId } = useSupabaseAuth();
@@ -40,11 +55,11 @@ const PlannerModuleV2 = () => {
             supabase.from('employees')
                 .select('id, first_name, last_name, status, position')
                 .eq('company_id', companyId)
-                .eq('status', 'Aktiv'),
+                .not('status', 'in', '("Inaktiv","Gekündigt")'),
             supabase.from('projects')
                 .select('id, name, status, start_date, end_date, location, project_team_assignments(employee_id, is_active)')
                 .eq('company_id', companyId)
-                .in('status', ['active', 'in_bearbeitung', 'geplant', 'planned']),
+                .not('status', 'in', '("abgeschlossen","storniert")'),
         ]).then(([empRes, projRes]) => {
             setEmployees(empRes.data || []);
             setProjects(projRes.data || []);
@@ -87,6 +102,15 @@ const PlannerModuleV2 = () => {
 
     const assignedCount = assignedEmployeeIds.size;
     const freeCount = employees.length - assignedCount;
+
+    // Assign a stable color to each project
+    const projectColorMap = useMemo(() => {
+        const map = new Map<string, typeof PROJECT_COLORS[0]>();
+        projects.forEach((p, i) => {
+            map.set(p.id, PROJECT_COLORS[i % PROJECT_COLORS.length]);
+        });
+        return map;
+    }, [projects]);
 
     // Filter employees by search term
     const filteredEmployees = useMemo(() => {
@@ -319,17 +343,40 @@ const PlannerModuleV2 = () => {
                                                     <span className="text-sm font-medium text-slate-800 truncate">{emp.first_name} {emp.last_name}</span>
                                                     <span className="text-xs text-slate-500 truncate">{emp.position || '—'}</span>
                                                 </div>
-                                                <div className={`flex-1 grid ${gridColsClass} divide-x divide-slate-100 min-h-[64px]`}>
+                                                <div className={`flex-1 grid ${gridColsClass} min-h-[64px]`}>
                                                     {weekDays.map((day, di) => {
                                                         const dayProjects = empProjects.filter(p => projectOverlapsDay(p, day));
                                                         const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                                                        const prevDay = di > 0 ? weekDays[di - 1] : null;
+                                                        const nextDay = di < weekDays.length - 1 ? weekDays[di + 1] : null;
                                                         return (
-                                                            <div key={di} className={`p-1 ${isWeekend ? 'bg-slate-50' : ''}`}>
-                                                                {dayProjects.map(p => (
-                                                                    <div key={p.id} className="mb-1 px-1.5 py-0.5 bg-blue-100/80 border border-blue-200 rounded text-blue-800 text-[10px] truncate">
-                                                                        {p.name}
-                                                                    </div>
-                                                                ))}
+                                                            <div key={di} className={`py-1.5 flex flex-col gap-1 ${isWeekend ? 'bg-slate-50/80' : ''} ${di > 0 ? 'border-l border-slate-100' : ''}`}>
+                                                                {dayProjects.map(p => {
+                                                                    const color = projectColorMap.get(p.id) || PROJECT_COLORS[0];
+                                                                    const continuesFromPrev = prevDay && projectOverlapsDay(p, prevDay);
+                                                                    const continuesToNext = nextDay && projectOverlapsDay(p, nextDay);
+                                                                    const roundedL = continuesFromPrev ? 'rounded-l-none' : 'rounded-l-md ml-1';
+                                                                    const roundedR = continuesToNext ? 'rounded-r-none mr-0' : 'rounded-r-md mr-1';
+                                                                    return (
+                                                                        <TooltipProvider key={p.id} delayDuration={200}>
+                                                                            <Tooltip>
+                                                                                <TooltipTrigger asChild>
+                                                                                    <div
+                                                                                        className={`${color.bg} ${color.text} ${roundedL} ${roundedR} px-2 py-1 text-[10px] font-medium truncate cursor-default shadow-sm`}
+                                                                                        style={{ minHeight: '24px', lineHeight: '16px' }}
+                                                                                    >
+                                                                                        {!continuesFromPrev ? p.name : '\u00A0'}
+                                                                                    </div>
+                                                                                </TooltipTrigger>
+                                                                                <TooltipContent side="top" className="text-xs">
+                                                                                    <p className="font-semibold">{p.name}</p>
+                                                                                    {p.location && <p className="text-slate-400">{p.location}</p>}
+                                                                                    <p className="text-slate-400">{p.start_date && format(new Date(p.start_date), 'dd.MM.yy', { locale: de })} – {p.end_date ? format(new Date(p.end_date), 'dd.MM.yy', { locale: de }) : 'offen'}</p>
+                                                                                </TooltipContent>
+                                                                            </Tooltip>
+                                                                        </TooltipProvider>
+                                                                    );
+                                                                })}
                                                             </div>
                                                         );
                                                     })}
@@ -341,6 +388,21 @@ const PlannerModuleV2 = () => {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Project Legend */}
+                    {projects.length > 0 && (
+                        <div className="flex flex-wrap gap-3 px-1">
+                            {projects.map(p => {
+                                const color = projectColorMap.get(p.id) || PROJECT_COLORS[0];
+                                return (
+                                    <div key={p.id} className="flex items-center gap-1.5">
+                                        <div className={`h-2.5 w-2.5 rounded-full ${color.dot}`} />
+                                        <span className="text-xs text-slate-600">{p.name}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

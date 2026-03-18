@@ -7,14 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
-import { de } from "date-fns/locale";
 import { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateProject } from "@/hooks/useApi";
+import type { ProjectCreate } from "@/types/core";
 
 interface Customer {
   id: string;
@@ -65,11 +62,10 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
     name: '',
     customer_id: '',
     project_site_id: '',
-    budget: '',
     team: [] as string[],
-    status: 'planned'
+    status: 'anfrage'
   });
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [dateRange] = useState<DateRange | undefined>();
   const [projectSites, setProjectSites] = useState<{ id: string; name: string | null; address: string; city: string; }[]>([]);
 
   // Fetch project sites for the selected customer
@@ -205,9 +201,8 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
       name: formData.name,
       customer_id: selectedCustomer.id,
       project_site_id: formData.project_site_id || undefined,
-      status: formData.status as 'planned' | 'active' | 'completed' | 'cancelled',
-      budget: parseFloat(formData.budget.replace(/[^0-9.]/g, '')) || 0,
-      start_date: dateRange?.from ? format(dateRange?.from, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+      status: formData.status as ProjectCreate['status'],
+      start_date: dateRange?.from ? format(dateRange?.from, 'yyyy-MM-dd') : undefined,
       end_date: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
       // Remove assigned_employees for now - will be handled separately
       // assigned_employees: teamMemberIds
@@ -264,11 +259,9 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
         name: '',
         customer_id: '',
         project_site_id: '',
-        budget: '',
         team: [],
-        status: 'planned'
+        status: 'anfrage'
       });
-      setDateRange(undefined);
 
       onClose();
     } catch (error) {
@@ -373,44 +366,6 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
           </div>
 
           <div>
-            <Label>Projektzeitraum</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left font-normal"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange?.from ? (
-                    dateRange.to ? (
-                      <>
-                        {format(dateRange.from, "dd.MM.yyyy", { locale: de })} -{" "}
-                        {format(dateRange.to, "dd.MM.yyyy", { locale: de })}
-                      </>
-                    ) : (
-                      format(dateRange.from, "dd.MM.yyyy", { locale: de })
-                    )
-                  ) : (
-                    <span>Start- und Enddatum auswählen</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  initialFocus
-                  mode="range"
-                  defaultMonth={dateRange?.from}
-                  selected={dateRange}
-                  onSelect={setDateRange}
-                  numberOfMonths={2}
-                  locale={de}
-                  className="pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          <div>
             <Label>Team auswählen</Label>
             <div className="mt-2 space-y-2 max-h-48 overflow-y-auto border rounded-md p-3">
               {teamMembersWithAvailability.map((member) => (
@@ -441,10 +396,16 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="planned">Planung</SelectItem>
-                <SelectItem value="active">In Bearbeitung</SelectItem>
-                <SelectItem value="completed">Abgeschlossen</SelectItem>
-                <SelectItem value="cancelled">Storniert</SelectItem>
+                <SelectItem value="anfrage">Anfrage</SelectItem>
+                <SelectItem value="besichtigung">Besichtigung</SelectItem>
+                <SelectItem value="angebot">Angebot erstellen</SelectItem>
+                <SelectItem value="angebot_versendet">Angebot versendet</SelectItem>
+                <SelectItem value="beauftragt">Beauftragt</SelectItem>
+                <SelectItem value="in_planung">In Planung</SelectItem>
+                <SelectItem value="in_bearbeitung">In Bearbeitung</SelectItem>
+                <SelectItem value="abnahme">Abnahme</SelectItem>
+                <SelectItem value="abgeschlossen">Abgeschlossen</SelectItem>
+                <SelectItem value="storniert">Storniert</SelectItem>
               </SelectContent>
             </Select>
           </div>

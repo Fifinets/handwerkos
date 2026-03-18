@@ -46,6 +46,9 @@ export class ProjectService {
           )
         `, { count: 'exact' });
 
+      // Exclude Kleinaufträge from project list
+      query = query.neq('project_type', 'kleinauftrag');
+
       // Apply filters
       if (filters?.status) {
         query = query.eq('status', filters.status);

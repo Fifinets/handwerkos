@@ -134,7 +134,11 @@ export const ProjectCreateSchema = z.object({
   project_site_id: z.string().uuid().optional(),
   name: z.string().min(1, 'Projektname ist erforderlich'),
   description: z.string().optional(),
-  status: z.enum(['planned', 'active', 'completed', 'cancelled']).default('planned'),
+  status: z.enum([
+    'anfrage', 'besichtigung', 'angebot', 'angebot_versendet',
+    'beauftragt', 'in_planung', 'in_bearbeitung', 'abnahme',
+    'abgeschlossen', 'storniert'
+  ]).default('anfrage'),
   budget: z.number().min(0, 'Budget muss positiv sein').optional(),
   start_date: z.string().optional(),
   end_date: z.string().optional(),

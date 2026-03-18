@@ -58,19 +58,32 @@ import PreCalculationDialog from "./PreCalculationDialog";
 import ProjectProfitabilityDialog from "./ProjectProfitabilityDialog";
 import ProjectRow from "./projects/ProjectRow";
 import AutoFixDatabase from "./AutoFixDatabase";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import AddOrderDialog from "./AddOrderDialog";
+import { Wrench, CalendarDays, MapPin, User } from "lucide-react";
 
 const getStatusColor = (status: string) => {
     switch (status) {
         case 'anfrage':
             return 'bg-slate-100 text-slate-700 border-slate-200';
         case 'besichtigung':
-            return 'bg-slate-50 text-blue-700 border-blue-200';
+            return 'bg-blue-50 text-blue-700 border-blue-200';
+        case 'angebot':
+        case 'angebot_versendet':
+            return 'bg-orange-50 text-orange-700 border-orange-200';
+        case 'beauftragt':
+            return 'bg-purple-50 text-purple-700 border-purple-200';
+        case 'in_planung':
         case 'geplant':
-            return 'bg-slate-50 text-indigo-700 border-indigo-200';
+            return 'bg-indigo-50 text-indigo-700 border-indigo-200';
         case 'in_bearbeitung':
             return 'bg-amber-50 text-amber-700 border-amber-200';
+        case 'abnahme':
+            return 'bg-teal-50 text-teal-700 border-teal-200';
         case 'abgeschlossen':
             return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        case 'storniert':
+            return 'bg-red-50 text-red-700 border-red-200';
         default:
             return 'bg-gray-50 text-gray-700 border-gray-200';
     }
@@ -81,13 +94,23 @@ const getStatusIcon = (status: string) => {
         case 'anfrage':
             return <FileText className="h-4 w-4 text-slate-500" />;
         case 'besichtigung':
-            return <Search className="h-4 w-4 text-slate-500" />;
+            return <Search className="h-4 w-4 text-blue-500" />;
+        case 'angebot':
+        case 'angebot_versendet':
+            return <FileText className="h-4 w-4 text-orange-500" />;
+        case 'beauftragt':
+            return <CheckCircle className="h-4 w-4 text-purple-500" />;
+        case 'in_planung':
         case 'geplant':
-            return <FolderOpen className="h-4 w-4 text-slate-500" />;
+            return <FolderOpen className="h-4 w-4 text-indigo-500" />;
         case 'in_bearbeitung':
             return <HardHat className="h-4 w-4 text-amber-500" />;
+        case 'abnahme':
+            return <CheckCircle className="h-4 w-4 text-teal-500" />;
         case 'abgeschlossen':
             return <CheckCircle className="h-4 w-4 text-emerald-500" />;
+        case 'storniert':
+            return <FileText className="h-4 w-4 text-red-500" />;
         default:
             return <FileText className="h-4 w-4 text-gray-500" />;
     }
@@ -263,19 +286,46 @@ const ProjectModuleV2 = () => {
     const [isProjectDetailViewOpen, setIsProjectDetailViewOpen] = useState(false);
     const [selectedProject, setSelectedProject] = useState<ProjectWithCustomers | null>(null);
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+    const [isAddOrderOpen, setIsAddOrderOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState('projekte');
+    const [kleinauftraege, setKleinauftraege] = useState<any[]>([]);
+    const [kleinauftraegeLoading, setKleinauftraegeLoading] = useState(false);
 
     const projects = (projectsResponse?.items || debugProjects || []) as ProjectWithCustomers[];
     const customers = customersResponse?.items || [];
+
+    // Fetch Kleinaufträge
+    const fetchKleinauftraege = useCallback(async () => {
+        if (!companyId) return;
+        setKleinauftraegeLoading(true);
+        const { data } = await supabase
+            .from('projects')
+            .select('*, customers(company_name), project_team_assignments(employee_id, employees(first_name, last_name)), project_sites(name, address, city)')
+            .eq('company_id', companyId)
+            .eq('project_type', 'kleinauftrag')
+            .order('created_at', { ascending: false });
+        setKleinauftraege(data || []);
+        setKleinauftraegeLoading(false);
+    }, [companyId]);
+
+    useEffect(() => {
+        if (activeTab === 'auftraege') fetchKleinauftraege();
+    }, [activeTab, fetchKleinauftraege]);
 
     // Filter options
     const filterOptions = [
         { value: 'aktive', label: 'Nur aktive' },
         { value: 'alle', label: 'Alle Projekte' },
-        { value: 'abgeschlossen', label: 'Abgeschlossen' },
         { value: 'anfrage', label: 'Anfragen' },
         { value: 'besichtigung', label: 'Besichtigung' },
-        { value: 'geplant', label: 'In Planung' },
-        { value: 'in_bearbeitung', label: 'In Arbeit' },
+        { value: 'angebot', label: 'Angebot' },
+        { value: 'angebot_versendet', label: 'Angebot versendet' },
+        { value: 'beauftragt', label: 'Beauftragt' },
+        { value: 'in_planung', label: 'In Planung' },
+        { value: 'in_bearbeitung', label: 'In Bearbeitung' },
+        { value: 'abnahme', label: 'Abnahme' },
+        { value: 'abgeschlossen', label: 'Abgeschlossen' },
+        { value: 'storniert', label: 'Storniert' },
     ];
 
     // Filter projects based on search and status
@@ -288,7 +338,7 @@ const ProjectModuleV2 = () => {
 
         // Status filter
         if (statusFilter === 'aktive') {
-            return p.status !== 'abgeschlossen';
+            return p.status !== 'abgeschlossen' && p.status !== 'storniert';
         } else if (statusFilter === 'alle') {
             return true;
         } else {
@@ -315,17 +365,22 @@ const ProjectModuleV2 = () => {
     const statusCounts = {
         anfrage: projects.filter(p => p.status === 'anfrage').length,
         besichtigung: projects.filter(p => p.status === 'besichtigung').length,
-        geplant: projects.filter(p => p.status === 'geplant').length,
+        angebot: projects.filter(p => p.status === 'angebot' || p.status === 'angebot_versendet').length,
+        beauftragt: projects.filter(p => p.status === 'beauftragt').length,
+        in_planung: projects.filter(p => p.status === 'in_planung').length,
         in_bearbeitung: projects.filter(p => p.status === 'in_bearbeitung').length,
-        abgeschlossen: projects.filter(p => p.status === 'abgeschlossen').length
+        abnahme: projects.filter(p => p.status === 'abnahme').length,
+        abgeschlossen: projects.filter(p => p.status === 'abgeschlossen').length,
+        storniert: projects.filter(p => p.status === 'storniert').length,
     };
+
+    const activeProjectsCount = projects.filter(p => p.status !== 'abgeschlossen' && p.status !== 'storniert').length;
 
     const today = new Date().toISOString().split('T')[0];
     const delayedProjects = projects.filter(project =>
         project.end_date && project.end_date < today && project.status !== 'abgeschlossen'
     );
 
-    const activeProjectsCount = projects.filter(p => p.status !== 'abgeschlossen').length;
     const generateShortId = (fullId: string) => {
         const hash = fullId.split('-').join('');
         return `P${hash.substring(0, 6).toUpperCase()}`;
@@ -361,12 +416,33 @@ const ProjectModuleV2 = () => {
                             className="pl-9 w-[250px] bg-white border-slate-200"
                         />
                     </div>
-                    <Button onClick={() => setIsAddDialogOpen(true)} className="bg-slate-900 hover:bg-slate-800 text-white">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Neues Projekt
-                    </Button>
+                    {activeTab === 'projekte' ? (
+                        <Button onClick={() => setIsAddDialogOpen(true)} className="bg-slate-900 hover:bg-slate-800 text-white">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Neues Projekt
+                        </Button>
+                    ) : (
+                        <Button onClick={() => setIsAddOrderOpen(true)} className="bg-slate-900 hover:bg-slate-800 text-white">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Neuer Auftrag
+                        </Button>
+                    )}
                 </div>
             </div>
+
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="bg-slate-100/50 p-1 border border-slate-200">
+                    <TabsTrigger value="projekte" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                        <Building2 className="h-4 w-4 mr-2" />
+                        Projekte
+                    </TabsTrigger>
+                    <TabsTrigger value="auftraege" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                        <Wrench className="h-4 w-4 mr-2" />
+                        Aufträge
+                    </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="projekte" className="mt-4 space-y-6">
 
             {/* Filter Chips */}
             <div className="flex items-center gap-2 flex-wrap">
@@ -550,8 +626,11 @@ const ProjectModuleV2 = () => {
                                 {[
                                     { key: 'anfrage', label: 'Anfrage', color: 'bg-slate-300', count: statusCounts.anfrage },
                                     { key: 'besichtigung', label: 'Besichtigung', color: 'bg-blue-400', count: statusCounts.besichtigung },
-                                    { key: 'geplant', label: 'In Planung', color: 'bg-indigo-400', count: statusCounts.geplant },
-                                    { key: 'in_bearbeitung', label: 'In Arbeit', color: 'bg-amber-400', count: statusCounts.in_bearbeitung },
+                                    { key: 'angebot', label: 'Angebot', color: 'bg-orange-400', count: statusCounts.angebot },
+                                    { key: 'beauftragt', label: 'Beauftragt', color: 'bg-purple-400', count: statusCounts.beauftragt },
+                                    { key: 'in_planung', label: 'In Planung', color: 'bg-indigo-400', count: statusCounts.in_planung },
+                                    { key: 'in_bearbeitung', label: 'In Bearbeitung', color: 'bg-amber-400', count: statusCounts.in_bearbeitung },
+                                    { key: 'abnahme', label: 'Abnahme', color: 'bg-teal-400', count: statusCounts.abnahme },
                                     { key: 'abgeschlossen', label: 'Abgeschlossen', color: 'bg-emerald-400', count: statusCounts.abgeschlossen },
                                 ].map(stat => (
                                     <div key={stat.key}>
@@ -572,6 +651,87 @@ const ProjectModuleV2 = () => {
                     </Card>
                 </div>
             </div>
+
+                </TabsContent>
+
+                <TabsContent value="auftraege" className="mt-4 space-y-6">
+                    {kleinauftraegeLoading ? (
+                        <div className="space-y-3">
+                            {[1,2,3].map(i => <Skeleton key={i} className="h-20 w-full" />)}
+                        </div>
+                    ) : kleinauftraege.length === 0 ? (
+                        <Card className="bg-white border-slate-200 shadow-sm">
+                            <CardContent className="p-12 text-center">
+                                <Wrench className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+                                <h3 className="text-lg font-medium text-slate-700 mb-2">Noch keine Aufträge</h3>
+                                <p className="text-sm text-slate-500 mb-4">Erstellen Sie Ihren ersten Kleinauftrag für Reparaturen oder kurzfristige Einsätze.</p>
+                                <Button onClick={() => setIsAddOrderOpen(true)} className="bg-slate-900 hover:bg-slate-800 text-white">
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Neuer Auftrag
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <div className="space-y-3">
+                            {kleinauftraege.map(order => {
+                                const employee = order.project_team_assignments?.[0]?.employees;
+                                const site = order.project_sites;
+                                return (
+                                    <Card key={order.id} className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                                        onClick={() => { setSelectedProjectId(order.id); setIsProjectDetailViewOpen(true); }}>
+                                        <CardContent className="p-4">
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <h3 className="font-medium text-slate-900 truncate">{order.name}</h3>
+                                                        <Badge variant="outline" className={`text-[10px] shrink-0 ${getStatusColor(order.status)}`}>
+                                                            {getStatusIcon(order.status)}
+                                                            <span className="ml-1">{order.status}</span>
+                                                        </Badge>
+                                                    </div>
+                                                    <div className="flex items-center gap-4 text-xs text-slate-500 mt-2">
+                                                        <span className="flex items-center gap-1">
+                                                            <Building2 className="h-3 w-3" />
+                                                            {order.customers?.company_name || '—'}
+                                                        </span>
+                                                        {employee && (
+                                                            <span className="flex items-center gap-1">
+                                                                <User className="h-3 w-3" />
+                                                                {employee.first_name} {employee.last_name}
+                                                            </span>
+                                                        )}
+                                                        {order.start_date && (
+                                                            <span className="flex items-center gap-1">
+                                                                <CalendarDays className="h-3 w-3" />
+                                                                {new Date(order.start_date).toLocaleDateString('de-DE')}
+                                                            </span>
+                                                        )}
+                                                        {site && (
+                                                            <span className="flex items-center gap-1">
+                                                                <MapPin className="h-3 w-3" />
+                                                                {site.name || site.address}, {site.city}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {order.description && (
+                                                        <p className="text-xs text-slate-400 mt-1 truncate">{order.description}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                );
+                            })}
+                        </div>
+                    )}
+                </TabsContent>
+            </Tabs>
+
+            <AddOrderDialog
+                open={isAddOrderOpen}
+                onOpenChange={setIsAddOrderOpen}
+                onOrderAdded={fetchKleinauftraege}
+            />
 
             <AddProjectDialog
                 isOpen={isAddDialogOpen}
