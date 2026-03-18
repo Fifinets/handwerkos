@@ -1498,6 +1498,8 @@ export type Database = {
           status: string
           updated_at: string
           user_id: string | null
+          vacation_days_total: number | null
+          vacation_days_used: number | null
         }
         Insert: {
           company_id?: string | null
@@ -1520,6 +1522,8 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string | null
+          vacation_days_total?: number | null
+          vacation_days_used?: number | null
         }
         Update: {
           company_id?: string | null
@@ -1542,6 +1546,8 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string | null
+          vacation_days_total?: number | null
+          vacation_days_used?: number | null
         }
         Relationships: [
           {
@@ -3428,6 +3434,7 @@ export type Database = {
           end_date: string | null
           id: string
           labor_costs: number | null
+          location: string | null
           material_costs: number | null
           milestone_date: string | null
           name: string
@@ -3454,6 +3461,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           labor_costs?: number | null
+          location?: string | null
           material_costs?: number | null
           milestone_date?: string | null
           name: string
@@ -3480,6 +3488,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           labor_costs?: number | null
+          location?: string | null
           material_costs?: number | null
           milestone_date?: string | null
           name?: string
@@ -4314,6 +4323,76 @@ export type Database = {
         }
         Relationships: []
       }
+      vacation_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          company_id: string
+          created_at: string | null
+          days_requested: number
+          employee_id: string
+          end_date: string
+          id: string
+          reason: string | null
+          rejection_reason: string | null
+          start_date: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id: string
+          created_at?: string | null
+          days_requested: number
+          employee_id: string
+          end_date: string
+          id?: string
+          reason?: string | null
+          rejection_reason?: string | null
+          start_date: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id?: string
+          created_at?: string | null
+          days_requested?: number
+          employee_id?: string
+          end_date?: string
+          id?: string
+          reason?: string | null
+          rejection_reason?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacation_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       waitlist: {
         Row: {
           created_at: string
@@ -4817,5 +4896,3 @@ export const Constants = {
     },
   },
 } as const
-A new version of Supabase CLI is available: v2.78.1 (currently installed v2.76.6)
-We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
