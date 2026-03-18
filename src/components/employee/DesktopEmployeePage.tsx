@@ -60,6 +60,7 @@ interface Project {
   name: string;
   customer_name?: string;
   status: string;
+  location?: string;
   start_date?: string;
   end_date?: string;
 }
@@ -107,6 +108,11 @@ export function DesktopEmployeePage() {
 
   // Vacation Dialog
   const [vacationDialogOpen, setVacationDialogOpen] = useState(false);
+  const [vacationRequests, setVacationRequests] = useState<any[]>([]);
+  const [vacationDays, setVacationDays] = useState({ total: 30, used: 0 });
+
+  // Invoices
+  const [invoiceList, setInvoiceList] = useState<any[]>([]);
 
   // Fetch data
   useEffect(() => {
@@ -114,6 +120,8 @@ export function DesktopEmployeePage() {
       fetchProjects();
       fetchTimeEntries();
       fetchDeliveryNotes();
+      fetchVacation();
+      fetchInvoices();
     }
   }, [employee?.id]);
 
@@ -130,6 +138,7 @@ export function DesktopEmployeePage() {
             id,
             name,
             status,
+            location,
             start_date,
             end_date,
             customers (
@@ -147,6 +156,7 @@ export function DesktopEmployeePage() {
           id: tp.projects.id,
           name: tp.projects.name,
           status: tp.projects.status,
+          location: tp.projects.location,
           start_date: tp.projects.start_date,
           end_date: tp.projects.end_date,
           customer_name: tp.projects.customers?.company_name,
@@ -190,6 +200,49 @@ export function DesktopEmployeePage() {
     }
   };
 
+  const fetchVacation = async () => {
+    if (!employee) return;
+    try {
+      const { data, error } = await supabase
+        .from('vacation_requests')
+        .select('*')
+        .eq('employee_id', employee.id)
+        .order('start_date', { ascending: false });
+      if (error) console.error('Vacation fetch error:', error);
+      setVacationRequests(data || []);
+
+      const { data: empVacation } = await supabase
+        .from('employees')
+        .select('vacation_days_total, vacation_days_used')
+        .eq('id', employee.id)
+        .single();
+      if (empVacation) {
+        setVacationDays({
+          total: empVacation.vacation_days_total || 30,
+          used: empVacation.vacation_days_used || 0,
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching vacation data:', err);
+    }
+  };
+
+  const fetchInvoices = async () => {
+    if (!employee || !canViewInvoices()) return;
+    try {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('company_id', employee.company_id)
+        .order('invoice_date', { ascending: false })
+        .limit(50);
+      if (error) console.error('Invoice fetch error:', error);
+      setInvoiceList(data || []);
+    } catch (err) {
+      console.error('Error fetching invoices:', err);
+    }
+  };
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
@@ -223,6 +276,39 @@ export function DesktopEmployeePage() {
     if (!end) return '-';
     const diff = new Date(end).getTime() - new Date(start).getTime();
     return (diff / (1000 * 60 * 60)).toFixed(1) + 'h';
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 }).format(amount);
+  };
+
+  const getVacationStatusBadge = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Genehmigt</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive">Abgelehnt</Badge>;
+      case 'pending':
+      default:
+        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Ausstehend</Badge>;
+    }
+  };
+
+  const getInvoiceStatusBadge = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Bezahlt</Badge>;
+      case 'sent':
+      case 'issued':
+        return <Badge variant="default">Versendet</Badge>;
+      case 'overdue':
+        return <Badge variant="destructive">Überfällig</Badge>;
+      case 'cancelled':
+        return <Badge variant="secondary">Storniert</Badge>;
+      case 'draft':
+      default:
+        return <Badge variant="outline">Entwurf</Badge>;
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -579,15 +665,67 @@ export function DesktopEmployeePage() {
               </Button>
             </div>
 
+            {/* Vacation KPI Cards */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription>Gesamtanspruch</CardDescription>
+                  <CardTitle className="text-2xl">{vacationDays.total} Tage</CardTitle>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription>Genommen</CardDescription>
+                  <CardTitle className="text-2xl">{vacationDays.used} Tage</CardTitle>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription>Resturlaub</CardDescription>
+                  <CardTitle className="text-2xl">{vacationDays.total - vacationDays.used} Tage</CardTitle>
+                </CardHeader>
+              </Card>
+            </div>
+
+            {/* Vacation Requests Table */}
             <Card>
-              <CardHeader>
-                <CardTitle>Urlaubsübersicht</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Urlaubsanträge und Resturlaub werden hier angezeigt.
-                </p>
-              </CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Zeitraum</TableHead>
+                    <TableHead>Tage</TableHead>
+                    <TableHead>Grund</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {vacationRequests.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                        Keine Urlaubsanträge vorhanden
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    vacationRequests.map((req) => (
+                      <TableRow key={req.id}>
+                        <TableCell>
+                          {formatDate(req.start_date)} – {formatDate(req.end_date)}
+                        </TableCell>
+                        <TableCell>{req.days_requested}</TableCell>
+                        <TableCell>{req.reason || '—'}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            {getVacationStatusBadge(req.status)}
+                            {req.rejection_reason && (
+                              <span className="text-xs text-red-600">{req.rejection_reason}</span>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </Card>
           </div>
         )}
@@ -605,14 +743,42 @@ export function DesktopEmployeePage() {
             </div>
 
             <Card>
-              <CardHeader>
-                <CardTitle>Rechnungen</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Rechnungsliste wird hier angezeigt.
-                </p>
-              </CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nr.</TableHead>
+                    <TableHead>Datum</TableHead>
+                    <TableHead>Kunde</TableHead>
+                    <TableHead>Betrag</TableHead>
+                    <TableHead>Fällig</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {invoiceList.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        Keine Rechnungen vorhanden
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    invoiceList.map((inv) => (
+                      <TableRow key={inv.id}>
+                        <TableCell className="font-mono text-sm">{inv.invoice_number}</TableCell>
+                        <TableCell>{formatDate(inv.invoice_date)}</TableCell>
+                        <TableCell>{inv.snapshot_customer_name || '—'}</TableCell>
+                        <TableCell>{formatCurrency(inv.gross_amount || inv.amount || 0)}</TableCell>
+                        <TableCell>
+                          <span className={inv.due_date && new Date(inv.due_date) < new Date() && inv.status !== 'paid' && inv.status !== 'cancelled' ? 'text-red-600 font-medium' : ''}>
+                            {formatDate(inv.due_date)}
+                          </span>
+                        </TableCell>
+                        <TableCell>{getInvoiceStatusBadge(inv.status)}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </Card>
           </div>
         )}
@@ -634,8 +800,9 @@ export function DesktopEmployeePage() {
 
       {/* Vacation Dialog */}
       <VacationRequestDialog
-        isOpen={vacationDialogOpen}
-        onClose={() => setVacationDialogOpen(false)}
+        open={vacationDialogOpen}
+        onOpenChange={setVacationDialogOpen}
+        onSuccess={fetchVacation}
       />
       </div>
     </div>
