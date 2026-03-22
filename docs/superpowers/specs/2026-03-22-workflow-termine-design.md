@@ -22,7 +22,33 @@ Das Projekt-Workflow-System (Anfrage → Besichtigung → Angebot → Beauftragt
 | In Arbeit | `in_bearbeitung` | Baustart | Start-Datum, geplantes End-Datum |
 | Fertig | `abgeschlossen` | Auto | `completed_at` wird beim Statuswechsel gesetzt |
 
-Entfernte Stufen: `in_planung`, `abnahme`, `angebot_versendet`, `storniert` werden aus `PROJECT_STATUS_CONFIG.nextStates` und dem Workflow-Balken entfernt. Die Status-Werte bleiben in der DB-Constraint erhalten (Abwärtskompatibilität), werden aber im UI nicht mehr als Workflow-Schritt angezeigt.
+### Status-Migration
+
+**Aktueller `ProjectStatus` Typ** in `src/types/project.ts`:
+```
+'anfrage' | 'besichtigung' | 'geplant' | 'in_bearbeitung' | 'abgeschlossen'
+```
+
+**Neuer `ProjectStatus` Typ:**
+```
+'anfrage' | 'besichtigung' | 'angebot' | 'beauftragt' | 'in_bearbeitung' | 'abgeschlossen'
+```
+
+Änderungen:
+- `geplant` wird entfernt und durch `angebot` + `beauftragt` ersetzt
+- `in_planung`, `abnahme`, `angebot_versendet` bleiben in der DB-Constraint (Abwärtskompatibilität), werden aber nicht im Workflow-Balken angezeigt
+- `angebot_versendet` wird im UI auf `angebot` gemappt (existierendes Mapping in ProjectDetailView Zeile 1117 bleibt erhalten)
+
+**Migration bestehender Daten:**
+```sql
+UPDATE projects SET status = 'beauftragt' WHERE status = 'geplant';
+UPDATE projects SET status = 'in_bearbeitung' WHERE status = 'in_planung';
+UPDATE projects SET status = 'abgeschlossen' WHERE status = 'abnahme';
+```
+
+### Kleinauftrag-Projekte
+
+Projekte mit `project_type = 'kleinauftrag'` zeigen keinen Workflow-Balken (bestehendes Verhalten). Die Termin-Spalten werden trotzdem auf der `projects` Tabelle hinzugefügt. Kleinaufträge können Termine im Details-Tab über die Termin-Karten verwalten, auch ohne sichtbaren Workflow-Balken.
 
 ## Datenbank
 
@@ -34,25 +60,35 @@ ALTER TABLE projects
   ADD COLUMN IF NOT EXISTS besichtigung_time_start TIME,
   ADD COLUMN IF NOT EXISTS besichtigung_time_end TIME,
   ADD COLUMN IF NOT EXISTS besichtigung_employee_id UUID REFERENCES employees(id),
+  ADD COLUMN IF NOT EXISTS besichtigung_calendar_event_id UUID REFERENCES calendar_events(id),
   ADD COLUMN IF NOT EXISTS work_start_date DATE,
   ADD COLUMN IF NOT EXISTS work_end_date DATE,
   ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
+
+-- Verknüpfung Kalender → Projekt
+ALTER TABLE calendar_events
+  ADD COLUMN IF NOT EXISTS project_id UUID REFERENCES projects(id);
 ```
+
+Nach der Migration: `npx supabase gen types typescript --local > src/integrations/supabase/types.ts` ausführen um die generierten Typen zu aktualisieren.
 
 Keine separate `workflow_stage_appointments` Tabelle nötig — es gibt maximal einen Termin pro Phase, daher reichen Spalten auf `projects`.
 
 ### Calendar-Event Integration
 
-Wenn ein Besichtigungstermin gesetzt wird, wird automatisch ein `calendar_events` Eintrag erstellt/aktualisiert:
-
+**Erstellen:** Wenn ein Besichtigungstermin gesetzt wird:
 ```sql
-INSERT INTO calendar_events (title, start_date, end_date, start_time, end_time, type, company_id, assigned_employees)
+INSERT INTO calendar_events (title, start_date, end_date, start_time, end_time, type, company_id, project_id, assigned_employees)
 VALUES ('Besichtigung: {project.name}', besichtigung_date, besichtigung_date,
-        besichtigung_time_start, besichtigung_time_end, 'besichtigung', company_id,
-        ARRAY[besichtigung_employee_id]);
+        besichtigung_time_start, besichtigung_time_end, 'besichtigung', company_id, project_id,
+        ARRAY[besichtigung_employee_id])
+RETURNING id;
+-- Dann: UPDATE projects SET besichtigung_calendar_event_id = returned_id
 ```
 
-Ein neues Feld `project_id UUID REFERENCES projects(id)` wird auf `calendar_events` hinzugefügt, damit Kalender-Einträge mit Projekten verknüpft werden können.
+**Aktualisieren:** Wenn Besichtigungstermin geändert wird → `UPDATE calendar_events WHERE id = besichtigung_calendar_event_id`.
+
+**Löschen:** Wenn Besichtigungstermin entfernt wird → `DELETE FROM calendar_events WHERE id = besichtigung_calendar_event_id`, dann `UPDATE projects SET besichtigung_calendar_event_id = NULL`.
 
 ## UI-Komponenten
 
@@ -74,7 +110,8 @@ Der existierende Workflow-Balken wird erweitert um eine zweite Zeile unter den S
 - Abgeschlossene Stufen: Grüner Hintergrund, Datum darunter
 - Aktive Stufe: Blauer Hintergrund mit Ring
 - Zukünftige Stufen: Grauer Hintergrund, "—" oder Termin falls gesetzt
-- Klick auf eine Stufe: Öffnet Statuswechsel-Dialog (mit Termin-Feldern falls relevant)
+- Klick auf eine Stufe: Öffnet Statuswechsel-Dialog
+- Datum-Zeile wird auf Mobile (`< sm`) ausgeblendet (`hidden sm:flex`)
 
 ### 2. Details-Tab — Termine-Sektion
 
@@ -98,20 +135,20 @@ Neue Sektion im bestehenden Details-Tab, unter den Projektdetails:
 - 2 Karten nebeneinander (`grid-cols-2`)
 - Gefüllte Karte: Datum, Uhrzeit, Mitarbeiter + "Bearbeiten"-Button
 - Leere Karte: Dashed Border, Klick öffnet Termin-Dialog
-- Nur Besichtigung und In Arbeit werden hier gezeigt (Anfrage/Fertig sind auto, Angebot/Beauftragt haben kein Datum)
+- Nur Besichtigung und In Arbeit werden hier gezeigt
 
-### 3. Statuswechsel-Dialog (erweitert)
+### 3. Statuswechsel-Dialog
 
-**Datei:** Neuer Dialog oder Erweiterung des bestehenden Status-Wechsel-Mechanismus
+**Datei:** `src/components/WorkflowStatusDialog.tsx` (neu)
 
-Der Dialog wird kontextabhängig erweitert:
+Alle Statuswechsel laufen jetzt über diesen Dialog. Er zeigt kontextabhängig verschiedene Felder:
 
 **Wechsel zu "Besichtigung":**
 - Datum (Pflichtfeld)
 - Uhrzeit von (Pflichtfeld)
 - Uhrzeit bis (optional)
 - Mitarbeiter (Select, Pflichtfeld)
-- "Überspringen" Link falls kein Termin sofort nötig
+- "Ohne Termin fortfahren" Link — Status wird trotzdem gewechselt, Termin kann im Details-Tab nachgetragen werden. Im Workflow-Balken erscheint unter Besichtigung dann "Kein Termin" als Platzhalter.
 
 **Wechsel zu "In Arbeit":**
 - Baustart-Datum (Pflichtfeld)
@@ -122,54 +159,66 @@ Der Dialog wird kontextabhängig erweitert:
 - Bestätigungs-Dialog: "Projekt als abgeschlossen markieren?"
 
 **Wechsel zu "Angebot" / "Beauftragt":**
-- Normaler Status-Wechsel ohne zusätzliche Felder
+- Bestätigungs-Dialog: "Status zu {Stufe} ändern?"
+- Kein extra Feld, nur Bestätigen/Abbrechen
+
+**Termin bearbeiten (aus Details-Tab):**
+- Gleicher Dialog, aber ohne Status-Wechsel
+- Titel: "Besichtigungstermin bearbeiten" / "Baustart bearbeiten"
+- Nur Termin-Felder, kein Status-Button
 
 ## Datenfluss
 
 ```
 User klickt Workflow-Stufe
-  → Statuswechsel-Dialog öffnet sich
-    → Falls Besichtigung/In Arbeit: Termin-Felder werden angezeigt
-      → User füllt aus + bestätigt
-        → Supabase UPDATE projects SET status, besichtigung_date, etc.
-        → Falls Besichtigung: calendar_events INSERT/UPDATE
-        → Toast: "Status geändert + Termin gespeichert"
-        → UI refresht
+  → WorkflowStatusDialog öffnet sich (mit Status + ggf. Termin-Felder)
+    → User füllt aus + bestätigt
+      → Supabase UPDATE projects SET status, besichtigung_date, etc.
+      → Falls Besichtigung mit Termin: calendar_events UPSERT via besichtigung_calendar_event_id
+      → Toast: "Status geändert" / "Status geändert + Termin gespeichert"
+      → UI refresht (loadProject)
 
 User klickt "Bearbeiten" auf Termin-Karte im Details-Tab
-  → Gleicher Dialog öffnet sich (ohne Status-Wechsel)
-  → Nur Termin-Felder werden aktualisiert
+  → WorkflowStatusDialog öffnet sich (editMode=true, kein Status-Wechsel)
+  → Nur Termin-Felder werden angezeigt und aktualisiert
+  → Calendar-Event wird aktualisiert/erstellt/gelöscht je nach Änderung
 ```
 
 ## Typen (TypeScript)
 
-```typescript
-// Erweiterte Project-Felder
-interface ProjectWorkflowDates {
-  besichtigung_date: string | null;
-  besichtigung_time_start: string | null;
-  besichtigung_time_end: string | null;
-  besichtigung_employee_id: string | null;
-  work_start_date: string | null;
-  work_end_date: string | null;
-  completed_at: string | null;
-}
+In `src/types/project.ts`:
 
-// Workflow-Stufen Config (vereinfacht)
-const WORKFLOW_STAGES = [
+```typescript
+// ProjectStatus aktualisiert
+export type ProjectStatus = 'anfrage' | 'besichtigung' | 'angebot' | 'beauftragt' | 'in_bearbeitung' | 'abgeschlossen';
+
+// Lineare Workflow-Reihenfolge (ersetzt nextStates-Ansatz für den Workflow-Balken)
+export const WORKFLOW_STAGES: ProjectStatus[] = [
   'anfrage', 'besichtigung', 'angebot', 'beauftragt', 'in_bearbeitung', 'abgeschlossen'
-] as const;
+];
+
+// PROJECT_STATUS_CONFIG wird aktualisiert:
+// - `geplant` entfernt
+// - `angebot` und `beauftragt` hinzugefügt
+// - nextStates werden aus WORKFLOW_STAGES abgeleitet (immer linear: aktuelle + 1)
 ```
+
+`ProjectWorkflowDates` wird nicht als separates Interface erstellt — die Felder werden direkt in der bestehenden Projekt-Datenstruktur mitgeführt (kommen automatisch aus dem Supabase Select).
 
 ## Betroffene Dateien
 
 | Datei | Änderung |
 |-------|----------|
-| Supabase Migration | Neue Spalten + calendar_events.project_id |
-| `src/types/project.ts` | `PROJECT_STATUS_CONFIG.nextStates` vereinfachen, `WORKFLOW_STAGES` exportieren |
-| `src/components/ProjectDetailView.tsx` | Workflow-Balken erweitern + Termine-Sektion im Details-Tab |
-| `src/components/WorkflowStatusDialog.tsx` | Neuer Dialog für Statuswechsel mit Termin-Feldern |
-| `src/types/core.ts` | Ggf. Supabase Select-Query erweitern um neue Spalten |
+| Supabase Migration | Neue Spalten + Daten-Migration (`geplant` → `beauftragt`) + calendar_events.project_id |
+| `src/integrations/supabase/types.ts` | Regenerieren nach Migration |
+| `src/types/project.ts` | `ProjectStatus` erweitern, `PROJECT_STATUS_CONFIG` aktualisieren, `WORKFLOW_STAGES` hinzufügen, `geplant` entfernen |
+| `src/types/core.ts` | `ProjectStatus` Zod-Schema erweitern |
+| `src/components/ProjectDetailView.tsx` | Workflow-Balken + Datum-Zeile, Termine-Sektion im Details-Tab, `handleStatusChange` → Dialog öffnen |
+| `src/components/WorkflowStatusDialog.tsx` | **Neu** — Statuswechsel-Dialog mit kontextabhängigen Termin-Feldern |
+| `src/components/ProjectModuleV2.tsx` | Status-Filter und Status-Farben aktualisieren (geplant → beauftragt) |
+| `src/components/projects/StatusList.tsx` | Status-Counts aktualisieren |
+| `src/services/WorkflowService.ts` | `createProjectFromOrder`: `geplant` → `beauftragt` |
+| `src/components/AddProjectDialog.tsx` | Status-Optionen aktualisieren |
 
 ## Nicht im Scope
 
@@ -177,3 +226,4 @@ const WORKFLOW_STAGES = [
 - Push-Benachrichtigungen für anstehende Termine
 - Recurring Termine (Besichtigung ist einmalig)
 - Drag & Drop im Workflow-Balken
+- Änderungen an `EditProjectDialog.tsx` (Status wird nur noch über Workflow-Dialog geändert)
