@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
+  Calendar as CalendarIcon,
   Clock,
+  User,
   Users,
   AlertTriangle,
   MapPin,
@@ -15,7 +18,15 @@ import {
   CheckCircle2,
   Image as ImageIcon,
   X,
-  ClipboardList
+  ClipboardList,
+  FileText,
+  Receipt,
+  Upload,
+  Download,
+  ExternalLink,
+  File,
+  FileImage,
+  FilePlus
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -23,12 +34,18 @@ import {
   ProjectPermissions,
   getProjectPermissions,
   PROJECT_STATUS_CONFIG,
+  WORKFLOW_STAGES,
   UserRole,
   ProjectStatus
 } from "@/types/project";
 import { useToast } from "@/hooks/use-toast";
+import { format } from 'date-fns';
+import { de } from 'date-fns/locale';
 import TimeEntryForm from "./TimeEntryForm";
 import MaterialEntryForm from "./MaterialEntryForm";
+import InvoiceDetailDialog from "./InvoiceDetailDialog";
+import CreateInvoiceFromProjectDialog from "./CreateInvoiceFromProjectDialog";
+import { WorkflowStatusDialog } from './WorkflowStatusDialog';
 
 interface ProjectDetailViewProps {
   isOpen: boolean;
@@ -38,6 +55,7 @@ interface ProjectDetailViewProps {
 
 const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, projectId }) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [project, setProject] = useState<ProjectDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [permissions, setPermissions] = useState<ProjectPermissions>({
@@ -62,6 +80,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
 
   // NEW STATE
   const [projectOffers, setProjectOffers] = useState<any[]>([]);
+  const [projectInvoices, setProjectInvoices] = useState<any[]>([]);
+  const [projectDocuments, setProjectDocuments] = useState<any[]>([]);
   const [milestones, setMilestones] = useState<{id:string; title:string; is_completed:boolean; due_date?:string; priority?:string}[]>([]);
   const [photos, setPhotos] = useState<{id:string; file_url?:string; file_path?:string}[]>([]);
   const [totalHours, setTotalHours] = useState(0);
@@ -75,6 +95,19 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
   const [isCustomerProjectsOpen, setIsCustomerProjectsOpen] = useState(false);
   const [customerProjects, setCustomerProjects] = useState<any[]>([]);
   const [loadingCustomerProjects, setLoadingCustomerProjects] = useState(false);
+
+  // Invoice detail dialog
+  const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
+  const [isInvoiceDetailOpen, setIsInvoiceDetailOpen] = useState(false);
+
+  // Create invoice from project dialog
+  const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] = useState(false);
+
+  // Workflow status dialog
+  const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
+  const [workflowTargetStatus, setWorkflowTargetStatus] = useState<ProjectStatus | undefined>();
+  const [workflowEditMode, setWorkflowEditMode] = useState<'besichtigung' | 'in_bearbeitung' | undefined>();
+  const [allEmployees, setAllEmployees] = useState<{ id: string; first_name: string; last_name: string }[]>([]);
 
   // Internal project ID tracking (allows switching projects within the dialog)
   const [currentProjectId, setCurrentProjectId] = useState(projectId);
@@ -137,6 +170,14 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         });
         return;
       }
+
+      // Fetch all employees for workflow dialog
+      const { data: empData } = await supabase
+        .from('employees')
+        .select('id, first_name, last_name')
+        .eq('company_id', profile.company_id)
+        .not('status', 'in', '("Inaktiv","Gekündigt")');
+      if (empData) setAllEmployees(empData);
 
       // Get customer data
       let customerData = null;
@@ -333,21 +374,43 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       }
       setMilestones(processedMilestones);
 
-      // 6. PHOTOS: Get from project_documents where document_type = 'image'
+      // 6. PHOTOS & DOCUMENTS: Get from project_documents
       let processedPhotos: any[] = [];
+      let processedDocuments: any[] = [];
       try {
-        const { data: photosData, error: photosError } = await supabase
+        const { data: docsData, error: docsError } = await supabase
           .from('project_documents')
-          .select('id, file_url, file_path')
-          .eq('project_id', targetId);
+          .select('id, name, document_type, file_url, file_path, file_size, mime_type, created_at')
+          .eq('project_id', targetId)
+          .order('created_at', { ascending: false });
 
-        if (!photosError && photosData && photosData.length > 0) {
-          processedPhotos = photosData;
+        if (!docsError && docsData && docsData.length > 0) {
+          // Separate photos from other documents
+          processedPhotos = docsData.filter(d => d.mime_type?.startsWith('image/'));
+          processedDocuments = docsData;
         }
       } catch (error) {
         console.log('Project documents table might not exist:', error);
       }
       setPhotos(processedPhotos);
+      setProjectDocuments(processedDocuments);
+
+      // 6b. INVOICES: Get invoices for this project
+      let processedInvoices: any[] = [];
+      try {
+        const { data: invoicesData, error: invoicesError } = await supabase
+          .from('invoices')
+          .select('id, invoice_number, title, status, invoice_date, due_date, net_amount, gross_amount, invoice_type')
+          .eq('project_id', targetId)
+          .order('invoice_date', { ascending: false });
+
+        if (!invoicesError && invoicesData) {
+          processedInvoices = invoicesData;
+        }
+      } catch (error) {
+        console.log('Invoices table query error:', error);
+      }
+      setProjectInvoices(processedInvoices);
 
       // 7. DELIVERY NOTES: Get delivery notes for this project
       let dnHours = 0;
@@ -503,7 +566,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         customer_id: projectData.customer_id || '',
         start_date: projectData.start_date || new Date().toISOString().split('T')[0],
         planned_end_date: projectData.end_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        status: ((projectData.status as ProjectStatus) ?? 'geplant') as ProjectStatus,
+        status: ((projectData.status as ProjectStatus) ?? 'anfrage') as ProjectStatus,
         project_address: projectData.site || projectData.location || 'Nicht angegeben',
         project_description: projectData.description || 'Keine Beschreibung',
         budget_planned: projectBudget,
@@ -937,29 +1000,17 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
     }
   };
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = (newStatus: string) => {
     if (!project || !permissions.can_change_status) return;
+    setWorkflowTargetStatus(newStatus as ProjectStatus);
+    setWorkflowEditMode(undefined);
+    setWorkflowDialogOpen(true);
+  };
 
-    try {
-      const { error } = await supabase
-        .from('projects')
-        .update({ status: newStatus })
-        .eq('id', project.id);
-
-      if (error) throw error;
-
-      setProject(prev => prev ? { ...prev, status: newStatus as any } : null);
-      toast({
-        title: "Erfolg",
-        description: "Projektstatus wurde aktualisiert"
-      });
-    } catch (error) {
-      toast({
-        title: "Fehler",
-        description: "Status konnte nicht geändert werden",
-        variant: "destructive"
-      });
-    }
+  const handleEditAppointment = (mode: 'besichtigung' | 'in_bearbeitung') => {
+    setWorkflowTargetStatus(undefined);
+    setWorkflowEditMode(mode);
+    setWorkflowDialogOpen(true);
   };
 
   const formatCurrency = (amount: number) => {
@@ -1061,40 +1112,72 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
 
             {/* Status Pipeline – only for Projektaufträge */}
             {project.project_type !== 'kleinauftrag' && (() => {
-              const stages = [
-                { key: 'anfrage', label: 'Anfrage' },
-                { key: 'besichtigung', label: 'Besichtigung' },
-                { key: 'angebot', label: 'Angebot' },
-                { key: 'beauftragt', label: 'Beauftragt' },
-                { key: 'in_planung', label: 'Planung' },
-                { key: 'in_bearbeitung', label: 'In Arbeit' },
-                { key: 'abnahme', label: 'Abnahme' },
-                { key: 'abgeschlossen', label: 'Fertig' },
-              ];
+              const stages = WORKFLOW_STAGES.map(key => ({
+                key,
+                label: PROJECT_STATUS_CONFIG[key].label,
+                icon: PROJECT_STATUS_CONFIG[key].icon,
+              }));
               const statusKey = project.status === 'angebot_versendet' ? 'angebot' : project.status;
               const currentIdx = stages.findIndex(s => s.key === statusKey);
+
+              const getDateAnnotation = (stageKey: string) => {
+                switch (stageKey) {
+                  case 'anfrage': return (project as any).created_at ? format(new Date((project as any).created_at), 'dd.MM.', { locale: de }) : null;
+                  case 'besichtigung': {
+                    if (!(project as any).besichtigung_date) return null;
+                    const d = format(new Date((project as any).besichtigung_date), 'dd.MM.', { locale: de });
+                    const t = (project as any).besichtigung_time_start ? ` ${(project as any).besichtigung_time_start.slice(0, 5)}` : '';
+                    return d + t;
+                  }
+                  case 'in_bearbeitung': return (project as any).work_start_date ? format(new Date((project as any).work_start_date), 'dd.MM.', { locale: de }) : null;
+                  case 'abgeschlossen': return (project as any).completed_at ? format(new Date((project as any).completed_at), 'dd.MM.', { locale: de }) : null;
+                  default: return null;
+                }
+              };
+
+              const getEmployeeName = () => {
+                if (!(project as any).besichtigung_employee_id) return null;
+                const emp = allEmployees.find(e => e.id === (project as any).besichtigung_employee_id);
+                return emp ? `${emp.first_name.charAt(0)}. ${emp.last_name}` : null;
+              };
+
               return (
-                <div className="flex items-center gap-0 mb-4">
-                  {stages.map((stage, idx) => {
-                    const isDone = idx < currentIdx;
-                    const isActive = idx === currentIdx;
-                    const canClick = permissions.can_change_status && stage.key !== project.status;
-                    return (
-                      <React.Fragment key={stage.key}>
-                        <div
-                          className={`flex-1 flex flex-col items-center ${canClick ? 'cursor-pointer group' : ''}`}
-                          onClick={() => canClick && handleStatusChange(stage.key)}
-                          title={canClick ? `Status auf "${stage.label}" setzen` : ''}
+                <div className="mb-4">
+                  {/* Status Bar */}
+                  <div className="flex rounded-lg overflow-hidden border border-slate-200">
+                    {stages.map((stage, idx) => {
+                      const isPast = idx < currentIdx;
+                      const isCurrent = idx === currentIdx;
+                      return (
+                        <button
+                          key={stage.key}
+                          onClick={() => permissions.can_change_status && handleStatusChange(stage.key)}
+                          disabled={!permissions.can_change_status}
+                          className={`flex-1 py-2 text-xs sm:text-sm font-medium text-center transition-all ${
+                            isPast ? 'bg-emerald-500 text-white' :
+                            isCurrent ? 'bg-blue-500 text-white ring-2 ring-blue-300 ring-offset-1' :
+                            'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                          } ${permissions.can_change_status ? 'cursor-pointer' : 'cursor-default'}`}
                         >
-                          <div className={`h-1.5 w-full rounded-full transition-colors ${isDone ? 'bg-teal-500' : isActive ? 'bg-teal-300' : 'bg-slate-200'
-                            } ${canClick ? 'group-hover:bg-teal-400' : ''}`} />
-                          <span className={`text-[10px] mt-1 font-medium hidden sm:block ${isActive ? 'text-teal-600' : isDone ? 'text-slate-500' : 'text-slate-300'
-                            } ${canClick ? 'group-hover:text-teal-600' : ''}`}>{stage.label}</span>
+                          <span className="hidden sm:inline">{stage.label}</span>
+                          <span className="sm:hidden">{stage.icon}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {/* Date Annotations */}
+                  <div className="hidden sm:flex mt-1">
+                    {stages.map(stage => {
+                      const date = getDateAnnotation(stage.key);
+                      const empName = stage.key === 'besichtigung' ? getEmployeeName() : null;
+                      return (
+                        <div key={stage.key} className="flex-1 text-center">
+                          <div className="text-[10px] text-slate-400 leading-tight">{date || '—'}</div>
+                          {empName && <div className="text-[10px] text-slate-400 leading-tight">{empName}</div>}
                         </div>
-                        {idx < stages.length - 1 && <div className="w-0" />}
-                      </React.Fragment>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               );
             })()}
@@ -1631,6 +1714,104 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                 </CardContent>
               </Card>
             </div>
+
+            {/* Termine Section */}
+            <div className="mt-5">
+              <h3 className="text-sm font-semibold text-slate-700 mb-3">Termine</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Besichtigung Card */}
+                {(project as any).besichtigung_date ? (
+                  <Card className="bg-white border-slate-200 shadow-sm rounded-xl">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-orange-500" />
+                          <span className="text-sm font-semibold text-slate-900">Besichtigung</span>
+                        </div>
+                        <button
+                          onClick={() => handleEditAppointment('besichtigung')}
+                          className="text-xs text-slate-400 hover:text-blue-600 transition-colors"
+                        >
+                          Bearbeiten
+                        </button>
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 text-xs text-slate-600">
+                          <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
+                          {format(new Date((project as any).besichtigung_date), 'dd. MMMM yyyy', { locale: de })}
+                          {(project as any).besichtigung_time_start && (
+                            <span>, {(project as any).besichtigung_time_start.slice(0, 5)}{(project as any).besichtigung_time_end ? ` – ${(project as any).besichtigung_time_end.slice(0, 5)}` : ''}</span>
+                          )}
+                        </div>
+                        {(project as any).besichtigung_employee_id && (() => {
+                          const emp = allEmployees.find(e => e.id === (project as any).besichtigung_employee_id);
+                          return emp ? (
+                            <div className="flex items-center gap-2 text-xs text-slate-600">
+                              <User className="h-3.5 w-3.5 text-slate-400" />
+                              {emp.first_name} {emp.last_name}
+                            </div>
+                          ) : null;
+                        })()}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card
+                    className="border-dashed border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition-all rounded-xl"
+                    onClick={() => handleEditAppointment('besichtigung')}
+                  >
+                    <CardContent className="p-4 flex flex-col items-center justify-center text-center py-6">
+                      <CalendarIcon className="h-5 w-5 text-slate-300 mb-1.5" />
+                      <span className="text-sm font-medium text-slate-500">Besichtigung</span>
+                      <span className="text-xs text-slate-400">Termin festlegen</span>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* In Arbeit Card */}
+                {(project as any).work_start_date ? (
+                  <Card className="bg-white border-slate-200 shadow-sm rounded-xl">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-yellow-500" />
+                          <span className="text-sm font-semibold text-slate-900">In Arbeit</span>
+                        </div>
+                        <button
+                          onClick={() => handleEditAppointment('in_bearbeitung')}
+                          className="text-xs text-slate-400 hover:text-blue-600 transition-colors"
+                        >
+                          Bearbeiten
+                        </button>
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 text-xs text-slate-600">
+                          <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
+                          Baustart: {format(new Date((project as any).work_start_date), 'dd. MMMM yyyy', { locale: de })}
+                        </div>
+                        {(project as any).work_end_date && (
+                          <div className="flex items-center gap-2 text-xs text-slate-600">
+                            <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
+                            Geplantes Ende: {format(new Date((project as any).work_end_date), 'dd. MMMM yyyy', { locale: de })}
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card
+                    className="border-dashed border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition-all rounded-xl"
+                    onClick={() => handleEditAppointment('in_bearbeitung')}
+                  >
+                    <CardContent className="p-4 flex flex-col items-center justify-center text-center py-6">
+                      <CalendarIcon className="h-5 w-5 text-slate-300 mb-1.5" />
+                      <span className="text-sm font-medium text-slate-500">In Arbeit</span>
+                      <span className="text-xs text-slate-400">Baustart festlegen</span>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="materials" className="space-y-4 min-h-[600px] mt-0">
@@ -1681,132 +1862,297 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             </Card>
           </TabsContent>
 
-          <TabsContent value="documents" className="px-6 pb-6 pt-5 space-y-4 min-h-[600px] mt-0">
+          <TabsContent value="documents" className="px-6 pb-6 pt-5 space-y-5 min-h-[600px] mt-0">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-slate-800">Dokumente</h3>
-                <p className="text-xs text-slate-400">{deliveryNotes.length} Lieferschein(e)</p>
+                <p className="text-xs text-slate-400">
+                  {projectOffers.length} Angebot(e) · {projectInvoices.length} Rechnung(en) · {deliveryNotes.length} Lieferschein(e) · {projectDocuments.length} Datei(en)
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {permissions.can_link_invoices && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="bg-teal-600 hover:bg-teal-700 text-white"
+                    onClick={() => setIsCreateInvoiceOpen(true)}
+                  >
+                    <Receipt className="h-4 w-4 mr-2" />
+                    Rechnung erstellen
+                  </Button>
+                )}
+                {permissions.can_upload_files && (
+                  <Button variant="outline" size="sm" className="text-slate-600">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Hochladen
+                  </Button>
+                )}
               </div>
             </div>
 
-            {/* Delivery Notes as Documents */}
-            {deliveryNotes.length > 0 ? (
-              <div className="space-y-3">
-                {deliveryNotes.map((dn: any) => {
-                  const empName = dn.employee
-                    ? `${dn.employee.first_name} ${dn.employee.last_name}`
-                    : 'Mitarbeiter';
-                  const dateStr = new Date(dn.work_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                  const startStr = dn.start_time ? dn.start_time.substring(0, 5) : '–';
-                  const endStr = dn.end_time ? dn.end_time.substring(0, 5) : '–';
-                  let hours = 0;
-                  if (dn.start_time && dn.end_time) {
-                    const [sh, sm] = dn.start_time.split(':').map(Number);
-                    const [eh, em] = dn.end_time.split(':').map(Number);
-                    hours = Math.max(0, ((eh * 60 + em) - (sh * 60 + sm) - (dn.break_minutes ?? 0)) / 60);
-                  }
-                  const materials = (dn.delivery_note_items || []).filter((i: any) => i.item_type === 'material');
-                  const photos = (dn.delivery_note_items || []).filter((i: any) => i.item_type === 'photo');
-
-                  return (
-                    <Card key={dn.id} className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                      {/* Header */}
-                      <div className="flex items-center gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/50">
-                        <div className="p-2 rounded-lg bg-teal-50">
-                          <ClipboardList className="h-5 w-5 text-teal-600" />
+            {/* Angebote Section */}
+            {projectOffers.length > 0 && (
+              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                <CardHeader className="border-b border-slate-100 bg-orange-50/50 px-5 py-3">
+                  <CardTitle className="text-sm font-semibold text-orange-700 m-0 flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Angebote ({projectOffers.length})
+                  </CardTitle>
+                </CardHeader>
+                <div className="divide-y divide-slate-100">
+                  {projectOffers.map((offer: any) => {
+                    const statusColors: Record<string, string> = {
+                      draft: 'bg-slate-100 text-slate-600',
+                      sent: 'bg-blue-100 text-blue-700',
+                      accepted: 'bg-green-100 text-green-700',
+                      rejected: 'bg-red-100 text-red-700',
+                      expired: 'bg-amber-100 text-amber-700',
+                    };
+                    const statusLabels: Record<string, string> = {
+                      draft: 'Entwurf',
+                      sent: 'Versendet',
+                      accepted: 'Angenommen',
+                      rejected: 'Abgelehnt',
+                      expired: 'Abgelaufen',
+                    };
+                    return (
+                      <div
+                        key={offer.id}
+                        className="flex items-center gap-4 px-5 py-3.5 hover:bg-orange-50/50 transition-colors cursor-pointer group"
+                        onClick={() => {
+                          onClose();
+                          navigate(`/offers/${offer.id}/edit`);
+                        }}
+                      >
+                        <div className="flex-shrink-0 p-2 rounded-lg bg-orange-50 group-hover:bg-orange-100 transition-colors">
+                          <FileText className="h-5 w-5 text-orange-500" />
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-slate-800">{dn.delivery_note_number || 'Lieferschein'}</span>
-                            <span className="text-xs text-slate-400">{dateStr}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-sm font-medium text-slate-800 group-hover:text-orange-700 transition-colors">{offer.offer_number || 'Angebot'}</span>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColors[offer.status] || 'bg-slate-100 text-slate-600'}`}>
+                              {statusLabels[offer.status] || offer.status}
+                            </span>
                           </div>
-                          <p className="text-xs text-slate-500">{empName} · {startStr}–{endStr} · {hours.toFixed(1)}h netto</p>
                         </div>
+                        <div className="flex-shrink-0 text-right">
+                          <span className="text-sm font-bold text-slate-800">
+                            {(offer.snapshot_gross_total || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+                          </span>
+                        </div>
+                        <ExternalLink className="h-4 w-4 text-slate-300 group-hover:text-orange-500 transition-colors" />
                       </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
 
-                      <CardContent className="p-5 space-y-4">
-                        {/* Description */}
-                        <div>
-                          <p className="text-xs font-medium text-slate-400 mb-1">Tätigkeitsbeschreibung</p>
-                          <p className="text-sm text-slate-700 whitespace-pre-wrap">{dn.description}</p>
+            {/* Rechnungen Section */}
+            {projectInvoices.length > 0 && (
+              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                <CardHeader className="border-b border-slate-100 bg-emerald-50/50 px-5 py-3">
+                  <CardTitle className="text-sm font-semibold text-emerald-700 m-0 flex items-center gap-2">
+                    <Receipt className="h-4 w-4" />
+                    Rechnungen ({projectInvoices.length})
+                  </CardTitle>
+                </CardHeader>
+                <div className="divide-y divide-slate-100">
+                  {projectInvoices.map((invoice: any) => {
+                    const statusColors: Record<string, string> = {
+                      draft: 'bg-slate-100 text-slate-600',
+                      sent: 'bg-blue-100 text-blue-700',
+                      paid: 'bg-green-100 text-green-700',
+                      overdue: 'bg-red-100 text-red-700',
+                      cancelled: 'bg-slate-100 text-slate-500',
+                    };
+                    const statusLabels: Record<string, string> = {
+                      draft: 'Entwurf',
+                      sent: 'Versendet',
+                      paid: 'Bezahlt',
+                      overdue: 'Überfällig',
+                      cancelled: 'Storniert',
+                    };
+                    const typeLabels: Record<string, string> = {
+                      final: 'Schlussrechnung',
+                      partial: 'Abschlagsrechnung',
+                      advance: 'Vorauszahlung',
+                      credit: 'Gutschrift',
+                    };
+                    return (
+                      <div
+                        key={invoice.id}
+                        className="flex items-center gap-4 px-5 py-3.5 hover:bg-emerald-50/50 transition-colors cursor-pointer group"
+                        onClick={() => {
+                          setSelectedInvoice(invoice);
+                          setIsInvoiceDetailOpen(true);
+                        }}
+                      >
+                        <div className="flex-shrink-0 p-2 rounded-lg bg-emerald-50 group-hover:bg-emerald-100 transition-colors">
+                          <Receipt className="h-5 w-5 text-emerald-500" />
                         </div>
-
-                        {/* Time Details */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                          <div className="bg-slate-50 rounded-lg p-3">
-                            <p className="text-[10px] text-slate-400 uppercase tracking-wide">Datum</p>
-                            <p className="text-sm font-medium text-slate-800">{dateStr}</p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-sm font-medium text-slate-800 group-hover:text-emerald-700 transition-colors">{invoice.invoice_number || 'Rechnung'}</span>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColors[invoice.status] || 'bg-slate-100 text-slate-600'}`}>
+                              {statusLabels[invoice.status] || invoice.status}
+                            </span>
+                            {invoice.invoice_type && invoice.invoice_type !== 'final' && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                                {typeLabels[invoice.invoice_type] || invoice.invoice_type}
+                              </span>
+                            )}
                           </div>
-                          <div className="bg-slate-50 rounded-lg p-3">
-                            <p className="text-[10px] text-slate-400 uppercase tracking-wide">Arbeitszeit</p>
-                            <p className="text-sm font-medium text-slate-800">{startStr} – {endStr}</p>
-                          </div>
-                          <div className="bg-slate-50 rounded-lg p-3">
-                            <p className="text-[10px] text-slate-400 uppercase tracking-wide">Pause</p>
-                            <p className="text-sm font-medium text-slate-800">{dn.break_minutes ?? 0} min</p>
-                          </div>
-                          <div className="bg-teal-50 rounded-lg p-3">
-                            <p className="text-[10px] text-teal-500 uppercase tracking-wide">Netto</p>
-                            <p className="text-sm font-bold text-teal-700">{hours.toFixed(1)}h</p>
-                          </div>
+                          <p className="text-xs text-slate-500">
+                            {invoice.invoice_date ? new Date(invoice.invoice_date).toLocaleDateString('de-DE') : '–'}
+                            {invoice.title && ` · ${invoice.title}`}
+                          </p>
                         </div>
+                        <div className="flex-shrink-0 text-right">
+                          <span className="text-sm font-bold text-slate-800">
+                            {(invoice.gross_amount || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+                          </span>
+                        </div>
+                        <ExternalLink className="h-4 w-4 text-slate-300 group-hover:text-emerald-500 transition-colors" />
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
 
-                        {/* Materials */}
-                        {materials.length > 0 && (
-                          <div>
-                            <p className="text-xs font-medium text-slate-400 mb-2">Materialien ({materials.length})</p>
-                            <div className="space-y-1">
-                              {materials.map((mat: any) => (
-                                <div key={mat.id} className="flex items-center justify-between py-1.5 px-3 bg-slate-50 rounded text-sm">
-                                  <span>{mat.material_quantity} {mat.material_unit} {mat.material_name}</span>
-                                  {mat.unit_price && (
-                                    <span className="text-slate-500">{((mat.unit_price || 0) * (mat.material_quantity || 0)).toFixed(2)} €</span>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
+            {/* Lieferscheine Section */}
+            {deliveryNotes.length > 0 && (
+              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                <CardHeader className="border-b border-slate-100 bg-teal-50/50 px-5 py-3">
+                  <CardTitle className="text-sm font-semibold text-teal-700 m-0 flex items-center gap-2">
+                    <ClipboardList className="h-4 w-4" />
+                    Lieferscheine ({deliveryNotes.length})
+                  </CardTitle>
+                </CardHeader>
+                <div className="divide-y divide-slate-100">
+                  {deliveryNotes.map((dn: any) => {
+                    const empName = dn.employee
+                      ? `${dn.employee.first_name} ${dn.employee.last_name}`
+                      : 'Mitarbeiter';
+                    const dateStr = dn.work_date ? new Date(dn.work_date).toLocaleDateString('de-DE') : '–';
+                    let hours = 0;
+                    if (dn.start_time && dn.end_time) {
+                      const [sh, sm] = dn.start_time.split(':').map(Number);
+                      const [eh, em] = dn.end_time.split(':').map(Number);
+                      hours = Math.max(0, ((eh * 60 + em) - (sh * 60 + sm) - (dn.break_minutes ?? 0)) / 60);
+                    }
+                    return (
+                      <div
+                        key={dn.id}
+                        className="flex items-center gap-4 px-5 py-3.5 hover:bg-teal-50/50 transition-colors cursor-pointer group"
+                        onClick={() => {
+                          toast({
+                            title: `Lieferschein ${dn.delivery_note_number || ''}`,
+                            description: `${empName} · ${dateStr} · ${hours.toFixed(1)}h`,
+                          });
+                          // TODO: Open delivery note detail view
+                        }}
+                      >
+                        <div className="flex-shrink-0 p-2 rounded-lg bg-teal-50 group-hover:bg-teal-100 transition-colors">
+                          <ClipboardList className="h-5 w-5 text-teal-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-sm font-medium text-slate-800 group-hover:text-teal-700 transition-colors">{dn.delivery_note_number || 'Lieferschein'}</span>
+                            {dn.signed_at && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
+                                Unterschrieben
+                              </span>
+                            )}
                           </div>
-                        )}
+                          <p className="text-xs text-slate-500">{dateStr} · {empName} · {hours.toFixed(1)}h</p>
+                        </div>
+                        <ExternalLink className="h-4 w-4 text-slate-300 group-hover:text-teal-500 transition-colors" />
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
 
-                        {/* Photos */}
-                        {photos.length > 0 && (
-                          <div>
-                            <p className="text-xs font-medium text-slate-400 mb-2">Fotos ({photos.length})</p>
-                            <div className="grid grid-cols-3 gap-2">
-                              {photos.map((photo: any) => (
-                                <div key={photo.id}>
-                                  <img
-                                    src={photo.photo_url}
-                                    alt={photo.photo_caption || 'Foto'}
-                                    className="w-full h-24 object-cover rounded border"
-                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                  />
-                                  {photo.photo_caption && (
-                                    <p className="text-[10px] text-slate-400 mt-0.5">{photo.photo_caption}</p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+            {/* Hochgeladene Dateien Section */}
+            {projectDocuments.length > 0 && (
+              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3">
+                  <CardTitle className="text-sm font-semibold text-slate-700 m-0 flex items-center gap-2">
+                    <File className="h-4 w-4" />
+                    Hochgeladene Dateien ({projectDocuments.length})
+                  </CardTitle>
+                </CardHeader>
+                <div className="divide-y divide-slate-100">
+                  {projectDocuments.map((doc: any) => {
+                    const isImage = doc.mime_type?.startsWith('image/');
+                    const isPdf = doc.mime_type === 'application/pdf';
+                    const formatFileSize = (bytes: number) => {
+                      if (!bytes) return '–';
+                      if (bytes < 1024) return `${bytes} B`;
+                      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+                      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+                    };
+                    const handleDownload = () => {
+                      const url = doc.file_url || doc.file_path;
+                      if (url) {
+                        window.open(url, '_blank');
+                      } else {
+                        toast({
+                          title: "Download nicht verfügbar",
+                          description: "Die Datei konnte nicht gefunden werden.",
+                          variant: "destructive"
+                        });
+                      }
+                    };
+                    return (
+                      <div
+                        key={doc.id}
+                        className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-100/50 transition-colors cursor-pointer group"
+                        onClick={handleDownload}
+                      >
+                        <div className={`flex-shrink-0 p-2 rounded-lg transition-colors ${isImage ? 'bg-purple-50 group-hover:bg-purple-100' : isPdf ? 'bg-red-50 group-hover:bg-red-100' : 'bg-slate-100 group-hover:bg-slate-200'}`}>
+                          {isImage ? (
+                            <FileImage className="h-5 w-5 text-purple-500" />
+                          ) : isPdf ? (
+                            <FileText className="h-5 w-5 text-red-500" />
+                          ) : (
+                            <File className="h-5 w-5 text-slate-500" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-800 truncate group-hover:text-slate-900">{doc.name || 'Dokument'}</p>
+                          <p className="text-xs text-slate-500">
+                            {doc.created_at ? new Date(doc.created_at).toLocaleDateString('de-DE') : '–'}
+                            {doc.file_size && ` · ${formatFileSize(doc.file_size)}`}
+                          </p>
+                        </div>
+                        <Download className="h-4 w-4 text-slate-300 group-hover:text-slate-600 transition-colors" />
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
 
-                        {/* Signature */}
-                        {dn.signed_at && (
-                          <div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 rounded-lg px-3 py-2">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            <span>Unterschrieben von {dn.signature_name} am {new Date(dn.signed_at).toLocaleDateString('de-DE')}</span>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            ) : (
+            {/* Empty State */}
+            {projectOffers.length === 0 && projectInvoices.length === 0 && deliveryNotes.length === 0 && projectDocuments.length === 0 && (
               <Card className="bg-white border-slate-200 shadow-sm rounded-xl">
-                <CardContent className="p-8 text-center">
-                  <ClipboardList className="h-10 w-10 text-slate-200 mx-auto mb-3" />
-                  <p className="text-sm text-slate-400">Noch keine Lieferscheine vorhanden</p>
+                <CardContent className="p-12 text-center">
+                  <File className="h-12 w-12 text-slate-200 mx-auto mb-4" />
+                  <h4 className="text-base font-medium text-slate-700 mb-1">Keine Dokumente vorhanden</h4>
+                  <p className="text-sm text-slate-400 mb-4">
+                    Erstellen Sie Angebote, Rechnungen oder laden Sie Dateien hoch.
+                  </p>
+                  {permissions.can_upload_files && (
+                    <Button variant="outline" size="sm">
+                      <FilePlus className="h-4 w-4 mr-2" />
+                      Erste Datei hochladen
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -1980,7 +2326,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                       }`}>
                         {proj.status === 'abgeschlossen' ? 'Fertig' :
                          proj.status === 'in_bearbeitung' ? 'In Arbeit' :
-                         proj.status === 'geplant' ? 'Geplant' : proj.status}
+                         proj.status === 'beauftragt' ? 'Beauftragt' :
+                         proj.status === 'angebot' ? 'Angebot' : proj.status}
                       </span>
                     </div>
                   </button>
@@ -1989,6 +2336,59 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Invoice Detail Dialog */}
+        {selectedInvoice && (
+          <InvoiceDetailDialog
+            isOpen={isInvoiceDetailOpen}
+            onClose={() => {
+              setIsInvoiceDetailOpen(false);
+              setSelectedInvoice(null);
+            }}
+            invoice={selectedInvoice}
+          />
+        )}
+
+        {/* Create Invoice from Project Dialog */}
+        {project && (
+          <CreateInvoiceFromProjectDialog
+            isOpen={isCreateInvoiceOpen}
+            onClose={() => setIsCreateInvoiceOpen(false)}
+            projectId={currentProjectId}
+            projectName={project.project_name}
+            customerId={project.customer.id}
+            onInvoiceCreated={() => {
+              fetchProjectData(currentProjectId);
+              toast({
+                title: "Rechnung erstellt",
+                description: "Die Rechnung wurde erfolgreich erstellt.",
+              });
+            }}
+          />
+        )}
+
+        {project && (
+          <WorkflowStatusDialog
+            open={workflowDialogOpen}
+            onOpenChange={setWorkflowDialogOpen}
+            projectId={project.id}
+            projectName={project.project_name}
+            companyId={project.company_id}
+            targetStatus={workflowTargetStatus}
+            editMode={workflowEditMode}
+            currentValues={{
+              besichtigung_date: (project as any).besichtigung_date,
+              besichtigung_time_start: (project as any).besichtigung_time_start,
+              besichtigung_time_end: (project as any).besichtigung_time_end,
+              besichtigung_employee_id: (project as any).besichtigung_employee_id,
+              besichtigung_calendar_event_id: (project as any).besichtigung_calendar_event_id,
+              work_start_date: (project as any).work_start_date,
+              work_end_date: (project as any).work_end_date,
+            }}
+            employees={allEmployees}
+            onSuccess={() => fetchProjectData(currentProjectId)}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

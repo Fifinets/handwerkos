@@ -290,7 +290,7 @@ export class ProjectService {
     return apiCall(async () => {
       const existingProject = await this.getProject(id);
 
-      if (existingProject.status !== 'planned' && existingProject.status !== 'geplant') {
+      if (existingProject.status !== 'planned' && existingProject.status !== 'beauftragt') {
         throw new ApiError(
           API_ERROR_CODES.BUSINESS_RULE_VIOLATION,
           'Nur geplante Projekte können gestartet werden.',
@@ -450,7 +450,7 @@ export class ProjectService {
       const completionPercentage = {
         planned: 0,
         anfrage: 0,
-        geplant: 0,
+        beauftragt: 0,
         besichtigung: 0,
         active: 50,
         in_bearbeitung: 50,
@@ -560,7 +560,7 @@ export class ProjectService {
       const existingProject = await this.getProject(id);
 
       // Only allow deletion of planned or cancelled projects
-      if (!['planned', 'cancelled', 'geplant', 'anfrage', 'besichtigung'].includes(existingProject.status)) {
+      if (!['planned', 'cancelled', 'beauftragt', 'anfrage', 'besichtigung'].includes(existingProject.status)) {
         throw new ApiError(
           API_ERROR_CODES.BUSINESS_RULE_VIOLATION,
           'Nur geplante oder stornierte Projekte können gelöscht werden.',

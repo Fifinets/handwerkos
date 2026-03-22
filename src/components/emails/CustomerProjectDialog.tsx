@@ -207,7 +207,7 @@ export function CustomerProjectDialog({ isOpen, onClose, email }: CustomerProjec
         end_date: projectData.end_date || null,
         customer_id: customerId,
         company_id: profileData.company_id,
-        status: 'geplant'
+        status: 'beauftragt'
       };
 
       console.log('Creating project with data:', projectInsertData);

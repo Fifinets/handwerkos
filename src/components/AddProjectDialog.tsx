@@ -401,9 +401,7 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
                 <SelectItem value="angebot">Angebot erstellen</SelectItem>
                 <SelectItem value="angebot_versendet">Angebot versendet</SelectItem>
                 <SelectItem value="beauftragt">Beauftragt</SelectItem>
-                <SelectItem value="in_planung">In Planung</SelectItem>
                 <SelectItem value="in_bearbeitung">In Bearbeitung</SelectItem>
-                <SelectItem value="abnahme">Abnahme</SelectItem>
                 <SelectItem value="abgeschlossen">Abgeschlossen</SelectItem>
                 <SelectItem value="storniert">Storniert</SelectItem>
               </SelectContent>

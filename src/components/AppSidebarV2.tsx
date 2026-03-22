@@ -19,7 +19,8 @@ import {
     Menu,
     MoreVertical,
     UserCircle,
-    ClipboardList
+    ClipboardList,
+    BarChart3
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -37,7 +38,9 @@ const mainNavigation = [
     { id: 'dashboard', name: 'Dashboard', icon: TrendingUp },
     { id: 'projects', name: 'Projekte', icon: Building2 },
     { id: 'offers', name: 'Angebote', icon: FileText },
+    { id: 'invoices', name: 'Rechnungen', icon: Receipt },
     { id: 'finance', name: 'Finanzen', icon: Calculator },
+    { id: 'reports', name: 'Berichte', icon: BarChart3 },
     { id: 'planner', name: 'Planer', icon: Calendar },
     { id: 'emails', name: 'Posteingang', icon: Mail },
 ];

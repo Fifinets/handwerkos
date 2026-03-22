@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workflow-Termine — 3 Optionen</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; }
+  .option-card { transition: all 0.2s; }
+  .option-card:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
+</style>
+</head>
+<body class="p-8 max-w-6xl mx-auto">
+
+<h1 class="text-3xl font-bold text-slate-900 mb-2">Workflow-Termine im Details-Tab</h1>
+<p class="text-slate-500 mb-8">Vergleich der 3 Darstellungsvarianten</p>
+
+<!-- Shared workflow bar reference -->
+<div class="mb-10 bg-white rounded-xl border border-slate-200 p-6">
+  <p class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4">Aktueller Workflow-Balken (Referenz)</p>
+  <div class="flex items-center gap-0">
+    <div class="flex-1 bg-emerald-500 text-white text-center py-2 text-sm font-medium rounded-l-lg">Anfrage</div>
+    <div class="flex-1 bg-emerald-500 text-white text-center py-2 text-sm font-medium">Besichtigung</div>
+    <div class="flex-1 bg-blue-500 text-white text-center py-2 text-sm font-medium ring-2 ring-blue-300 ring-offset-1">Angebot</div>
+    <div class="flex-1 bg-slate-200 text-slate-500 text-center py-2 text-sm font-medium">Beauftragt</div>
+    <div class="flex-1 bg-slate-200 text-slate-500 text-center py-2 text-sm font-medium">In Arbeit</div>
+    <div class="flex-1 bg-slate-200 text-slate-500 text-center py-2 text-sm font-medium rounded-r-lg">Fertig</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- OPTION A: Timeline -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="option-card bg-white rounded-xl border-2 border-slate-200 p-6 mb-8">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-lg">A</div>
+    <div>
+      <h2 class="text-xl font-bold text-slate-900">Zeitleiste / Timeline</h2>
+      <p class="text-sm text-slate-500">Vertikal, jede Phase als Karte</p>
+    </div>
+  </div>
+
+  <div class="bg-slate-50 rounded-lg p-6 border border-slate-100">
+    <p class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4">Details-Tab → Termine Sektion</p>
+
+    <div class="relative pl-8">
+      <!-- Timeline line -->
+      <div class="absolute left-[15px] top-2 bottom-2 w-0.5 bg-slate-200"></div>
+
+      <!-- Anfrage -->
+      <div class="relative mb-6">
+        <div class="absolute -left-8 top-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow-sm"></div>
+        <div class="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-sm font-semibold text-slate-900">📋 Anfrage</span>
+            <span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Abgeschlossen</span>
+          </div>
+          <div class="text-xs text-slate-500">15. März 2026 — automatisch erstellt</div>
+        </div>
+      </div>
+
+      <!-- Besichtigung -->
+      <div class="relative mb-6">
+        <div class="absolute -left-8 top-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow-sm"></div>
+        <div class="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-semibold text-slate-900">🔍 Besichtigung</span>
+            <span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Abgeschlossen</span>
+          </div>
+          <div class="grid grid-cols-3 gap-3 text-xs">
+            <div>
+              <span class="text-slate-400 block">Datum</span>
+              <span class="text-slate-700 font-medium">18. März 2026</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block">Uhrzeit</span>
+              <span class="text-slate-700 font-medium">10:00 – 11:30</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block">Mitarbeiter</span>
+              <span class="text-slate-700 font-medium">Max Müller</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Angebot (current) -->
+      <div class="relative mb-6">
+        <div class="absolute -left-8 top-1 w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-sm animate-pulse"></div>
+        <div class="bg-blue-50/50 rounded-lg border-2 border-blue-200 p-4 shadow-sm">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-sm font-semibold text-slate-900">📄 Angebot</span>
+            <span class="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">Aktiv</span>
+          </div>
+          <div class="text-xs text-slate-500">Kein Termin erforderlich</div>
+        </div>
+      </div>
+
+      <!-- Beauftragt -->
+      <div class="relative mb-6">
+        <div class="absolute -left-8 top-1 w-4 h-4 rounded-full bg-slate-300 border-2 border-white shadow-sm"></div>
+        <div class="bg-white rounded-lg border border-dashed border-slate-200 p-4">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-sm font-medium text-slate-400">✅ Beauftragt</span>
+            <span class="text-xs text-slate-400">Ausstehend</span>
+          </div>
+          <div class="text-xs text-slate-400">Kein Termin erforderlich</div>
+        </div>
+      </div>
+
+      <!-- In Arbeit -->
+      <div class="relative mb-6">
+        <div class="absolute -left-8 top-1 w-4 h-4 rounded-full bg-slate-300 border-2 border-white shadow-sm"></div>
+        <div class="bg-white rounded-lg border border-dashed border-slate-200 p-4">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-sm font-medium text-slate-400">🔨 In Arbeit</span>
+            <span class="text-xs text-slate-400">Ausstehend</span>
+          </div>
+          <div class="text-xs text-slate-400">Baustart noch nicht festgelegt</div>
+          <button class="mt-2 text-xs text-blue-600 hover:text-blue-700 font-medium">+ Termin festlegen</button>
+        </div>
+      </div>
+
+      <!-- Fertig -->
+      <div class="relative">
+        <div class="absolute -left-8 top-1 w-4 h-4 rounded-full bg-slate-300 border-2 border-white shadow-sm"></div>
+        <div class="bg-white rounded-lg border border-dashed border-slate-200 p-4">
+          <span class="text-sm font-medium text-slate-400">🏁 Fertig</span>
+          <div class="text-xs text-slate-400 mt-1">Wird automatisch gesetzt</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-4 flex gap-2">
+    <span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded">+ Visuell ansprechend</span>
+    <span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded">+ Guter Überblick</span>
+    <span class="text-xs bg-red-50 text-red-700 px-2 py-1 rounded">- Braucht viel Platz</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- OPTION B: Compact Table -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="option-card bg-white rounded-xl border-2 border-slate-200 p-6 mb-8">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="h-10 w-10 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 font-bold text-lg">B</div>
+    <div>
+      <h2 class="text-xl font-bold text-slate-900">Kompakte Liste / Tabelle</h2>
+      <p class="text-sm text-slate-500">Einfache Tabelle mit allen Phasen</p>
+    </div>
+  </div>
+
+  <div class="bg-slate-50 rounded-lg p-6 border border-slate-100">
+    <p class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4">Details-Tab → Termine Sektion</p>
+
+    <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-200">
+            <th class="text-left px-4 py-2.5 font-medium text-slate-500 text-xs">Phase</th>
+            <th class="text-left px-4 py-2.5 font-medium text-slate-500 text-xs">Datum</th>
+            <th class="text-left px-4 py-2.5 font-medium text-slate-500 text-xs">Uhrzeit</th>
+            <th class="text-left px-4 py-2.5 font-medium text-slate-500 text-xs">Mitarbeiter</th>
+            <th class="text-left px-4 py-2.5 font-medium text-slate-500 text-xs">Status</th>
+            <th class="px-4 py-2.5"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-b border-slate-100">
+            <td class="px-4 py-3 font-medium text-slate-900">📋 Anfrage</td>
+            <td class="px-4 py-3 text-slate-600">15.03.2026</td>
+            <td class="px-4 py-3 text-slate-400">—</td>
+            <td class="px-4 py-3 text-slate-400">—</td>
+            <td class="px-4 py-3"><span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">✓</span></td>
+            <td class="px-4 py-3"></td>
+          </tr>
+          <tr class="border-b border-slate-100">
+            <td class="px-4 py-3 font-medium text-slate-900">🔍 Besichtigung</td>
+            <td class="px-4 py-3 text-slate-600">18.03.2026</td>
+            <td class="px-4 py-3 text-slate-600">10:00 – 11:30</td>
+            <td class="px-4 py-3 text-slate-600">Max Müller</td>
+            <td class="px-4 py-3"><span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">✓</span></td>
+            <td class="px-4 py-3"><button class="text-xs text-slate-400 hover:text-blue-600">Bearbeiten</button></td>
+          </tr>
+          <tr class="border-b border-slate-100 bg-blue-50/30">
+            <td class="px-4 py-3 font-medium text-blue-700">📄 Angebot</td>
+            <td class="px-4 py-3 text-slate-400">—</td>
+            <td class="px-4 py-3 text-slate-400">—</td>
+            <td class="px-4 py-3 text-slate-400">—</td>
+            <td class="px-4 py-3"><span class="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">Aktiv</span></td>
+            <td class="px-4 py-3"></td>
+          </tr>
+          <tr class="border-b border-slate-100">
+            <td class="px-4 py-3 font-medium text-slate-400">✅ Beauftragt</td>
+            <td class="px-4 py-3 text-slate-300">—</td>
+            <td class="px-4 py-3 text-slate-300">—</td>
+            <td class="px-4 py-3 text-slate-300">—</td>
+            <td class="px-4 py-3 text-slate-300 text-xs">Ausstehend</td>
+            <td class="px-4 py-3"></td>
+          </tr>
+          <tr class="border-b border-slate-100">
+            <td class="px-4 py-3 font-medium text-slate-400">🔨 In Arbeit</td>
+            <td class="px-4 py-3 text-slate-300">—</td>
+            <td class="px-4 py-3 text-slate-300">—</td>
+            <td class="px-4 py-3 text-slate-300">—</td>
+            <td class="px-4 py-3 text-slate-300 text-xs">Ausstehend</td>
+            <td class="px-4 py-3"><button class="text-xs text-blue-500 hover:text-blue-600">+ Termin</button></td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3 font-medium text-slate-400">🏁 Fertig</td>
+            <td class="px-4 py-3 text-slate-300">—</td>
+            <td class="px-4 py-3 text-slate-300">—</td>
+            <td class="px-4 py-3 text-slate-300">—</td>
+            <td class="px-4 py-3 text-slate-300 text-xs">Ausstehend</td>
+            <td class="px-4 py-3"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="mt-4 flex gap-2">
+    <span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded">+ Kompakt</span>
+    <span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded">+ Schnell scanbar</span>
+    <span class="text-xs bg-red-50 text-red-700 px-2 py-1 rounded">- Weniger visuell</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- OPTION C: Integrated in Workflow Bar -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="option-card bg-white rounded-xl border-2 border-slate-200 p-6 mb-8">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="h-10 w-10 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 font-bold text-lg">C</div>
+    <div>
+      <h2 class="text-xl font-bold text-slate-900">Integriert im Workflow-Balken + Details-Tab</h2>
+      <p class="text-sm text-slate-500">Termine direkt unter dem Balken, editierbar im Details-Tab</p>
+    </div>
+  </div>
+
+  <!-- Part 1: Enhanced Workflow Bar -->
+  <div class="bg-slate-50 rounded-lg p-6 border border-slate-100 mb-4">
+    <p class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4">Workflow-Balken (überall sichtbar, oben in ProjectDetailView)</p>
+
+    <div class="bg-white rounded-lg border border-slate-200 p-4">
+      <!-- The bar -->
+      <div class="flex items-center gap-0 mb-3">
+        <div class="flex-1 bg-emerald-500 text-white text-center py-2 text-sm font-medium rounded-l-lg">Anfrage</div>
+        <div class="flex-1 bg-emerald-500 text-white text-center py-2 text-sm font-medium">Besichtigung</div>
+        <div class="flex-1 bg-blue-500 text-white text-center py-2 text-sm font-medium ring-2 ring-blue-300 ring-offset-1">Angebot</div>
+        <div class="flex-1 bg-slate-200 text-slate-500 text-center py-2 text-sm font-medium">Beauftragt</div>
+        <div class="flex-1 bg-slate-200 text-slate-500 text-center py-2 text-sm font-medium">In Arbeit</div>
+        <div class="flex-1 bg-slate-200 text-slate-500 text-center py-2 text-sm font-medium rounded-r-lg">Fertig</div>
+      </div>
+      <!-- Date annotations below the bar -->
+      <div class="flex items-center gap-0">
+        <div class="flex-1 text-center">
+          <div class="text-[10px] text-slate-400">15.03.</div>
+        </div>
+        <div class="flex-1 text-center">
+          <div class="text-[10px] text-emerald-600 font-medium">18.03. 10:00</div>
+          <div class="text-[10px] text-slate-400">Max M.</div>
+        </div>
+        <div class="flex-1 text-center">
+          <div class="text-[10px] text-blue-500 font-medium">Heute</div>
+        </div>
+        <div class="flex-1 text-center">
+          <div class="text-[10px] text-slate-300">—</div>
+        </div>
+        <div class="flex-1 text-center">
+          <div class="text-[10px] text-slate-300">—</div>
+        </div>
+        <div class="flex-1 text-center">
+          <div class="text-[10px] text-slate-300">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Part 2: Details Tab editable form -->
+  <div class="bg-slate-50 rounded-lg p-6 border border-slate-100">
+    <p class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4">Details-Tab → Editierbare Termine-Karten</p>
+
+    <div class="grid grid-cols-2 gap-4">
+      <!-- Besichtigung Card -->
+      <div class="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <div class="h-2 w-2 rounded-full bg-emerald-500"></div>
+            <span class="text-sm font-semibold text-slate-900">Besichtigung</span>
+          </div>
+          <button class="text-xs text-slate-400 hover:text-blue-600">Bearbeiten</button>
+        </div>
+        <div class="space-y-2">
+          <div class="flex items-center gap-2 text-xs">
+            <svg class="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <span class="text-slate-700">18. März 2026, 10:00 – 11:30</span>
+          </div>
+          <div class="flex items-center gap-2 text-xs">
+            <svg class="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            <span class="text-slate-700">Max Müller</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- In Arbeit Card (empty) -->
+      <div class="bg-white rounded-lg border border-dashed border-slate-300 p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-colors">
+        <div class="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center mb-2">
+          <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+        </div>
+        <span class="text-sm font-medium text-slate-500">In Arbeit</span>
+        <span class="text-xs text-slate-400 mt-0.5">Baustart festlegen</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-4 flex gap-2">
+    <span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded">+ Termine sofort sichtbar im Balken</span>
+    <span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded">+ Kompakter Details-Tab</span>
+    <span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded">+ Beste Übersicht</span>
+    <span class="text-xs bg-red-50 text-red-700 px-2 py-1 rounded">- Workflow-Balken wird größer</span>
+  </div>
+</div>
+
+<!-- Recommendation -->
+<div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200 p-6">
+  <h3 class="font-bold text-slate-900 mb-2">Empfehlung: Option C</h3>
+  <p class="text-sm text-slate-600">
+    Die Integration im Workflow-Balken zeigt die wichtigsten Termine auf einen Blick — ohne extra Tab-Wechsel.
+    Im Details-Tab sind dann nur die editierbaren Karten für Besichtigung und In Arbeit, da Anfrage/Fertig automatisch sind
+    und Angebot/Beauftragt kein Datum brauchen.
+  </p>
+</div>
+
+</body>
+</html>

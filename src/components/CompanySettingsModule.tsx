@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Mail, DollarSign, Clock, FileText, Palette, Settings } from "lucide-react";
+import { Building2, Mail, DollarSign, Clock, FileText, Palette, Settings, Landmark } from "lucide-react";
 
 interface CompanySettings {
   id: string;
@@ -34,6 +34,10 @@ interface CompanySettings {
   default_working_hours_start: string;
   default_working_hours_end: string;
   default_break_duration: number;
+  bank_account_holder?: string;
+  bank_iban?: string;
+  bank_bic?: string;
+  bank_name?: string;
 }
 
 export function CompanySettingsModule() {
@@ -376,6 +380,61 @@ export function CompanySettingsModule() {
                 value={settings.invoice_terms || ""}
                 onChange={(e) => updateSetting("invoice_terms", e.target.value)}
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Bank Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Landmark className="h-5 w-5" />
+              Bankverbindung
+            </CardTitle>
+            <CardDescription>
+              Bankdaten für Rechnungen (§14 UStG Pflichtangabe)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bank_account_holder">Kontoinhaber</Label>
+                <Input
+                  id="bank_account_holder"
+                  value={settings.bank_account_holder || ""}
+                  onChange={(e) => updateSetting("bank_account_holder", e.target.value)}
+                  placeholder="Max Mustermann GmbH"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bank_name">Bank</Label>
+                <Input
+                  id="bank_name"
+                  value={settings.bank_name || ""}
+                  onChange={(e) => updateSetting("bank_name", e.target.value)}
+                  placeholder="Sparkasse Musterstadt"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bank_iban">IBAN</Label>
+                <Input
+                  id="bank_iban"
+                  value={settings.bank_iban || ""}
+                  onChange={(e) => updateSetting("bank_iban", e.target.value)}
+                  placeholder="DE89 3704 0044 0532 0130 00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bank_bic">BIC</Label>
+                <Input
+                  id="bank_bic"
+                  value={settings.bank_bic || ""}
+                  onChange={(e) => updateSetting("bank_bic", e.target.value)}
+                  placeholder="COBADEFFXXX"
+                />
+              </div>
             </div>
           </CardContent>
         </Card>

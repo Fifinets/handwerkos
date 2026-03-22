@@ -508,36 +508,6 @@ export default function OfferEditorPage() {
                                                     </Select>
                                                 </div>
                                             </div>
-                                            <div className="space-y-4">
-                                                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider print:hidden">Projekt *</span>
-                                                <div className="mt-2 text-left">
-                                                    <Select
-                                                        value={selectedProject?.id || (offer as any)?.project_id}
-                                                        onValueChange={(val) => {
-                                                            const project = customerProjects.find(p => p.id === val);
-                                                            if (project) {
-                                                                setSelectedProject(project);
-                                                            }
-                                                        }}
-                                                        disabled={isLocked || !selectedCustomer}
-                                                    >
-                                                        <SelectTrigger className="w-full h-auto border-none shadow-none text-left p-0 font-normal text-gray-900 bg-transparent hover:bg-gray-50 focus:ring-0 [&>svg]:hidden print:p-0">
-                                                            {(selectedProject || ((offer as any)?.project_id && allProjects.find(p => p.id === (offer as any).project_id))) ? (
-                                                                <div className="text-sm text-gray-600 pointer-events-none text-left">
-                                                                    <p className="font-bold text-gray-900 mb-1">{selectedProject?.name || allProjects.find(p => p.id === (offer as any)?.project_id)?.name}</p>
-                                                                </div>
-                                                            ) : (
-                                                                <span className="text-gray-400 italic">Projekt auswählen...</span>
-                                                            )}
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {customerProjects.map(p => (
-                                                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                            </div>
                                         </div>
 
                                         {/* Metadata */}

@@ -152,7 +152,7 @@ class WorkflowService {
         name: order.title,
         customer_id: order.customer_id,
         company_id: profile.company_id,
-        status: 'geplant',
+        status: 'beauftragt',
         start_date: new Date().toISOString().split('T')[0],
         end_date: order.due_date || null,
         location: null,
@@ -297,7 +297,7 @@ class WorkflowService {
       const { data: projects } = await supabase
         .from('projects')
         .select('*')
-        .in('status', ['geplant', 'in_bearbeitung']);
+        .in('status', ['angebot', 'beauftragt', 'in_bearbeitung']);
 
       const warnings = [];
 
@@ -455,7 +455,7 @@ class WorkflowService {
     const { data } = await supabase
       .from('projects')
       .select('*')
-      .in('status', ['geplant', 'in_bearbeitung'])
+      .in('status', ['angebot', 'beauftragt', 'in_bearbeitung'])
       .lt('end_date', new Date().toISOString().split('T')[0]);
 
     return data || [];

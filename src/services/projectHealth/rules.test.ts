@@ -29,7 +29,7 @@ function createProject(
 ): ProjectWithTargets {
   return {
     id: "test-project-id",
-    status: "geplant",
+    status: "beauftragt",
     planned_hours: 40,
     target_revenue: 10000,
     end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)

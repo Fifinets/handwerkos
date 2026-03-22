@@ -1,33 +1,17 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, CalendarIcon } from 'lucide-react';
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format, addDays } from "date-fns";
-import { de } from "date-fns/locale";
-import { cn } from "@/lib/utils";
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Receipt, ChevronRight } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import CreateInvoiceFromProjectDialog from './CreateInvoiceFromProjectDialog';
 
 interface Customer {
   id: string;
   company_name: string;
   contact_person: string;
-}
-
-interface Offer {
-  id: string;
-  offer_number: string;
-  project_name: string;
-  project_id: string;
-  customer_id: string;
 }
 
 interface Project {
@@ -36,50 +20,23 @@ interface Project {
   customer_id: string;
 }
 
-interface DocumentItem {
-  id: string;
-  description: string;
-  quantity: number;
-  unit: string;
-  unit_price: number;
-  total_price: number;
-}
-
 interface AddInvoiceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onInvoiceCreated?: (invoiceId: string) => void;
 }
 
-export function AddInvoiceDialog({ open, onOpenChange }: AddInvoiceDialogProps) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+export function AddInvoiceDialog({ open, onOpenChange, onInvoiceCreated }: AddInvoiceDialogProps) {
   const [customerId, setCustomerId] = useState('');
   const [projectId, setProjectId] = useState('');
-  const [offerId, setOfferId] = useState('');
-  const [invoiceDate, setInvoiceDate] = useState<Date>(new Date());
-  const [dueDate, setDueDate] = useState<Date>(addDays(new Date(), 30));
-  const [paymentTerms, setPaymentTerms] = useState('30 Tage netto');
-  const [notes, setNotes] = useState('');
-  const [taxRate, setTaxRate] = useState(19.00);
-  const [items, setItems] = useState<DocumentItem[]>([{
-    id: '1',
-    description: '',
-    quantity: 1,
-    unit: 'Stk.',
-    unit_price: 0,
-    total_price: 0
-  }]);
-
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const [showWizard, setShowWizard] = useState(false);
 
   const { data: customers = [] } = useQuery({
-    queryKey: ['customers'],
+    queryKey: ['customers-for-invoice'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('customers')
         .select('id, company_name, contact_person')
-        .eq('status', 'Aktiv')
         .order('company_name');
 
       if (error) throw error;
@@ -95,6 +52,7 @@ export function AddInvoiceDialog({ open, onOpenChange }: AddInvoiceDialogProps) 
         .from('projects')
         .select('id, name, customer_id')
         .eq('customer_id', customerId)
+        .not('status', 'in', '("abgeschlossen","storniert")')
         .order('name');
 
       if (error) throw error;
@@ -102,282 +60,68 @@ export function AddInvoiceDialog({ open, onOpenChange }: AddInvoiceDialogProps) 
     }
   });
 
-  const { data: offers = [] } = useQuery({
-    queryKey: ['offers-for-invoice', projectId],
-    enabled: !!projectId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('offers')
-        .select('id, offer_number, project_name, project_id, customer_id')
-        .eq('project_id', projectId)
-        .eq('status', 'accepted')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as Offer[];
-    }
-  });
-
-  const createInvoiceMutation = useMutation({
-    mutationFn: async (invoiceData: { title: string; description: string; customerId: string; projectId: string }) => {
-      // Calculate totals
-      const netAmount = items.reduce((sum, item) => sum + item.total_price, 0);
-      const taxAmount = (netAmount * taxRate) / 100;
-      const totalAmount = netAmount + taxAmount;
-
-      // Create invoice
-      const { data: invoice, error: invoiceError } = await supabase
-        .from('invoices')
-        .insert({
-          title,
-          description,
-          customer_id: customerId,
-          project_id: projectId,
-          offer_id: offerId || null,
-          invoice_date: format(invoiceDate, 'yyyy-MM-dd'),
-          due_date: format(dueDate, 'yyyy-MM-dd'),
-          payment_terms: paymentTerms,
-          tax_rate: taxRate,
-          net_amount: netAmount,
-          tax_amount: taxAmount,
-          total_amount: totalAmount,
-          notes,
-          invoice_number: ''  // Will be auto-generated by trigger
-        })
-        .select()
-        .single();
-
-      if (invoiceError) throw invoiceError;
-
-      // Create invoice items
-      const itemsToInsert = items.map((item, index) => ({
-        invoice_id: invoice.id,
-        position: index + 1,
-        description: item.description,
-        quantity: item.quantity,
-        unit: item.unit,
-        unit_price: item.unit_price,
-        total_price: item.total_price
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('document_items')
-        .insert(itemsToInsert);
-
-      if (itemsError) throw itemsError;
-
-      return invoice;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Erfolgreich",
-        description: "Rechnung wurde erfolgreich erstellt.",
-      });
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      handleClose();
-    },
-    onError: (error) => {
-      toast({
-        title: "Fehler",
-        description: "Beim Erstellen der Rechnung ist ein Fehler aufgetreten.",
-        variant: "destructive",
-      });
-      console.error('Error creating invoice:', error);
-    }
-  });
+  const selectedProject = projects.find(p => p.id === projectId);
 
   const handleClose = () => {
-    setTitle('');
-    setDescription('');
     setCustomerId('');
     setProjectId('');
-    setOfferId('');
-    setInvoiceDate(new Date());
-    setDueDate(addDays(new Date(), 30));
-    setPaymentTerms('30 Tage netto');
-    setNotes('');
-    setTaxRate(19.00);
-    setItems([{
-      id: '1',
-      description: '',
-      quantity: 1,
-      unit: 'Stk.',
-      unit_price: 0,
-      total_price: 0
-    }]);
+    setShowWizard(false);
     onOpenChange(false);
   };
 
-  const addItem = () => {
-    const newItem: DocumentItem = {
-      id: Date.now().toString(),
-      description: '',
-      quantity: 1,
-      unit: 'Stk.',
-      unit_price: 0,
-      total_price: 0
-    };
-    setItems([...items, newItem]);
-  };
-
-  const removeItem = (id: string) => {
-    if (items.length > 1) {
-      setItems(items.filter(item => item.id !== id));
+  const handleContinue = () => {
+    if (customerId && projectId) {
+      onOpenChange(false);
+      setShowWizard(true);
     }
-  };
-
-  const updateItem = (id: string, field: keyof DocumentItem, value: string | number) => {
-    setItems(items.map(item => {
-      if (item.id === id) {
-        const updatedItem = { ...item, [field]: value };
-
-        // Recalculate total price when quantity or unit_price changes
-        if (field === 'quantity' || field === 'unit_price') {
-          updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price;
-        }
-
-        return updatedItem;
-      }
-      return item;
-    }));
-  };
-
-  const loadOfferData = async (selectedOfferId: string) => {
-    if (!selectedOfferId) return;
-
-    try {
-      // Get offer data
-      const { data: offer, error: offerError } = await supabase
-        .from('offers')
-        .select(`
-          *,
-          customer:customers(company_name, contact_person)
-        `)
-        .eq('id', selectedOfferId)
-        .single();
-
-      if (offerError) throw offerError;
-
-      // Get offer items
-      const { data: offerItems, error: itemsError } = await supabase
-        .from('offer_items')
-        .select('*')
-        .eq('offer_id', selectedOfferId)
-        .order('position_number');
-
-      if (itemsError) throw itemsError;
-
-      // Populate form with offer data
-      setTitle(`Rechnung für ${offer.project_name || 'Angebot ' + offer.offer_number}`);
-      setDescription(offer.intro_text || '');
-      setCustomerId(offer.customer_id);
-      if (offer.project_id) setProjectId(offer.project_id);
-
-      // We don't have a direct tax_rate on the new offer table, so we leave it as default or calculate it
-      // setTaxRate(offer.tax_rate); 
-      setNotes(offer.notes || '');
-
-      // Populate items
-      if (offerItems && offerItems.length > 0) {
-        const loadedItems = offerItems.map(item => ({
-          id: item.id,
-          description: item.description || '',
-          quantity: item.quantity || 1,
-          unit: item.unit || 'Stk.',
-          unit_price: item.unit_price_net || 0,
-          total_price: (item.quantity || 1) * (item.unit_price_net || 0)
-        }));
-        setItems(loadedItems);
-      }
-
-      toast({
-        title: "Angebotsdaten geladen",
-        description: "Die Daten aus dem Angebot wurden übernommen.",
-      });
-    } catch (error) {
-      console.error('Error loading offer data:', error);
-      toast({
-        title: "Fehler",
-        description: "Beim Laden der Angebotsdaten ist ein Fehler aufgetreten.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const netAmount = items.reduce((sum, item) => sum + item.total_price, 0);
-  const taxAmount = (netAmount * taxRate) / 100;
-  const totalAmount = netAmount + taxAmount;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!title || !customerId || !projectId || items.some(item => !item.description)) {
-      toast({
-        title: "Fehler",
-        description: "Bitte füllen Sie alle Pflichtfelder aus (inkl. Projekt).",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    createInvoiceMutation.mutate({ title, description, customerId, projectId });
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Neue Rechnung erstellen</DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Titel *</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Rechnungs-Titel eingeben"
-                required
-              />
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-emerald-50">
+                <Receipt className="h-5 w-5 text-emerald-600" />
+              </div>
+              <DialogTitle>Neue Rechnung erstellen</DialogTitle>
             </div>
+          </DialogHeader>
 
+          <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="customer">Kunde *</Label>
+              <Label>Kunde *</Label>
               <Select value={customerId} onValueChange={(val) => {
                 setCustomerId(val);
                 setProjectId('');
-                setOfferId('');
-              }} required>
+              }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Kunde auswählen" />
                 </SelectTrigger>
                 <SelectContent>
                   {customers.map((customer) => (
                     <SelectItem key={customer.id} value={customer.id}>
-                      {customer.company_name} ({customer.contact_person || 'Kein Kontakt'})
+                      {customer.company_name} {customer.contact_person ? `(${customer.contact_person})` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="project">Projekt *</Label>
+              <Label>Projekt / Auftrag *</Label>
               <Select
                 value={projectId}
-                onValueChange={(val) => {
-                  setProjectId(val);
-                  setOfferId('');
-                }}
-                required
+                onValueChange={setProjectId}
                 disabled={!customerId}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Projekt auswählen" />
+                  <SelectValue placeholder={
+                    !customerId ? "Bitte zuerst Kunde wählen" :
+                    projects.length === 0 ? "Keine Projekte vorhanden" :
+                    "Projekt auswählen"
+                  } />
                 </SelectTrigger>
                 <SelectContent>
                   {projects.map((project) => (
@@ -389,240 +133,42 @@ export function AddInvoiceDialog({ open, onOpenChange }: AddInvoiceDialogProps) 
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="offer">Basiert auf Angebot (optional)</Label>
-              <Select
-                value={offerId}
-                onValueChange={(value) => {
-                  setOfferId(value);
-                  if (value) {
-                    loadOfferData(value);
-                  }
-                }}
-                disabled={!projectId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Angebot auswählen (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {offers.map((offer) => (
-                    <SelectItem key={offer.id} value={offer.id}>
-                      {offer.offer_number} - {offer.project_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Beschreibung</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Beschreibung der Rechnung"
-              rows={3}
-            />
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Rechnungsdatum</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(invoiceDate, "PPP", { locale: de })}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={invoiceDate}
-                    onSelect={(date) => date && setInvoiceDate(date)}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Fälligkeitsdatum</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(dueDate, "PPP", { locale: de })}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dueDate}
-                    onSelect={(date) => date && setDueDate(date)}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="paymentTerms">Zahlungsbedingungen</Label>
-              <Select value={paymentTerms} onValueChange={setPaymentTerms}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Sofort">Sofort</SelectItem>
-                  <SelectItem value="7 Tage netto">7 Tage netto</SelectItem>
-                  <SelectItem value="14 Tage netto">14 Tage netto</SelectItem>
-                  <SelectItem value="30 Tage netto">30 Tage netto</SelectItem>
-                  <SelectItem value="60 Tage netto">60 Tage netto</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="taxRate">Steuersatz (%)</Label>
-            <Input
-              id="taxRate"
-              type="number"
-              step="0.01"
-              min="0"
-              max="100"
-              value={taxRate}
-              onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
-              className="w-32"
-            />
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                Positionen
-                <Button type="button" onClick={addItem} size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Position hinzufügen
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {items.map((item) => (
-                <div key={item.id} className="grid grid-cols-12 gap-2 items-end">
-                  <div className="col-span-4 space-y-2">
-                    <Label>Beschreibung *</Label>
-                    <Input
-                      value={item.description}
-                      onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                      placeholder="Beschreibung der Position"
-                      required
-                    />
-                  </div>
-                  <div className="col-span-2 space-y-2">
-                    <Label>Menge</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={item.quantity}
-                      onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
-                    />
-                  </div>
-                  <div className="col-span-2 space-y-2">
-                    <Label>Einheit</Label>
-                    <Select
-                      value={item.unit}
-                      onValueChange={(value) => updateItem(item.id, 'unit', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Stk.">Stk.</SelectItem>
-                        <SelectItem value="h">Stunden</SelectItem>
-                        <SelectItem value="m">Meter</SelectItem>
-                        <SelectItem value="m²">m²</SelectItem>
-                        <SelectItem value="kg">kg</SelectItem>
-                        <SelectItem value="l">Liter</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-2 space-y-2">
-                    <Label>Einzelpreis</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={item.unit_price}
-                      onChange={(e) => updateItem(item.id, 'unit_price', parseFloat(e.target.value) || 0)}
-                    />
-                  </div>
-                  <div className="col-span-1 space-y-2">
-                    <Label>Gesamt</Label>
-                    <div className="text-sm font-medium p-2 bg-muted rounded">
-                      {item.total_price.toFixed(2)} €
-                    </div>
-                  </div>
-                  <div className="col-span-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeItem(item.id)}
-                      disabled={items.length === 1}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-
-              <div className="border-t pt-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Nettosumme:</span>
-                  <span>{netAmount.toFixed(2)} €</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>MwSt. ({taxRate}%):</span>
-                  <span>{taxAmount.toFixed(2)} €</span>
-                </div>
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Gesamtsumme:</span>
-                  <span>{totalAmount.toFixed(2)} €</span>
-                </div>
+            {customerId && projectId && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm text-emerald-700">
+                Im nächsten Schritt werden automatisch Angebote, Lieferscheine, Zeiteinträge und Material für dieses Projekt geladen.
               </div>
-            </CardContent>
-          </Card>
-
-          <div className="space-y-2">
-            <Label htmlFor="notes">Anmerkungen</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Zusätzliche Anmerkungen zur Rechnung"
-              rows={3}
-            />
+            )}
           </div>
 
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={handleClose}>
               Abbrechen
             </Button>
-            <Button type="submit" disabled={createInvoiceMutation.isPending}>
-              {createInvoiceMutation.isPending ? 'Erstelle...' : 'Rechnung erstellen'}
+            <Button
+              onClick={handleContinue}
+              disabled={!customerId || !projectId}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              Weiter
+              <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      {showWizard && selectedProject && (
+        <CreateInvoiceFromProjectDialog
+          isOpen={showWizard}
+          onClose={handleClose}
+          projectId={projectId}
+          projectName={selectedProject.name}
+          customerId={customerId}
+          onInvoiceCreated={(invoiceId) => {
+            handleClose();
+            onInvoiceCreated?.(invoiceId);
+          }}
+        />
+      )}
+    </>
   );
 }

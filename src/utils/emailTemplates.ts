@@ -275,7 +275,8 @@ export function createProjectNotificationTemplate(
   options: EmailTemplateOptions
 ): string {
   const statusColors: Record<string, string> = {
-    'geplant': '#0ea5e9',
+    'beauftragt': '#0ea5e9',
+    'angebot': '#3b82f6',
     'in_bearbeitung': '#f59e0b',
     'abgeschlossen': '#10b981',
     'ueberfaellig': '#ef4444'

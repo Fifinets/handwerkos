@@ -38,7 +38,8 @@ import {
     Filter,
     BarChart,
     HardHat,
-    FolderOpen
+    FolderOpen,
+    Receipt
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -54,6 +55,7 @@ import AddProjectDialog from "./AddProjectDialog";
 import EditProjectDialog from "./EditProjectDialog";
 import ProjectDetailDialogWithTasks from "./ProjectDetailDialogWithTasks";
 import ProjectDetailView from "./ProjectDetailView";
+import CreateInvoiceFromProjectDialog from "./CreateInvoiceFromProjectDialog";
 import PreCalculationDialog from "./PreCalculationDialog";
 import ProjectProfitabilityDialog from "./ProjectProfitabilityDialog";
 import ProjectRow from "./projects/ProjectRow";
@@ -73,13 +75,8 @@ const getStatusColor = (status: string) => {
             return 'bg-orange-50 text-orange-700 border-orange-200';
         case 'beauftragt':
             return 'bg-purple-50 text-purple-700 border-purple-200';
-        case 'in_planung':
-        case 'geplant':
-            return 'bg-indigo-50 text-indigo-700 border-indigo-200';
         case 'in_bearbeitung':
             return 'bg-amber-50 text-amber-700 border-amber-200';
-        case 'abnahme':
-            return 'bg-teal-50 text-teal-700 border-teal-200';
         case 'abgeschlossen':
             return 'bg-emerald-50 text-emerald-700 border-emerald-200';
         case 'storniert':
@@ -100,13 +97,8 @@ const getStatusIcon = (status: string) => {
             return <FileText className="h-4 w-4 text-orange-500" />;
         case 'beauftragt':
             return <CheckCircle className="h-4 w-4 text-purple-500" />;
-        case 'in_planung':
-        case 'geplant':
-            return <FolderOpen className="h-4 w-4 text-indigo-500" />;
         case 'in_bearbeitung':
             return <HardHat className="h-4 w-4 text-amber-500" />;
-        case 'abnahme':
-            return <CheckCircle className="h-4 w-4 text-teal-500" />;
         case 'abgeschlossen':
             return <CheckCircle className="h-4 w-4 text-emerald-500" />;
         case 'storniert':
@@ -193,7 +185,7 @@ const ProjectModuleV2 = () => {
 
             // 2. Fetch project assignments separately to be more robust
             const { data: assignmentsData, error: assignmentsError } = await supabase
-                .from('project_team_members')
+                .from('project_team_assignments')
                 .select(`
                     employee_id,
                     projects(
@@ -225,9 +217,9 @@ const ProjectModuleV2 = () => {
 
             const employeeList = (employeesData || [])
                 .filter(employee => {
-                    // Inclusion filter: handle various 'active' status strings
+                    // Exclusion filter: only hide explicitly inactive/terminated employees
                     const status = (employee.status || '').toLowerCase();
-                    return status === 'aktiv' || status === 'active';
+                    return status !== 'inaktiv' && status !== 'gekündigt' && status !== 'inactive' && status !== 'terminated';
                 })
                 .map(employee => {
                     const profile = profilesData.find(p => p.id === employee.user_id);
@@ -291,6 +283,10 @@ const ProjectModuleV2 = () => {
     const [kleinauftraege, setKleinauftraege] = useState<any[]>([]);
     const [kleinauftraegeLoading, setKleinauftraegeLoading] = useState(false);
 
+    // Create invoice from project dialog state
+    const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] = useState(false);
+    const [createInvoiceProject, setCreateInvoiceProject] = useState<any | null>(null);
+
     const projects = (projectsResponse?.items || debugProjects || []) as ProjectWithCustomers[];
     const customers = customersResponse?.items || [];
 
@@ -321,9 +317,7 @@ const ProjectModuleV2 = () => {
         { value: 'angebot', label: 'Angebot' },
         { value: 'angebot_versendet', label: 'Angebot versendet' },
         { value: 'beauftragt', label: 'Beauftragt' },
-        { value: 'in_planung', label: 'In Planung' },
         { value: 'in_bearbeitung', label: 'In Bearbeitung' },
-        { value: 'abnahme', label: 'Abnahme' },
         { value: 'abgeschlossen', label: 'Abgeschlossen' },
         { value: 'storniert', label: 'Storniert' },
     ];
@@ -367,9 +361,7 @@ const ProjectModuleV2 = () => {
         besichtigung: projects.filter(p => p.status === 'besichtigung').length,
         angebot: projects.filter(p => p.status === 'angebot' || p.status === 'angebot_versendet').length,
         beauftragt: projects.filter(p => p.status === 'beauftragt').length,
-        in_planung: projects.filter(p => p.status === 'in_planung').length,
         in_bearbeitung: projects.filter(p => p.status === 'in_bearbeitung').length,
-        abnahme: projects.filter(p => p.status === 'abnahme').length,
         abgeschlossen: projects.filter(p => p.status === 'abgeschlossen').length,
         storniert: projects.filter(p => p.status === 'storniert').length,
     };
@@ -511,8 +503,8 @@ const ProjectModuleV2 = () => {
                 <Card className="bg-white border-slate-200 shadow-sm">
                     <CardContent className="p-5 flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-slate-500">In Planung</p>
-                            <h3 className="text-2xl font-bold text-slate-600 mt-1">{statusCounts.geplant}</h3>
+                            <p className="text-sm font-medium text-slate-500">Beauftragt</p>
+                            <h3 className="text-2xl font-bold text-slate-600 mt-1">{statusCounts.beauftragt}</h3>
                         </div>
                         <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center">
                             <FolderOpen className="h-6 w-6 text-slate-600" />
@@ -628,9 +620,7 @@ const ProjectModuleV2 = () => {
                                     { key: 'besichtigung', label: 'Besichtigung', color: 'bg-blue-400', count: statusCounts.besichtigung },
                                     { key: 'angebot', label: 'Angebot', color: 'bg-orange-400', count: statusCounts.angebot },
                                     { key: 'beauftragt', label: 'Beauftragt', color: 'bg-purple-400', count: statusCounts.beauftragt },
-                                    { key: 'in_planung', label: 'In Planung', color: 'bg-indigo-400', count: statusCounts.in_planung },
                                     { key: 'in_bearbeitung', label: 'In Bearbeitung', color: 'bg-amber-400', count: statusCounts.in_bearbeitung },
-                                    { key: 'abnahme', label: 'Abnahme', color: 'bg-teal-400', count: statusCounts.abnahme },
                                     { key: 'abgeschlossen', label: 'Abgeschlossen', color: 'bg-emerald-400', count: statusCounts.abgeschlossen },
                                 ].map(stat => (
                                     <div key={stat.key}>
@@ -717,6 +707,19 @@ const ProjectModuleV2 = () => {
                                                         <p className="text-xs text-slate-400 mt-1 truncate">{order.description}</p>
                                                     )}
                                                 </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="shrink-0 text-teal-600 hover:text-teal-700 hover:bg-teal-50"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setCreateInvoiceProject(order);
+                                                        setIsCreateInvoiceOpen(true);
+                                                    }}
+                                                >
+                                                    <Receipt className="h-4 w-4 mr-1" />
+                                                    Rechnung
+                                                </Button>
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -763,6 +766,22 @@ const ProjectModuleV2 = () => {
                         setSelectedProjectId(null);
                     }}
                     projectId={selectedProjectId}
+                />
+            )}
+
+            {createInvoiceProject && (
+                <CreateInvoiceFromProjectDialog
+                    isOpen={isCreateInvoiceOpen}
+                    onClose={() => {
+                        setIsCreateInvoiceOpen(false);
+                        setCreateInvoiceProject(null);
+                    }}
+                    projectId={createInvoiceProject.id}
+                    projectName={createInvoiceProject.name}
+                    customerId={createInvoiceProject.customer_id}
+                    onInvoiceCreated={() => {
+                        fetchKleinauftraege();
+                    }}
                 />
             )}
         </div>

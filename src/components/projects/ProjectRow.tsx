@@ -1,12 +1,13 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { MoreVertical } from "lucide-react";
+import type { ProjectStatus } from "@/types/project";
 
 type Props = {
   id: string;
   project_number?: string;
   name: string;
-  status: "anfrage" | "besichtigung" | "geplant" | "in_bearbeitung" | "abgeschlossen";
+  status: ProjectStatus;
   budget: number;
   start?: string;
   end?: string;
@@ -18,9 +19,12 @@ type Props = {
 const STYLES: Record<string, { label: string; cls: string }> = {
   anfrage:        { label: "Anfrage",         cls: "bg-indigo-100 text-indigo-800 border-indigo-200" },
   besichtigung:   { label: "Termin ausmachen", cls: "bg-amber-100  text-amber-800  border-amber-200" },
-  geplant:        { label: "In Planung",      cls: "bg-blue-100   text-blue-800   border-blue-200" },
+  angebot:        { label: "Angebot",         cls: "bg-orange-100 text-orange-800 border-orange-200" },
+  angebot_versendet: { label: "Angebot versendet", cls: "bg-orange-100 text-orange-800 border-orange-200" },
+  beauftragt:     { label: "Beauftragt",      cls: "bg-purple-100 text-purple-800 border-purple-200" },
   in_bearbeitung: { label: "In Arbeit",      cls: "bg-yellow-100 text-yellow-800 border-yellow-200" },
-  abgeschlossen:  { label: "Erledigt",       cls: "bg-green-100  text-green-800  border-green-200" }
+  abgeschlossen:  { label: "Erledigt",       cls: "bg-green-100  text-green-800  border-green-200" },
+  storniert:      { label: "Storniert",      cls: "bg-red-100    text-red-800    border-red-200" }
 };
 
 const DEFAULT_STYLE = { label: "Unbekannt", cls: "bg-gray-100 text-gray-800 border-gray-200" };
@@ -34,7 +38,7 @@ const generateProjectNumber = (id: string): string => {
 };
 
 export default function ProjectRow(p: Props) {
-  const status = p.status || 'geplant'; // Fallback to 'geplant' if empty
+  const status = p.status || 'anfrage'; // Fallback to 'anfrage' if empty
   const st = STYLES[status] || DEFAULT_STYLE;
   
   const formatDate = (dateStr?: string) => {

@@ -41,7 +41,7 @@ const ProjectDetailDialogWithTasks = ({ isOpen, onClose, project }: ProjectDetai
   const [taskDescription, setTaskDescription] = useState('');
   const [taskStartDate, setTaskStartDate] = useState('');
   const [taskEndDate, setTaskEndDate] = useState('');
-  const [taskStatus, setTaskStatus] = useState('geplant');
+  const [taskStatus, setTaskStatus] = useState('beauftragt');
 
   useEffect(() => {
     if (isOpen && project) {
@@ -68,7 +68,7 @@ const ProjectDetailDialogWithTasks = ({ isOpen, onClose, project }: ProjectDetai
       setTaskDescription('');
       setTaskStartDate('');
       setTaskEndDate('');
-      setTaskStatus('geplant');
+      setTaskStatus('beauftragt');
       loadTasks(project.id);
     }
   };
@@ -176,7 +176,7 @@ const ProjectDetailDialogWithTasks = ({ isOpen, onClose, project }: ProjectDetai
                   value={taskStatus}
                   onChange={(e) => setTaskStatus(e.target.value)}
                 >
-                  <option value="geplant">Geplant</option>
+                  <option value="beauftragt">Beauftragt</option>
                   <option value="in_bearbeitung">In Bearbeitung</option>
                   <option value="abgeschlossen">Abgeschlossen</option>
                 </select>

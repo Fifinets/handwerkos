@@ -132,7 +132,7 @@ const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate 
 
             // Project status
             const activeProjects = projects.filter(p => ['active', 'in_bearbeitung'].includes(p.status));
-            const planningProjects = projects.filter(p => ['planning', 'geplant', 'planned'].includes(p.status));
+            const planningProjects = projects.filter(p => ['planning', 'beauftragt', 'planned', 'angebot'].includes(p.status));
             const completedProjects = projects.filter(p => ['completed', 'abgeschlossen'].includes(p.status));
 
             // Revenue chart: last 6 months

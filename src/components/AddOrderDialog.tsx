@@ -91,7 +91,7 @@ const AddOrderDialog = ({ open, onOpenChange, onOrderAdded }: AddOrderDialogProp
           company_id: companyId,
           project_site_id: formData.project_site_id || null,
           project_type: 'kleinauftrag',
-          status: formData.work_date ? 'in_planung' : 'anfrage',
+          status: formData.work_date ? 'beauftragt' : 'anfrage',
           start_date: formData.work_date || null,
           end_date: formData.work_date || null,
           description: formData.description || null,

@@ -171,7 +171,7 @@ export class ProjectKPIService {
       // Simple completion percentage based on status
       const completionMap = {
         'neu': 0,
-        'geplant': 10,
+        'beauftragt': 10,
         'in_bearbeitung': 50,
         'fast_fertig': 80,
         'abgeschlossen': 100,

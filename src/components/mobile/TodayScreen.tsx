@@ -1212,7 +1212,8 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                           <span className="ml-1">
                             {selectedProject.status === 'active' ? 'Aktiv' :
                              selectedProject.status === 'in_bearbeitung' ? 'In Bearbeitung' :
-                             selectedProject.status === 'geplant' ? 'Geplant' :
+                             selectedProject.status === 'beauftragt' ? 'Beauftragt' :
+                             selectedProject.status === 'angebot' ? 'Angebot' :
                              selectedProject.status === 'abgeschlossen' ? 'Abgeschlossen' :
                              selectedProject.status === 'completed' ? 'Abgeschlossen' :
                              selectedProject.status === 'planning' ? 'In Planung' :

@@ -3,7 +3,11 @@
  * Basiert auf den spezifizierten Anforderungen für Projektmanagement
  */
 
-export type ProjectStatus = 'anfrage' | 'besichtigung' | 'geplant' | 'in_bearbeitung' | 'abgeschlossen';
+export type ProjectStatus = 'anfrage' | 'besichtigung' | 'angebot' | 'beauftragt' | 'in_bearbeitung' | 'abgeschlossen';
+
+export const WORKFLOW_STAGES: ProjectStatus[] = [
+  'anfrage', 'besichtigung', 'angebot', 'beauftragt', 'in_bearbeitung', 'abgeschlossen'
+];
 
 export type UserRole = 'mitarbeiter' | 'projektleiter' | 'admin';
 
@@ -301,7 +305,6 @@ export const PROJECT_STATUS_CONFIG: Record<ProjectStatus, {
   bgColor: string;
   icon: string;
   description: string;
-  nextStates: ProjectStatus[];
 }> = {
   anfrage: {
     label: 'Anfrage',
@@ -309,23 +312,27 @@ export const PROJECT_STATUS_CONFIG: Record<ProjectStatus, {
     bgColor: 'bg-purple-100',
     icon: '📋',
     description: 'Projekt-Anfrage eingegangen',
-    nextStates: ['besichtigung']
   },
   besichtigung: {
-    label: 'Termin ausmachen',
+    label: 'Besichtigung',
     color: 'text-orange-700',
     bgColor: 'bg-orange-100',
-    icon: '📅',
+    icon: '🔍',
     description: 'Besichtigungstermin vereinbaren',
-    nextStates: ['geplant']
   },
-  geplant: {
-    label: 'In Planung',
+  angebot: {
+    label: 'Angebot',
     color: 'text-blue-700',
     bgColor: 'bg-blue-100',
-    icon: '📝',
-    description: 'Projekt ist in Planung',
-    nextStates: ['in_bearbeitung']
+    icon: '📄',
+    description: 'Angebot erstellen und versenden',
+  },
+  beauftragt: {
+    label: 'Beauftragt',
+    color: 'text-indigo-700',
+    bgColor: 'bg-indigo-100',
+    icon: '✅',
+    description: 'Auftrag erteilt',
   },
   in_bearbeitung: {
     label: 'In Arbeit',
@@ -333,14 +340,12 @@ export const PROJECT_STATUS_CONFIG: Record<ProjectStatus, {
     bgColor: 'bg-yellow-100',
     icon: '🔨',
     description: 'Projekt läuft aktiv',
-    nextStates: ['abgeschlossen']
   },
   abgeschlossen: {
-    label: 'Erledigt',
+    label: 'Fertig',
     color: 'text-green-700',
     bgColor: 'bg-green-100',
-    icon: '✅',
+    icon: '🏁',
     description: 'Projekt ist abgeschlossen',
-    nextStates: []
-  }
+  },
 };

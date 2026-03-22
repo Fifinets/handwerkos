@@ -354,6 +354,7 @@ export type Database = {
           id: string
           is_full_day: boolean | null
           location: string | null
+          project_id: string | null
           start_date: string
           start_time: string | null
           title: string
@@ -372,6 +373,7 @@ export type Database = {
           id?: string
           is_full_day?: boolean | null
           location?: string | null
+          project_id?: string | null
           start_date: string
           start_time?: string | null
           title: string
@@ -390,6 +392,7 @@ export type Database = {
           id?: string
           is_full_day?: boolean | null
           location?: string | null
+          project_id?: string | null
           start_date?: string
           start_time?: string | null
           title?: string
@@ -409,6 +412,20 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "employee_assigned_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -436,6 +453,10 @@ export type Database = {
       }
       company_settings: {
         Row: {
+          bank_account_holder: string | null
+          bank_bic: string | null
+          bank_iban: string | null
+          bank_name: string | null
           company_address: string | null
           company_city: string | null
           company_country: string | null
@@ -465,6 +486,10 @@ export type Database = {
           vat_number: string | null
         }
         Insert: {
+          bank_account_holder?: string | null
+          bank_bic?: string | null
+          bank_iban?: string | null
+          bank_name?: string | null
           company_address?: string | null
           company_city?: string | null
           company_country?: string | null
@@ -494,6 +519,10 @@ export type Database = {
           vat_number?: string | null
         }
         Update: {
+          bank_account_holder?: string | null
+          bank_bic?: string | null
+          bank_iban?: string | null
+          bank_name?: string | null
           company_address?: string | null
           company_city?: string | null
           company_country?: string | null
@@ -1701,7 +1730,7 @@ export type Database = {
           invoice_number: string
           net_amount: number
           notes: string | null
-          offer_id: string
+          offer_id: string | null
           payment_terms: string | null
           project_id: string
           signature_url: string | null
@@ -1729,7 +1758,7 @@ export type Database = {
           invoice_number: string
           net_amount?: number
           notes?: string | null
-          offer_id: string
+          offer_id?: string | null
           payment_terms?: string | null
           project_id: string
           signature_url?: string | null
@@ -1757,7 +1786,7 @@ export type Database = {
           invoice_number?: string
           net_amount?: number
           notes?: string | null
-          offer_id?: string
+          offer_id?: string | null
           payment_terms?: string | null
           project_id?: string
           signature_url?: string | null
@@ -3425,9 +3454,15 @@ export type Database = {
       }
       projects: {
         Row: {
+          besichtigung_calendar_event_id: string | null
+          besichtigung_date: string | null
+          besichtigung_employee_id: string | null
+          besichtigung_time_end: string | null
+          besichtigung_time_start: string | null
           budget: number | null
           color: string | null
           company_id: string | null
+          completed_at: string | null
           created_at: string
           customer_id: string | null
           description: string | null
@@ -3442,19 +3477,28 @@ export type Database = {
           profile_id: string | null
           progress_percentage: number | null
           project_site_id: string | null
-          start_date: string
+          project_type: string
+          start_date: string | null
           status: string
           status_color: string | null
           updated_at: string
+          work_end_date: string | null
+          work_start_date: string | null
           workflow_origin_id: string | null
           workflow_origin_type: string | null
           workflow_target_id: string | null
           workflow_target_type: string | null
         }
         Insert: {
+          besichtigung_calendar_event_id?: string | null
+          besichtigung_date?: string | null
+          besichtigung_employee_id?: string | null
+          besichtigung_time_end?: string | null
+          besichtigung_time_start?: string | null
           budget?: number | null
           color?: string | null
           company_id?: string | null
+          completed_at?: string | null
           created_at?: string
           customer_id?: string | null
           description?: string | null
@@ -3469,19 +3513,28 @@ export type Database = {
           profile_id?: string | null
           progress_percentage?: number | null
           project_site_id?: string | null
-          start_date: string
+          project_type?: string
+          start_date?: string | null
           status?: string
           status_color?: string | null
           updated_at?: string
+          work_end_date?: string | null
+          work_start_date?: string | null
           workflow_origin_id?: string | null
           workflow_origin_type?: string | null
           workflow_target_id?: string | null
           workflow_target_type?: string | null
         }
         Update: {
+          besichtigung_calendar_event_id?: string | null
+          besichtigung_date?: string | null
+          besichtigung_employee_id?: string | null
+          besichtigung_time_end?: string | null
+          besichtigung_time_start?: string | null
           budget?: number | null
           color?: string | null
           company_id?: string | null
+          completed_at?: string | null
           created_at?: string
           customer_id?: string | null
           description?: string | null
@@ -3496,16 +3549,33 @@ export type Database = {
           profile_id?: string | null
           progress_percentage?: number | null
           project_site_id?: string | null
-          start_date?: string
+          project_type?: string
+          start_date?: string | null
           status?: string
           status_color?: string | null
           updated_at?: string
+          work_end_date?: string | null
+          work_start_date?: string | null
           workflow_origin_id?: string | null
           workflow_origin_type?: string | null
           workflow_target_id?: string | null
           workflow_target_type?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "projects_besichtigung_calendar_event_id_fkey"
+            columns: ["besichtigung_calendar_event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_besichtigung_employee_id_fkey"
+            columns: ["besichtigung_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "projects_company_id_fkey"
             columns: ["company_id"]
@@ -4325,6 +4395,7 @@ export type Database = {
       }
       vacation_requests: {
         Row: {
+          absence_type: string
           approved_at: string | null
           approved_by: string | null
           company_id: string
@@ -4340,6 +4411,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          absence_type?: string
           approved_at?: string | null
           approved_by?: string | null
           company_id: string
@@ -4355,6 +4427,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          absence_type?: string
           approved_at?: string | null
           approved_by?: string | null
           company_id?: string
@@ -4896,3 +4969,5 @@ export const Constants = {
     },
   },
 } as const
+A new version of Supabase CLI is available: v2.78.1 (currently installed v2.76.6)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

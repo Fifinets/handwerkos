@@ -9,28 +9,31 @@ import type { InvoiceData, CustomerData } from './financial';
 export const mapLegacyProjectStatus = (legacyStatus: string): CoreProject['status'] => {
   const statusMap: Record<string, CoreProject['status']> = {
     'geplant': 'planned',
+    'beauftragt': 'planned',
+    'angebot': 'planned',
     'in_bearbeitung': 'active',
     'fertig': 'completed',
     'abgerechnet': 'completed',
     'archiviert': 'completed',
+    'abgeschlossen': 'completed',
     'blocked': 'blocked',
     'cancelled': 'cancelled',
   };
-  
+
   return statusMap[legacyStatus] || 'planned';
 };
 
 // Map core project status to legacy status
 export const mapCoreProjectStatus = (coreStatus: CoreProject['status']): string => {
   const statusMap: Record<CoreProject['status'], string> = {
-    'planned': 'geplant',
-    'active': 'in_bearbeitung', 
+    'planned': 'beauftragt',
+    'active': 'in_bearbeitung',
     'blocked': 'blocked',
-    'completed': 'fertig',
+    'completed': 'abgeschlossen',
     'cancelled': 'cancelled',
   };
-  
-  return statusMap[coreStatus] || 'geplant';
+
+  return statusMap[coreStatus] || 'beauftragt';
 };
 
 // Convert legacy ProjectBaseData to Core Project
@@ -88,7 +91,7 @@ export const isLegacyProject = (obj: any): obj is ProjectBaseData => {
          typeof obj.id === 'string' &&
          typeof obj.project_name === 'string' &&
          typeof obj.status === 'string' &&
-         ['geplant', 'in_bearbeitung', 'fertig', 'abgerechnet', 'archiviert'].includes(obj.status);
+         ['geplant', 'beauftragt', 'angebot', 'in_bearbeitung', 'fertig', 'abgerechnet', 'archiviert', 'abgeschlossen'].includes(obj.status);
 };
 
 export const isCoreProject = (obj: any): obj is CoreProject => {
@@ -145,16 +148,19 @@ export const TYPE_MAPPINGS = {
   PROJECT_STATUS: {
     LEGACY_TO_CORE: {
       'geplant': 'planned',
-      'in_bearbeitung': 'active', 
+      'beauftragt': 'planned',
+      'angebot': 'planned',
+      'in_bearbeitung': 'active',
       'fertig': 'completed',
       'abgerechnet': 'completed',
       'archiviert': 'completed',
+      'abgeschlossen': 'completed',
     } as const,
     CORE_TO_LEGACY: {
-      'planned': 'geplant',
+      'planned': 'beauftragt',
       'active': 'in_bearbeitung',
-      'blocked': 'blocked', 
-      'completed': 'fertig',
+      'blocked': 'blocked',
+      'completed': 'abgeschlossen',
       'cancelled': 'cancelled',
     } as const,
   },

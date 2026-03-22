@@ -19,6 +19,8 @@ import { DocumentModule } from "@/components/DocumentModule";
 import { CompanySettingsSimple as CompanySettingsModule } from "@/components/CompanySettingsSimple";
 import EmailModuleV2 from "@/components/EmailModuleV2";
 import OfferModuleV2 from "@/components/OfferModuleV2";
+import InvoiceModuleV2 from "@/components/InvoiceModuleV2";
+import ReportsModuleV2 from "@/components/ReportsModuleV2";
 import { VacationManagement } from "@/components/VacationManagement";
 import { toast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -95,6 +97,10 @@ const IndexV2 = () => {
                 return <CompanySettingsModule />;
             case 'offers':
                 return <OfferModuleV2 />;
+            case 'invoices':
+                return <InvoiceModuleV2 />;
+            case 'reports':
+                return <ReportsModuleV2 />;
             default:
                 return <ExecutiveDashboardV2 onNavigate={setActiveModule} />;
         }
