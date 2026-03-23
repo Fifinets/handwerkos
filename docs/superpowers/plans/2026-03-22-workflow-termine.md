@@ -1,6 +1,6 @@
 # Workflow-Termine Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add appointment scheduling to the project workflow pipeline — Besichtigung gets date/time/employee, In Arbeit gets start/end dates, both display under the workflow bar and as editable cards in the Details tab.
 
@@ -44,7 +44,7 @@
 **Files:**
 - Create: `supabase/migrations/20260322100000_workflow_termine.sql`
 
-- [ ] **Step 1: Write the migration file**
+- [x] **Step 1: Write the migration file**
 
 ```sql
 -- 1. New appointment columns on projects
@@ -87,17 +87,17 @@ UPDATE projects SET completed_at = updated_at WHERE status = 'abgeschlossen' AND
 CREATE INDEX IF NOT EXISTS idx_calendar_events_project ON calendar_events(project_id);
 ```
 
-- [ ] **Step 2: Apply the migration**
+- [x] **Step 2: Apply the migration**
 
 Run: `npx supabase db push`
 Expected: Migration applied successfully.
 
-- [ ] **Step 3: Regenerate Supabase types**
+- [x] **Step 3: Regenerate Supabase types**
 
 Run: `npx supabase gen types typescript --local > src/integrations/supabase/types.ts`
 Expected: Updated types file with new columns on `projects` and `calendar_events`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add supabase/migrations/20260322100000_workflow_termine.sql src/integrations/supabase/types.ts
@@ -112,7 +112,7 @@ git commit -m "feat: add workflow-termine DB columns and migrate geplant status"
 - Modify: `src/types/project.ts` (lines 6, 298-346)
 - Modify: `src/types/core.ts` (lines 137-141)
 
-- [ ] **Step 1: Update ProjectStatus type**
+- [x] **Step 1: Update ProjectStatus type**
 
 In `src/types/project.ts` line 6, replace:
 ```typescript
@@ -127,7 +127,7 @@ export const WORKFLOW_STAGES: ProjectStatus[] = [
 ];
 ```
 
-- [ ] **Step 2: Update PROJECT_STATUS_CONFIG**
+- [x] **Step 2: Update PROJECT_STATUS_CONFIG**
 
 Replace the entire `PROJECT_STATUS_CONFIG` (lines 298-346) with:
 
@@ -186,16 +186,16 @@ export const PROJECT_STATUS_CONFIG: Record<ProjectStatus, {
 
 Note: `nextStates` removed — `WORKFLOW_STAGES` defines the linear order.
 
-- [ ] **Step 3: Update Zod schema in core.ts**
+- [x] **Step 3: Update Zod schema in core.ts**
 
 In `src/types/core.ts`, the `ProjectCreateSchema` status enum already includes `angebot`, `beauftragt` etc. No change needed to the Zod schema.
 
-- [ ] **Step 4: Verify TypeScript compiles**
+- [x] **Step 4: Verify TypeScript compiles**
 
 Run: `npx tsc --noEmit`
 Expected: Compilation errors in files that reference `geplant` (to be fixed in subsequent tasks).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/types/project.ts src/types/core.ts
@@ -231,7 +231,7 @@ This task replaces all `geplant`, `in_planung`, and `abnahme` references. The DB
 - Modify: `src/utils/emailTemplates.ts`
 - Modify: `src/components/ProjectDetailView.tsx`
 
-- [ ] **Step 1: Fix ProjectModuleV2 — status colors, counts, filters**
+- [x] **Step 1: Fix ProjectModuleV2 — status colors, counts, filters**
 
 In `src/components/ProjectModuleV2.tsx`:
 
@@ -241,7 +241,7 @@ b) Update `statusCounts` object: replace `geplant: number` with `angebot: number
 
 c) Update status filter dropdown: remove `geplant`, `in_planung`, `abnahme` options. Ensure `angebot` and `beauftragt` are present.
 
-- [ ] **Step 2: Fix StatusList type**
+- [x] **Step 2: Fix StatusList type**
 
 In `src/components/projects/StatusList.tsx`, update `StatusCounts`:
 ```typescript
@@ -255,7 +255,7 @@ export type StatusCounts = {
 };
 ```
 
-- [ ] **Step 3: Fix ProjectRow type**
+- [x] **Step 3: Fix ProjectRow type**
 
 In `src/components/projects/ProjectRow.tsx`, update the hardcoded status type (line ~9):
 Replace `"anfrage" | "besichtigung" | "geplant" | "in_bearbeitung" | "abgeschlossen"` with:
@@ -264,18 +264,18 @@ import { ProjectStatus } from '@/types/project';
 // Then use ProjectStatus instead of the inline union
 ```
 
-- [ ] **Step 4: Fix WorkflowService**
+- [x] **Step 4: Fix WorkflowService**
 
 In `src/services/WorkflowService.ts`:
 - `status: 'geplant'` → `status: 'beauftragt'`
 - `.in('status', ['geplant', 'in_bearbeitung'])` → `.in('status', ['angebot', 'beauftragt', 'in_bearbeitung'])`
 
-- [ ] **Step 5: Fix projectService and projectKPIService**
+- [x] **Step 5: Fix projectService and projectKPIService**
 
 In `src/services/projectService.ts`: replace all `'geplant'` → `'beauftragt'`.
 In `src/services/projectKPIService.ts`: replace `'geplant'` status weight → `'beauftragt'`.
 
-- [ ] **Step 6: Simplify AddProjectDialog status options**
+- [x] **Step 6: Simplify AddProjectDialog status options**
 
 In `src/components/AddProjectDialog.tsx`, replace the Select options:
 ```typescript
@@ -288,11 +288,11 @@ In `src/components/AddProjectDialog.tsx`, replace the Select options:
 <SelectItem value="storniert">Storniert</SelectItem>
 ```
 
-- [ ] **Step 7: Fix AddOrderDialog**
+- [x] **Step 7: Fix AddOrderDialog**
 
 In `src/components/AddOrderDialog.tsx`: replace `'in_planung'` → `'beauftragt'`.
 
-- [ ] **Step 8: Fix remaining components**
+- [x] **Step 8: Fix remaining components**
 
 Apply the same `geplant` → `beauftragt`, `in_planung` → `in_bearbeitung`, `abnahme` → `abgeschlossen` mapping in:
 - `src/components/ExecutiveDashboardV2.tsx` — status filter
@@ -304,17 +304,17 @@ Apply the same `geplant` → `beauftragt`, `in_planung` → `in_bearbeitung`, `a
 - `src/utils/emailTemplates.ts` — status color mapping
 - `src/components/ProjectDetailView.tsx` — fallback config lookup (change `PROJECT_STATUS_CONFIG.geplant` fallback to `PROJECT_STATUS_CONFIG.anfrage`)
 
-- [ ] **Step 9: Search for any remaining references**
+- [x] **Step 9: Search for any remaining references**
 
 Run: `grep -rn "geplant\|in_planung\|abnahme" src/ --include="*.ts" --include="*.tsx" | grep -v node_modules | grep -v "\.d\.ts"`
 Fix any remaining references. Note: `src/types/core.ts` Zod schema intentionally keeps all values for backward compatibility.
 
-- [ ] **Step 10: Verify TypeScript compiles**
+- [x] **Step 10: Verify TypeScript compiles**
 
 Run: `npx tsc --noEmit`
 Expected: No errors.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add src/
@@ -328,7 +328,7 @@ git commit -m "refactor: replace geplant/in_planung/abnahme with 6-stage workflo
 **Files:**
 - Create: `src/components/WorkflowStatusDialog.tsx`
 
-- [ ] **Step 1: Create the dialog component**
+- [x] **Step 1: Create the dialog component**
 
 ```typescript
 import React, { useState, useEffect } from 'react';
@@ -623,12 +623,12 @@ export function WorkflowStatusDialog({
 }
 ```
 
-- [ ] **Step 2: Verify TypeScript compiles**
+- [x] **Step 2: Verify TypeScript compiles**
 
 Run: `npx tsc --noEmit`
 Expected: No errors.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/components/WorkflowStatusDialog.tsx
@@ -642,7 +642,7 @@ git commit -m "feat: add WorkflowStatusDialog with contextual appointment fields
 **Files:**
 - Modify: `src/components/ProjectDetailView.tsx` (lines 983-1006 and 1105-1143)
 
-- [ ] **Step 1: Add imports and state for dialog**
+- [x] **Step 1: Add imports and state for dialog**
 
 At the top of `ProjectDetailView.tsx`, add or verify these imports:
 ```typescript
@@ -672,7 +672,7 @@ const { data: empData } = await supabase
 if (empData) setAllEmployees(empData);
 ```
 
-- [ ] **Step 2: Replace handleStatusChange with dialog opener**
+- [x] **Step 2: Replace handleStatusChange with dialog opener**
 
 Replace the existing `handleStatusChange` function (lines 983-1006):
 
@@ -691,7 +691,7 @@ const handleEditAppointment = (mode: 'besichtigung' | 'in_bearbeitung') => {
 };
 ```
 
-- [ ] **Step 3: Update the workflow bar render with date annotations**
+- [x] **Step 3: Update the workflow bar render with date annotations**
 
 Replace the workflow bar section (lines 1105-1143). The new version uses `WORKFLOW_STAGES` and adds a date row:
 
@@ -769,7 +769,7 @@ Replace the workflow bar section (lines 1105-1143). The new version uses `WORKFL
 })()}
 ```
 
-- [ ] **Step 4: Add the dialog component at the bottom of the return**
+- [x] **Step 4: Add the dialog component at the bottom of the return**
 
 Before the closing `</div>` of the main component return, add:
 
@@ -798,12 +798,12 @@ Before the closing `</div>` of the main component return, add:
 )}
 ```
 
-- [ ] **Step 5: Verify TypeScript compiles**
+- [x] **Step 5: Verify TypeScript compiles**
 
 Run: `npx tsc --noEmit`
 Expected: May need adjustments for project property names. Fix any type mismatches.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/components/ProjectDetailView.tsx
@@ -817,7 +817,7 @@ git commit -m "feat: enhance workflow bar with date annotations and dialog integ
 **Files:**
 - Modify: `src/components/ProjectDetailView.tsx` (after line 1675, inside Details tab)
 
-- [ ] **Step 1: Add Termine cards after Kundeninformationen**
+- [x] **Step 1: Add Termine cards after Kundeninformationen**
 
 After the closing `</div>` of the grid (line 1676), before the closing `</TabsContent>`:
 
@@ -921,16 +921,16 @@ After the closing `</div>` of the grid (line 1676), before the closing `</TabsCo
 </div>
 ```
 
-- [ ] **Step 2: Ensure imports exist**
+- [x] **Step 2: Ensure imports exist**
 
 Verify that `CalendarIcon` (from lucide-react), `User`, `format`, and `de` locale are imported. Most should already exist in the file.
 
-- [ ] **Step 3: Verify TypeScript compiles**
+- [x] **Step 3: Verify TypeScript compiles**
 
 Run: `npx tsc --noEmit`
 Expected: No errors.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/components/ProjectDetailView.tsx
@@ -941,11 +941,11 @@ git commit -m "feat: add Termine section to Details tab with editable appointmen
 
 ### Task 7: Manual Smoke Test
 
-- [ ] **Step 1: Start dev server**
+- [x] **Step 1: Start dev server**
 
 Run: `npm run dev`
 
-- [ ] **Step 2: Test workflow bar**
+- [x] **Step 2: Test workflow bar**
 
 1. Open a project → verify 6-stage workflow bar shows
 2. Click a stage → verify dialog opens
@@ -954,19 +954,19 @@ Run: `npm run dev`
 5. For Angebot/Beauftragt: verify simple confirmation dialog
 6. For Fertig: verify completion confirmation
 
-- [ ] **Step 3: Test Details tab**
+- [x] **Step 3: Test Details tab**
 
 1. Go to Details tab → verify Termine section with 2 cards
 2. Click empty card → verify dialog opens for adding appointment
 3. Click "Bearbeiten" on filled card → verify dialog opens with pre-filled values
 4. Change date → save → verify card updates
 
-- [ ] **Step 4: Test calendar event**
+- [x] **Step 4: Test calendar event**
 
 1. Set a Besichtigung date → check `calendar_events` table in Supabase for new entry
 2. Change Besichtigung date → verify calendar event was updated (not duplicated)
 
-- [ ] **Step 5: Final commit if any fixes needed**
+- [x] **Step 5: Final commit if any fixes needed**
 
 ```bash
 git add -A

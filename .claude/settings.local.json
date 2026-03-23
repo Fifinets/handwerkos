@@ -73,7 +73,16 @@
       "Bash(ls -ltr /c/HandwerkOS/supabase/migrations/*.sql)",
       "mcp__claude_ai_Supabase__apply_migration",
       "Bash(npx tsc:*)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "mcp__5cf0be19-d970-4eee-8ec9-5078f68f0557__list_projects",
+      "mcp__5cf0be19-d970-4eee-8ec9-5078f68f0557__list_migrations",
+      "mcp__5cf0be19-d970-4eee-8ec9-5078f68f0557__execute_sql",
+      "Bash(npm test:*)",
+      "Bash(npx vitest:*)",
+      "mcp__notebooklm__notebooklm_delete_notebook",
+      "Bash(while read:*)",
+      "Bash(do taskkill:*)",
+      "Bash(done)"
     ],
     "deny": []
   }

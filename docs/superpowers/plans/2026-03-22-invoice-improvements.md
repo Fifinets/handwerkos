@@ -1,6 +1,6 @@
 # Invoice Module Improvements - Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Make the HandwerkOS invoice module §14 UStG compliant, add PDF generation, and create a professional invoice layout.
 
@@ -28,7 +28,7 @@
 
 §14 UStG requires Bankverbindung on invoices. The `company_settings` table currently lacks bank fields.
 
-- [ ] **Step 1: Create migration file**
+- [x] **Step 1: Create migration file**
 
 ```sql
 -- Add bank details for §14 UStG invoice compliance
@@ -38,11 +38,11 @@ ALTER TABLE company_settings ADD COLUMN IF NOT EXISTS bank_bic TEXT;
 ALTER TABLE company_settings ADD COLUMN IF NOT EXISTS bank_name TEXT;
 ```
 
-- [ ] **Step 2: Apply migration via Supabase MCP**
+- [x] **Step 2: Apply migration via Supabase MCP**
 
 Use `apply_migration` tool to run the SQL.
 
-- [ ] **Step 3: Verify columns exist**
+- [x] **Step 3: Verify columns exist**
 
 Run: `SELECT column_name FROM information_schema.columns WHERE table_name = 'company_settings' AND column_name LIKE 'bank_%';`
 Expected: 4 rows (bank_account_holder, bank_iban, bank_bic, bank_name)
@@ -56,7 +56,7 @@ Expected: 4 rows (bank_account_holder, bank_iban, bank_bic, bank_name)
 
 Add a "Bankverbindung" form section to the existing company settings page.
 
-- [ ] **Step 1: Add bank fields to CompanySettings interface**
+- [x] **Step 1: Add bank fields to CompanySettings interface**
 
 Add to the `CompanySettings` interface (line ~13):
 ```typescript
@@ -66,7 +66,7 @@ bank_bic?: string;
 bank_name?: string;
 ```
 
-- [ ] **Step 2: Add "Bankverbindung" card section**
+- [x] **Step 2: Add "Bankverbindung" card section**
 
 Add a new Card after the existing tax/financial section with these fields:
 - Kontoinhaber (bank_account_holder) - Input
@@ -76,7 +76,7 @@ Add a new Card after the existing tax/financial section with these fields:
 
 Use the same pattern as existing form cards: `<Card>` with `<CardHeader>` title "Bankverbindung" and icon `Landmark` from lucide-react.
 
-- [ ] **Step 3: Verify save works**
+- [x] **Step 3: Verify save works**
 
 The existing `updateSettingsMutation` uses spread (`...updatedSettings`) so new fields are automatically included. Verify saving bank details persists to database.
 
@@ -89,7 +89,7 @@ The existing `updateSettingsMutation` uses spread (`...updatedSettings`) so new 
 
 A professional A4-proportioned invoice layout that includes ALL §14 UStG required fields. Rendered as a hidden div for PDF capture via `generateA4PDF()`.
 
-- [ ] **Step 1: Create InvoicePrintView component**
+- [x] **Step 1: Create InvoicePrintView component**
 
 The component renders a professional German invoice with:
 
@@ -139,7 +139,7 @@ interface InvoicePrintViewProps {
 
 Style with Tailwind: `w-[210mm]` container, `font-sans`, professional spacing, print-optimized colors (no gradients, solid borders).
 
-- [ ] **Step 2: Verify render**
+- [x] **Step 2: Verify render**
 
 Mount the component in InvoiceDetailDialog (hidden) with `id="invoice-print-view"` and take a screenshot or inspect visually.
 
@@ -150,7 +150,7 @@ Mount the component in InvoiceDetailDialog (hidden) with `id="invoice-print-view
 **Files:**
 - Modify: `src/components/InvoiceDetailDialog.tsx`
 
-- [ ] **Step 1: Load company settings**
+- [x] **Step 1: Load company settings**
 
 Add React Query to fetch company_settings inside InvoiceDetailDialog:
 ```typescript
@@ -168,7 +168,7 @@ const { data: companySettings } = useQuery({
 });
 ```
 
-- [ ] **Step 2: Add InvoicePrintView (hidden) to dialog**
+- [x] **Step 2: Add InvoicePrintView (hidden) to dialog**
 
 Below the dialog content, add:
 ```tsx
@@ -184,7 +184,7 @@ Below the dialog content, add:
 </div>
 ```
 
-- [ ] **Step 3: Wire "Drucken" button to generateA4PDF**
+- [x] **Step 3: Wire "Drucken" button to generateA4PDF**
 
 Replace the placeholder print button with:
 ```tsx
@@ -206,14 +206,14 @@ Replace the placeholder print button with:
 </Button>
 ```
 
-- [ ] **Step 4: Add company info section to detail view**
+- [x] **Step 4: Add company info section to detail view**
 
 Add a small company info section showing:
 - Steuernr / USt-IdNr
 - Bankverbindung (IBAN)
 This makes the §14 UStG info visible even in the dialog view, not just in PDF.
 
-- [ ] **Step 5: Verify end-to-end**
+- [x] **Step 5: Verify end-to-end**
 
 1. Open an invoice detail dialog
 2. Click "Drucken" button
