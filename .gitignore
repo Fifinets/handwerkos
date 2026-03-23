@@ -63,3 +63,7 @@ supabase/migrations_backup/
 
 # OS
 Thumbs.db
+
+# Tooling / AI / Temp
+git_archaeology/
+.claude/

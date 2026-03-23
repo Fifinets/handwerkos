@@ -30,6 +30,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { Skeleton } from "@/components/ui/skeleton";
+import { summarizeInvoiceDescriptions, isOpenAIConfigured, type SummaryLength } from "@/services/openaiService";
 
 interface CreateInvoiceFromProjectDialogProps {
   isOpen: boolean;
@@ -63,6 +64,7 @@ interface DeliveryNoteData {
   description: string;
   hours: number;
   employee_name: string;
+  hourly_rate: number;
   materials: Array<{
     id: string;
     material_name: string;
@@ -133,8 +135,8 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
   const [includeDeliveryNoteMaterials, setIncludeDeliveryNoteMaterials] = useState(true);
   const [includeTimeEntries, setIncludeTimeEntries] = useState(false);
   const [includeProjectMaterials, setIncludeProjectMaterials] = useState(true);
-  const [hourlyRate, setHourlyRate] = useState(65);
   const [invoiceFormat, setInvoiceFormat] = useState<'daily' | 'summary'>('daily');
+  const [summaryLength, setSummaryLength] = useState<SummaryLength>('mittel');
 
   useEffect(() => {
     if (isOpen && projectId) {
@@ -180,16 +182,18 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
         .eq('project_id', projectId)
         .order('work_date', { ascending: false });
 
-      // Get employee names
+      // Get employee names and hourly rates
       const empIds = [...new Set((dnData || []).map(dn => dn.employee_id).filter(Boolean))];
       let empMap: Record<string, string> = {};
+      let rateMap: Record<string, number> = {};
       if (empIds.length > 0) {
         const { data: empData } = await supabase
           .from('employees')
-          .select('id, first_name, last_name')
+          .select('id, first_name, last_name, hourly_wage')
           .in('id', empIds);
         (empData || []).forEach(e => {
           empMap[e.id] = `${e.first_name || ''} ${e.last_name || ''}`.trim();
+          if (e.hourly_wage) rateMap[e.id] = e.hourly_wage;
         });
       }
 
@@ -207,6 +211,7 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
           description: dn.description || '',
           hours,
           employee_name: empMap[dn.employee_id] || 'Mitarbeiter',
+          hourly_rate: rateMap[dn.employee_id] || 65,
           materials: (dn.delivery_note_items || [])
             .filter((i: any) => i.item_type === 'material')
             .map((i: any) => ({
@@ -236,6 +241,7 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
           .in('id', teEmpIds);
         (teEmpData || []).forEach(e => {
           empMap[e.id] = `${e.first_name || ''} ${e.last_name || ''}`.trim();
+          if (e.hourly_wage) rateMap[e.id] = e.hourly_wage;
         });
       }
 
@@ -252,7 +258,7 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
           date: te.start_time ? new Date(te.start_time).toISOString().split('T')[0] : '',
           hours,
           description: te.description || '',
-          hourly_rate: hourlyRate
+          hourly_rate: rateMap[te.employee_id] || 65
         };
       });
       setTimeEntries(processedTE);
@@ -317,7 +323,7 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
       selectedDeliveryNotes.forEach(dnId => {
         const dn = deliveryNotes.find(d => d.id === dnId);
         if (dn) {
-          netTotal += dn.hours * hourlyRate;
+          netTotal += dn.hours * dn.hourly_rate;
         }
       });
     }
@@ -339,7 +345,7 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
       selectedTimeEntries.forEach(teId => {
         const te = timeEntries.find(t => t.id === teId);
         if (te) {
-          netTotal += te.hours * hourlyRate;
+          netTotal += te.hours * te.hourly_rate;
         }
       });
     }
@@ -455,7 +461,7 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
         const dailyData: Record<string, {
           descriptions: string[];
           materials: Array<{ name: string; quantity: number; unit: string; unit_price: number }>;
-          hours: Array<{ employee: string; hours: number; description: string }>;
+          hours: Array<{ employee: string; hours: number; description: string; rate: number }>;
         }> = {};
 
         if (selectedDeliveryNotes.length > 0) {
@@ -483,7 +489,8 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
               dailyData[dateKey].hours.push({
                 employee: dn.employee_name,
                 hours: dn.hours,
-                description: dn.description || ''
+                description: dn.description || '',
+                rate: dn.hourly_rate
               });
             }
           });
@@ -503,7 +510,8 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
             dailyData[dateKey].hours.push({
               employee: te.employee_name,
               hours: te.hours,
-              description: te.description || ''
+              description: te.description || '',
+              rate: te.hourly_rate
             });
           });
         }
@@ -543,8 +551,8 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
               description: `Arbeitszeit – ${h.employee}`,
               quantity: Math.round(h.hours * 100) / 100,
               unit: 'Std',
-              unit_price: hourlyRate,
-              total_price: Math.round(h.hours * hourlyRate * 100) / 100,
+              unit_price: h.rate,
+              total_price: Math.round(h.hours * h.rate * 100) / 100,
               company_id: companyId
             });
           });
@@ -571,12 +579,23 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
           });
         }
 
-        // Combined description as first item (if any)
+        // Combined description as first item (if any) — AI summary or fallback
         if (allDescriptions.length > 0) {
+          let summaryText: string;
+          if (isOpenAIConfigured() && allDescriptions.length > 1) {
+            try {
+              summaryText = await summarizeInvoiceDescriptions(allDescriptions, projectName, summaryLength);
+            } catch (e) {
+              console.warn('KI-Zusammenfassung fehlgeschlagen, verwende Fallback:', e);
+              summaryText = allDescriptions.join('; ');
+            }
+          } else {
+            summaryText = allDescriptions.join('; ');
+          }
           docItems.push({
             invoice_id: invoiceData.id,
             position: positionNumber++,
-            description: `Ausgeführte Arbeiten: ${allDescriptions.join('; ')}`,
+            description: `Ausgeführte Arbeiten: ${summaryText}`,
             quantity: 0, unit: '', unit_price: 0, total_price: 0,
             company_id: companyId
           });
@@ -618,32 +637,34 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
           });
         });
 
-        // Hours summarized per employee
-        const employeeHours: Record<string, number> = {};
+        // Hours summarized per employee (with individual rates)
+        const employeeData: Record<string, { hours: number; rate: number }> = {};
         if (includeDeliveryNoteHours && selectedDeliveryNotes.length > 0) {
           selectedDeliveryNotes.forEach(dnId => {
             const dn = deliveryNotes.find(d => d.id === dnId);
             if (!dn || dn.hours <= 0) return;
-            employeeHours[dn.employee_name] = (employeeHours[dn.employee_name] || 0) + dn.hours;
+            if (!employeeData[dn.employee_name]) employeeData[dn.employee_name] = { hours: 0, rate: dn.hourly_rate };
+            employeeData[dn.employee_name].hours += dn.hours;
           });
         }
         if (includeTimeEntries) {
           selectedTimeEntries.forEach(teId => {
             const te = timeEntries.find(t => t.id === teId);
             if (!te || te.hours <= 0) return;
-            employeeHours[te.employee_name] = (employeeHours[te.employee_name] || 0) + te.hours;
+            if (!employeeData[te.employee_name]) employeeData[te.employee_name] = { hours: 0, rate: te.hourly_rate };
+            employeeData[te.employee_name].hours += te.hours;
           });
         }
 
-        Object.entries(employeeHours).forEach(([employee, hours]) => {
+        Object.entries(employeeData).forEach(([employee, { hours, rate }]) => {
           docItems.push({
             invoice_id: invoiceData.id,
             position: positionNumber++,
             description: `Arbeitszeit – ${employee}`,
             quantity: Math.round(hours * 100) / 100,
             unit: 'Std',
-            unit_price: hourlyRate,
-            total_price: Math.round(hours * hourlyRate * 100) / 100,
+            unit_price: rate,
+            total_price: Math.round(hours * rate * 100) / 100,
             company_id: companyId
           });
         });
@@ -982,16 +1003,6 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Stundensatz (für Arbeitszeit)</Label>
-                    <Input
-                      type="number"
-                      value={hourlyRate}
-                      onChange={(e) => setHourlyRate(parseFloat(e.target.value) || 0)}
-                      min="0"
-                      step="0.01"
-                    />
-                  </div>
                 </div>
 
                 {/* Include Options */}
@@ -1096,6 +1107,33 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
                         </p>
                       </button>
                     </div>
+
+                    {invoiceFormat === 'summary' && isOpenAIConfigured() && (
+                      <div className="mt-3 pt-3 border-t border-slate-100">
+                        <p className="text-xs font-medium text-slate-600 mb-2">KI-Zusammenfassung — Textlänge</p>
+                        <div className="flex gap-1.5">
+                          {([
+                            { value: 'kurz' as SummaryLength, label: 'Kurz', desc: '2-3 Sätze' },
+                            { value: 'mittel' as SummaryLength, label: 'Mittel', desc: '4-6 Sätze' },
+                            { value: 'ausfuehrlich' as SummaryLength, label: 'Ausführlich', desc: 'Sehr detailliert' },
+                          ]).map(opt => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => setSummaryLength(opt.value)}
+                              className={`flex-1 px-2 py-1.5 rounded-md text-center transition-all ${
+                                summaryLength === opt.value
+                                  ? 'bg-emerald-100 border border-emerald-400 text-emerald-700'
+                                  : 'bg-slate-50 border border-slate-200 text-slate-600 hover:border-slate-300'
+                              }`}
+                            >
+                              <span className="text-xs font-medium block">{opt.label}</span>
+                              <span className="text-[10px] text-slate-400 block">{opt.desc}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 

@@ -8,7 +8,7 @@ import { useCreateOffer } from '@/hooks/useApi';
 import { useToast } from '@/hooks/use-toast';
 import { OfferCopyDialog } from '@/components/offers/OfferCopyDialog';
 
-type DocumentType = 'angebot' | 'auftragsbestaetigung' | 'lieferschein' | 'rechnung' | 'abschlagsrechnung' | 'gutschrift' | 'brief';
+type DocumentType = 'angebot' | 'auftragsbestaetigung' | 'gutschrift' | 'brief';
 
 interface WizardOption {
     id: string;
@@ -41,9 +41,6 @@ export default function OfferCreationWizard() {
     const documentTypes: { id: DocumentType; title: string; subtitle: string }[] = [
         { id: 'angebot', title: 'Angebot', subtitle: 'Als Blanko, aus bestehenden oder externen Dokumenten' },
         { id: 'auftragsbestaetigung', title: 'Auftragsbestätigung', subtitle: 'Als Blanko, aus bestehenden oder externen Dokumenten' },
-        { id: 'lieferschein', title: 'Lieferschein', subtitle: 'Als Blanko oder aus bestehenden Dokumenten' },
-        { id: 'rechnung', title: 'Rechnung', subtitle: 'Als Blanko, aus bestehenden oder externen Dokumenten' },
-        { id: 'abschlagsrechnung', title: '1. Abschlagsrechnung', subtitle: 'Als Blanko, aus bestehenden oder externen Dokumenten' },
         { id: 'gutschrift', title: 'Gutschrift', subtitle: 'Als Blanko, aus bestehenden oder externen Dokumenten' },
         { id: 'brief', title: 'Brief', subtitle: 'Als Blanko' },
     ];
@@ -86,9 +83,6 @@ export default function OfferCreationWizard() {
             }
         ],
         auftragsbestaetigung: [], // To be implemented
-        lieferschein: [], // To be implemented
-        rechnung: [], // To be implemented
-        abschlagsrechnung: [], // To be implemented
         gutschrift: [], // To be implemented
         brief: [], // To be implemented
     };

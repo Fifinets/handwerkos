@@ -37,6 +37,9 @@ import {
   User,
   Target,
   ExternalLink,
+  Eye,
+  LayoutGrid,
+  Download,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -50,7 +53,12 @@ import {
   useDeleteOffer,
 } from '@/hooks/useApi';
 import { OfferStatusBadge, OfferSummaryCard } from '@/components/offers';
+import OfferPrintView from '@/components/offers/OfferPrintView';
 import { OFFER_ITEM_TYPE_LABELS } from '@/types/offer';
+import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useQuery } from '@tanstack/react-query';
+import { generateA4PDF } from '@/lib/pdfGenerator';
 
 interface OfferDetailViewProps {
   isOpen: boolean;
@@ -67,6 +75,10 @@ export function OfferDetailView({
 }: OfferDetailViewProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { companyId } = useSupabaseAuth();
+
+  // View mode
+  const [viewMode, setViewMode] = useState<'cards' | 'a4'>('a4');
 
   // Queries
   const { data: offer, isLoading: offerLoading, refetch: refetchOffer } = useOffer(offerId || '', {
@@ -74,6 +86,21 @@ export function OfferDetailView({
   });
   const { data: items, isLoading: itemsLoading } = useOfferItems(offerId || '', {
     enabled: !!offerId && isOpen,
+  });
+
+  // Company settings for A4 view
+  const { data: companySettings } = useQuery({
+    queryKey: ['company-settings', companyId],
+    queryFn: async () => {
+      if (!companyId) return null;
+      const { data } = await supabase
+        .from('company_settings')
+        .select('*')
+        .eq('company_id', companyId)
+        .single();
+      return data;
+    },
+    enabled: !!companyId && isOpen,
   });
 
   // Mutations
@@ -221,6 +248,47 @@ export function OfferDetailView({
                     </p>
                   </div>
                   <div className="flex gap-2">
+                    {/* View toggle */}
+                    <div className="flex border rounded-md overflow-hidden mr-1">
+                      <button
+                        onClick={() => setViewMode('a4')}
+                        className={`px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                          viewMode === 'a4'
+                            ? 'bg-slate-800 text-white'
+                            : 'bg-white text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setViewMode('cards')}
+                        className={`px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                          viewMode === 'cards'
+                            ? 'bg-slate-800 text-white'
+                            : 'bg-white text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <LayoutGrid className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    {/* PDF Download */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        if (viewMode === 'a4') {
+                          await generateA4PDF('offer-print-content', `Angebot_${offer.offer_number}.pdf`);
+                        } else {
+                          setViewMode('a4');
+                          setTimeout(async () => {
+                            await generateA4PDF('offer-print-content', `Angebot_${offer.offer_number}.pdf`);
+                          }, 300);
+                        }
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-1" />
+                      PDF
+                    </Button>
                     {canEdit && (
                       <Button
                         variant="outline"
@@ -286,6 +354,51 @@ export function OfferDetailView({
 
               <Separator className="my-4" />
 
+              {viewMode === 'a4' ? (
+                <div className="flex justify-center overflow-auto bg-slate-100 rounded-lg py-6" style={{ maxHeight: '70vh' }}>
+                  <div style={{ transform: 'scale(0.72)', transformOrigin: 'top center' }}>
+                    <div className="shadow-2xl">
+                      <OfferPrintView
+                        offer={{
+                          offer_number: offer.offer_number,
+                          offer_date: offer.offer_date,
+                          valid_until: offer.valid_until,
+                          customer_name: offer.customer_name,
+                          customer_address: offer.customer_address,
+                          contact_person: offer.contact_person,
+                          project_name: offer.project_name,
+                          project_location: offer.project_location,
+                          intro_text: offer.intro_text,
+                          final_text: offer.final_text,
+                          payment_terms: offer.payment_terms,
+                          execution_period_text: offer.execution_period_text,
+                          warranty_text: offer.warranty_text,
+                          discount_percent: offer.snapshot_discount_percent ?? offer.discount_percent ?? 0,
+                          snapshot_subtotal_net: offer.snapshot_subtotal_net,
+                          snapshot_discount_amount: offer.snapshot_discount_amount,
+                          snapshot_net_total: offer.snapshot_net_total,
+                          snapshot_vat_rate: offer.snapshot_vat_rate,
+                          snapshot_vat_amount: offer.snapshot_vat_amount,
+                          snapshot_gross_total: offer.snapshot_gross_total,
+                          status: offer.status,
+                        }}
+                        items={(items || []).map(i => ({
+                          id: i.id,
+                          position_number: i.position_number,
+                          description: i.description,
+                          quantity: i.quantity,
+                          unit: i.unit,
+                          unit_price_net: i.unit_price_net,
+                          vat_rate: i.vat_rate,
+                          is_optional: i.is_optional,
+                          total_net: i.total_net ?? undefined,
+                        }))}
+                        companySettings={companySettings}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
               <div className="grid grid-cols-3 gap-6">
                 {/* Left Column: Customer & Project Info */}
                 <div className="col-span-2 space-y-6">
@@ -541,6 +654,7 @@ export function OfferDetailView({
                   </Card>
                 </div>
               </div>
+              )}
             </>
           ) : (
             <div className="text-center py-12">

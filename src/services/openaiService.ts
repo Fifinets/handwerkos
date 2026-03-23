@@ -110,6 +110,55 @@ export async function extractInvoiceWithAI(base64Image: string, ocrText?: string
 }
 
 /**
+ * Fasst Arbeitsbeschreibungen für eine Rechnung mit KI zusammen
+ */
+export type SummaryLength = 'kurz' | 'mittel' | 'ausfuehrlich';
+
+const SUMMARY_LENGTH_PROMPTS: Record<SummaryLength, { instruction: string; maxTokens: number }> = {
+  kurz: {
+    instruction: 'Fasse dich kurz: maximal 2-3 Sätze. Nur die wichtigsten Arbeiten nennen, keine Details.',
+    maxTokens: 300,
+  },
+  mittel: {
+    instruction: 'Beschreibe alle durchgeführten Arbeiten in mittlerer Länge (4-6 Sätze), sodass der Kunde nachvollziehen kann was gemacht wurde.',
+    maxTokens: 600,
+  },
+  ausfuehrlich: {
+    instruction: 'Beschreibe alle durchgeführten Arbeiten sehr ausführlich und detailliert. Gehe auf jeden Arbeitsschritt ein, nenne Materialien, Techniken und Bereiche. Der Kunde soll ein vollständiges Bild der geleisteten Arbeit erhalten.',
+    maxTokens: 1200,
+  },
+};
+
+export async function summarizeInvoiceDescriptions(
+  descriptions: string[],
+  projectName: string,
+  length: SummaryLength = 'mittel'
+): Promise<string> {
+  if (!descriptions.length) return '';
+  if (descriptions.length === 1) return descriptions[0];
+
+  const { instruction, maxTokens } = SUMMARY_LENGTH_PROMPTS[length];
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      {
+        role: 'system',
+        content: `Du bist ein Assistent für ein deutsches Handwerksunternehmen. Fasse die folgenden Tätigkeitsbeschreibungen zu einem professionellen Rechnungstext zusammen. Der Text soll für eine Rechnung geeignet sein – sachlich, vollständig und ohne Wiederholungen. ${instruction} Keine Aufzählungszeichen, kein Markdown. Fließtext.`
+      },
+      {
+        role: 'user',
+        content: `Projekt: ${projectName}\n\nTätigkeitsbeschreibungen:\n${descriptions.map((d, i) => `${i + 1}. ${d}`).join('\n')}`
+      }
+    ],
+    max_tokens: maxTokens,
+    temperature: 0.3,
+  });
+
+  return response.choices[0].message.content?.trim() || descriptions.join('; ');
+}
+
+/**
  * Prüft ob OpenAI API verfügbar ist
  */
 export function isOpenAIConfigured(): boolean {

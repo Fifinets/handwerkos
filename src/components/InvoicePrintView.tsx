@@ -134,6 +134,13 @@ const InvoicePrintView: React.FC<InvoicePrintViewProps> = ({ invoice, items, com
             {cs?.company_phone && cs?.company_email && ' | '}
             {cs?.company_email && `${cs.company_email}`}
           </div>
+          {(cs?.tax_number || cs?.vat_number) && (
+            <div style={{ fontSize: '9pt', color: '#6b7280', marginTop: '1mm' }}>
+              {cs.tax_number && `Steuernr.: ${cs.tax_number}`}
+              {cs.tax_number && cs.vat_number && ' | '}
+              {cs.vat_number && `USt-IdNr.: ${cs.vat_number}`}
+            </div>
+          )}
         </div>
 
         {/* Invoice Type Label */}

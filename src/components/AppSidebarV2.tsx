@@ -205,7 +205,6 @@ export function AppSidebarV2({ activeModule, onModuleChange }: AppSidebarV2Props
 
                 {/* Main Nav */}
                 <div className="mb-6">
-                    {isExpanded && <div className="px-3 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Übersicht</div>}
                     <div className="space-y-0.5">
                         {mainNavigation.map(item => renderNavItem(item))}
                     </div>
@@ -213,7 +212,6 @@ export function AppSidebarV2({ activeModule, onModuleChange }: AppSidebarV2Props
 
                 {/* Secondary Nav */}
                 <div className="mb-6">
-                    {isExpanded && <div className="px-3 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Betrieb</div>}
                     <div className="space-y-0.5">
                         {secondaryNavigation.map(item => renderNavItem(item, true))}
                     </div>
