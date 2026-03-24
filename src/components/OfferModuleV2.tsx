@@ -60,6 +60,7 @@ import {
     useDuplicateOffer,
 } from "@/hooks/useApi";
 import { OfferStatusBadge } from "./offers";
+import { OfferWorkflowDots } from "./offers/OfferWorkflowDots";
 import AddOfferDialog from "./AddOfferDialog";
 import OfferDetailView from "./OfferDetailView";
 
@@ -440,6 +441,7 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                 <th className="px-5 py-3 font-medium">Kunde / Projekt</th>
                                                 <th className="px-5 py-3 font-medium text-right">Betrag (Brutto)</th>
                                                 <th className="px-5 py-3 font-medium text-center">Status</th>
+                                                <th className="px-5 py-3 font-medium text-center">Flow</th>
                                                 <th className="px-5 py-3 font-medium text-right">Aktionen</th>
                                             </tr>
                                         </thead>
@@ -481,6 +483,9 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                     </td>
                                                     <td className="px-5 py-4 text-center">
                                                         <OfferStatusBadge status={offer.status} />
+                                                    </td>
+                                                    <td className="px-5 py-4 text-center">
+                                                        <OfferWorkflowDots status={offer.status} />
                                                     </td>
                                                     <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                                                         <div className="flex items-center justify-end gap-1">
