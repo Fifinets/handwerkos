@@ -9,6 +9,7 @@ import { OfferSidebar } from '@/components/offers/OfferSidebar';
 import { OfferItemsEditor } from '@/components/offers/OfferItemsEditor';
 import { OfferStatusBadge } from '@/components/offers/OfferStatusBadge';
 import { OfferEmailDialog } from '@/components/offers/OfferEmailDialog';
+import { OfferFlowTimeline } from '@/components/offers/OfferFlowTimeline';
 import {
     useOffer, useUpdateOffer, useCreateOffer, useCustomers, useProjects,
     useSendOffer, useAcceptOffer, useRejectOffer, useCancelOffer, useSyncOfferItems
@@ -374,6 +375,8 @@ export default function OfferEditorPage() {
             <div className="flex-1 flex flex-col min-w-0 print:block print:w-full print:h-auto print:overflow-visible relative">
 
                 {lockedWarning}
+
+                {offer && <OfferFlowTimeline offer={offer as any} />}
 
                 {/* Top Header */}
                 <header className="bg-white border-b px-6 py-3 flex items-center justify-between shadow-sm z-10 print:hidden">
