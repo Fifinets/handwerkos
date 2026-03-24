@@ -9,14 +9,6 @@ export type EventType =
   | 'CUSTOMER_UPDATED'
   | 'CUSTOMER_DELETED'
 
-  // Quote events
-  | 'QUOTE_CREATED'
-  | 'QUOTE_UPDATED'
-  | 'QUOTE_SENT'
-  | 'QUOTE_ACCEPTED'
-  | 'QUOTE_REJECTED'
-  | 'QUOTE_DELETED'
-
   // Offer events
   | 'OFFER_CREATED'
   | 'OFFER_UPDATED'
@@ -32,7 +24,6 @@ export type EventType =
 
   // Order events
   | 'ORDER_CREATED'
-  | 'ORDER_CREATED_FROM_QUOTE'
   | 'ORDER_UPDATED'
   | 'ORDER_STARTED'
   | 'ORDER_COMPLETED'
@@ -250,9 +241,6 @@ class EventBus {
   private shouldLogToAudit(event: EventType): boolean {
     // Only log business-critical events to audit trail
     const auditableEvents: EventType[] = [
-      'QUOTE_SENT',
-      'QUOTE_ACCEPTED',
-      'QUOTE_REJECTED',
       'ORDER_STARTED',
       'ORDER_COMPLETED',
       'ORDER_CANCELLED',
@@ -299,14 +287,6 @@ class EventBus {
   } {
     // Extract audit-relevant data based on event type
     switch (event) {
-      case 'QUOTE_ACCEPTED':
-      case 'QUOTE_REJECTED':
-        return {
-          recordId: data.quote?.id,
-          newValues: { status: data.quote?.status },
-          metadata: { reason: data.reason },
-        };
-
       case 'PROJECT_STATUS_CHANGED':
         return {
           recordId: data.project?.id,
@@ -341,9 +321,6 @@ class EventBus {
 
   private mapEventToAuditAction(event: EventType): string {
     const actionMap: Partial<Record<EventType, string>> = {
-      'QUOTE_SENT': 'STATUS_CHANGE',
-      'QUOTE_ACCEPTED': 'STATUS_CHANGE',
-      'QUOTE_REJECTED': 'STATUS_CHANGE',
       'ORDER_STARTED': 'STATUS_CHANGE',
       'ORDER_COMPLETED': 'STATUS_CHANGE',
       'ORDER_CANCELLED': 'STATUS_CHANGE',
@@ -360,7 +337,6 @@ class EventBus {
   }
 
   private extractTableName(event: EventType): string {
-    if (event.startsWith('QUOTE_')) return 'quotes';
     if (event.startsWith('ORDER_')) return 'orders';
     if (event.startsWith('PROJECT_')) return 'projects';
     if (event.startsWith('INVOICE_')) return 'invoices';
@@ -374,11 +350,6 @@ class EventBus {
     // Implement workflow automations based on events
     try {
       switch (event) {
-        case 'QUOTE_ACCEPTED':
-          // Auto-create order workflow is handled in quoteService
-          await this.sendNotification('quote_accepted', data);
-          break;
-
         case 'ORDER_COMPLETED':
           // Auto-create invoice workflow
           await this.autoCreateInvoice(data);

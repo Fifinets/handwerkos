@@ -11,7 +11,7 @@ import { withApproval } from './approvalService';
 
 export interface WorkflowStep {
   id: string;
-  type: 'quote' | 'order' | 'project' | 'invoice';
+  type: 'offer' | 'order' | 'project' | 'invoice';
   status: string;
   relatedId: string;
   data: any;
@@ -22,7 +22,7 @@ export interface WorkflowChain {
   orderId?: string;
   projectId?: string;
   invoiceId?: string;
-  currentStep: 'quote' | 'order' | 'project' | 'invoice';
+  currentStep: 'offer' | 'order' | 'project' | 'invoice';
   customerId: string;
   metadata: {
     title: string;
@@ -33,90 +33,6 @@ export interface WorkflowChain {
 }
 
 class WorkflowService {
-  /**
-   * Erstellt einen Auftrag aus einem Angebot
-   */
-  async createOrderFromQuote(quoteId: string): Promise<string | null> {
-    try {
-      console.log('🔄 Creating order from quote:', quoteId);
-
-      // 1. Quote-Daten laden
-      const { data: quote, error: quoteError } = await supabase
-        .from('quotes')
-        .select('*')
-        .eq('id', quoteId)
-        .single();
-
-      if (quoteError || !quote) {
-        throw new Error('Angebot nicht gefunden');
-      }
-
-      // 2. Auftrag erstellen
-      const orderData = {
-        order_number: `AUF-${Date.now().toString().slice(-6)}`,
-        customer_id: quote.customer_id,
-        title: quote.title || 'Auftrag aus Angebot',
-        description: quote.description,
-        order_date: new Date().toISOString().split('T')[0],
-        due_date: quote.valid_until || null,
-        status: 'confirmed',
-        priority: 'medium',
-        total_amount: quote.total_amount,
-        currency: quote.currency || 'EUR',
-        notes: `Automatisch erstellt aus Angebot ${quote.quote_number}`,
-        workflow_origin_type: 'quote',
-        workflow_origin_id: quoteId,
-      };
-
-      const { data: newOrder, error: orderError } = await supabase
-        .from('orders')
-        .insert(orderData)
-        .select()
-        .single();
-
-      if (orderError) throw orderError;
-
-      // 3. Quote-Status aktualisieren
-      await supabase
-        .from('quotes')
-        .update({
-          status: 'accepted',
-          workflow_target_type: 'order',
-          workflow_target_id: newOrder.id
-        })
-        .eq('id', quoteId);
-
-      // 4. Workflow-Chain erstellen/aktualisieren
-      await this.createOrUpdateWorkflowChain({
-        quoteId,
-        orderId: newOrder.id,
-        currentStep: 'order',
-        customerId: quote.customer_id,
-        metadata: {
-          title: quote.title || 'Neuer Workflow',
-          totalAmount: quote.total_amount,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }
-      });
-
-      toast({
-        title: "Auftrag erstellt",
-        description: `Auftrag ${orderData.order_number} wurde erfolgreich aus dem Angebot erstellt.`
-      });
-
-      return newOrder.id;
-    } catch (error) {
-      console.error('❌ Error creating order from quote:', error);
-      toast({
-        title: "Fehler",
-        description: "Auftrag konnte nicht erstellt werden: " + error.message,
-        variant: "destructive"
-      });
-      return null;
-    }
-  }
-
   /**
    * Erstellt ein Projekt aus einem Auftrag
    */
@@ -410,14 +326,14 @@ class WorkflowService {
   async getDashboardCriticalData(): Promise<{
     overdueTasks: any[];
     budgetWarnings: any[];
-    pendingQuotes: any[];
+    pendingOffers: any[];
     delayedProjects: any[];
     overdueInvoices: any[];
   }> {
     try {
-      const [budgetWarnings, pendingQuotes, delayedProjects, overdueInvoices] = await Promise.all([
+      const [budgetWarnings, pendingOffers, delayedProjects, overdueInvoices] = await Promise.all([
         this.checkBudgetWarnings(),
-        this.getPendingQuotes(),
+        this.getPendingOffers(),
         this.getDelayedProjects(),
         this.getOverdueInvoices(),
       ]);
@@ -425,7 +341,7 @@ class WorkflowService {
       return {
         overdueTasks: [...budgetWarnings, ...delayedProjects],
         budgetWarnings,
-        pendingQuotes,
+        pendingOffers,
         delayedProjects,
         overdueInvoices,
       };
@@ -434,18 +350,18 @@ class WorkflowService {
       return {
         overdueTasks: [],
         budgetWarnings: [],
-        pendingQuotes: [],
+        pendingOffers: [],
         delayedProjects: [],
         overdueInvoices: [],
       };
     }
   }
 
-  private async getPendingQuotes(): Promise<any[]> {
+  private async getPendingOffers(): Promise<any[]> {
     const { data } = await supabase
-      .from('quotes')
-      .select('*, customers(company_name)')
-      .eq('status', 'pending')
+      .from('offers')
+      .select('*, customers:customer_id(company_name)')
+      .eq('status', 'sent')
       .order('created_at', { ascending: false });
 
     return data || [];

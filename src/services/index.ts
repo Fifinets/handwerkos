@@ -1,7 +1,6 @@
 // Services index - exports all business logic services for HandwerkOS
 
 export { customerService, CustomerService } from './customerService';
-export { quoteService, QuoteService } from './quoteService';
 export { orderService, OrderService } from './orderService';
 export { projectService, ProjectService } from './projectService';
 export { timesheetService, TimesheetService } from './timesheetService';

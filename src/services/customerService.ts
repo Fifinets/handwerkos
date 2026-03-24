@@ -196,20 +196,6 @@ export class CustomerService {
         );
       }
 
-      const { data: relatedQuotes } = await supabase
-        .from('quotes')
-        .select('id')
-        .eq('customer_id', id)
-        .limit(1);
-
-      if (relatedQuotes && relatedQuotes.length > 0) {
-        throw new ApiError(
-          API_ERROR_CODES.BUSINESS_RULE_VIOLATION,
-          'Kunde kann nicht gelöscht werden, da noch Angebote vorhanden sind.',
-          { relatedQuotes: relatedQuotes.length }
-        );
-      }
-
       const { data: relatedOffers } = await supabase
         .from('offers')
         .select('id')
@@ -351,19 +337,6 @@ export class CustomerService {
 
       return createQuery(query).execute();
     }, `Get customer projects ${id}`);
-  }
-
-  // Get customer quotes
-  static async getCustomerQuotes(id: string): Promise<any[]> {
-    return apiCall(async () => {
-      const query = supabase
-        .from('quotes')
-        .select('*')
-        .eq('customer_id', id)
-        .order('created_at', { ascending: false });
-
-      return createQuery(query).execute();
-    }, `Get customer quotes ${id}`);
   }
 
   // Get customer invoices
