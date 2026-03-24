@@ -26,13 +26,27 @@ function useEmployees() {
   return useQuery({
     queryKey: ['employees-picker'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('employees')
-        .select('id, first_name, last_name, hourly_wage')
-        .eq('status', 'active')
-        .order('last_name');
-      if (error) throw error;
-      return data as { id: string; first_name: string; last_name: string; hourly_wage: number | null }[];
+        // Get current user's company
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) return [];
+        
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('id', userData.user.id)
+          .single();
+          
+        if (!profile?.company_id) return [];
+
+        const { data, error } = await supabase
+          .from('employees')
+          .select('id, first_name, last_name, hourly_wage')
+          .eq('company_id', profile.company_id)
+          .not('status', 'in', '("Inaktiv","Gekündigt")')
+          .order('last_name');
+          
+        if (error) throw error;
+        return data as { id: string; first_name: string; last_name: string; hourly_wage: number | null }[];
     },
     staleTime: 5 * 60 * 1000,
   });
