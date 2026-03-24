@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Building2, Users, DollarSign, CheckSquare, Wrench, Mail, FileText, Euro, Clock, Calendar, UserCheck, LucideIcon } from 'lucide-react';
+import { Building2, Users, DollarSign, CheckSquare, Wrench, Mail, FileText, Euro, Clock, Calendar, UserCheck, Bell, LucideIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -27,6 +27,7 @@ interface KPIData {
   openOrders: number;
   unreadEmails: number;
   openOffers: number;
+  nachfassenCount: number;
   openInvoices: number;
   totalOpenAmount: number;
   todayHours: number;
@@ -40,6 +41,7 @@ const DashboardStatsWithKpis: React.FC<{ onNavigate?: (moduleId: string) => void
     openOrders: 0,
     unreadEmails: 0,
     openOffers: 0,
+    nachfassenCount: 0,
     openInvoices: 0,
     totalOpenAmount: 0,
     todayHours: 0,
@@ -98,6 +100,17 @@ const DashboardStatsWithKpis: React.FC<{ onNavigate?: (moduleId: string) => void
           .eq('company_id', companyId)
           .eq('status', 'sent');
 
+        // 3b. Nachfassen (sent > 7 days ago, not expired)
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        const { data: nachfassenData } = await supabase
+          .from('offers')
+          .select('id')
+          .eq('company_id', companyId)
+          .eq('status', 'sent')
+          .not('sent_at', 'is', null)
+          .lt('sent_at', sevenDaysAgo)
+          .or('valid_until.is.null,valid_until.gte.' + new Date().toISOString().split('T')[0]);
+
         // 4. Offene Rechnungen
         const { data: invoicesData } = await supabase
           .from('invoices')
@@ -155,6 +168,7 @@ const DashboardStatsWithKpis: React.FC<{ onNavigate?: (moduleId: string) => void
           openOrders: ordersData?.length || 0,
           unreadEmails: emailsData?.length || 0,
           openOffers: offersData?.length || 0,
+          nachfassenCount: nachfassenData?.length || 0,
           openInvoices: invoicesData?.length || 0,
           totalOpenAmount,
           todayHours: Math.round(todayMinutes / 60 * 10) / 10,
@@ -220,6 +234,17 @@ const DashboardStatsWithKpis: React.FC<{ onNavigate?: (moduleId: string) => void
               </div>
               <p className="text-2xl font-bold text-orange-600">{loading ? '…' : kpiData.openOffers}</p>
               <p className="text-sm text-muted-foreground">versendet</p>
+            </CardContent>
+          </Card>
+
+          <Card className="cursor-pointer hover:bg-muted/50" onClick={() => onNavigate?.('offers?filter=nachfassen')}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Bell className="w-5 h-5 text-orange-600" />
+                <span className="font-medium">Nachfassen</span>
+              </div>
+              <p className="text-2xl font-bold text-orange-600">{loading ? '…' : kpiData.nachfassenCount}</p>
+              <p className="text-sm text-muted-foreground">Angebote offen &gt;7d</p>
             </CardContent>
           </Card>
 
