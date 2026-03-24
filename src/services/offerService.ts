@@ -510,7 +510,7 @@ export class OfferService {
       // Update status (triggers snapshot creation via DB trigger)
       const { data: sentOffer, error } = await supabase
         .from('offers')
-        .update({ status: 'sent' })
+        .update({ status: 'sent', sent_at: new Date().toISOString() })
         .eq('id', id)
         .select()
         .single();
