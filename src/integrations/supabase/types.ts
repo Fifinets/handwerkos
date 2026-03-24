@@ -2572,9 +2572,12 @@ export type Database = {
           accepted_at: string | null
           accepted_by: string | null
           company_id: string
+          contact_person: string | null
           created_at: string | null
           created_by: string | null
+          customer_address: string | null
           customer_id: string
+          customer_name: string
           customer_reference: string | null
           execution_notes: string | null
           execution_period_text: string | null
@@ -2590,13 +2593,11 @@ export type Database = {
           project_id: string | null
           project_location: string | null
           project_name: string
+          sent_at: string | null
           show_labor_share: boolean | null
           skonto_days: number | null
           skonto_percent: number | null
-          snapshot_contact_name: string | null
           snapshot_created_at: string | null
-          snapshot_customer_address: string | null
-          snapshot_customer_name: string
           snapshot_discount_amount: number | null
           snapshot_discount_percent: number | null
           snapshot_gross_total: number | null
@@ -2616,9 +2617,12 @@ export type Database = {
           accepted_at?: string | null
           accepted_by?: string | null
           company_id: string
+          contact_person?: string | null
           created_at?: string | null
           created_by?: string | null
+          customer_address?: string | null
           customer_id: string
+          customer_name: string
           customer_reference?: string | null
           execution_notes?: string | null
           execution_period_text?: string | null
@@ -2634,13 +2638,11 @@ export type Database = {
           project_id?: string | null
           project_location?: string | null
           project_name: string
+          sent_at?: string | null
           show_labor_share?: boolean | null
           skonto_days?: number | null
           skonto_percent?: number | null
-          snapshot_contact_name?: string | null
           snapshot_created_at?: string | null
-          snapshot_customer_address?: string | null
-          snapshot_customer_name: string
           snapshot_discount_amount?: number | null
           snapshot_discount_percent?: number | null
           snapshot_gross_total?: number | null
@@ -2660,9 +2662,12 @@ export type Database = {
           accepted_at?: string | null
           accepted_by?: string | null
           company_id?: string
+          contact_person?: string | null
           created_at?: string | null
           created_by?: string | null
+          customer_address?: string | null
           customer_id?: string
+          customer_name?: string
           customer_reference?: string | null
           execution_notes?: string | null
           execution_period_text?: string | null
@@ -2678,13 +2683,11 @@ export type Database = {
           project_id?: string | null
           project_location?: string | null
           project_name?: string
+          sent_at?: string | null
           show_labor_share?: boolean | null
           skonto_days?: number | null
           skonto_percent?: number | null
-          snapshot_contact_name?: string | null
           snapshot_created_at?: string | null
-          snapshot_customer_address?: string | null
-          snapshot_customer_name?: string
           snapshot_discount_amount?: number | null
           snapshot_discount_percent?: number | null
           snapshot_gross_total?: number | null

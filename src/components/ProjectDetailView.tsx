@@ -777,7 +777,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       // Fetch offers that are NOT yet linked to a project
       const { data: offers } = await supabase
         .from('offers')
-        .select('id, offer_number, snapshot_customer_name, snapshot_gross_total, snapshot_net_total, status')
+        .select('id, offer_number, customer_name, snapshot_gross_total, snapshot_net_total, status')
         .eq('company_id', profile.company_id)
         .eq('customer_id', project.customer_id)
         .is('project_id', null)
@@ -1279,7 +1279,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                               >
                                 <div>
                                   <p className="text-sm font-medium text-slate-800">{offer.offer_number}</p>
-                                  <p className="text-xs text-slate-400">{offer.snapshot_customer_name}</p>
+                                  <p className="text-xs text-slate-400">{offer.customer_name}</p>
                                 </div>
                                 <span className="text-sm font-semibold text-slate-700">{formatCurrency(offer.snapshot_gross_total || 0)}</span>
                               </button>
