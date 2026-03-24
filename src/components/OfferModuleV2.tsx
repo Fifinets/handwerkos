@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ import {
     AlertTriangle,
     TrendingUp,
     TrendingDown,
+    Bell,
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -59,10 +60,30 @@ import {
     useRejectOffer,
     useDuplicateOffer,
 } from "@/hooks/useApi";
+import { cn } from "@/lib/utils";
 import { OfferStatusBadge } from "./offers";
 import { OfferWorkflowDots } from "./offers/OfferWorkflowDots";
 import AddOfferDialog from "./AddOfferDialog";
 import OfferDetailView from "./OfferDetailView";
+
+function getNachfassBadge(offer: { status: string; sent_at?: string | null; valid_until?: string | null }) {
+    if (offer.status !== 'sent') return null;
+    if (!offer.sent_at) return null;
+
+    // Check if expired
+    if (offer.valid_until && new Date(offer.valid_until) < new Date()) return null;
+
+    const daysSinceSent = Math.floor(
+        (Date.now() - new Date(offer.sent_at).getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    if (daysSinceSent < 7) return null;
+
+    return {
+        days: daysSinceSent,
+        severity: daysSinceSent >= 14 ? 'high' as const : 'medium' as const,
+    };
+}
 
 interface OfferModuleProps {
     customerId?: string;
@@ -70,8 +91,12 @@ interface OfferModuleProps {
 
 const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const { toast } = useToast();
     const [searchTerm, setSearchTerm] = useState('');
+    const [nachfassenFilter, setNachfassenFilter] = useState(
+        searchParams.get('filter') === 'nachfassen'
+    );
     const [statusFilter, setStatusFilter] = useState<OfferStatus | 'all'>('all');
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
@@ -106,7 +131,18 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
 
     const offers = offersResponse?.items || [];
 
-    const filteredOffers = searchTerm.length >= 2 ? offers : offers.filter(offer =>
+    const nachfassenCount = useMemo(() =>
+        offers.filter(o => getNachfassBadge(o) !== null).length,
+        [offers]
+    );
+
+    // Apply Nachfassen filter first, then existing search filter
+    const nachfassenFilteredOffers = useMemo(() => {
+        if (!nachfassenFilter) return offers;
+        return offers.filter(offer => getNachfassBadge(offer) !== null);
+    }, [offers, nachfassenFilter]);
+
+    const filteredOffers = searchTerm.length >= 2 ? nachfassenFilteredOffers : nachfassenFilteredOffers.filter(offer =>
         (offer.offer_number && offer.offer_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (offer.project_name && offer.project_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (offer.customer_name && offer.customer_name.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -395,6 +431,32 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                         <Filter className="h-4 w-4 mr-2" />
                         Filter
                     </Button>
+                    <Button
+                        variant={nachfassenFilter ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => {
+                            const next = !nachfassenFilter;
+                            setNachfassenFilter(next);
+                            if (next) {
+                                searchParams.set('filter', 'nachfassen');
+                            } else {
+                                searchParams.delete('filter');
+                            }
+                            setSearchParams(searchParams, { replace: true });
+                        }}
+                        className={cn(
+                            'bg-white border-slate-200',
+                            nachfassenFilter && 'bg-orange-500 hover:bg-orange-600 text-white border-orange-500'
+                        )}
+                    >
+                        <Bell className="h-4 w-4 mr-1" />
+                        Nachfassen
+                        {nachfassenCount > 0 && (
+                            <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">
+                                {nachfassenCount}
+                            </Badge>
+                        )}
+                    </Button>
                 </div>
 
                 <TabsContent value={statusFilter} className="m-0">
@@ -472,6 +534,23 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                         <div className="font-semibold text-slate-900 flex items-center gap-1.5">
                                                             <User className="h-3.5 w-3.5 text-slate-400" />
                                                             <span className="truncate max-w-[200px]">{offer.customer_name}</span>
+                                                            {(() => {
+                                                                const nachfass = getNachfassBadge(offer);
+                                                                if (!nachfass) return null;
+                                                                return (
+                                                                    <Badge
+                                                                        variant="outline"
+                                                                        className={cn(
+                                                                            'ml-2 text-[10px] font-medium',
+                                                                            nachfass.severity === 'high'
+                                                                                ? 'bg-orange-100 text-orange-700 border-orange-200'
+                                                                                : 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                                                                        )}
+                                                                    >
+                                                                        Nachfassen · {nachfass.days}d
+                                                                    </Badge>
+                                                                );
+                                                            })()}
                                                         </div>
                                                         <div className="text-slate-500 flex items-center gap-1.5 mt-1">
                                                             <Building2 className="h-3.5 w-3.5 text-slate-400" />
