@@ -303,6 +303,10 @@ const PlannerModuleV2 = () => {
 
     // ── Assignment logic with assignment-specific dates ──────
     const getEmployeeDayAssignments = useCallback((employeeId: string, day: Date) => {
+        // No assignments on weekends
+        const dow = day.getDay();
+        if (dow === 0 || dow === 6) return [];
+
         const dayStr = format(day, 'yyyy-MM-dd');
         const result: { project: Project; assignment: Assignment }[] = [];
 

@@ -243,6 +243,129 @@ export type Database = {
           },
         ]
       }
+      amge_calculations: {
+        Row: {
+          agk_betrag: number | null
+          agk_prozent: number | null
+          bgk_bauleitung: number | null
+          bgk_betrag: number | null
+          bgk_geraete: number | null
+          bgk_gesamt_prozent: number | null
+          bgk_hilfsstoffe: number | null
+          bgk_sonstige: number | null
+          bgk_transport: number | null
+          company_id: string
+          created_at: string | null
+          custom_surcharges: Json | null
+          custom_surcharges_betrag: number | null
+          description: string | null
+          direktlohn: number
+          gewinn_betrag: number | null
+          gewinn_prozent: number | null
+          id: string
+          is_active: boolean | null
+          lohn_mit_agk: number | null
+          lohn_mit_bgk: number | null
+          lohn_mit_custom: number | null
+          lohn_mit_lzk: number | null
+          lzk_berufsgenossenschaft: number | null
+          lzk_betrag: number | null
+          lzk_gesamt_prozent: number | null
+          lzk_lohnfortzahlung: number | null
+          lzk_sonstige: number | null
+          lzk_sozialversicherung: number | null
+          lzk_urlaubsgeld: number | null
+          lzk_winterbau: number | null
+          name: string
+          updated_at: string | null
+          valid_from: string | null
+          valid_until: string | null
+          verrechnungslohn: number | null
+          wagnis_betrag: number | null
+          wagnis_prozent: number | null
+        }
+        Insert: {
+          agk_betrag?: number | null
+          agk_prozent?: number | null
+          bgk_bauleitung?: number | null
+          bgk_betrag?: number | null
+          bgk_geraete?: number | null
+          bgk_gesamt_prozent?: number | null
+          bgk_hilfsstoffe?: number | null
+          bgk_sonstige?: number | null
+          bgk_transport?: number | null
+          company_id: string
+          created_at?: string | null
+          custom_surcharges?: Json | null
+          custom_surcharges_betrag?: number | null
+          description?: string | null
+          direktlohn?: number
+          gewinn_betrag?: number | null
+          gewinn_prozent?: number | null
+          id?: string
+          is_active?: boolean | null
+          lohn_mit_agk?: number | null
+          lohn_mit_bgk?: number | null
+          lohn_mit_custom?: number | null
+          lohn_mit_lzk?: number | null
+          lzk_berufsgenossenschaft?: number | null
+          lzk_betrag?: number | null
+          lzk_gesamt_prozent?: number | null
+          lzk_lohnfortzahlung?: number | null
+          lzk_sonstige?: number | null
+          lzk_sozialversicherung?: number | null
+          lzk_urlaubsgeld?: number | null
+          lzk_winterbau?: number | null
+          name?: string
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+          verrechnungslohn?: number | null
+          wagnis_betrag?: number | null
+          wagnis_prozent?: number | null
+        }
+        Update: {
+          agk_betrag?: number | null
+          agk_prozent?: number | null
+          bgk_bauleitung?: number | null
+          bgk_betrag?: number | null
+          bgk_geraete?: number | null
+          bgk_gesamt_prozent?: number | null
+          bgk_hilfsstoffe?: number | null
+          bgk_sonstige?: number | null
+          bgk_transport?: number | null
+          company_id?: string
+          created_at?: string | null
+          custom_surcharges?: Json | null
+          custom_surcharges_betrag?: number | null
+          description?: string | null
+          direktlohn?: number
+          gewinn_betrag?: number | null
+          gewinn_prozent?: number | null
+          id?: string
+          is_active?: boolean | null
+          lohn_mit_agk?: number | null
+          lohn_mit_bgk?: number | null
+          lohn_mit_custom?: number | null
+          lohn_mit_lzk?: number | null
+          lzk_berufsgenossenschaft?: number | null
+          lzk_betrag?: number | null
+          lzk_gesamt_prozent?: number | null
+          lzk_lohnfortzahlung?: number | null
+          lzk_sonstige?: number | null
+          lzk_sozialversicherung?: number | null
+          lzk_urlaubsgeld?: number | null
+          lzk_winterbau?: number | null
+          name?: string
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+          verrechnungslohn?: number | null
+          wagnis_betrag?: number | null
+          wagnis_prozent?: number | null
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           action: string
@@ -3482,6 +3605,7 @@ export type Database = {
           status: string
           status_color: string | null
           updated_at: string
+          work_calendar_event_id: string | null
           work_end_date: string | null
           work_start_date: string | null
           workflow_origin_id: string | null
@@ -3518,6 +3642,7 @@ export type Database = {
           status?: string
           status_color?: string | null
           updated_at?: string
+          work_calendar_event_id?: string | null
           work_end_date?: string | null
           work_start_date?: string | null
           workflow_origin_id?: string | null
@@ -3554,6 +3679,7 @@ export type Database = {
           status?: string
           status_color?: string | null
           updated_at?: string
+          work_calendar_event_id?: string | null
           work_end_date?: string | null
           work_start_date?: string | null
           workflow_origin_id?: string | null
@@ -3602,6 +3728,13 @@ export type Database = {
             columns: ["project_site_id"]
             isOneToOne: false
             referencedRelation: "project_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_work_calendar_event_id_fkey"
+            columns: ["work_calendar_event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
             referencedColumns: ["id"]
           },
         ]

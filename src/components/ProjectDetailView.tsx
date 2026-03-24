@@ -567,6 +567,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         start_date: projectData.start_date || new Date().toISOString().split('T')[0],
         planned_end_date: projectData.end_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         status: ((projectData.status as ProjectStatus) ?? 'anfrage') as ProjectStatus,
+        project_type: (projectData as any).project_type,
         project_address: projectData.site || projectData.location || 'Nicht angegeben',
         project_description: projectData.description || 'Keine Beschreibung',
         budget_planned: projectBudget,
@@ -2384,6 +2385,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
               besichtigung_calendar_event_id: (project as any).besichtigung_calendar_event_id,
               work_start_date: (project as any).work_start_date,
               work_end_date: (project as any).work_end_date,
+              work_calendar_event_id: (project as any).work_calendar_event_id,
             }}
             employees={allEmployees}
             onSuccess={() => fetchProjectData(currentProjectId)}

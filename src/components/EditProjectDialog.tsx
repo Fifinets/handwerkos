@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { eventBus } from "@/services/eventBus";
 
 interface Project {
   id: string;
@@ -49,11 +50,9 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
   const [formData, setFormData] = useState({
     name: '',
     customer_id: '',
-    status: 'planned',
-    progress: 0,
+    status: 'anfrage',
     startDate: '',
     endDate: '',
-    budget: '',
     project_site_id: ''
   });
   const [projectSites, setProjectSites] = useState<{ id: string; name: string | null; address: string; city: string; }[]>([]);
@@ -97,11 +96,9 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
       setFormData({
         name: project.name || '',
         customer_id: project.customer_id || '',
-        status: (project.status as any) || 'planned',
-        progress: project.progress || 0,
+        status: (project.status as any) || 'anfrage',
         startDate: (project as any).start_date || project.startDate || '',
         endDate: (project as any).end_date || project.endDate || '',
-        budget: project.budget?.toString() || '',
         project_site_id: project.project_site_id || ''
       });
 
@@ -145,10 +142,8 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
         name: project.name,
         customer_id: project.customer_id || '',
         status: project.status,
-        progress: project.progress,
         startDate: project.startDate,
         endDate: project.endDate,
-        budget: project.budget,
         project_site_id: project.project_site_id || ''
       });
 
@@ -254,73 +249,39 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
   };
 
   const handleDelete = async () => {
-    if (!project || !onProjectDeleted) {
-      console.log('❌ handleDelete aborted - missing project or callback');
-      return;
-    }
-
-    console.log('🗑️ Starting deletion of project:', project.id, project.name);
+    if (!project || !onProjectDeleted) return;
 
     try {
-      // First, check if we can access the project
-      const { data: checkData, error: checkError } = await supabase
-        .from('projects')
-        .select('id, name')
-        .eq('id', project.id)
-        .single();
+      const id = project.id;
 
-      console.log('🔍 Project check before delete:', { checkData, checkError });
+      // Delete all child records first to satisfy FK constraints
+      const childTables = [
+        'delivery_notes', 'calendar_events', 'time_entries', 'timesheets',
+        'project_team_assignments', 'project_assignments', 'project_comments',
+        'project_documents', 'project_materials', 'project_material_assignments',
+        'project_milestones', 'expenses', 'invoices', 'orders', 'offers',
+        'emails', 'employee_material_usage', 'material_stock_movements',
+        'stock_movements', 'workflow_chains', 'ai_suggestions', 'ai_training_data',
+      ] as const;
 
-      if (checkError) {
-        console.error('❌ Cannot access project for deletion:', checkError);
-        throw new Error('Projekt nicht gefunden oder keine Berechtigung');
+      for (const table of childTables) {
+        await supabase.from(table as any).delete().eq('project_id', id);
       }
 
-      // Now attempt to delete
-      const { data, error, count } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', project.id)
-        .select('*'); // Return deleted rows for confirmation
+      // Now delete the project itself
+      const { error } = await supabase.from('projects').delete().eq('id', id);
+      if (error) throw error;
 
-      console.log('🗑️ Delete result:', { data, error, count, deletedRows: data?.length || 0 });
-
-      if (error) {
-        console.error('❌ Database delete error:', error);
-        console.error('❌ Error details:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
-        });
-        throw error;
-      }
-
-      if (!data || data.length === 0) {
-        console.warn('⚠️ No rows were deleted - project may not exist or access denied');
-        throw new Error('Projekt konnte nicht gelöscht werden - möglicherweise keine Berechtigung');
-      }
-
-      console.log('✅ Project successfully deleted from database:', data[0]);
-
-      toast({
-        title: "Projekt gelöscht",
-        description: "Das Projekt wurde erfolgreich gelöscht."
-      });
-
-      // Call the callback to update parent component
-      onProjectDeleted(project.id);
-
-      // Close dialog
+      toast({ title: 'Projekt gelöscht', description: 'Das Projekt wurde erfolgreich gelöscht.' });
+      eventBus.emit('PROJECT_DELETED' as any, { id });
+      onProjectDeleted(id);
       onClose();
-
-      console.log('✅ Delete operation completed');
-    } catch (error) {
-      console.error('💥 Error deleting project:', error);
+    } catch (error: any) {
+      console.error('Error deleting project:', error);
       toast({
-        title: "Fehler",
-        description: "Projekt konnte nicht gelöscht werden: " + (error.message || 'Unbekannter Fehler'),
-        variant: "destructive"
+        title: 'Fehler',
+        description: 'Projekt konnte nicht gelöscht werden: ' + (error.message || 'Unbekannter Fehler'),
+        variant: 'destructive'
       });
     } finally {
       stopDelete();
@@ -394,15 +355,6 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
             </Select>
           </div>
 
-          <div>
-            <Label htmlFor="budget">Budget</Label>
-            <Input
-              id="budget"
-              value={formData.budget}
-              onChange={(e) => handleInputChange('budget', e.target.value)}
-              required
-            />
-          </div>
 
           <div>
             <Label>Projektzeitraum</Label>
@@ -444,32 +396,6 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
             </Popover>
           </div>
 
-          <div>
-            <Label htmlFor="status">Status</Label>
-            <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="planned">Planung</SelectItem>
-                <SelectItem value="active">In Bearbeitung</SelectItem>
-                <SelectItem value="completed">Abgeschlossen</SelectItem>
-                <SelectItem value="cancelled">Storniert</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="progress">Fortschritt (%)</Label>
-            <Input
-              id="progress"
-              type="number"
-              min="0"
-              max="100"
-              value={formData.progress}
-              onChange={(e) => handleInputChange('progress', parseInt(e.target.value))}
-            />
-          </div>
 
           <div className="flex gap-2 pt-4">
             <div className="flex-1">

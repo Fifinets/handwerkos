@@ -63,6 +63,7 @@ import AutoFixDatabase from "./AutoFixDatabase";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AddOrderDialog from "./AddOrderDialog";
 import { Wrench, CalendarDays, MapPin, User } from "lucide-react";
+import { PROJECT_STATUS_CONFIG } from "@/types/project";
 
 const getStatusColor = (status: string) => {
     switch (status) {
@@ -121,29 +122,29 @@ const ProjectModuleV2 = () => {
     const [statusFilter, setStatusFilter] = useState<string>("aktive");
 
     // React Query hooks
-    const { data: projectsResponse, isLoading: projectsLoading, error: projectsError } = useProjects();
+    const { data: projectsResponse, isLoading: projectsLoading, error: projectsError, refetch: refetchProjects } = useProjects();
     const { data: customersResponse, isLoading: customersLoading } = useCustomers();
 
     // Debug: Direct database query
     const [debugProjects, setDebugProjects] = useState<ProjectWithCustomers[]>([]);
     const [debugError, setDebugError] = useState<any>(null);
 
-    useEffect(() => {
-        const fetchDebugProjects = async () => {
-            try {
-                const { data, error } = await supabase
-                    .from('projects')
-                    .select('*');
+    const fetchDebugProjects = useCallback(async () => {
+        try {
+            const { data, error } = await supabase
+                .from('projects')
+                .select('*');
 
-                setDebugProjects((data as any) || []);
-                setDebugError(error);
-            } catch (err) {
-                setDebugError(err);
-            }
-        };
-
-        fetchDebugProjects();
+            setDebugProjects((data as any) || []);
+            setDebugError(error);
+        } catch (err) {
+            setDebugError(err);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchDebugProjects();
+    }, [fetchDebugProjects]);
 
     // Local state for employees
     const [teamMembers, setTeamMembers] = useState<any[]>([]);
@@ -676,7 +677,7 @@ const ProjectModuleV2 = () => {
                                                         <h3 className="font-medium text-slate-900 truncate">{order.name}</h3>
                                                         <Badge variant="outline" className={`text-[10px] shrink-0 ${getStatusColor(order.status)}`}>
                                                             {getStatusIcon(order.status)}
-                                                            <span className="ml-1">{order.status}</span>
+                                                            <span className="ml-1">{PROJECT_STATUS_CONFIG[order.status as keyof typeof PROJECT_STATUS_CONFIG]?.label ?? order.status}</span>
                                                         </Badge>
                                                     </div>
                                                     <div className="flex items-center gap-4 text-xs text-slate-500 mt-2">
@@ -764,6 +765,9 @@ const ProjectModuleV2 = () => {
                     onClose={() => {
                         setIsProjectDetailViewOpen(false);
                         setSelectedProjectId(null);
+                        // Refresh list so status changes are reflected immediately
+                        refetchProjects();
+                        fetchDebugProjects();
                     }}
                     projectId={selectedProjectId}
                 />

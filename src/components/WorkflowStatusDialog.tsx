@@ -25,6 +25,7 @@ interface WorkflowStatusDialogProps {
     besichtigung_calendar_event_id?: string | null;
     work_start_date?: string | null;
     work_end_date?: string | null;
+    work_calendar_event_id?: string | null;
   };
   employees: { id: string; first_name: string; last_name: string }[];
   onSuccess: () => void;
@@ -144,10 +145,50 @@ export function WorkflowStatusDialog({
         }
       }
 
-      // In Arbeit dates
+      // In Arbeit dates + calendar event sync
       if (showInArbeit) {
         updates.work_start_date = workStartDate || null;
         updates.work_end_date = workEndDate || null;
+
+        if (workStartDate) {
+          // Fetch team members for this project
+          const { data: teamData } = await supabase
+            .from('project_team_assignments')
+            .select('employee_id')
+            .eq('project_id', projectId)
+            .eq('is_active', true);
+          const teamEmployeeIds = (teamData || []).map((t: any) => t.employee_id);
+
+          const calendarData = {
+            title: `Baustart: ${projectName}`,
+            start_date: workStartDate,
+            end_date: workEndDate || workStartDate,
+            start_time: null,
+            end_time: null,
+            type: 'in_bearbeitung',
+            company_id: companyId,
+            project_id: projectId,
+            assigned_employees: teamEmployeeIds,
+          };
+
+          const existingEventId = currentValues?.work_calendar_event_id;
+          if (existingEventId) {
+            await supabase.from('calendar_events').update(calendarData).eq('id', existingEventId);
+          } else {
+            const { data: newEvent } = await supabase
+              .from('calendar_events')
+              .insert(calendarData)
+              .select('id')
+              .single();
+            if (newEvent) {
+              updates.work_calendar_event_id = newEvent.id;
+            }
+          }
+        } else if (currentValues?.work_calendar_event_id) {
+          // Date removed → delete calendar event
+          await supabase.from('calendar_events').delete().eq('id', currentValues.work_calendar_event_id);
+          updates.work_calendar_event_id = null;
+        }
       }
 
       // Update project

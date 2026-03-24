@@ -42,6 +42,7 @@ export interface ProjectBaseData {
   created_by: string;                      // User ID
   project_manager?: string;                // Projektleiter ID
   assigned_team: string[];                 // Zugewiesene Mitarbeiter IDs
+  project_type?: string;                   // 'projekt' | 'kleinauftrag'
 }
 
 export interface TimeEntry {

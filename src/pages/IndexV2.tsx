@@ -33,7 +33,21 @@ const IndexV2 = () => {
         signOut
     } = useSupabaseAuth();
     const navigate = useNavigate();
-    const [activeModule, setActiveModule] = useState('dashboard');
+    // Persist active module in URL hash so refreshing stays on the same module
+    const getModuleFromHash = () => window.location.hash.replace('#', '') || 'dashboard';
+    const [activeModule, setActiveModuleState] = useState(getModuleFromHash);
+
+    const setActiveModule = (module: string) => {
+        window.location.hash = module;
+        setActiveModuleState(module);
+    };
+
+    // Sync state if user navigates with browser back/forward
+    useEffect(() => {
+        const onHashChange = () => setActiveModuleState(getModuleFromHash());
+        window.addEventListener('hashchange', onHashChange);
+        return () => window.removeEventListener('hashchange', onHashChange);
+    }, []);
 
     const isMobile = () => {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||

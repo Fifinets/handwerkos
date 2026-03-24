@@ -23,8 +23,10 @@ import {
     Search,
     ArrowUpRight,
     ArrowDownRight,
-    ExternalLink
+    ExternalLink,
+    Calculator
 } from "lucide-react";
+import AMGEKalkulator from "@/components/AMGEKalkulator";
 import { useToast } from "@/hooks/use-toast";
 import {
     useInvoices,
@@ -271,6 +273,10 @@ const FinanceModuleV2 = () => {
                     <TabsTrigger value="dashboard" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Übersicht</TabsTrigger>
                     <TabsTrigger value="invoices" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Rechnungen</TabsTrigger>
                     <TabsTrigger value="expenses" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Ausgaben</TabsTrigger>
+                    <TabsTrigger value="amge" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                        <Calculator className="h-3.5 w-3.5 mr-1.5" />
+                        Kalkulation
+                    </TabsTrigger>
                     <TabsTrigger value="taxes" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Steuern</TabsTrigger>
                 </TabsList>
 
@@ -520,6 +526,10 @@ const FinanceModuleV2 = () => {
                             </div>
                         </CardContent>
                     </Card>
+                </TabsContent>
+
+                <TabsContent value="amge" className="m-0">
+                    <AMGEKalkulator />
                 </TabsContent>
 
                 <TabsContent value="taxes" className="m-0">

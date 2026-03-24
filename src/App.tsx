@@ -77,6 +77,9 @@ const EventBusQueryInvalidation = () => {
         queryClient.invalidateQueries({ queryKey: ['projects'] });
         queryClient.invalidateQueries({ queryKey: ['financial-kpis'] });
       }),
+      eventBus.on('PROJECT_DELETED' as any, () => {
+        queryClient.invalidateQueries({ queryKey: ['projects'] });
+      }),
 
       // Quote events
       eventBus.on('QUOTE_CREATED', () => {
