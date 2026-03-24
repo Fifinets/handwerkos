@@ -7,7 +7,6 @@ import { supabase } from '@/integrations/supabase/client';
 import type {
   Customer, CustomerCreate, CustomerUpdate,
   Material, MaterialCreate, MaterialUpdate,
-  Quote, QuoteCreate, QuoteUpdate,
   Order, OrderCreate, OrderUpdate,
   Project, ProjectCreate, ProjectUpdate,
   Invoice, InvoiceCreate, InvoiceUpdate,
@@ -20,7 +19,6 @@ import type {
 import { ApiError } from '@/utils/api';
 // Import services directly to avoid circular dependency issues
 import { customerService, CustomerService } from '@/services/customerService';
-import { quoteService } from '@/services/quoteService';
 import { orderService } from '@/services/orderService';
 import { ProjectService } from '@/services/projectService';
 import { timesheetService } from '@/services/timesheetService';
@@ -83,13 +81,7 @@ export const QUERY_KEYS = {
   customer: (id: string) => ['customers', id] as const,
   customerStats: (id: string) => ['customers', id, 'stats'] as const,
   customerProjects: (id: string) => ['customers', id, 'projects'] as const,
-  customerQuotes: (id: string) => ['customers', id, 'quotes'] as const,
   customerInvoices: (id: string) => ['customers', id, 'invoices'] as const,
-
-  // Quote keys
-  quotes: ['quotes'] as const,
-  quote: (id: string) => ['quotes', id] as const,
-  quoteStats: ['quotes', 'stats'] as const,
 
   // Offer keys
   offers: ['offers'] as const,
@@ -264,165 +256,6 @@ export const useSearchCustomers = (query: string, limit?: number, options?: UseA
     queryKey: [...QUERY_KEYS.customers, 'search', query, limit],
     queryFn: () => CustomerService.searchCustomers(query, limit),
     enabled: query.length >= 2,
-    ...options,
-  });
-};
-
-// ==========================================
-// QUOTE HOOKS
-// ==========================================
-
-export const useQuotes = (
-  pagination?: PaginationQuery,
-  filters?: { status?: Quote['status']; customer_id?: string; search?: string },
-  options?: UseApiQueryOptions<PaginationResponse<Quote>>
-) => {
-  return useQuery({
-    queryKey: [...QUERY_KEYS.quotes, pagination, filters],
-    queryFn: () => quoteService.getQuotes(pagination, filters),
-    ...options,
-  });
-};
-
-export const useQuote = (id: string, options?: UseApiQueryOptions<Quote>) => {
-  return useQuery({
-    queryKey: QUERY_KEYS.quote(id),
-    queryFn: () => quoteService.getQuote(id),
-    enabled: !!id,
-    ...options,
-  });
-};
-
-export const useCreateQuote = (options?: UseApiMutationOptions<Quote, QuoteCreate>) => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: quoteService.createQuote,
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customerQuotes(data.customer_id) });
-      toast({
-        title: 'Angebot erstellt',
-        description: `${data.title} wurde erfolgreich erstellt.`,
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Fehler beim Erstellen',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-    ...options,
-  });
-};
-
-export const useUpdateQuote = (options?: UseApiMutationOptions<Quote, { id: string; data: QuoteUpdate }>) => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: ({ id, data }) => quoteService.updateQuote(id, data),
-    onSuccess: (data, { id }) => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quote(id) });
-      toast({
-        title: 'Angebot aktualisiert',
-        description: `${data.title} wurde erfolgreich aktualisiert.`,
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Fehler beim Aktualisieren',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-    ...options,
-  });
-};
-
-export const useSendQuote = (options?: UseApiMutationOptions<Quote, string>) => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: quoteService.sendQuote,
-    onSuccess: (data, id) => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quote(id) });
-      toast({
-        title: 'Angebot versendet',
-        description: `${data.title} wurde erfolgreich versendet.`,
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Fehler beim Versenden',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-    ...options,
-  });
-};
-
-export const useAcceptQuote = (options?: UseApiMutationOptions<{ quote: Quote; order: any }, string>) => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: quoteService.acceptQuote,
-    onSuccess: (data, id) => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quote(id) });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders });
-      toast({
-        title: 'Angebot angenommen',
-        description: `${data.quote.title} wurde angenommen und ein Auftrag erstellt.`,
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Fehler beim Annehmen',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-    ...options,
-  });
-};
-
-export const useRejectQuote = (options?: UseApiMutationOptions<Quote, { id: string; reason?: string }>) => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: ({ id, reason }) => quoteService.rejectQuote(id, reason),
-    onSuccess: (data, { id }) => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quote(id) });
-      toast({
-        title: 'Angebot abgelehnt',
-        description: `${data.title} wurde abgelehnt.`,
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Fehler beim Ablehnen',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-    ...options,
-  });
-};
-
-export const useQuoteStats = (options?: UseApiQueryOptions<any>) => {
-  return useQuery({
-    queryKey: QUERY_KEYS.quoteStats,
-    queryFn: () => quoteService.getQuoteStats(),
     ...options,
   });
 };
@@ -1615,7 +1448,6 @@ export const useInvalidateQueries = () => {
   return {
     invalidateAll: () => queryClient.invalidateQueries(),
     invalidateCustomers: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers }),
-    invalidateQuotes: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes }),
     invalidateOrders: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders }),
     invalidateProjects: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projects }),
     invalidateTimesheets: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timesheets }),
@@ -1643,22 +1475,6 @@ export const useQueryInvalidation = () => {
 
     const customerUpdatedUnsubscribe = eventBus.on('CUSTOMER_UPDATED', () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers });
-    });
-
-    // Quote events
-    const quoteAcceptedUnsubscribe = eventBus.on('QUOTE_ACCEPTED', (data) => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders });
-      if (data.quote?.id) {
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quote(data.quote.id) });
-      }
-    });
-
-    const quoteSentUnsubscribe = eventBus.on('QUOTE_SENT', (data) => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quotes });
-      if (data.quote?.id) {
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quote(data.quote.id) });
-      }
     });
 
     // Order events
@@ -1731,8 +1547,6 @@ export const useQueryInvalidation = () => {
     return () => {
       eventBus.off(customerCreatedUnsubscribe);
       eventBus.off(customerUpdatedUnsubscribe);
-      eventBus.off(quoteAcceptedUnsubscribe);
-      eventBus.off(quoteSentUnsubscribe);
       eventBus.off(orderStartedUnsubscribe);
       eventBus.off(orderCompletedUnsubscribe);
       eventBus.off(projectStatusChangedUnsubscribe);
@@ -3096,7 +2910,6 @@ export default {
   // Export all hooks for convenience
   useCustomers, useCustomer, useCreateCustomer, useUpdateCustomer, useDeleteCustomer, useSearchCustomers,
   useEmployees,
-  useQuotes, useQuote, useCreateQuote, useUpdateQuote, useSendQuote, useAcceptQuote, useRejectQuote, useQuoteStats,
   useOrders, useOrder, useCreateOrder, useStartOrder, useCompleteOrder, useCancelOrder, useOrderStats,
   useProjects, useProject, useCreateProject, useUpdateProject, useStartProject, useCompleteProject, useBlockProject, useSearchProjects,
   useTimesheets, useTimesheet, useCreateTimesheet, useUpdateTimesheet, useApproveTimesheet, useBulkApproveTimesheets,

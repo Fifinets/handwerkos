@@ -26,7 +26,7 @@ interface DashboardCard {
 interface KPIData {
   openOrders: number;
   unreadEmails: number;
-  openQuotes: number;
+  openOffers: number;
   openInvoices: number;
   totalOpenAmount: number;
   todayHours: number;
@@ -39,7 +39,7 @@ const DashboardStatsWithKpis: React.FC<{ onNavigate?: (moduleId: string) => void
   const [kpiData, setKpiData] = useState<KPIData>({
     openOrders: 0,
     unreadEmails: 0,
-    openQuotes: 0,
+    openOffers: 0,
     openInvoices: 0,
     totalOpenAmount: 0,
     todayHours: 0,
@@ -92,11 +92,11 @@ const DashboardStatsWithKpis: React.FC<{ onNavigate?: (moduleId: string) => void
           .limit(5);
 
         // 3. Offene Angebote
-        const { data: quotesData } = await supabase
-          .from('quotes')
+        const { data: offersData } = await supabase
+          .from('offers')
           .select('id, status')
           .eq('company_id', companyId)
-          .eq('status', 'versendet');
+          .eq('status', 'sent');
 
         // 4. Offene Rechnungen
         const { data: invoicesData } = await supabase
@@ -154,7 +154,7 @@ const DashboardStatsWithKpis: React.FC<{ onNavigate?: (moduleId: string) => void
         setKpiData({
           openOrders: ordersData?.length || 0,
           unreadEmails: emailsData?.length || 0,
-          openQuotes: quotesData?.length || 0,
+          openOffers: offersData?.length || 0,
           openInvoices: invoicesData?.length || 0,
           totalOpenAmount,
           todayHours: Math.round(todayMinutes / 60 * 10) / 10,
@@ -218,7 +218,7 @@ const DashboardStatsWithKpis: React.FC<{ onNavigate?: (moduleId: string) => void
                 <FileText className="w-5 h-5 text-orange-600" />
                 <span className="font-medium">Offene Angebote</span>
               </div>
-              <p className="text-2xl font-bold text-orange-600">{loading ? '…' : kpiData.openQuotes}</p>
+              <p className="text-2xl font-bold text-orange-600">{loading ? '…' : kpiData.openOffers}</p>
               <p className="text-sm text-muted-foreground">versendet</p>
             </CardContent>
           </Card>
