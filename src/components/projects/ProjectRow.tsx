@@ -18,7 +18,7 @@ type Props = {
 
 const STYLES: Record<string, { label: string; cls: string }> = {
   anfrage:        { label: "Anfrage",         cls: "bg-indigo-100 text-indigo-800 border-indigo-200" },
-  besichtigung:   { label: "Termin ausmachen", cls: "bg-amber-100  text-amber-800  border-amber-200" },
+  besichtigung:   { label: "Besichtigung",     cls: "bg-amber-100  text-amber-800  border-amber-200" },
   angebot:        { label: "Angebot",         cls: "bg-orange-100 text-orange-800 border-orange-200" },
   angebot_versendet: { label: "Angebot versendet", cls: "bg-orange-100 text-orange-800 border-orange-200" },
   beauftragt:     { label: "Beauftragt",      cls: "bg-purple-100 text-purple-800 border-purple-200" },
@@ -127,7 +127,7 @@ export default function ProjectRow(p: Props) {
       </div>
 
       <div className="text-sm text-muted-foreground">
-        {formatDate(p.start)} • {formatDate(p.end)}
+        {p.start ? `${formatDate(p.start)}${p.end ? ` • ${formatDate(p.end)}` : ''}` : null}
       </div>
 
       {/* Progressbar: based on real time progress */}

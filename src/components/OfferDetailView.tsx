@@ -224,7 +224,7 @@ export function OfferDetailView({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-7xl max-h-[95vh] overflow-y-auto">
           {isLoading ? (
             <div className="space-y-4">
               <Skeleton className="h-8 w-48" />
@@ -355,8 +355,8 @@ export function OfferDetailView({
               <Separator className="my-4" />
 
               {viewMode === 'a4' ? (
-                <div className="flex justify-center overflow-auto bg-slate-100 rounded-lg py-6" style={{ maxHeight: '70vh' }}>
-                  <div style={{ transform: 'scale(0.72)', transformOrigin: 'top center' }}>
+                <div className="flex justify-center overflow-auto bg-slate-100 rounded-lg py-6" style={{ maxHeight: '75vh' }}>
+                  <div style={{ transform: 'scale(0.85)', transformOrigin: 'top center' }}>
                     <div className="shadow-2xl">
                       <OfferPrintView
                         offer={{

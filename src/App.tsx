@@ -22,6 +22,7 @@ import JobPostingWizard from "./pages/marketplace/JobPostingWizard";
 import CustomerDashboard from "./pages/marketplace/CustomerDashboard";
 import MarketplaceAuth from "./pages/marketplace/MarketplaceAuth";
 import JobSearchFeed from "./pages/marketplace/JobSearchFeed";
+import PublicOfferView from "./pages/public/PublicOfferView";
 
 // Webbuilder Imports
 import WebBuilderLayout from "./features/webbuilder/components/WebBuilderLayout";
@@ -203,6 +204,9 @@ const App = () => (
               <Route path="/offers/wizard" element={<OfferCreationWizard />} />
               <Route path="/offers/:id/edit" element={<OfferEditorPage />} />
               <Route path="/offers/new/edit" element={<OfferEditorPage />} />
+
+              {/* Public Routes (no auth) */}
+              <Route path="/public/offer/:token" element={<PublicOfferView />} />
 
               {/* Marketplace Module Routes */}
               <Route path="/marktplatz" element={<MarketplaceLanding />} />

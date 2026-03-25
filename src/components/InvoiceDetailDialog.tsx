@@ -437,7 +437,7 @@ const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
         onClose();
       }
     }}>
-      <DialogContent className={`${isEditing ? 'max-w-[95vw] w-[95vw] h-[95vh]' : 'max-w-5xl max-h-[95vh]'} overflow-hidden p-0`}>
+      <DialogContent className={`${isEditing ? 'max-w-[95vw] w-[95vw] h-[95vh]' : 'max-w-7xl max-h-[95vh]'} overflow-hidden p-0`}>
         {/* Header */}
         <div className={`${statusConfig.bgColor} border-b px-6 py-4`}>
           <div className="flex items-start justify-between">
@@ -550,7 +550,7 @@ const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
                 <div
                   id="invoice-print-view"
                   className="bg-white shadow-lg border border-gray-200"
-                  style={{ transform: 'scale(0.75)', transformOrigin: 'top center', marginBottom: '-25%' }}
+                  style={{ transform: 'scale(0.85)', transformOrigin: 'top center', marginBottom: '-15%' }}
                 >
                   <InvoicePrintView
                     invoice={fullInvoice}

@@ -65,6 +65,7 @@ import { OfferStatusBadge } from "./offers";
 import { OfferWorkflowDots } from "./offers/OfferWorkflowDots";
 import AddOfferDialog from "./AddOfferDialog";
 import OfferDetailView from "./OfferDetailView";
+import { ShareLinkDialog } from "./offers/ShareLinkDialog";
 
 function getNachfassBadge(offer: { status: string; sent_at?: string | null; valid_until?: string | null }) {
     if (offer.status !== 'sent') return null;
@@ -106,6 +107,7 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
     const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
     const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
     const [rejectReason, setRejectReason] = useState('');
+    const [shareLinkData, setShareLinkData] = useState<{ link: string; offerNumber: string; customerName: string; projectName: string } | null>(null);
 
     const filters: Record<string, any> = {};
     if (searchTerm.length >= 2) {
@@ -208,11 +210,21 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
 
     const handleSendOffer = async (offer: Offer) => {
         try {
-            await sendOfferMutation.mutateAsync(offer.id);
-            toast({
-                title: "Angebot versendet",
-                description: `${offer.offer_number} wurde als versendet markiert.`,
-            });
+            const result = await sendOfferMutation.mutateAsync(offer.id);
+            const shareLink = (result as any)?.shareLink;
+            if (shareLink) {
+                setShareLinkData({
+                    link: shareLink,
+                    offerNumber: offer.offer_number,
+                    customerName: (offer as any).customer_name || '',
+                    projectName: offer.project_name || '',
+                });
+            } else {
+                toast({
+                    title: "Angebot versendet",
+                    description: `${offer.offer_number} wurde als versendet markiert.`,
+                });
+            }
         } catch (error: any) {
             toast({
                 title: "Fehler",
@@ -503,7 +515,6 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                 <th className="px-5 py-3 font-medium">Kunde / Projekt</th>
                                                 <th className="px-5 py-3 font-medium text-right">Betrag (Brutto)</th>
                                                 <th className="px-5 py-3 font-medium text-center">Status</th>
-                                                <th className="px-5 py-3 font-medium text-center">Flow</th>
                                                 <th className="px-5 py-3 font-medium text-right">Aktionen</th>
                                             </tr>
                                         </thead>
@@ -562,9 +573,6 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                     </td>
                                                     <td className="px-5 py-4 text-center">
                                                         <OfferStatusBadge status={offer.status} />
-                                                    </td>
-                                                    <td className="px-5 py-4 text-center">
-                                                        <OfferWorkflowDots status={offer.status} />
                                                     </td>
                                                     <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                                                         <div className="flex items-center justify-end gap-1">
@@ -733,6 +741,14 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            <ShareLinkDialog
+                open={!!shareLinkData}
+                onOpenChange={(open) => { if (!open) setShareLinkData(null); }}
+                shareLink={shareLinkData?.link || ''}
+                offerNumber={shareLinkData?.offerNumber || ''}
+                customerName={shareLinkData?.customerName || ''}
+                projectName={shareLinkData?.projectName || ''}
+            />
         </div>
     );
 };

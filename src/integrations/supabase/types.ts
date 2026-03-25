@@ -2594,6 +2594,8 @@ export type Database = {
           project_location: string | null
           project_name: string
           sent_at: string | null
+          share_token: string | null
+          share_token_created_at: string | null
           show_labor_share: boolean | null
           skonto_days: number | null
           skonto_percent: number | null
@@ -2639,6 +2641,8 @@ export type Database = {
           project_location?: string | null
           project_name: string
           sent_at?: string | null
+          share_token?: string | null
+          share_token_created_at?: string | null
           show_labor_share?: boolean | null
           skonto_days?: number | null
           skonto_percent?: number | null
@@ -2684,6 +2688,8 @@ export type Database = {
           project_location?: string | null
           project_name?: string
           sent_at?: string | null
+          share_token?: string | null
+          share_token_created_at?: string | null
           show_labor_share?: boolean | null
           skonto_days?: number | null
           skonto_percent?: number | null
@@ -4878,6 +4884,10 @@ export type Database = {
         Args: { p_token: string }
         Returns: boolean
       }
+      accept_public_offer: {
+        Args: { p_name?: string; p_token: string }
+        Returns: Json
+      }
       calculate_project_labor_costs: {
         Args: { project_id_param: string }
         Returns: number
@@ -4937,6 +4947,7 @@ export type Database = {
         Args: { comp_id?: string; seq_name: string }
         Returns: string
       }
+      get_public_offer: { Args: { p_token: string }; Returns: Json }
       has_role:
         | {
             Args: {
@@ -4946,6 +4957,10 @@ export type Database = {
             Returns: boolean
           }
         | { Args: { role: string }; Returns: boolean }
+      reject_public_offer: {
+        Args: { p_reason?: string; p_token: string }
+        Returns: Json
+      }
       sanitize_text_input: { Args: { input_text: string }; Returns: string }
       search_ai_index: {
         Args: {
@@ -5105,5 +5120,5 @@ export const Constants = {
     },
   },
 } as const
-A new version of Supabase CLI is available: v2.78.1 (currently installed v2.76.6)
+A new version of Supabase CLI is available: v2.84.2 (currently installed v2.76.6)
 We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

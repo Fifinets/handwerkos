@@ -563,8 +563,8 @@ const ProjectModuleV2 = () => {
                                                 name={project.name}
                                                 status={project.status as any}
                                                 budget={extractBudgetFromDescription(project.description || '') || project.budget || 0}
-                                                start={project.start_date}
-                                                end={project.end_date}
+                                                start={project.start_date || (project as any).besichtigung_date || (project as any).work_start_date}
+                                                end={project.end_date || (project as any).work_end_date}
                                                 onOpen={() => handleDoubleClickProject(project)}
                                                 onEdit={() => handleEditProject(project)}
                                             />

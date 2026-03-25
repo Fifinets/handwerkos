@@ -507,10 +507,14 @@ export class OfferService {
         );
       }
 
-      // Update status (triggers snapshot creation via DB trigger)
+      // Update status + set share token timestamp
       const { data: sentOffer, error } = await supabase
         .from('offers')
-        .update({ status: 'sent', sent_at: new Date().toISOString() })
+        .update({
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+          share_token_created_at: new Date().toISOString(),
+        })
         .eq('id', id)
         .select()
         .single();
@@ -522,7 +526,11 @@ export class OfferService {
         user_id: (await supabase.auth.getUser()).data.user?.id,
       });
 
-      return sentOffer;
+      // Attach share link for UI
+      const shareLink = sentOffer.share_token
+        ? `${window.location.origin}/public/offer/${sentOffer.share_token}`
+        : null;
+      return { ...sentOffer, shareLink } as any;
     }, `Send offer ${id}`);
   }
 
