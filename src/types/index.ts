@@ -6,6 +6,7 @@ export * from './core';
 export * from './ai';
 export * from './gobd';
 export * from './offer';
+export * from './inspection';
 
 // Workflow entities (Angebot → Auftrag → Projekt → Lieferschein → Rechnung)
 export * from './order';
