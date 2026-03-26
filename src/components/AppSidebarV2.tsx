@@ -20,7 +20,8 @@ import {
     MoreVertical,
     UserCircle,
     ClipboardList,
-    BarChart3
+    BarChart3,
+    ShieldCheck
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -58,6 +59,7 @@ const secondaryNavigation = [
     { id: 'timetracking', name: 'Zeiterfassung', icon: Clock },
     { id: 'delivery-notes', name: 'Lieferscheine', icon: ClipboardList },
     { id: 'materials', name: 'Material', icon: Package },
+    { id: 'inspections', name: 'Pruefprotokolle', icon: ShieldCheck },
 ];
 
 interface AppSidebarV2Props {
