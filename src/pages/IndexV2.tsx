@@ -22,6 +22,7 @@ import OfferModuleV2 from "@/components/OfferModuleV2";
 import InvoiceModuleV2 from "@/components/InvoiceModuleV2";
 import ReportsModuleV2 from "@/components/ReportsModuleV2";
 import InspectionModule from "@/components/inspections/InspectionModule";
+import { SubscriptionManager } from "@/components/billing/SubscriptionManager";
 import { VacationManagement } from "@/components/VacationManagement";
 import { toast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -118,6 +119,8 @@ const IndexV2 = () => {
                 return <ReportsModuleV2 />;
             case 'inspections':
                 return <InspectionModule />;
+            case 'billing':
+                return <SubscriptionManager />;
             default:
                 return <ExecutiveDashboardV2 onNavigate={setActiveModule} />;
         }

@@ -28,6 +28,10 @@ import {
     TrendingUp,
     TrendingDown,
     Bell,
+    Link2,
+    RotateCcw,
+    CreditCard,
+    Loader2 as Loader2Icon,
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -58,6 +62,7 @@ import {
     useSendOffer,
     useAcceptOffer,
     useRejectOffer,
+    useReviseOffer,
     useDuplicateOffer,
 } from "@/hooks/useApi";
 import { cn } from "@/lib/utils";
@@ -66,6 +71,7 @@ import { OfferWorkflowDots } from "./offers/OfferWorkflowDots";
 import AddOfferDialog from "./AddOfferDialog";
 import OfferDetailView from "./OfferDetailView";
 import { ShareLinkDialog } from "./offers/ShareLinkDialog";
+import { useCreatePaymentLink } from "@/hooks/useSubscription";
 
 function getNachfassBadge(offer: { status: string; sent_at?: string | null; valid_until?: string | null }) {
     if (offer.status !== 'sent') return null;
@@ -107,7 +113,7 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
     const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
     const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
     const [rejectReason, setRejectReason] = useState('');
-    const [shareLinkData, setShareLinkData] = useState<{ link: string; offerNumber: string; customerName: string; projectName: string } | null>(null);
+    const [shareLinkData, setShareLinkData] = useState<{ link: string; offerNumber: string; customerName: string; projectName: string; customerEmail: string } | null>(null);
 
     const filters: Record<string, any> = {};
     if (searchTerm.length >= 2) {
@@ -130,6 +136,8 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
     const sendOfferMutation = useSendOffer();
     const acceptOfferMutation = useAcceptOffer();
     const rejectOfferMutation = useRejectOffer();
+    const reviseOfferMutation = useReviseOffer();
+    const createPaymentLink = useCreatePaymentLink();
 
     const offers = offersResponse?.items || [];
 
@@ -218,6 +226,7 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                     offerNumber: offer.offer_number,
                     customerName: (offer as any).customer_name || '',
                     projectName: offer.project_name || '',
+                    customerEmail: (offer as any).customers?.email || '',
                 });
             } else {
                 toast({
@@ -566,6 +575,9 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                         <div className="text-slate-500 flex items-center gap-1.5 mt-1">
                                                             <Building2 className="h-3.5 w-3.5 text-slate-400" />
                                                             <span className="truncate max-w-[200px]">{offer.project_name}</span>
+                                                            {(offer as any).project_id && (
+                                                                <Link2 className="h-3.5 w-3.5 text-emerald-500" title="Mit Projekt verknüpft" />
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td className="px-5 py-4 text-right font-semibold text-slate-900">
@@ -573,6 +585,11 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                     </td>
                                                     <td className="px-5 py-4 text-center">
                                                         <OfferStatusBadge status={offer.status} />
+                                                        {offer.status === 'sent' && (offer as any).sent_at && (
+                                                            <p className="text-[10px] text-slate-400 mt-0.5">
+                                                                vor {Math.max(0, Math.floor((Date.now() - new Date((offer as any).sent_at).getTime()) / (1000 * 60 * 60 * 24)))}d
+                                                            </p>
+                                                        )}
                                                     </td>
                                                     <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                                                         <div className="flex items-center justify-end gap-1">
@@ -586,6 +603,18 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                                 >
                                                                     <Send className="h-3.5 w-3.5 mr-1" />
                                                                     <span className="text-xs">Senden</span>
+                                                                </Button>
+                                                            )}
+                                                            {offer.status === 'rejected' && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-8 px-2 text-amber-600 hover:text-amber-800 hover:bg-amber-50"
+                                                                    onClick={(e) => { e.stopPropagation(); reviseOfferMutation.mutate(offer.id); }}
+                                                                    title="Überarbeiten"
+                                                                >
+                                                                    <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                                                                    <span className="text-xs">Überarbeiten</span>
                                                                 </Button>
                                                             )}
                                                             <DropdownMenu>
@@ -624,11 +653,28 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                                             </DropdownMenuItem>
                                                                         </>
                                                                     )}
+                                                                    {(offer.status === 'rejected' || offer.status === 'sent') && (
+                                                                        <DropdownMenuItem onClick={() => reviseOfferMutation.mutate(offer.id)}>
+                                                                            <RotateCcw className="h-4 w-4 mr-2 text-amber-600" />
+                                                                            Überarbeiten
+                                                                        </DropdownMenuItem>
+                                                                    )}
+                                                                    {offer.status === 'accepted' && (
+                                                                        <DropdownMenuItem
+                                                                            onClick={() => createPaymentLink.mutate(offer.id)}
+                                                                            disabled={createPaymentLink.isPending}
+                                                                        >
+                                                                            <CreditCard className="h-4 w-4 mr-2 text-blue-600" />
+                                                                            Zahlungslink erstellen
+                                                                        </DropdownMenuItem>
+                                                                    )}
                                                                     <DropdownMenuSeparator />
-                                                                    <DropdownMenuItem onClick={() => handleDuplicateOffer(offer)}>
-                                                                        <Copy className="h-4 w-4 mr-2" />
-                                                                        {offer.status === 'rejected' ? 'Erneut anbieten (Kopie)' : 'Duplizieren'}
-                                                                    </DropdownMenuItem>
+                                                                    {offer.status !== 'rejected' && (
+                                                                        <DropdownMenuItem onClick={() => handleDuplicateOffer(offer)}>
+                                                                            <Copy className="h-4 w-4 mr-2" />
+                                                                            Duplizieren
+                                                                        </DropdownMenuItem>
+                                                                    )}
                                                                     {offer.status === 'draft' && (
                                                                         <>
                                                                             <DropdownMenuSeparator />
@@ -748,6 +794,7 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                 offerNumber={shareLinkData?.offerNumber || ''}
                 customerName={shareLinkData?.customerName || ''}
                 projectName={shareLinkData?.projectName || ''}
+                customerEmail={shareLinkData?.customerEmail || ''}
             />
         </div>
     );

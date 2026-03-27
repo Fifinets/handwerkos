@@ -246,7 +246,7 @@ export function AppSidebarV2({ activeModule, onModuleChange }: AppSidebarV2Props
                             <Settings className="mr-2 h-4 w-4 text-slate-400" />
                             <span>Einstellungen</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="focus:bg-slate-800 focus:text-slate-100 cursor-pointer" onClick={() => onModuleChange('documents')}>
+                        <DropdownMenuItem className="focus:bg-slate-800 focus:text-slate-100 cursor-pointer" onClick={() => onModuleChange('billing')}>
                             <Receipt className="mr-2 h-4 w-4 text-slate-400" />
                             <span>Abrechnung & Pläne</span>
                         </DropdownMenuItem>
