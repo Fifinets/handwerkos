@@ -18,7 +18,7 @@ import type {
 } from '@/types';
 import { ApiError } from '@/utils/api';
 // Import services directly to avoid circular dependency issues
-import { customerService, CustomerService } from '@/services/customerService';
+import { customerService } from '@/services/customerService';
 import { orderService } from '@/services/orderService';
 import { ProjectService } from '@/services/projectService';
 import { timesheetService } from '@/services/timesheetService';
@@ -39,6 +39,7 @@ import { aiIntentService } from '@/services/aiIntentService';
 import { aiEstimationService } from '@/services/aiEstimationService';
 import { eventBus } from '@/services/eventBus';
 import { OfferService, offerService } from '@/services/offerService';
+import { fetchOfferTemplates } from '@/services/aiOfferService';
 import type {
   Offer,
   OfferCreate,
@@ -90,6 +91,9 @@ export const QUERY_KEYS = {
   offerTargets: (id: string) => ['offers', id, 'targets'] as const,
   offerStats: ['offers', 'stats'] as const,
   customerOffers: (customerId: string) => ['customers', customerId, 'offers'] as const,
+  offerTemplates: ['offer-position-templates'] as const,
+  companyAISettings: ['company-ai-settings'] as const,
+  effectiveHourlyRate: ['effective-hourly-rate'] as const,
 
   // Order keys
   orders: ['orders'] as const,
@@ -153,7 +157,7 @@ export const useCustomers = (
 ) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.customers, pagination, filters],
-    queryFn: () => CustomerService.getCustomers(pagination, filters),
+    queryFn: () => customerService.getCustomers(pagination, filters),
     ...options,
   });
 };
@@ -161,7 +165,7 @@ export const useCustomers = (
 export const useCustomer = (id: string, options?: UseApiQueryOptions<Customer>) => {
   return useQuery({
     queryKey: QUERY_KEYS.customer(id),
-    queryFn: () => CustomerService.getCustomer(id),
+    queryFn: () => customerService.getCustomer(id),
     enabled: !!id,
     ...options,
   });
@@ -170,7 +174,7 @@ export const useCustomer = (id: string, options?: UseApiQueryOptions<Customer>) 
 export const useCustomerStats = (id: string, options?: UseApiQueryOptions<any>) => {
   return useQuery({
     queryKey: QUERY_KEYS.customerStats(id),
-    queryFn: () => CustomerService.getCustomerStats(id),
+    queryFn: () => customerService.getCustomerStats(id),
     enabled: !!id,
     ...options,
   });
@@ -181,7 +185,7 @@ export const useCreateCustomer = (options?: UseApiMutationOptions<Customer, Cust
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: (data: CustomerCreate) => CustomerService.createCustomer(data),
+    mutationFn: (data: CustomerCreate) => customerService.createCustomer(data),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers });
       toast({
@@ -231,7 +235,7 @@ export const useDeleteCustomer = (options?: UseApiMutationOptions<void, string>)
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: (id: string) => CustomerService.deleteCustomer(id),
+    mutationFn: (id: string) => customerService.deleteCustomer(id),
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers });
       queryClient.removeQueries({ queryKey: QUERY_KEYS.customer(id) });
@@ -254,7 +258,7 @@ export const useDeleteCustomer = (options?: UseApiMutationOptions<void, string>)
 export const useSearchCustomers = (query: string, limit?: number, options?: UseApiQueryOptions<Customer[]>) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.customers, 'search', query, limit],
-    queryFn: () => CustomerService.searchCustomers(query, limit),
+    queryFn: () => customerService.searchCustomers(query, limit),
     enabled: query.length >= 2,
     ...options,
   });
@@ -2779,6 +2783,31 @@ export const useRejectOffer = (
   });
 };
 
+export const useReviseOffer = (options?: UseApiMutationOptions<Offer, string>) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: (id: string) => OfferService.reviseOffer(id),
+    onSuccess: (offer, id) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.offers });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.offer(id) });
+      toast({
+        title: 'Angebot zurück im Entwurf',
+        description: `${offer.offer_number} kann jetzt überarbeitet und erneut versendet werden.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Fehler beim Überarbeiten',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    ...options,
+  });
+};
+
 export const useCancelOffer = (options?: UseApiMutationOptions<Offer, string>) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -2905,6 +2934,18 @@ export const useUpdateOfferTargets = (
   });
 };
 
+// AI Offer Template Hooks
+export const useOfferTemplates = (
+  search?: string,
+  category: string = 'elektro'
+) => {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.offerTemplates, search, category],
+    queryFn: () => fetchOfferTemplates(search, category),
+    staleTime: 10 * 60 * 1000,
+  });
+};
+
 // Export all hooks as default export (moved to end to avoid hoisting issues)
 export default {
   // Export all hooks for convenience
@@ -2939,7 +2980,9 @@ export default {
   // Offer hooks
   useOffers, useOffer, useOfferItems, useOfferTargets, useOfferStats,
   useCreateOffer, useUpdateOffer, useDeleteOffer,
-  useSendOffer, useAcceptOffer, useRejectOffer, useCancelOffer, useDuplicateOffer,
+  useSendOffer, useAcceptOffer, useRejectOffer, useReviseOffer, useCancelOffer, useDuplicateOffer,
   useAddOfferItem, useUpdateOfferItem, useDeleteOfferItem, useUpdateOfferTargets, useSyncOfferItems,
+  // AI Offer hooks
+  useOfferTemplates,
 };
 

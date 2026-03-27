@@ -5,11 +5,16 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OfferMaterialCatalog } from './OfferMaterialCatalog';
+import { AIOfferAssistant } from './AIOfferAssistant';
+import type { AIGeneratedPosition } from '@/types/aiOffer';
 import { Material } from '@/types';
 
 interface OfferSidebarProps {
     onAddItem: (type: string, data?: any) => void;
     isOpen: boolean;
+    projectName?: string;
+    customerName?: string;
+    onAcceptAIPositions?: (positions: AIGeneratedPosition[]) => void;
 }
 
 const POSITION_TYPES = [
@@ -50,7 +55,7 @@ const POSITION_TYPES = [
     },
 ];
 
-export function OfferSidebar({ onAddItem, isOpen }: OfferSidebarProps) {
+export function OfferSidebar({ onAddItem, isOpen, projectName, customerName, onAcceptAIPositions }: OfferSidebarProps) {
     const [positionOpen, setPositionOpen] = useState(false);
 
     if (!isOpen) return null;
@@ -172,8 +177,31 @@ export function OfferSidebar({ onAddItem, isOpen }: OfferSidebarProps) {
                     <div className="p-8 text-center text-sm text-muted-foreground">Versionen in Kürze verfügbar</div>
                 </TabsContent>
 
-                <TabsContent value="chat" className="flex-1 mt-0">
-                    <div className="p-8 text-center text-sm text-muted-foreground">KI Assistent in Kürze verfügbar</div>
+                <TabsContent value="chat" className="flex-1 mt-0 h-full overflow-hidden">
+                    <AIOfferAssistant
+                        projectName={projectName}
+                        customerName={customerName}
+                        onAcceptPositions={(positions) => {
+                            if (onAcceptAIPositions) {
+                                onAcceptAIPositions(positions);
+                            } else {
+                                positions.forEach((pos) => {
+                                    onAddItem('position', {
+                                        description: pos.description,
+                                        quantity: pos.quantity,
+                                        unit: pos.unit,
+                                        unit_price_net: pos.unit_price_net,
+                                        vat_rate: pos.vat_rate,
+                                        item_type: pos.item_type,
+                                        planned_hours_item: pos.planned_hours_item,
+                                        material_purchase_cost: pos.material_purchase_cost,
+                                        internal_notes: pos.internal_notes,
+                                        is_optional: pos.is_optional,
+                                    });
+                                });
+                            }
+                        }}
+                    />
                 </TabsContent>
             </Tabs>
         </div>

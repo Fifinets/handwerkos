@@ -598,6 +598,27 @@ export default function OfferEditorPage() {
                     <OfferSidebar
                         isOpen={isSidebarOpen}
                         onAddItem={handleAddItem}
+                        projectName={subject}
+                        customerName={selectedCustomer?.company_name}
+                        onAcceptAIPositions={(positions) => {
+                            const newItems = positions.map((pos, idx) => ({
+                                temp_id: crypto.randomUUID(),
+                                position_number: items.length + idx + 1,
+                                description: pos.description,
+                                quantity: pos.quantity,
+                                unit: pos.unit,
+                                unit_price_net: pos.unit_price_net,
+                                vat_rate: pos.vat_rate,
+                                item_type: pos.item_type,
+                                is_optional: pos.is_optional ?? false,
+                                planned_hours_item: pos.planned_hours_item,
+                                material_purchase_cost: pos.material_purchase_cost,
+                                internal_notes: pos.internal_notes,
+                                discount_percent: 0,
+                            }));
+                            setItems(prev => [...prev, ...newItems]);
+                            markDirty();
+                        }}
                     />
                 </div>
             )}
