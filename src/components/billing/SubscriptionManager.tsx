@@ -79,29 +79,29 @@ export function SubscriptionManager() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Plan & Kontingent Card (dark, like screenshot) */}
-      <div className="bg-slate-900 rounded-2xl p-6 text-white shadow-xl">
+      {/* Plan & Kontingent Card */}
+      <div className="bg-white rounded-2xl p-6 border shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
-            planSlug === 'enterprise' ? 'bg-purple-500/20 text-purple-300' :
-            planSlug === 'pro' ? 'bg-emerald-500/20 text-emerald-300' :
-            planSlug === 'basic' ? 'bg-blue-500/20 text-blue-300' :
-            'bg-slate-700 text-slate-400'
+            planSlug === 'enterprise' ? 'bg-purple-100 text-purple-700' :
+            planSlug === 'pro' ? 'bg-emerald-100 text-emerald-700' :
+            planSlug === 'basic' ? 'bg-blue-100 text-blue-700' :
+            'bg-slate-100 text-slate-600'
           }`}>
             {display.name}
           </span>
           {isTrialing && daysRemaining !== null ? (
-            <span className="text-xs text-emerald-400">
+            <span className="text-xs text-emerald-600">
               Verlaengert sich in {daysRemaining} Tagen
             </span>
           ) : subscription?.current_period_end ? (
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-slate-500">
               Verlaengert sich am {format(new Date(subscription.current_period_end), 'dd.MM.yyyy')}
             </span>
           ) : null}
         </div>
 
-        <h2 className="text-lg font-bold mb-4">Plan & Kontingent</h2>
+        <h2 className="text-lg font-bold text-slate-900 mb-4">Plan & Kontingent</h2>
 
         <div className="space-y-3">
           <UsageBar icon={FileText} label="Monatliche Angebote" used={0} max={limits.max_offers_month} />
@@ -112,31 +112,31 @@ export function SubscriptionManager() {
 
         {/* Upgrade hint */}
         {planSlug !== 'enterprise' && (
-          <div className="mt-5 pt-4 border-t border-slate-700">
-            <p className="text-sm font-semibold text-white flex items-center gap-1.5 mb-2">
-              <Zap className="h-4 w-4 text-amber-400" />
+          <div className="mt-5 pt-4 border-t border-slate-200">
+            <p className="text-sm font-semibold text-slate-800 flex items-center gap-1.5 mb-2">
+              <Zap className="h-4 w-4 text-amber-500" />
               Upgrade auf {planSlug === 'free' || planSlug === 'basic' ? 'Handwerker' : 'Meisterbetrieb'}
             </p>
             <ul className="space-y-1.5">
               {planSlug === 'free' || planSlug === 'basic' ? (
                 <>
-                  <li className="flex items-center gap-2 text-xs text-slate-300">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                  <li className="flex items-center gap-2 text-xs text-slate-600">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                     Unbegrenzte Angebote & Projekte
                   </li>
-                  <li className="flex items-center gap-2 text-xs text-slate-300">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                  <li className="flex items-center gap-2 text-xs text-slate-600">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                     KI-Angebotsassistent & Baustellendoku
                   </li>
                 </>
               ) : (
                 <>
-                  <li className="flex items-center gap-2 text-xs text-slate-300">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                  <li className="flex items-center gap-2 text-xs text-slate-600">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                     Unbegrenzte Mitarbeiter & 50 GB Speicher
                   </li>
-                  <li className="flex items-center gap-2 text-xs text-slate-300">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                  <li className="flex items-center gap-2 text-xs text-slate-600">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                     DATEV-Export & VDE-Pruefprotokolle
                   </li>
                 </>
