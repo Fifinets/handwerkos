@@ -26,7 +26,8 @@ import {
   ExternalLink,
   File,
   FileImage,
-  FilePlus
+  FilePlus,
+  Link2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -46,6 +47,7 @@ import MaterialEntryForm from "./MaterialEntryForm";
 import InvoiceDetailDialog from "./InvoiceDetailDialog";
 import CreateInvoiceFromProjectDialog from "./CreateInvoiceFromProjectDialog";
 import { WorkflowStatusDialog } from './WorkflowStatusDialog';
+import { SiteDocModule } from '@/components/site-docs/SiteDocModule';
 
 interface ProjectDetailViewProps {
   isOpen: boolean;
@@ -1184,13 +1186,14 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             })()}
 
             {/* Tabs */}
-            <TabsList className="bg-slate-100/80 border border-slate-200/60 p-1 rounded-full grid w-full grid-cols-6 h-11">
+            <TabsList className="bg-slate-100/80 border border-slate-200/60 p-1 rounded-full grid w-full grid-cols-7 h-11">
               {[
                 { value: 'overview', label: 'Übersicht' },
                 { value: 'details', label: 'Details' },
                 { value: 'time', label: 'Zeiten' },
                 { value: 'materials', label: 'Material' },
                 { value: 'documents', label: 'Dokumente' },
+                { value: 'baudoku', label: 'Baudoku' },
                 { value: 'comments', label: 'Kommentare' },
               ].map(tab => (
                 <TabsTrigger
@@ -1297,6 +1300,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                         {projectOffers.map(offer => (
                           <div key={offer.id} className="flex items-center justify-between p-2 rounded-md bg-slate-50 border border-slate-100">
                             <div className="flex items-center gap-2">
+                              <Link2 className="h-3 w-3 text-emerald-500 shrink-0" />
                               <a
                                 href={`/manager2/offers/${offer.id}/edit`}
                                 target="_blank"
@@ -2157,6 +2161,13 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          <TabsContent value="baudoku" className="px-6 pb-6 pt-5 min-h-[600px] mt-0">
+            <SiteDocModule
+              projectId={project.id}
+              projectName={project.project_name}
+            />
           </TabsContent>
 
           <TabsContent value="comments" className="space-y-4 min-h-[600px] mt-0">
