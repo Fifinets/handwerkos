@@ -140,6 +140,17 @@ export interface PaymentLinkResponse {
 }
 
 // ============================================================================
+// USAGE STATS
+// ============================================================================
+
+export interface UsageStats {
+  offers_this_month: number;
+  active_projects: number;
+  active_employees: number;
+  storage_used_gb: number;
+}
+
+// ============================================================================
 // FEATURE GATING
 // ============================================================================
 

@@ -15,6 +15,8 @@ import { InspectionPDFDownloadButton } from './InspectionProtocolPDF';
 import type { InspectionDevice, ProtocolType } from '@/types/inspection';
 import { PROTOCOL_TYPE_LABELS, RESULT_LABELS } from '@/types/inspection';
 import { format } from 'date-fns';
+import { useFeatureAccess } from '@/hooks/useSubscription';
+import { UpgradePrompt } from '@/components/billing/UpgradePrompt';
 
 function useCustomerList() {
   return useQuery({
@@ -27,6 +29,12 @@ function useCustomerList() {
 }
 
 export default function InspectionModule() {
+  const { hasAccess, isLoading: accessLoading, requiredPlan } = useFeatureAccess('vde_protocols');
+
+  if (!accessLoading && !hasAccess) {
+    return <UpgradePrompt feature="VDE-Pruefprotokolle" requiredPlan={requiredPlan || 'enterprise'} />;
+  }
+
   const { data: protocols = [] } = useInspectionProtocols();
   const { data: customers = [] } = useCustomerList();
 

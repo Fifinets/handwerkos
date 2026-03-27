@@ -35,8 +35,11 @@ import { supabase } from "@/integrations/supabase/client";
 import EditEmployeeDialog from "@/components/personal/EditEmployeeDialog";
 import { toast } from "sonner";
 import AddEmployeeDialog from "@/components/personal/AddEmployeeDialog";
+import { useFeatureAccess } from "@/hooks/useSubscription";
+import { UpgradePrompt } from "@/components/billing/UpgradePrompt";
 
 const PersonalModuleV2 = () => {
+    const { hasAccess, isLoading: accessLoading, requiredPlan } = useFeatureAccess('employee_management');
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState('overview');
     const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
@@ -162,6 +165,10 @@ const PersonalModuleV2 = () => {
     const activeCount = employees.filter(e => ['Aktiv', 'aktiv', 'active'].includes(e.status ?? '')).length;
     const vacationCount = employees.filter(e => ['Urlaub', 'urlaub'].includes(e.status ?? '')).length;
     const sickCount = employees.filter(e => ['Krank', 'krank'].includes(e.status ?? '')).length;
+
+    if (!accessLoading && !hasAccess) {
+        return <UpgradePrompt feature="Mitarbeiterverwaltung" requiredPlan={requiredPlan || 'pro'} />;
+    }
 
     return (
         <div className="p-6 space-y-6 max-w-[1600px] mx-auto">

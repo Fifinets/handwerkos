@@ -4,6 +4,7 @@ import type {
   SubscriptionPlan,
   CompanySubscription,
   PlanSlug,
+  UsageStats,
 } from '@/types/subscription';
 import { useToast } from '@/hooks/use-toast';
 
@@ -15,6 +16,7 @@ export const subscriptionKeys = {
   all: ['subscription'] as const,
   plans: () => [...subscriptionKeys.all, 'plans'] as const,
   status: () => [...subscriptionKeys.all, 'status'] as const,
+  usage: () => [...subscriptionKeys.all, 'usage'] as const,
   offerPayment: (offerId: string) =>
     [...subscriptionKeys.all, 'offer-payment', offerId] as const,
 };
@@ -37,6 +39,14 @@ export function useSubscription() {
     queryFn: () => SubscriptionService.getSubscription(),
     staleTime: 2 * 60 * 1000,
     retry: 1,
+  });
+}
+
+export function useUsageStats() {
+  return useQuery<UsageStats>({
+    queryKey: subscriptionKeys.usage(),
+    queryFn: () => SubscriptionService.getUsageStats(),
+    staleTime: 60 * 1000, // 1 min cache
   });
 }
 

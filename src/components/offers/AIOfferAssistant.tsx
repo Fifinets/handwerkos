@@ -5,6 +5,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAIOfferAssistant } from '@/hooks/useAIOfferAssistant';
 import { AIOfferPreview } from './AIOfferPreview';
 import type { AIGeneratedPosition } from '@/types/aiOffer';
+import { useFeatureAccess } from '@/hooks/useSubscription';
+import { UpgradePrompt } from '@/components/billing/UpgradePrompt';
 
 const EXAMPLE_PROMPTS = [
   'Badezimmer komplett neu verkabeln, 2 Steckdosen, 1 Lichtschalter',
@@ -25,6 +27,7 @@ export function AIOfferAssistant({
   customerName,
   onAcceptPositions,
 }: AIOfferAssistantProps) {
+  const { hasAccess, isLoading: accessLoading, requiredPlan } = useFeatureAccess('ai_estimation');
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -59,6 +62,10 @@ export function AIOfferAssistant({
       handleSubmit();
     }
   };
+
+  if (!accessLoading && !hasAccess) {
+    return <UpgradePrompt feature="KI-Angebotsassistent" requiredPlan={requiredPlan || 'pro'} />;
+  }
 
   return (
     <div className="flex flex-col h-full">

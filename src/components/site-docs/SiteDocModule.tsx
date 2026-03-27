@@ -14,6 +14,8 @@ import {
   useDeleteSiteDocEntry,
   useUploadSitePhoto,
 } from '@/hooks/useSiteDocumentation';
+import { useFeatureAccess } from '@/hooks/useSubscription';
+import { UpgradePrompt } from '@/components/billing/UpgradePrompt';
 
 interface SiteDocModuleProps {
   projectId: string;
@@ -24,6 +26,8 @@ export const SiteDocModule: React.FC<SiteDocModuleProps> = ({
   projectId,
   projectName,
 }) => {
+  const { hasAccess, isLoading: accessLoading, requiredPlan } = useFeatureAccess('site_documentation');
+
   const [inputMode, setInputMode] = useState<'voice' | 'text'>('voice');
   const [textInput, setTextInput] = useState('');
   const [currentGps, setCurrentGps] = useState<{
@@ -120,6 +124,10 @@ export const SiteDocModule: React.FC<SiteDocModuleProps> = ({
   const mangelCount = entries.filter(
     (e) => e.extracted_data?.maengel && e.extracted_data.maengel.length > 0
   ).length;
+
+  if (!accessLoading && !hasAccess) {
+    return <UpgradePrompt feature="Baustellendokumentation" requiredPlan={requiredPlan || 'pro'} />;
+  }
 
   return (
     <div className="space-y-4">

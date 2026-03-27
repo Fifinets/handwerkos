@@ -7,6 +7,7 @@ import type {
   CheckoutSessionResponse,
   PortalSessionResponse,
   PaymentLinkResponse,
+  UsageStats,
 } from '@/types/subscription';
 
 export class SubscriptionService {
@@ -62,6 +63,24 @@ export class SubscriptionService {
     } catch {
       return false;
     }
+  }
+
+  // ============================================================================
+  // USAGE STATS
+  // ============================================================================
+
+  static async getUsageStats(): Promise<UsageStats> {
+    return apiCall(async () => {
+      const companyId = await this.getCompanyId();
+
+      // @ts-ignore
+      const { data, error } = await supabase.rpc('get_usage_stats', {
+        p_company_id: companyId,
+      });
+
+      if (error) throw error;
+      return data as UsageStats;
+    }, 'Get usage stats');
   }
 
   // ============================================================================

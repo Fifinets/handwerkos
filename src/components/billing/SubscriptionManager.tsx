@@ -17,6 +17,7 @@ import {
   useSubscription,
   usePortalSession,
   useIsSubscribed,
+  useUsageStats,
 } from '@/hooks/useSubscription';
 import { SUBSCRIPTION_STATUS_LABELS, PLAN_DISPLAY, PLAN_LIMITS } from '@/types/subscription';
 import { Button } from '@/components/ui/button';
@@ -63,6 +64,7 @@ function UsageBar({ label, icon: Icon, used, max, unit }: {
 export function SubscriptionManager() {
   const { data: subscription, isLoading } = useSubscription();
   const { isSubscribed, isTrialing, daysRemaining } = useIsSubscribed();
+  const { data: usage } = useUsageStats();
   const portalSession = usePortalSession();
 
   if (isLoading) {
@@ -104,10 +106,10 @@ export function SubscriptionManager() {
         <h2 className="text-lg font-bold text-slate-900 mb-4">Plan & Kontingent</h2>
 
         <div className="space-y-3">
-          <UsageBar icon={FileText} label="Monatliche Angebote" used={0} max={limits.max_offers_month} />
-          <UsageBar icon={FolderOpen} label="Aktive Projekte" used={0} max={limits.max_projects} />
-          <UsageBar icon={Users} label="Mitarbeiter" used={0} max={limits.max_employees} />
-          <UsageBar icon={HardDrive} label="Speicherplatz" used={0} max={limits.storage_gb} unit="GB" />
+          <UsageBar icon={FileText} label="Monatliche Angebote" used={usage?.offers_this_month ?? 0} max={limits.max_offers_month} />
+          <UsageBar icon={FolderOpen} label="Aktive Projekte" used={usage?.active_projects ?? 0} max={limits.max_projects} />
+          <UsageBar icon={Users} label="Mitarbeiter" used={usage?.active_employees ?? 0} max={limits.max_employees} />
+          <UsageBar icon={HardDrive} label="Speicherplatz" used={usage?.storage_used_gb ?? 0} max={limits.storage_gb} unit="GB" />
         </div>
 
         {/* Upgrade hint */}
