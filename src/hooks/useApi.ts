@@ -140,6 +140,11 @@ export const QUERY_KEYS = {
   // Employee keys
   employees: ['employees'] as const,
   employee: (id: string) => ['employees', id] as const,
+
+  // Site Documentation keys
+  siteDocEntries: (projectId: string) => ['site-docs', projectId, 'entries'] as const,
+  siteDocEntry: (id: string) => ['site-docs', 'entry', id] as const,
+  siteDocPhotos: (projectId: string) => ['site-docs', projectId, 'photos'] as const,
 } as const;
 
 // Generic hook types
