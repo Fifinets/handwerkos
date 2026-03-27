@@ -145,18 +145,33 @@ export interface PaymentLinkResponse {
 
 export const PLAN_FEATURES: Record<string, string[]> = {
   free: [],
-  basic: ['offers', 'invoices', 'projects', 'customers', 'time_tracking'],
+  basic: [
+    'offers', 'projects', 'customers', 'time_tracking', 'materials',
+  ],
   pro: [
-    'offers', 'invoices', 'projects', 'customers', 'time_tracking',
-    'materials', 'ai_estimation', 'document_ocr', 'delivery_notes',
-    'employee_management',
+    'offers', 'projects', 'customers', 'time_tracking', 'materials',
+    'invoices', 'delivery_notes', 'ai_estimation', 'document_ocr',
+    'site_documentation', 'employee_management',
   ],
   enterprise: [
-    'offers', 'invoices', 'projects', 'customers', 'time_tracking',
-    'materials', 'ai_estimation', 'document_ocr', 'delivery_notes',
-    'employee_management', 'datev_export', 'api_access',
+    'offers', 'projects', 'customers', 'time_tracking', 'materials',
+    'invoices', 'delivery_notes', 'ai_estimation', 'document_ocr',
+    'site_documentation', 'employee_management',
+    'vde_protocols', 'datev_export', 'api_access',
     'priority_support', 'custom_branding',
   ],
+};
+
+export const PLAN_LIMITS: Record<string, {
+  max_offers_month: number | null;
+  max_projects: number | null;
+  max_employees: number | null;
+  storage_gb: number;
+}> = {
+  free: { max_offers_month: 3, max_projects: 2, max_employees: 1, storage_gb: 0.5 },
+  basic: { max_offers_month: 30, max_projects: 10, max_employees: 3, storage_gb: 5 },
+  pro: { max_offers_month: null, max_projects: null, max_employees: 10, storage_gb: 15 },
+  enterprise: { max_offers_month: null, max_projects: null, max_employees: null, storage_gb: 50 },
 };
 
 export const PLAN_DISPLAY: Record<string, {
@@ -164,10 +179,10 @@ export const PLAN_DISPLAY: Record<string, {
   badge_color: string;
   description: string;
 }> = {
-  free: { name: 'Kostenlos', badge_color: 'gray', description: 'Eingeschraenkte Funktionen' },
-  basic: { name: 'Basic', badge_color: 'blue', description: 'Fuer Einzelunternehmer' },
-  pro: { name: 'Pro', badge_color: 'emerald', description: 'Fuer wachsende Betriebe' },
-  enterprise: { name: 'Enterprise', badge_color: 'purple', description: 'Fuer grosse Betriebe' },
+  free: { name: 'Kostenlos', badge_color: 'gray', description: 'Zum Testen' },
+  basic: { name: 'Starter', badge_color: 'blue', description: 'Fuer Einzelunternehmer' },
+  pro: { name: 'Handwerker', badge_color: 'emerald', description: 'Fuer wachsende Betriebe' },
+  enterprise: { name: 'Meisterbetrieb', badge_color: 'purple', description: 'Fuer etablierte Betriebe' },
 };
 
 // ============================================================================
