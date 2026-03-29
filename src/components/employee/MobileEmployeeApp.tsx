@@ -1579,7 +1579,7 @@ const MobileEmployeeApp: React.FC = () => {
               key={item.id}
               variant={currentView === item.id ? "default" : "ghost"}
               size="sm"
-              onClick={() => setCurrentView(item.id as any)}
+              onClick={() => setCurrentView(item.id as typeof currentView)}
               className="flex flex-col gap-1 h-16 p-2"
             >
               <item.icon className="h-5 w-5" />

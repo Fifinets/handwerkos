@@ -61,7 +61,7 @@ export function CompanySettingsModule() {
     },
     retry: (failureCount, error: unknown) => {
       // Don't retry if it's an RLS policy violation
-      if ((error as any)?.code === 'PGRST116' || (error as any)?.message?.includes('row-level security')) {
+      if ((error as Error & { code?: string })?.code === 'PGRST116' || (error as Error)?.message?.includes('row-level security')) {
         return false;
       }
       return failureCount < 3;

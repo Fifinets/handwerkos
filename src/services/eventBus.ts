@@ -261,7 +261,7 @@ class EventBus {
       // Extract relevant information for audit log
       const auditData = this.extractAuditData(event, data);
 
-      await supabase.from('audit_logs' as any).insert({
+      await supabase.from('audit_logs').insert({
         action: this.mapEventToAuditAction(event),
         table_name: this.extractTableName(event),
         record_id: auditData.recordId,

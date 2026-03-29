@@ -17,12 +17,20 @@ interface ProjectWithCustomers extends Project {
         email?: string;
     };
     // Compatibility fields for some sub-components
-    customer?: any;
+    customer?: string;
     progress?: number;
     startDate?: string;
     endDate?: string;
     team?: string[];
     location?: string;
+    site?: string;
+    // Workflow fields from DB
+    besichtigung_date?: string;
+    besichtigung_time_start?: string;
+    besichtigung_employee_id?: string;
+    work_start_date?: string;
+    work_end_date?: string;
+    project_type?: string;
 }
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -135,7 +143,7 @@ const ProjectModuleV2 = () => {
                 .from('projects')
                 .select('*');
 
-            setDebugProjects((data as any) || []);
+            setDebugProjects((data ?? []) as ProjectWithCustomers[]);
             setDebugError(error);
         } catch (err) {
             setDebugError(err);
@@ -228,12 +236,12 @@ const ProjectModuleV2 = () => {
                     const projectAssignments = (assignmentsData || [])
                         .filter(a => a.employee_id === employee.id)
                         .map(ptm => ptm.projects)
-                        .filter(p => p && (p as any).start_date)
+                        .filter((p): p is NonNullable<typeof p> & { start_date: string; name: string } => p != null && !!p.start_date)
                         .map(p => ({
-                            name: (p as any).name,
+                            name: p.name,
                             // Convert YYYY-MM-DD to DD.MM.YYYY for the availability logic
-                            startDate: (p as any).start_date.split('-').reverse().join('.'),
-                            endDate: ((p as any).end_date || (p as any).start_date).split('-').reverse().join('.')
+                            startDate: p.start_date.split('-').reverse().join('.'),
+                            endDate: (p.end_date || p.start_date).split('-').reverse().join('.')
                         }));
 
                     return {
@@ -556,10 +564,10 @@ const ProjectModuleV2 = () => {
                                                 id={generateShortId(project.id)}
                                                 project_number={project.project_number}
                                                 name={project.name}
-                                                status={project.status as any}
+                                                status={project.status}
                                                 budget={extractBudgetFromDescription(project.description || '') || project.budget || 0}
-                                                start={project.start_date || (project as any).besichtigung_date || (project as any).work_start_date}
-                                                end={project.end_date || (project as any).work_end_date}
+                                                start={project.start_date || project.besichtigung_date || project.work_start_date}
+                                                end={project.end_date || project.work_end_date}
                                                 onOpen={() => handleDoubleClickProject(project)}
                                                 onEdit={() => handleEditProject(project)}
                                             />
@@ -736,14 +744,14 @@ const ProjectModuleV2 = () => {
                 isOpen={isAddDialogOpen}
                 onClose={() => setIsAddDialogOpen(false)}
                 onProjectAdded={() => setIsAddDialogOpen(false)}
-                customers={customersWithFallback as any}
+                customers={customersWithFallback as Array<Customer & Record<string, unknown>>}
                 teamMembers={teamMembers}
             />
 
             <EditProjectDialog
                 isOpen={isEditDialogOpen}
                 onClose={() => setIsEditDialogOpen(false)}
-                project={selectedProject as any}
+                project={selectedProject as ProjectWithCustomers & { customer: string; progress: number; startDate: string; endDate: string; budget: string; team: string[] }}
                 onProjectUpdated={() => setIsEditDialogOpen(false)}
                 onProjectDeleted={() => setIsEditDialogOpen(false)}
             />
@@ -751,7 +759,7 @@ const ProjectModuleV2 = () => {
             <ProjectDetailDialogWithTasks
                 isOpen={isDetailDialogOpen}
                 onClose={() => setIsDetailDialogOpen(false)}
-                project={selectedProject as any}
+                project={selectedProject as ProjectWithCustomers & { customer: string; progress: number; startDate: string; endDate: string; budget: string }}
             />
 
             {selectedProjectId && (

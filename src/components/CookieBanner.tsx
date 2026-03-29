@@ -17,12 +17,12 @@ export default function CookieBanner() {
 
     // Expose function globally so links in Footer/Datenschutz can re-open banner
     React.useEffect(() => {
-        (window as any).openCookieSettings = () => {
+        window.openCookieSettings = () => {
             setShowDetails(true);
             openBanner();
         };
         return () => {
-            delete (window as any).openCookieSettings;
+            delete window.openCookieSettings;
         };
     }, [openBanner]);
 

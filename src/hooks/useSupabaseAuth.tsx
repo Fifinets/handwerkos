@@ -128,7 +128,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
           expires_at: inviteExpiry.toISOString(),
           employee_data: employeeData,
           status: 'pending'
-        } as any);
+        } as Record<string, unknown>);
 
       if (inviteError) {
         return { success: false, error: 'Fehler beim Erstellen der Einladung' };
@@ -147,7 +147,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
           license: employeeData.license || '',
           company_id: companyId,
           status: 'eingeladen'
-        } as any);
+        } as Record<string, unknown>);
 
       if (employeeError) {
         return { success: false, error: 'Fehler beim Erstellen des Mitarbeiters' };

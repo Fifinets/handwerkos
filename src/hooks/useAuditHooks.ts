@@ -2,8 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { auditLogService } from '@/services/auditLogService';
-import { gobdService } from '@/services/gobdService';
+import { auditLogService, type AuditEntityType } from '@/services/auditLogService';
+import { gobdService, type NumberSequenceType } from '@/services/gobdService';
 import type { PaginationQuery } from '@/types';
 import { QUERY_KEYS } from './useQueryKeys';
 
@@ -37,7 +37,7 @@ export const useAuditTrail = (
 ) => {
   return useQuery({
     queryKey: [QUERY_KEYS.AUDIT_TRAIL, entityType, entityId],
-    queryFn: () => auditLogService.getAuditTrail(entityType as any, entityId),
+    queryFn: () => auditLogService.getAuditTrail(entityType as AuditEntityType, entityId),
     enabled: !!entityType && !!entityId,
     staleTime: 60 * 1000, // 1 minute
     ...options,
@@ -86,7 +86,7 @@ export const useNumberSequence = (
 ) => {
   return useQuery({
     queryKey: [QUERY_KEYS.NUMBER_SEQUENCES, sequenceType, year],
-    queryFn: () => gobdService.getOrCreateNumberSequence(sequenceType as any, year),
+    queryFn: () => gobdService.getOrCreateNumberSequence(sequenceType as NumberSequenceType, year),
     enabled: !!sequenceType,
     staleTime: 10 * 60 * 1000, // 10 minutes
     ...options,
@@ -104,7 +104,7 @@ export const useGetNextNumber = (
 
   return useMutation({
     mutationFn: ({ sequenceType, year }: { sequenceType: string; year?: number }) =>
-      gobdService.getNextNumber(sequenceType as any, year),
+      gobdService.getNextNumber(sequenceType as NumberSequenceType, year),
     onSuccess: (data, variables) => {
       // Invalidate number sequences
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NUMBER_SEQUENCES] });

@@ -156,7 +156,7 @@ export class ProjectService {
       const companyId = profile?.company_id || '00000000-0000-0000-0000-000000000000';
 
       // Remove progress_percentage if it exists in the validated data
-      const { progress_percentage, ...cleanData } = validatedData as any;
+      const { progress_percentage, ...cleanData } = validatedData as Record<string, unknown>;
 
       const projectData = {
         ...cleanData,

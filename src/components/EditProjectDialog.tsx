@@ -30,6 +30,7 @@ interface Project {
   customer_id?: string;
   start_date?: string;
   end_date?: string;
+  company_name?: string;
 }
 
 interface EditProjectDialogProps {
@@ -95,15 +96,15 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
       setFormData({
         name: project.name || '',
         customer_id: project.customer_id || '',
-        status: (project.status as any) || 'anfrage',
-        startDate: (project as any).start_date || project.startDate || '',
-        endDate: (project as any).end_date || project.endDate || '',
+        status: project.status || 'anfrage',
+        startDate: project.start_date || project.startDate || '',
+        endDate: project.end_date || project.endDate || '',
         project_site_id: project.project_site_id || ''
       });
 
       // Set date range if dates are available
-      const startDate = (project as any).start_date || project.startDate;
-      const endDate = (project as any).end_date || project.endDate;
+      const startDate = project.start_date || project.startDate;
+      const endDate = project.end_date || project.endDate;
 
       if (startDate && endDate) {
         setDateRange({
@@ -260,7 +261,8 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
       ] as const;
 
       for (const table of childTables) {
-        await supabase.from(table as any).delete().eq('project_id', id);
+        // Tables may not all exist in generated Supabase types but are valid DB tables
+        await supabase.from(table).delete().eq('project_id', id);
       }
 
       // Now delete the project itself
@@ -268,7 +270,7 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
       if (error) throw error;
 
       toast({ title: 'Projekt gelöscht', description: 'Das Projekt wurde erfolgreich gelöscht.' });
-      eventBus.emit('PROJECT_DELETED' as any, { id });
+      eventBus.emit('PROJECT_DELETED', { id });
       onProjectDeleted(id);
       onClose();
     } catch (error: any) {
@@ -316,7 +318,7 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
               <SelectContent>
                 {customers.map((customer) => (
                   <SelectItem key={customer.id} value={customer.id}>
-                    {(customer as any).company_name || (customer as any).name || 'Unbekannt'}
+                    {customer.company_name || customer.name || 'Unbekannt'}
                   </SelectItem>
                 ))}
               </SelectContent>

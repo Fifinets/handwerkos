@@ -74,8 +74,9 @@ const MitarbeiterSetupPage = () => {
 
 
         setEmail(invitation.email);
-        setFirstName((invitation.employee_data as any)?.firstName || '');
-        setLastName((invitation.employee_data as any)?.lastName || '');
+        const empData = invitation.employee_data as Record<string, string> | null;
+        setFirstName(empData?.firstName || '');
+        setLastName(empData?.lastName || '');
         setInvitationData(invitation);
 
       } catch (error: any) {

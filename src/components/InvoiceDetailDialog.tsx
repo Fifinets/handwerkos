@@ -331,7 +331,7 @@ const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
   const handleDeleteItem = (id: string) => {
     setEditItems(prev => prev.map(item => {
       if (item.id === id) {
-        if (item.isNew) return null as any;
+        if (item.isNew) return null!;
         return { ...item, isDeleted: true };
       }
       return item;
@@ -354,7 +354,7 @@ const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
           tax_amount: totals.tax,
           gross_amount: totals.gross,
           updated_at: new Date().toISOString()
-        } as any)
+        })
         .eq('id', invoice.id);
       if (invoiceError) throw invoiceError;
 

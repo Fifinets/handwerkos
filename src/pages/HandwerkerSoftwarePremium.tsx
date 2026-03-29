@@ -417,7 +417,7 @@ export default function HandwerkerSoftwarePremium() {
                     <li key={link.label}>
                       {link.label === "Cookie-Einstellungen" ? (
                         <button
-                          onClick={() => (window as any).openCookieSettings?.()}
+                          onClick={() => window.openCookieSettings?.()}
                           className="hover:text-white transition-colors text-left"
                         >
                           {link.label}

@@ -219,10 +219,10 @@ export class NetworkManager {
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
       try {
         const registration = await navigator.serviceWorker.ready
-        // @ts-ignore - Background Sync API ist noch experimentell
-        if (registration && 'sync' in registration) {
-          // @ts-ignore - Background Sync API ist noch experimentell
-          await (registration as any).sync.register(tag)
+        // Background Sync API is experimental and not in standard TS types
+        const reg = registration as ServiceWorkerRegistration & { sync?: { register: (tag: string) => Promise<void> } };
+        if (reg && reg.sync) {
+          await reg.sync.register(tag)
         }
       } catch (error) {
         console.error('Background Sync fehlgeschlagen:', error)

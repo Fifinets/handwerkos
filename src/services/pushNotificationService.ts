@@ -155,7 +155,8 @@ class PushNotificationService {
     }
 
     try {
-      await (this.registration as any).sync.register('background-sync');
+      const reg = this.registration as ServiceWorkerRegistration & { sync?: { register: (tag: string) => Promise<void> } };
+      await reg.sync?.register('background-sync');
     } catch (error) {
       console.error('Background Sync Registrierung fehlgeschlagen:', error);
     }

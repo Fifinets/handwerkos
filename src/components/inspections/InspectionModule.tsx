@@ -12,7 +12,7 @@ import InspectionForm from './InspectionForm';
 import DeviceInventory from './DeviceInventory';
 import DGUVScheduleDashboard from './DGUVScheduleDashboard';
 import { InspectionPDFDownloadButton } from './InspectionProtocolPDF';
-import type { InspectionDevice, ProtocolType } from '@/types/inspection';
+import type { InspectionDevice, ProtocolType, ProtocolWithRelations } from '@/types/inspection';
 import { PROTOCOL_TYPE_LABELS, RESULT_LABELS } from '@/types/inspection';
 import { format } from 'date-fns';
 import { useFeatureAccess } from '@/hooks/useSubscription';
@@ -107,7 +107,7 @@ export default function InspectionModule() {
                   <td className="p-3"><ResultBadge r={p.overall_result} /></td>
                   <td className="p-3"><Badge variant={p.is_finalized ? 'default' : 'secondary'}>{p.is_finalized ? 'Final' : 'Entwurf'}</Badge></td>
                   <td className="p-3" onClick={e => e.stopPropagation()}>
-                    {p.is_finalized && <InspectionPDFDownloadButton protocol={p as any} companyName="Elektrobetrieb MG" />}
+                    {p.is_finalized && <InspectionPDFDownloadButton protocol={p as ProtocolWithRelations} companyName="Elektrobetrieb MG" />}
                   </td>
                 </tr>
               ))}</tbody>

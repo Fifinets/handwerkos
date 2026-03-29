@@ -55,7 +55,7 @@ const Auth: React.FC = () => {
           }
           setEmail(invitation.email);
           setIsPasswordSetup(true);
-          (window as any).invitationData = invitation;
+          window.invitationData = invitation;
         } catch (error) {
           toast.error('Fehler beim Validieren der Einladung.');
         }
@@ -71,7 +71,7 @@ const Auth: React.FC = () => {
     setLoading(true);
     try {
       if (isPasswordSetup) {
-        const invitationData = (window as any).invitationData;
+        const invitationData = window.invitationData;
         if (!invitationData) { toast.error('Einladungsdaten nicht gefunden.'); setIsPasswordSetup(false); return; }
         if (password !== confirmPassword) { toast.error('Passwörter stimmen nicht überein'); return; }
         if (password.length < 6) { toast.error('Passwort muss mindestens 6 Zeichen lang sein'); return; }
@@ -160,7 +160,7 @@ const Auth: React.FC = () => {
             <span>·</span>
             <a href="/impressum" className="hover:text-slate-400">Impressum</a>
             <span>·</span>
-            <button onClick={() => (window as any).openCookieSettings?.()} className="hover:text-slate-400">Cookies</button>
+            <button onClick={() => window.openCookieSettings?.()} className="hover:text-slate-400">Cookies</button>
           </div>
         </div>
       </div>

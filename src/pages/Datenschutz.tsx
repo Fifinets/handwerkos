@@ -161,7 +161,7 @@ export default function Datenschutz() {
               Sie können Ihre Cookie-Einstellungen jederzeit ändern, indem Sie auf „Cookie-Einstellungen" im Footer klicken oder
               den folgenden Link nutzen:{" "}
               <button
-                onClick={() => (window as any).openCookieSettings?.()}
+                onClick={() => window.openCookieSettings?.()}
                 className="hover:underline"
                 style={{ color: "var(--premium-accent)" }}
               >
@@ -309,7 +309,7 @@ export default function Datenschutz() {
           <p>© {new Date().getFullYear()} HandwerkOS – Filip Bosz</p>
           <div className="flex items-center gap-6">
             <Link to="/impressum" className="hover:text-white transition-colors">Impressum</Link>
-            <button onClick={() => (window as any).openCookieSettings?.()} className="hover:text-white transition-colors">Cookie-Einstellungen</button>
+            <button onClick={() => window.openCookieSettings?.()} className="hover:text-white transition-colors">Cookie-Einstellungen</button>
           </div>
         </div>
       </footer>

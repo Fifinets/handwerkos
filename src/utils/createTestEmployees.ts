@@ -82,5 +82,5 @@ export async function createTestEmployees() {
 
 // Make it available globally for testing
 if (typeof window !== 'undefined') {
-  (window as any).createTestEmployees = createTestEmployees;
+  window.createTestEmployees = createTestEmployees;
 }

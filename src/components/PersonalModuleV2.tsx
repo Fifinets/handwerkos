@@ -53,9 +53,9 @@ const PersonalModuleV2 = () => {
     const { inviteEmployee } = useSupabaseAuth();
     const queryClient = useQueryClient();
     const { data: employeesData, isLoading } = useEmployees();
-    const employees: any[] = Array.isArray(employeesData)
+    const employees: Record<string, unknown>[] = Array.isArray(employeesData)
         ? employeesData
-        : (employeesData as any)?.items ?? [];
+        : (employeesData as { items?: Record<string, unknown>[] } | undefined)?.items ?? [];
 
     const getStatusColor = (status: string) => {
         switch (status) {

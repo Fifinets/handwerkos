@@ -417,7 +417,7 @@ export class OfferService {
       }));
 
       const newItems = toUpsert.filter(i => !i.id).map(({ id, ...rest }) => rest);
-      const updateItems = toUpsert.filter(i => i.id).map(i => i as any);
+      const updateItems = toUpsert.filter(i => i.id);
 
       // Perform Inserts
       if (newItems.length > 0) {
@@ -487,7 +487,7 @@ export class OfferService {
   // ============================================================================
 
   // Send offer to customer (locks the offer)
-  static async sendOffer(id: string): Promise<Offer> {
+  static async sendOffer(id: string): Promise<Offer & { shareLink?: string | null }> {
     return apiCall(async () => {
       const existingOffer = await this.getOffer(id);
 
@@ -530,7 +530,7 @@ export class OfferService {
       const shareLink = sentOffer.share_token
         ? `${window.location.origin}/public/offer/${sentOffer.share_token}`
         : null;
-      return { ...sentOffer, shareLink } as any;
+      return { ...sentOffer, shareLink } as Offer & { shareLink: string | null };
     }, `Send offer ${id}`);
   }
 

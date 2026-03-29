@@ -364,7 +364,7 @@ export class EnhancedInvoiceExtractor {
     amounts: {[rate: string]: number};
     netAmounts: {[rate: string]: number};
   } {
-    const vatInfo = { rates: [], amounts: {}, netAmounts: {} } as any;
+    const vatInfo: { rates: number[]; amounts: Record<string, number>; netAmounts: Record<string, number> } = { rates: [], amounts: {}, netAmounts: {} };
     
     // Suche nach MwSt-Sätzen und -Beträgen
     const vatPattern = /(\d{1,2}(?:[,\.]\d{1,2})?)\s*%.*?€?\s*([\d]{1,3}(?:[\.\s]\d{3})*[,\.]\d{2})/gi;

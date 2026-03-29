@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 import { apiCall, createQuery, validateInput, getCurrentUserProfile, ApiError, API_ERROR_CODES } from './common';
 import { auditLogService } from './auditLogService';
-import { aiRAGService } from './aiRAGService';
+import { aiRAGService, type DocumentType } from './aiRAGService';
 import { eventBus } from './eventBus';
 
 // AI Intent types for understanding user requests
@@ -757,7 +757,7 @@ export class AIIntentService {
     // Use RAG service for search
     const searchQuery = {
       query: action.parameters.search_term || 'general search',
-      document_types: action.target_entity ? [action.target_entity as any] : undefined,
+      document_types: action.target_entity ? [action.target_entity as DocumentType] : undefined,
       limit: 10,
     };
 

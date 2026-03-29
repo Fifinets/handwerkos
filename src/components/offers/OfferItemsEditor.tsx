@@ -81,7 +81,7 @@ const CONTENT_HEIGHT_PX = A4_HEIGHT_PX - PADDING_Y_PX;
 const GRID_COLS = "grid-cols-[3rem_1fr_5rem_4rem_6rem_6rem_2rem]";
 const GAP = "gap-4";
 
-export type EditorOfferItem = (OfferItem | OfferItemCreate) & { temp_id?: string; id?: string };
+export type EditorOfferItem = (OfferItem | OfferItemCreate) & { temp_id?: string; id?: string; employee_name?: string; employee_id?: string };
 
 interface OfferItemsEditorProps {
   items: EditorOfferItem[];
@@ -102,7 +102,7 @@ function formatCurrency(value: number): string {
 
 const calculateItemTotal = (item: OfferItem | OfferItemCreate): number => {
   const subtotal = item.quantity * item.unit_price_net;
-  const discount = (item as any).discount_percent || 0;
+  const discount = item.discount_percent || 0;
   return subtotal * (1 - discount / 100);
 };
 
@@ -330,7 +330,7 @@ const ItemRender = ({
             <>
               <div className="print:hidden">
                 <EmployeePicker
-                  selectedName={(item as any).employee_name || null}
+                  selectedName={item.employee_name || null}
                   placeholder="Mitarbeiter wählen..."
                   className="h-9 text-sm bg-blue-50/50 border-blue-100 text-blue-900 hover:bg-blue-100/50 w-full rounded-md font-medium shadow-none focus:ring-0"
                   onSelect={(emp) => {
@@ -377,9 +377,9 @@ const ItemRender = ({
           </div>
           {item.is_optional && <div className="text-xs text-blue-600 print:text-gray-500 italic mt-1 font-medium">* Optional (Nicht in der Summe)</div>}
           {/* Discount badge */}
-          {((item as any).discount_percent || 0) > 0 && (
+          {(item.discount_percent || 0) > 0 && (
             <div className="text-xs text-orange-600 font-medium mt-1 print:text-gray-600">
-              -{(item as any).discount_percent}% Rabatt
+              -{item.discount_percent}% Rabatt
             </div>
           )}
           {/* Internal Notes (B5) - editable on hover, hidden in print */}
@@ -387,14 +387,14 @@ const ItemRender = ({
             <input
               type="text"
               placeholder="🔒 Interne Notiz (nicht auf Angebot sichtbar)..."
-              value={(item as any).internal_notes || ''}
-              onChange={(e) => updateItem && updateItem(index, 'internal_notes' as any, e.target.value)}
+              value={item.internal_notes || ''}
+              onChange={(e) => updateItem && updateItem(index, 'internal_notes', e.target.value)}
               className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 w-full mt-1.5 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity print:hidden placeholder:text-amber-400 focus:outline-none focus:border-amber-400"
             />
           )}
-          {(item as any).internal_notes && disabled && (
+          {item.internal_notes && disabled && (
             <div className="text-[10px] text-amber-700 italic mt-1 print:hidden">
-              🔒 {(item as any).internal_notes}
+              🔒 {item.internal_notes}
             </div>
           )}
         </div>
@@ -438,8 +438,8 @@ const ItemRender = ({
             <div className="flex items-center gap-0.5">
               <Input
                 type="number" step="1" min="0" max="100"
-                value={(item as any).discount_percent || 0}
-                onChange={(e) => updateItem && updateItem(index, 'discount_percent' as any, parseFloat(e.target.value) || 0)}
+                value={item.discount_percent || 0}
+                onChange={(e) => updateItem && updateItem(index, 'discount_percent', parseFloat(e.target.value) || 0)}
                 disabled={disabled}
                 className="h-5 text-[10px] w-14 bg-white border shadow-sm text-right font-mono px-1"
                 title="Rabatt %"

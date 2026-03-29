@@ -1,33 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-  Calendar as CalendarIcon,
-  Clock,
-  User,
-  Users,
   AlertTriangle,
   MapPin,
-  Phone,
-  Mail,
-  Plus,
-  MessageSquare,
-  CheckCircle2,
-  Image as ImageIcon,
-  X,
-  ClipboardList,
-  FileText,
-  Receipt,
-  Upload,
-  Download,
-  ExternalLink,
-  File,
-  FileImage,
-  FilePlus,
-  Link2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -48,6 +26,8 @@ import InvoiceDetailDialog from "./InvoiceDetailDialog";
 import CreateInvoiceFromProjectDialog from "./CreateInvoiceFromProjectDialog";
 import { WorkflowStatusDialog } from './WorkflowStatusDialog';
 import { SiteDocModule } from '@/components/site-docs/SiteDocModule';
+import { OverviewTab, DetailsTab, TimeTab, MaterialsTab, DocumentsTab, CommentsTab } from './project-detail';
+import { formatCurrency, getStatusConfig, generateShortId } from './project-detail/utils';
 
 interface ProjectDetailViewProps {
   isOpen: boolean;
@@ -414,7 +394,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       let dnPhotos: any[] = [];
       let dnList: any[] = [];
       try {
-        // First try simple query to check if table exists and has data
         const { data: dnData, error: dnError } = await supabase
           .from('delivery_notes')
           .select(`
@@ -563,7 +542,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         start_date: projectData.start_date || new Date().toISOString().split('T')[0],
         planned_end_date: projectData.end_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         status: ((projectData.status as ProjectStatus) ?? 'anfrage') as ProjectStatus,
-        project_type: (projectData as any).project_type,
+        project_type: projectData.project_type,
         project_address: projectData.site || projectData.location || 'Nicht angegeben',
         project_description: projectData.description || 'Keine Beschreibung',
         budget_planned: projectBudget,
@@ -926,7 +905,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
 
       const { data, error } = await supabase
         .from('project_milestones')
-        .insert(newMilestone as any)
+        .insert(newMilestone)
         .select();
 
       if (error) throw error;
@@ -974,7 +953,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
 
       const { data, error } = await supabase
         .from('project_documents')
-        .insert(newDocument as any)
+        .insert(newDocument)
         .select();
 
       if (error) throw error;
@@ -1007,31 +986,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
     setWorkflowTargetStatus(undefined);
     setWorkflowEditMode(mode);
     setWorkflowDialogOpen(true);
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('de-DE', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('de-DE');
-  };
-
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('de-DE');
-  };
-
-  const getStatusConfig = (status: string) => {
-    return PROJECT_STATUS_CONFIG[status as keyof typeof PROJECT_STATUS_CONFIG] || PROJECT_STATUS_CONFIG.geplant;
-  };
-
-  const generateShortId = (fullId: string) => {
-    // Create a short, individual ID from the full UUID
-    const hash = fullId.split('-').join('');
-    return `P${hash.substring(0, 6).toUpperCase()}`;
   };
 
   if (loading) {
@@ -1070,7 +1024,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
       <DialogContent className="max-w-[95vw] lg:max-w-6xl h-[95vh] rounded-2xl bg-white shadow-xl overflow-y-auto border border-slate-200 p-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
 
-          {/* ── Dialog Header ─────────────────────────────────── */}
+          {/* Dialog Header */}
           <DialogHeader className="px-6 pt-6 pb-0">
             {/* Title row */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
@@ -1094,7 +1048,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                 </DialogDescription>
               </div>
 
-              {/* Budget chip – only for Projektaufträge */}
+              {/* Budget chip - only for Projektauftraege */}
               {project.project_type !== 'kleinauftrag' && (
                 <div className="flex-shrink-0 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-right">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">Projektkosten</p>
@@ -1106,7 +1060,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
               )}
             </div>
 
-            {/* Status Pipeline – only for Projektaufträge */}
+            {/* Status Pipeline - only for Projektauftraege */}
             {project.project_type !== 'kleinauftrag' && (() => {
               const stages = WORKFLOW_STAGES.map(key => ({
                 key,
@@ -1118,22 +1072,22 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
 
               const getDateAnnotation = (stageKey: string) => {
                 switch (stageKey) {
-                  case 'anfrage': return (project as any).created_at ? format(new Date((project as any).created_at), 'dd.MM.', { locale: de }) : null;
+                  case 'anfrage': return project.created_at ? format(new Date(project.created_at), 'dd.MM.', { locale: de }) : null;
                   case 'besichtigung': {
-                    if (!(project as any).besichtigung_date) return null;
-                    const d = format(new Date((project as any).besichtigung_date), 'dd.MM.', { locale: de });
-                    const t = (project as any).besichtigung_time_start ? ` ${(project as any).besichtigung_time_start.slice(0, 5)}` : '';
+                    if (!project.besichtigung_date) return null;
+                    const d = format(new Date(project.besichtigung_date), 'dd.MM.', { locale: de });
+                    const t = project.besichtigung_time_start ? ` ${project.besichtigung_time_start.slice(0, 5)}` : '';
                     return d + t;
                   }
-                  case 'in_bearbeitung': return (project as any).work_start_date ? format(new Date((project as any).work_start_date), 'dd.MM.', { locale: de }) : null;
-                  case 'abgeschlossen': return (project as any).completed_at ? format(new Date((project as any).completed_at), 'dd.MM.', { locale: de }) : null;
+                  case 'in_bearbeitung': return project.work_start_date ? format(new Date(project.work_start_date), 'dd.MM.', { locale: de }) : null;
+                  case 'abgeschlossen': return project.completed_at ? format(new Date(project.completed_at), 'dd.MM.', { locale: de }) : null;
                   default: return null;
                 }
               };
 
               const getEmployeeName = () => {
-                if (!(project as any).besichtigung_employee_id) return null;
-                const emp = allEmployees.find(e => e.id === (project as any).besichtigung_employee_id);
+                if (!project.besichtigung_employee_id) return null;
+                const emp = allEmployees.find(e => e.id === project.besichtigung_employee_id);
                 return emp ? `${emp.first_name.charAt(0)}. ${emp.last_name}` : null;
               };
 
@@ -1200,961 +1154,65 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             </TabsList>
           </DialogHeader>
 
-          {/* ── Overview Tab ──────────────────────────────────── */}
-          <TabsContent value="overview" className="px-6 pb-6 pt-5 space-y-5 min-h-[500px] mt-0">
+          {/* Tab Content */}
+          <OverviewTab
+            project={project}
+            permissions={permissions}
+            totalHours={totalHours}
+            plannedHours={plannedHours}
+            deliveryNotes={deliveryNotes}
+            projectOffers={projectOffers}
+            teamAssignments={teamAssignments}
+            milestones={milestones}
+            photos={photos}
+            newChecklistItem={newChecklistItem}
+            isLinkOfferOpen={isLinkOfferOpen}
+            availableOffers={availableOffers}
+            onSetIsTimeFormOpen={setIsTimeFormOpen}
+            onSetIsLinkOfferOpen={setIsLinkOfferOpen}
+            onLoadAvailableOffers={loadAvailableOffers}
+            onLinkOfferToProject={linkOfferToProject}
+            onUnlinkOffer={unlinkOffer}
+            onSetIsAddTeamMemberOpen={setIsAddTeamMemberOpen}
+            onLoadAvailableEmployees={loadAvailableEmployees}
+            onToggleMilestoneCompletion={toggleMilestoneCompletion}
+            onSetNewChecklistItem={setNewChecklistItem}
+            onAddMilestone={addMilestone}
+            onUploadPhoto={uploadPhoto}
+          />
 
-            {/* Zeile 1 – KPIs */}
-            <div className={`grid grid-cols-1 ${project.project_type !== 'kleinauftrag' ? 'lg:grid-cols-2' : ''} gap-5`}>
+          <TimeTab
+            permissions={permissions}
+            totalHours={totalHours}
+            timeEntries={timeEntries}
+            deliveryNotes={deliveryNotes}
+            onSetIsTimeFormOpen={setIsTimeFormOpen}
+          />
 
-              {/* Erfasste Zeit */}
-              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3 flex flex-row items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-slate-700 m-0">Erfasste Zeit</CardTitle>
-                  {permissions.can_add_time && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs border-slate-200 text-slate-600 hover:bg-slate-50"
-                      onClick={() => setIsTimeFormOpen(true)}
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Erfassen
-                    </Button>
-                  )}
-                </CardHeader>
-                <CardContent className="p-5">
-                  <div className="text-center">
-                    <p className="text-3xl font-bold text-slate-900">
-                      {totalHours.toFixed(1)}{plannedHours > 0 && <span className="text-lg font-normal text-slate-400"> / {plannedHours.toFixed(1)}</span>}
-                    </p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      {deliveryNotes.length > 0
-                        ? `${deliveryNotes.length} Lieferschein(e) + Zeiteinträge`
-                        : plannedHours > 0 ? 'Stunden erfasst / Stunden aus Angebot' : 'Stunden insgesamt'}
-                    </p>
-                    {plannedHours > 0 && (
-                      <div className="mt-3 h-2 w-full rounded-full bg-slate-100 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all ${totalHours / plannedHours > 1 ? 'bg-red-500' : totalHours / plannedHours > 0.8 ? 'bg-yellow-500' : 'bg-teal-500'}`}
-                          style={{ width: `${Math.min(100, (totalHours / plannedHours) * 100)}%` }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+          <DetailsTab
+            project={project}
+            permissions={permissions}
+            allEmployees={allEmployees}
+            onLoadCustomerProjects={loadCustomerProjects}
+            onHandleEditAppointment={handleEditAppointment}
+          />
 
-              {/* Angebotssumme – only for Projektaufträge */}
-              {project.project_type !== 'kleinauftrag' && (
-                <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                  <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3 flex flex-row items-center justify-between">
-                    <CardTitle className="text-sm font-semibold text-slate-700 m-0">Angebotssumme</CardTitle>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs border-slate-200 text-slate-600 hover:bg-slate-50"
-                      onClick={() => { loadAvailableOffers(); setIsLinkOfferOpen(!isLinkOfferOpen); }}
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Verknüpfen
-                    </Button>
-                  </CardHeader>
-                  <CardContent className="p-5">
-                    {isLinkOfferOpen && (
-                      <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
-                        <p className="text-xs font-medium text-slate-600 mb-2">Angebot auswählen:</p>
-                        {availableOffers.length === 0 ? (
-                          <p className="text-xs text-slate-400 text-center py-2">Keine unverknüpften Angebote vorhanden</p>
-                        ) : (
-                          <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
-                            {availableOffers.map(offer => (
-                              <button
-                                key={offer.id}
-                                onClick={() => linkOfferToProject(offer.id)}
-                                className="w-full flex items-center justify-between p-2.5 rounded-md border border-slate-200 bg-white hover:bg-teal-50 hover:border-teal-300 transition-colors text-left"
-                              >
-                                <div>
-                                  <p className="text-sm font-medium text-slate-800">{offer.offer_number}</p>
-                                  <p className="text-xs text-slate-400">{offer.customer_name}</p>
-                                </div>
-                                <span className="text-sm font-semibold text-slate-700">{formatCurrency(offer.snapshot_gross_total || 0)}</span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    <div className="text-center mb-3">
-                      <p className="text-3xl font-bold text-slate-900">{formatCurrency(projectOffers.reduce((sum, o) => sum + (o.snapshot_gross_total || 0), 0))}</p>
-                      <p className="text-xs text-slate-400 mt-1">von {projectOffers.length} Angeboten</p>
-                    </div>
-                    {projectOffers.length > 0 && (
-                      <div className="space-y-1.5 border-t border-slate-100 pt-3">
-                        {projectOffers.map(offer => (
-                          <div key={offer.id} className="flex items-center justify-between p-2 rounded-md bg-slate-50 border border-slate-100">
-                            <div className="flex items-center gap-2">
-                              <Link2 className="h-3 w-3 text-emerald-500 shrink-0" />
-                              <a
-                                href={`/manager2/offers/${offer.id}/edit`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs font-medium text-teal-600 hover:text-teal-800 hover:underline"
-                              >
-                                {offer.offer_number}
-                              </a>
-                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
-                                offer.status === 'accepted' ? 'bg-green-50 text-green-700 border border-green-200' :
-                                offer.status === 'rejected' ? 'bg-red-50 text-red-700 border border-red-200' :
-                                'bg-yellow-50 text-yellow-700 border border-yellow-200'
-                              }`}>
-                                {offer.status === 'accepted' ? 'Akzeptiert' : offer.status === 'rejected' ? 'Abgelehnt' : 'Ausstehend'}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-semibold text-slate-800">{formatCurrency(offer.snapshot_gross_total || 0)}</span>
-                              <button
-                                onClick={() => unlinkOffer(offer.id)}
-                                className="text-slate-300 hover:text-red-500 transition-colors p-0.5"
-                                title="Verknüpfung entfernen"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
+          <MaterialsTab
+            deliveryNoteMaterials={deliveryNoteMaterials}
+          />
 
-            </div>
-
-            {/* Zeile 2 – Team + Checkliste */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-
-              {/* Team-Mitglieder */}
-              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3 flex flex-row items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-slate-700 m-0">Team-Mitglieder</CardTitle>
-                  {permissions.can_manage_team && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs border-slate-200 text-slate-600 hover:bg-slate-50"
-                      onClick={() => { loadAvailableEmployees(); setIsAddTeamMemberOpen(true); }}
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Hinzufügen
-                    </Button>
-                  )}
-                </CardHeader>
-                <CardContent className="p-0">
-                  {teamAssignments.length === 0 ? (
-                    <div className="p-6 text-center">
-                      <Users className="h-8 w-8 text-slate-200 mx-auto mb-2" />
-                      <p className="text-xs text-slate-400">Noch keine Teammitglieder zugewiesen</p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-slate-100">
-                      {teamAssignments.map(member => (
-                        <div key={member.id} className="flex items-center gap-3 px-5 py-3">
-                          <div className="h-8 w-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0">
-                            <span className="text-slate-600 font-semibold text-xs">{member.name?.charAt(0)?.toUpperCase() || 'U'}</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-slate-800 truncate">{member.name}</p>
-                            <p className="text-xs text-slate-400 truncate">{member.email}</p>
-                          </div>
-                          <span className="text-xs font-semibold text-slate-500">{member.hours_this_week || 0}h</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-            {/* Checkliste — 2-col row */}
-
-              {/* Checkliste (Milestones) */}
-              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3">
-                  <CardTitle className="text-sm font-semibold text-slate-700">Checkliste</CardTitle>
-                </CardHeader>
-                <CardContent className="p-5">
-                  <div className="space-y-2 mb-4">
-                    {milestones.length === 0 && (
-                      <p className="text-xs text-slate-400 text-center py-3">Noch keine Meilensteine. Füge einen hinzu.</p>
-                    )}
-                    {milestones.map(item => (
-                      <label key={item.id} className="flex items-center gap-3 cursor-pointer group">
-                        <input
-                          type="checkbox"
-                          checked={item.is_completed}
-                          onChange={() => toggleMilestoneCompletion(item.id, !item.is_completed)}
-                          className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 flex-shrink-0"
-                        />
-                        <span className={`text-sm ${item.is_completed ? 'line-through text-slate-400' : 'text-slate-700'}`}>
-                          {item.title}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={newChecklistItem}
-                      onChange={e => setNewChecklistItem(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' && newChecklistItem.trim()) {
-                          addMilestone(newChecklistItem);
-                        }
-                      }}
-                      placeholder="+ Meilenstein hinzufügen"
-                      className="flex-1 text-sm text-teal-600 placeholder:text-teal-500 bg-transparent border-none outline-none px-0 py-1"
-                    />
-                    {newChecklistItem.trim() && (
-                      <button
-                        onClick={() => addMilestone(newChecklistItem)}
-                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                      >
-                        Hinzufügen
-                      </button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-            </div>
-
-            {/* Zeile 3 – Fotos */}
-            <div className="grid grid-cols-1 gap-5">
-              {/* Fotos */}
-              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3 flex flex-row items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-slate-700 m-0">Fotos</CardTitle>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        uploadPhoto(e.target.files[0]);
-                      }
-                    }}
-                    style={{ display: 'none' }}
-                    id="photo-upload"
-                  />
-                  <label htmlFor="photo-upload" className="cursor-pointer">
-                    <Button size="sm" variant="outline" className="h-7 text-xs border-slate-200 text-slate-600 hover:bg-slate-50" asChild>
-                      <span>
-                        <Plus className="h-3.5 w-3.5 mr-1" />
-                        Hochladen
-                      </span>
-                    </Button>
-                  </label>
-                </CardHeader>
-                <CardContent className="p-5">
-                  {photos.length === 0 ? (
-                    <div className="text-center py-8">
-                      <ImageIcon className="h-8 w-8 text-slate-200 mx-auto mb-2" />
-                      <p className="text-xs text-slate-400">Noch keine Fotos hochgeladen</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-3">
-                      {photos.map(photo => (
-                        <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
-                          {photo.file_url && (
-                            <img
-                              src={photo.file_url}
-                              alt="Project photo"
-                              className="w-full h-full object-cover"
-                            />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Aktivitäts-Timeline — volle Breite */}
-            <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
-              <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3">
-                <CardTitle className="text-sm font-semibold text-slate-700">Aktivitäts-Timeline</CardTitle>
-              </CardHeader>
-              <CardContent className="p-5">
-                {project.recent_activities.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Clock className="h-8 w-8 text-slate-200 mx-auto mb-2" />
-                    <p className="text-xs text-slate-400">Noch keine Aktivitäten vorhanden</p>
-                  </div>
-                ) : (
-                  <div className="space-y-0 divide-y divide-slate-50">
-                    {project.recent_activities.map((activity) => (
-                      <div key={activity.id} className="flex items-start gap-4 py-3">
-                        <div className={`h-8 w-8 rounded-full border flex items-center justify-center flex-shrink-0 ${
-                          activity.event_type === 'delivery_note'
-                            ? 'bg-teal-50 border-teal-200'
-                            : 'bg-slate-100 border-slate-200'
-                        }`}>
-                          {activity.event_type === 'delivery_note'
-                            ? <ClipboardList className="h-3.5 w-3.5 text-teal-500" />
-                            : <Clock className="h-3.5 w-3.5 text-slate-400" />
-                          }
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-slate-800">{activity.title}</p>
-                          <p className="text-xs text-slate-500 mt-0.5">{activity.user_name} · {activity.description}</p>
-                        </div>
-                        <span className="text-xs text-slate-400 whitespace-nowrap flex-shrink-0">{formatDateTime(activity.timestamp)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-          </TabsContent>
-
-          <TabsContent value="time" className="px-6 pb-6 pt-5 space-y-4 min-h-[600px] mt-0">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-800">Zeiterfassung</h3>
-                <p className="text-xs text-slate-400">{totalHours.toFixed(1)}h gesamt · {timeEntries.length} Zeiteinträge · {deliveryNotes.length} Lieferscheine</p>
-              </div>
-              {permissions.can_add_time && (
-                <Button onClick={() => setIsTimeFormOpen(true)} className="bg-slate-800 hover:bg-slate-900 text-white">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Zeit erfassen
-                </Button>
-              )}
-            </div>
-
-            {/* Delivery Note Hours */}
-            {deliveryNotes.length > 0 && (
-              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                <CardHeader className="border-b border-slate-100 bg-teal-50/50 px-5 py-3">
-                  <CardTitle className="text-sm font-semibold text-teal-700 m-0 flex items-center gap-2">
-                    <ClipboardList className="h-4 w-4" />
-                    Aus Lieferscheinen
-                  </CardTitle>
-                </CardHeader>
-                <div className="divide-y divide-slate-100">
-                  {deliveryNotes.map((dn: any) => {
-                    const date = new Date(dn.work_date);
-                    const startStr = dn.start_time ? dn.start_time.substring(0, 5) : '–';
-                    const endStr = dn.end_time ? dn.end_time.substring(0, 5) : '–';
-                    const dateStr = date.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
-                    let hours = 0;
-                    if (dn.start_time && dn.end_time) {
-                      const [sh, sm] = dn.start_time.split(':').map(Number);
-                      const [eh, em] = dn.end_time.split(':').map(Number);
-                      hours = Math.max(0, ((eh * 60 + em) - (sh * 60 + sm) - (dn.break_minutes ?? 0)) / 60);
-                    }
-                    const empName = dn.employee
-                      ? `${dn.employee.first_name} ${dn.employee.last_name}`
-                      : 'Mitarbeiter';
-
-                    return (
-                      <div key={dn.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50 transition-colors">
-                        <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-teal-50 border border-teal-200 flex flex-col items-center justify-center">
-                          <span className="text-xs font-bold text-teal-700">{date.getDate()}</span>
-                          <span className="text-[10px] text-teal-500 uppercase">{date.toLocaleDateString('de-DE', { month: 'short' })}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-sm font-medium text-slate-800">{empName}</span>
-                            <span className="text-xs text-slate-400">{dateStr}</span>
-                            <span className="text-[10px] px-1.5 py-0.5 bg-teal-100 text-teal-700 rounded font-medium">{dn.delivery_note_number}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <span>{startStr} – {endStr}</span>
-                            {dn.break_minutes > 0 && (
-                              <span className="text-slate-300">· {dn.break_minutes}min Pause</span>
-                            )}
-                          </div>
-                          {dn.description && (
-                            <p className="text-xs text-slate-400 mt-1 truncate">{dn.description}</p>
-                          )}
-                        </div>
-                        <div className="flex-shrink-0 text-right">
-                          <span className="text-sm font-bold text-teal-700">{hours.toFixed(1)}h</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
-            )}
-
-            {/* Regular Time Entries */}
-            {timeEntries.length > 0 && (
-              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                {deliveryNotes.length > 0 && (
-                  <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3">
-                    <CardTitle className="text-sm font-semibold text-slate-700 m-0 flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      Manuelle Zeiteinträge
-                    </CardTitle>
-                  </CardHeader>
-                )}
-                <div className="divide-y divide-slate-100">
-                  {timeEntries.map(entry => {
-                    const date = new Date(entry.start_time);
-                    const startStr = new Date(entry.start_time).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-                    const endStr = entry.end_time ? new Date(entry.end_time).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '–';
-                    const dateStr = date.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
-
-                    return (
-                      <div key={entry.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50 transition-colors">
-                        <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex flex-col items-center justify-center">
-                          <span className="text-xs font-bold text-slate-700">{date.getDate()}</span>
-                          <span className="text-[10px] text-slate-400 uppercase">{date.toLocaleDateString('de-DE', { month: 'short' })}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-sm font-medium text-slate-800">{entry.employee_name}</span>
-                            <span className="text-xs text-slate-400">{dateStr}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <span>{startStr} – {endStr}</span>
-                            {entry.break_duration > 0 && (
-                              <span className="text-slate-300">· {entry.break_duration}min Pause</span>
-                            )}
-                          </div>
-                          {entry.description && (
-                            <p className="text-xs text-slate-400 mt-1 truncate">{entry.description}</p>
-                          )}
-                        </div>
-                        <div className="flex-shrink-0 text-right">
-                          <span className="text-sm font-bold text-slate-800">{entry.hours.toFixed(1)}h</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
-            )}
-
-            {timeEntries.length === 0 && deliveryNotes.length === 0 && (
-              <Card className="bg-white border-slate-200 shadow-sm rounded-xl">
-                <CardContent className="p-8 text-center">
-                  <Clock className="h-10 w-10 text-slate-200 mx-auto mb-3" />
-                  <p className="text-sm text-slate-400">Noch keine Zeiteinträge vorhanden</p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          {/* ── Details Tab ────────────────────────────────────── */}
-          <TabsContent value="details" className="px-6 pb-6 pt-5 space-y-5 min-h-[500px] mt-0">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-
-              {/* Projektdetails */}
-              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3">
-                  <CardTitle className="text-sm font-semibold text-slate-700">Projektdetails</CardTitle>
-                </CardHeader>
-                <CardContent className="p-5 space-y-4">
-                  <div className="flex items-center gap-6 text-sm">
-                    <div>
-                      <span className="text-slate-400 mr-1.5">Start:</span>
-                      <span className="font-medium text-slate-800">{formatDate(project.start_date)}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 mr-1.5">Ende:</span>
-                      <span className="font-medium text-slate-800">{formatDate(project.planned_end_date)}</span>
-                    </div>
-                    <div className="ml-auto flex items-center gap-1.5 text-slate-500">
-                      <Clock className="h-3.5 w-3.5" />
-                      <span className="text-sm">{project.stats.days_remaining} Tage verbleibend</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
-                    <MapPin className="h-4 w-4 text-slate-400 flex-shrink-0" />
-                    <span>{project.project_address}</span>
-                  </div>
-                  {project.project_description && project.project_description !== 'Keine Beschreibung' && (
-                    <p className="text-sm text-slate-500 leading-relaxed">{project.project_description}</p>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Kundeninformationen */}
-              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden cursor-pointer hover:border-teal-300 hover:shadow-md transition-all" onClick={() => project.customer_id && loadCustomerProjects(project.customer_id)}>
-                <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3">
-                  <CardTitle className="text-sm font-semibold text-slate-700">Kundeninformationen</CardTitle>
-                </CardHeader>
-                <CardContent className="p-5">
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <p className="text-xs text-slate-400 mb-1">Unternehmen</p>
-                      <p className="font-semibold text-slate-900 hover:text-teal-600 transition-colors">{project.customer.company_name}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400 mb-1">Ansprechpartner</p>
-                      <p className="font-medium text-slate-800">{project.customer.contact_person}</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <a href={`mailto:${project.customer.email}`} onClick={e => e.stopPropagation()} className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 hover:bg-slate-100 transition-colors flex-1">
-                      <Mail className="h-4 w-4 text-slate-400" />
-                      <span className="truncate">{project.customer.email}</span>
-                    </a>
-                    {project.customer.phone && (
-                      <a href={`tel:${project.customer.phone}`} onClick={e => e.stopPropagation()} className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 hover:bg-slate-100 transition-colors flex-1">
-                        <Phone className="h-4 w-4 text-slate-400" />
-                        <span>{project.customer.phone}</span>
-                      </a>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Termine Section */}
-            <div className="mt-5">
-              <h3 className="text-sm font-semibold text-slate-700 mb-3">Termine</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Besichtigung Card */}
-                {(project as any).besichtigung_date ? (
-                  <Card className="bg-white border-slate-200 shadow-sm rounded-xl">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <div className="h-2 w-2 rounded-full bg-orange-500" />
-                          <span className="text-sm font-semibold text-slate-900">Besichtigung</span>
-                        </div>
-                        <button
-                          onClick={() => handleEditAppointment('besichtigung')}
-                          className="text-xs text-slate-400 hover:text-blue-600 transition-colors"
-                        >
-                          Bearbeiten
-                        </button>
-                      </div>
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-2 text-xs text-slate-600">
-                          <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
-                          {format(new Date((project as any).besichtigung_date), 'dd. MMMM yyyy', { locale: de })}
-                          {(project as any).besichtigung_time_start && (
-                            <span>, {(project as any).besichtigung_time_start.slice(0, 5)}{(project as any).besichtigung_time_end ? ` – ${(project as any).besichtigung_time_end.slice(0, 5)}` : ''}</span>
-                          )}
-                        </div>
-                        {(project as any).besichtigung_employee_id && (() => {
-                          const emp = allEmployees.find(e => e.id === (project as any).besichtigung_employee_id);
-                          return emp ? (
-                            <div className="flex items-center gap-2 text-xs text-slate-600">
-                              <User className="h-3.5 w-3.5 text-slate-400" />
-                              {emp.first_name} {emp.last_name}
-                            </div>
-                          ) : null;
-                        })()}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <Card
-                    className="border-dashed border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition-all rounded-xl"
-                    onClick={() => handleEditAppointment('besichtigung')}
-                  >
-                    <CardContent className="p-4 flex flex-col items-center justify-center text-center py-6">
-                      <CalendarIcon className="h-5 w-5 text-slate-300 mb-1.5" />
-                      <span className="text-sm font-medium text-slate-500">Besichtigung</span>
-                      <span className="text-xs text-slate-400">Termin festlegen</span>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* In Arbeit Card */}
-                {(project as any).work_start_date ? (
-                  <Card className="bg-white border-slate-200 shadow-sm rounded-xl">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <div className="h-2 w-2 rounded-full bg-yellow-500" />
-                          <span className="text-sm font-semibold text-slate-900">In Arbeit</span>
-                        </div>
-                        <button
-                          onClick={() => handleEditAppointment('in_bearbeitung')}
-                          className="text-xs text-slate-400 hover:text-blue-600 transition-colors"
-                        >
-                          Bearbeiten
-                        </button>
-                      </div>
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-2 text-xs text-slate-600">
-                          <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
-                          Baustart: {format(new Date((project as any).work_start_date), 'dd. MMMM yyyy', { locale: de })}
-                        </div>
-                        {(project as any).work_end_date && (
-                          <div className="flex items-center gap-2 text-xs text-slate-600">
-                            <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
-                            Geplantes Ende: {format(new Date((project as any).work_end_date), 'dd. MMMM yyyy', { locale: de })}
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <Card
-                    className="border-dashed border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition-all rounded-xl"
-                    onClick={() => handleEditAppointment('in_bearbeitung')}
-                  >
-                    <CardContent className="p-4 flex flex-col items-center justify-center text-center py-6">
-                      <CalendarIcon className="h-5 w-5 text-slate-300 mb-1.5" />
-                      <span className="text-sm font-medium text-slate-500">In Arbeit</span>
-                      <span className="text-xs text-slate-400">Baustart festlegen</span>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="materials" className="space-y-4 min-h-[600px] mt-0">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Material aus Lieferscheinen</h3>
-              <p className="text-sm text-slate-500">{deliveryNoteMaterials.length} Positionen</p>
-            </div>
-            <Card>
-              <CardContent className="p-4">
-                {deliveryNoteMaterials.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">Noch keine Materialien erfasst. Materialien werden über Lieferscheine hinzugefügt.</p>
-                ) : (
-                  <div className="divide-y">
-                    {deliveryNoteMaterials.map((mat: any) => (
-                      <div key={mat.id} className="flex items-center justify-between py-3">
-                        <div>
-                          <p className="font-medium text-sm">{mat.material_name}</p>
-                          <p className="text-xs text-slate-500">
-                            {mat.employee_name} · {new Date(mat.work_date).toLocaleDateString('de-DE')}
-                            {mat.delivery_note_number && ` · ${mat.delivery_note_number}`}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium">
-                            {mat.material_quantity} {mat.material_unit}
-                          </p>
-                          {mat.unit_price && (
-                            <p className="text-xs text-slate-500">
-                              {((mat.unit_price || 0) * (mat.material_quantity || 0)).toFixed(2)} €
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                    {deliveryNoteMaterials.some((m: any) => m.unit_price) && (
-                      <div className="flex justify-between pt-3 font-medium text-sm">
-                        <span>Gesamt</span>
-                        <span>
-                          {deliveryNoteMaterials.reduce((sum: number, m: any) =>
-                            sum + ((m.unit_price || 0) * (m.material_quantity || 0)), 0
-                          ).toFixed(2)} €
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="documents" className="px-6 pb-6 pt-5 space-y-5 min-h-[600px] mt-0">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-800">Dokumente</h3>
-                <p className="text-xs text-slate-400">
-                  {projectOffers.length} Angebot(e) · {projectInvoices.length} Rechnung(en) · {deliveryNotes.length} Lieferschein(e) · {projectDocuments.length} Datei(en)
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {permissions.can_link_invoices && (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="bg-teal-600 hover:bg-teal-700 text-white"
-                    onClick={() => setIsCreateInvoiceOpen(true)}
-                  >
-                    <Receipt className="h-4 w-4 mr-2" />
-                    Rechnung erstellen
-                  </Button>
-                )}
-                {permissions.can_upload_files && (
-                  <Button variant="outline" size="sm" className="text-slate-600">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Hochladen
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Angebote Section */}
-            {projectOffers.length > 0 && (
-              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                <CardHeader className="border-b border-slate-100 bg-orange-50/50 px-5 py-3">
-                  <CardTitle className="text-sm font-semibold text-orange-700 m-0 flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Angebote ({projectOffers.length})
-                  </CardTitle>
-                </CardHeader>
-                <div className="divide-y divide-slate-100">
-                  {projectOffers.map((offer: any) => {
-                    const statusColors: Record<string, string> = {
-                      draft: 'bg-slate-100 text-slate-600',
-                      sent: 'bg-blue-100 text-blue-700',
-                      accepted: 'bg-green-100 text-green-700',
-                      rejected: 'bg-red-100 text-red-700',
-                      expired: 'bg-amber-100 text-amber-700',
-                    };
-                    const statusLabels: Record<string, string> = {
-                      draft: 'Entwurf',
-                      sent: 'Versendet',
-                      accepted: 'Angenommen',
-                      rejected: 'Abgelehnt',
-                      expired: 'Abgelaufen',
-                    };
-                    return (
-                      <div
-                        key={offer.id}
-                        className="flex items-center gap-4 px-5 py-3.5 hover:bg-orange-50/50 transition-colors cursor-pointer group"
-                        onClick={() => {
-                          onClose();
-                          navigate(`/offers/${offer.id}/edit`);
-                        }}
-                      >
-                        <div className="flex-shrink-0 p-2 rounded-lg bg-orange-50 group-hover:bg-orange-100 transition-colors">
-                          <FileText className="h-5 w-5 text-orange-500" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-sm font-medium text-slate-800 group-hover:text-orange-700 transition-colors">{offer.offer_number || 'Angebot'}</span>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColors[offer.status] || 'bg-slate-100 text-slate-600'}`}>
-                              {statusLabels[offer.status] || offer.status}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex-shrink-0 text-right">
-                          <span className="text-sm font-bold text-slate-800">
-                            {(offer.snapshot_gross_total || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
-                          </span>
-                        </div>
-                        <ExternalLink className="h-4 w-4 text-slate-300 group-hover:text-orange-500 transition-colors" />
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
-            )}
-
-            {/* Rechnungen Section */}
-            {projectInvoices.length > 0 && (
-              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                <CardHeader className="border-b border-slate-100 bg-emerald-50/50 px-5 py-3">
-                  <CardTitle className="text-sm font-semibold text-emerald-700 m-0 flex items-center gap-2">
-                    <Receipt className="h-4 w-4" />
-                    Rechnungen ({projectInvoices.length})
-                  </CardTitle>
-                </CardHeader>
-                <div className="divide-y divide-slate-100">
-                  {projectInvoices.map((invoice: any) => {
-                    const statusColors: Record<string, string> = {
-                      draft: 'bg-slate-100 text-slate-600',
-                      sent: 'bg-blue-100 text-blue-700',
-                      paid: 'bg-green-100 text-green-700',
-                      overdue: 'bg-red-100 text-red-700',
-                      cancelled: 'bg-slate-100 text-slate-500',
-                    };
-                    const statusLabels: Record<string, string> = {
-                      draft: 'Entwurf',
-                      sent: 'Versendet',
-                      paid: 'Bezahlt',
-                      overdue: 'Überfällig',
-                      cancelled: 'Storniert',
-                    };
-                    const typeLabels: Record<string, string> = {
-                      final: 'Schlussrechnung',
-                      partial: 'Abschlagsrechnung',
-                      advance: 'Vorauszahlung',
-                      credit: 'Gutschrift',
-                    };
-                    return (
-                      <div
-                        key={invoice.id}
-                        className="flex items-center gap-4 px-5 py-3.5 hover:bg-emerald-50/50 transition-colors cursor-pointer group"
-                        onClick={() => {
-                          setSelectedInvoice(invoice);
-                          setIsInvoiceDetailOpen(true);
-                        }}
-                      >
-                        <div className="flex-shrink-0 p-2 rounded-lg bg-emerald-50 group-hover:bg-emerald-100 transition-colors">
-                          <Receipt className="h-5 w-5 text-emerald-500" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-sm font-medium text-slate-800 group-hover:text-emerald-700 transition-colors">{invoice.invoice_number || 'Rechnung'}</span>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColors[invoice.status] || 'bg-slate-100 text-slate-600'}`}>
-                              {statusLabels[invoice.status] || invoice.status}
-                            </span>
-                            {invoice.invoice_type && invoice.invoice_type !== 'final' && (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
-                                {typeLabels[invoice.invoice_type] || invoice.invoice_type}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-slate-500">
-                            {invoice.invoice_date ? new Date(invoice.invoice_date).toLocaleDateString('de-DE') : '–'}
-                            {invoice.title && ` · ${invoice.title}`}
-                          </p>
-                        </div>
-                        <div className="flex-shrink-0 text-right">
-                          <span className="text-sm font-bold text-slate-800">
-                            {(invoice.gross_amount || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
-                          </span>
-                        </div>
-                        <ExternalLink className="h-4 w-4 text-slate-300 group-hover:text-emerald-500 transition-colors" />
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
-            )}
-
-            {/* Lieferscheine Section */}
-            {deliveryNotes.length > 0 && (
-              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                <CardHeader className="border-b border-slate-100 bg-teal-50/50 px-5 py-3">
-                  <CardTitle className="text-sm font-semibold text-teal-700 m-0 flex items-center gap-2">
-                    <ClipboardList className="h-4 w-4" />
-                    Lieferscheine ({deliveryNotes.length})
-                  </CardTitle>
-                </CardHeader>
-                <div className="divide-y divide-slate-100">
-                  {deliveryNotes.map((dn: any) => {
-                    const empName = dn.employee
-                      ? `${dn.employee.first_name} ${dn.employee.last_name}`
-                      : 'Mitarbeiter';
-                    const dateStr = dn.work_date ? new Date(dn.work_date).toLocaleDateString('de-DE') : '–';
-                    let hours = 0;
-                    if (dn.start_time && dn.end_time) {
-                      const [sh, sm] = dn.start_time.split(':').map(Number);
-                      const [eh, em] = dn.end_time.split(':').map(Number);
-                      hours = Math.max(0, ((eh * 60 + em) - (sh * 60 + sm) - (dn.break_minutes ?? 0)) / 60);
-                    }
-                    return (
-                      <div
-                        key={dn.id}
-                        className="flex items-center gap-4 px-5 py-3.5 hover:bg-teal-50/50 transition-colors cursor-pointer group"
-                        onClick={() => {
-                          toast({
-                            title: `Lieferschein ${dn.delivery_note_number || ''}`,
-                            description: `${empName} · ${dateStr} · ${hours.toFixed(1)}h`,
-                          });
-                          // TODO: Open delivery note detail view
-                        }}
-                      >
-                        <div className="flex-shrink-0 p-2 rounded-lg bg-teal-50 group-hover:bg-teal-100 transition-colors">
-                          <ClipboardList className="h-5 w-5 text-teal-500" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-sm font-medium text-slate-800 group-hover:text-teal-700 transition-colors">{dn.delivery_note_number || 'Lieferschein'}</span>
-                            {dn.signed_at && (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
-                                Unterschrieben
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-slate-500">{dateStr} · {empName} · {hours.toFixed(1)}h</p>
-                        </div>
-                        <ExternalLink className="h-4 w-4 text-slate-300 group-hover:text-teal-500 transition-colors" />
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
-            )}
-
-            {/* Hochgeladene Dateien Section */}
-            {projectDocuments.length > 0 && (
-              <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3">
-                  <CardTitle className="text-sm font-semibold text-slate-700 m-0 flex items-center gap-2">
-                    <File className="h-4 w-4" />
-                    Hochgeladene Dateien ({projectDocuments.length})
-                  </CardTitle>
-                </CardHeader>
-                <div className="divide-y divide-slate-100">
-                  {projectDocuments.map((doc: any) => {
-                    const isImage = doc.mime_type?.startsWith('image/');
-                    const isPdf = doc.mime_type === 'application/pdf';
-                    const formatFileSize = (bytes: number) => {
-                      if (!bytes) return '–';
-                      if (bytes < 1024) return `${bytes} B`;
-                      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-                      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-                    };
-                    const handleDownload = () => {
-                      const url = doc.file_url || doc.file_path;
-                      if (url) {
-                        window.open(url, '_blank');
-                      } else {
-                        toast({
-                          title: "Download nicht verfügbar",
-                          description: "Die Datei konnte nicht gefunden werden.",
-                          variant: "destructive"
-                        });
-                      }
-                    };
-                    return (
-                      <div
-                        key={doc.id}
-                        className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-100/50 transition-colors cursor-pointer group"
-                        onClick={handleDownload}
-                      >
-                        <div className={`flex-shrink-0 p-2 rounded-lg transition-colors ${isImage ? 'bg-purple-50 group-hover:bg-purple-100' : isPdf ? 'bg-red-50 group-hover:bg-red-100' : 'bg-slate-100 group-hover:bg-slate-200'}`}>
-                          {isImage ? (
-                            <FileImage className="h-5 w-5 text-purple-500" />
-                          ) : isPdf ? (
-                            <FileText className="h-5 w-5 text-red-500" />
-                          ) : (
-                            <File className="h-5 w-5 text-slate-500" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-800 truncate group-hover:text-slate-900">{doc.name || 'Dokument'}</p>
-                          <p className="text-xs text-slate-500">
-                            {doc.created_at ? new Date(doc.created_at).toLocaleDateString('de-DE') : '–'}
-                            {doc.file_size && ` · ${formatFileSize(doc.file_size)}`}
-                          </p>
-                        </div>
-                        <Download className="h-4 w-4 text-slate-300 group-hover:text-slate-600 transition-colors" />
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
-            )}
-
-            {/* Empty State */}
-            {projectOffers.length === 0 && projectInvoices.length === 0 && deliveryNotes.length === 0 && projectDocuments.length === 0 && (
-              <Card className="bg-white border-slate-200 shadow-sm rounded-xl">
-                <CardContent className="p-12 text-center">
-                  <File className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-                  <h4 className="text-base font-medium text-slate-700 mb-1">Keine Dokumente vorhanden</h4>
-                  <p className="text-sm text-slate-400 mb-4">
-                    Erstellen Sie Angebote, Rechnungen oder laden Sie Dateien hoch.
-                  </p>
-                  {permissions.can_upload_files && (
-                    <Button variant="outline" size="sm">
-                      <FilePlus className="h-4 w-4 mr-2" />
-                      Erste Datei hochladen
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
+          <DocumentsTab
+            permissions={permissions}
+            projectOffers={projectOffers}
+            projectInvoices={projectInvoices}
+            projectDocuments={projectDocuments}
+            deliveryNotes={deliveryNotes}
+            onSetIsCreateInvoiceOpen={setIsCreateInvoiceOpen}
+            onSetSelectedInvoice={setSelectedInvoice}
+            onSetIsInvoiceDetailOpen={setIsInvoiceDetailOpen}
+            onClose={onClose}
+            onNavigate={navigate}
+          />
 
           <TabsContent value="baudoku" className="px-6 pb-6 pt-5 min-h-[600px] mt-0">
             <SiteDocModule
@@ -2163,20 +1221,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             />
           </TabsContent>
 
-          <TabsContent value="comments" className="space-y-4 min-h-[600px] mt-0">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Kommentare & Notizen</h3>
-              <Button>
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Kommentar hinzufügen
-              </Button>
-            </div>
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-gray-500">Projektkommentare werden hier angezeigt...</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
+          <CommentsTab />
+
         </Tabs>
 
         {/* Time Entry Form */}
@@ -2380,14 +1426,14 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             targetStatus={workflowTargetStatus}
             editMode={workflowEditMode}
             currentValues={{
-              besichtigung_date: (project as any).besichtigung_date,
-              besichtigung_time_start: (project as any).besichtigung_time_start,
-              besichtigung_time_end: (project as any).besichtigung_time_end,
-              besichtigung_employee_id: (project as any).besichtigung_employee_id,
-              besichtigung_calendar_event_id: (project as any).besichtigung_calendar_event_id,
-              work_start_date: (project as any).work_start_date,
-              work_end_date: (project as any).work_end_date,
-              work_calendar_event_id: (project as any).work_calendar_event_id,
+              besichtigung_date: project.besichtigung_date,
+              besichtigung_time_start: project.besichtigung_time_start,
+              besichtigung_time_end: project.besichtigung_time_end,
+              besichtigung_employee_id: project.besichtigung_employee_id,
+              besichtigung_calendar_event_id: project.besichtigung_calendar_event_id,
+              work_start_date: project.work_start_date,
+              work_end_date: project.work_end_date,
+              work_calendar_event_id: project.work_calendar_event_id,
             }}
             employees={allEmployees}
             onSuccess={() => fetchProjectData(currentProjectId)}

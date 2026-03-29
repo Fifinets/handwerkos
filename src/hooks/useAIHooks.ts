@@ -3,9 +3,9 @@
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { aiRAGService } from '@/services/aiRAGService';
+import { aiRAGService, type DocumentType } from '@/services/aiRAGService';
 import { aiIntentService } from '@/services/aiIntentService';
-import { aiEstimationService } from '@/services/aiEstimationService';
+import { aiEstimationService, type ProjectCategory } from '@/services/aiEstimationService';
 import { QUERY_KEYS } from './useQueryKeys';
 
 // ============================================
@@ -60,7 +60,7 @@ export const useIndexDocument = (
 
   return useMutation({
     mutationFn: ({ documentType, entityId, title, content, metadata = {}, searchTags = [] }) =>
-      aiRAGService.indexDocument(documentType as any, entityId, title, content, metadata, searchTags),
+      aiRAGService.indexDocument(documentType as DocumentType, entityId, title, content, metadata, searchTags),
     onSuccess: (document) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.AI_DOCUMENTS] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.AI_INDEXING_STATUS] });
@@ -223,7 +223,7 @@ export const useQuickAIEstimate = (
 ) => {
   return useQuery({
     queryKey: ['quick-ai-estimate', projectCategory, areaSqm, complexityLevel],
-    queryFn: () => aiEstimationService.getQuickEstimate(projectCategory as any, areaSqm, complexityLevel),
+    queryFn: () => aiEstimationService.getQuickEstimate(projectCategory as ProjectCategory, areaSqm, complexityLevel),
     enabled: !!projectCategory && areaSqm > 0,
     staleTime: 10 * 60 * 1000, // 10 minutes
     ...options,
@@ -254,7 +254,7 @@ export const useBulkIndexEntities = (
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (entityTypes: string[]) => aiRAGService.bulkIndexEntities(entityTypes as any),
+    mutationFn: (entityTypes: string[]) => aiRAGService.bulkIndexEntities(entityTypes as DocumentType[]),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.AI_INDEXING_STATUS] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.AI_DOCUMENTS] });
