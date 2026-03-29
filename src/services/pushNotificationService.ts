@@ -36,14 +36,12 @@ class PushNotificationService {
 
   async initialize(): Promise<boolean> {
     if (!this.isSupported) {
-      console.warn('Push Notifications werden nicht unterstützt');
       return false;
     }
 
     try {
       // Service Worker registrieren
       this.registration = await navigator.serviceWorker.register('/service-worker.js');
-      console.log('Service Worker registriert:', this.registration);
 
       // Warten bis Service Worker aktiv ist
       await navigator.serviceWorker.ready;
@@ -61,7 +59,6 @@ class PushNotificationService {
     }
 
     const permission = await Notification.requestPermission();
-    console.log('Notification Permission:', permission);
     
     return permission;
   }
@@ -83,7 +80,6 @@ class PushNotificationService {
         applicationServerKey: applicationServerKey
       });
 
-      console.log('Push Subscription erfolgreich:', this.subscription);
 
       // Subscription an Server senden
       await this.sendSubscriptionToServer(this.subscription);
@@ -114,7 +110,6 @@ class PushNotificationService {
         throw new Error('Subscription konnte nicht gespeichert werden');
       }
 
-      console.log('Push Subscription an Server gesendet');
     } catch (error) {
       console.error('Fehler beim Senden der Subscription:', error);
       // Lokale Speicherung als Fallback
@@ -156,13 +151,11 @@ class PushNotificationService {
   // Background Sync für Offline-Daten
   async requestBackgroundSync(): Promise<void> {
     if (!this.registration || !('sync' in this.registration)) {
-      console.warn('Background Sync wird nicht unterstützt');
       return;
     }
 
     try {
       await (this.registration as any).sync.register('background-sync');
-      console.log('Background Sync registriert');
     } catch (error) {
       console.error('Background Sync Registrierung fehlgeschlagen:', error);
     }
@@ -171,7 +164,6 @@ class PushNotificationService {
   // Periodic Background Sync (experimentell)
   async requestPeriodicBackgroundSync(): Promise<void> {
     if (!this.registration || !('periodicSync' in this.registration)) {
-      console.warn('Periodic Background Sync wird nicht unterstützt');
       return;
     }
 
@@ -180,7 +172,6 @@ class PushNotificationService {
       await this.registration.periodicSync.register('periodic-background-sync', {
         minInterval: 24 * 60 * 60 * 1000, // 24 Stunden
       });
-      console.log('Periodic Background Sync registriert');
     } catch (error) {
       console.error('Periodic Background Sync Registrierung fehlgeschlagen:', error);
     }
@@ -321,7 +312,6 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'SYNC_OFFLINE_DATA') {
       // Trigger für Offline-Daten-Synchronisation
-      console.log('Service Worker fordert Daten-Sync an');
       
       // Event für die App senden
       window.dispatchEvent(new CustomEvent('sync-offline-data', {
@@ -335,7 +325,6 @@ if ('serviceWorker' in navigator) {
 if (typeof window !== 'undefined') {
   pushNotificationService.initialize().then((success) => {
     if (success) {
-      console.log('Push Notification Service initialisiert');
     }
   });
 }

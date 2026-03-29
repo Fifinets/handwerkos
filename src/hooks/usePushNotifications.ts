@@ -57,7 +57,6 @@ export const usePushNotifications = () => {
   // Setup Service Worker Message Listener for sync events
   useEffect(() => {
     const handleSyncRequest = async (event: CustomEvent) => {
-      console.log('Sync event received:', event.detail);
       
       try {
         // Sync offline data
@@ -207,7 +206,6 @@ export const usePushNotifications = () => {
         offlineStorage.getUnsyncedPhotos()
       ]);
 
-      console.log('Syncing offline data:', { timeEntries, materialEntries, photos });
 
       // Here you would implement actual sync logic with Supabase
       // For now, we'll simulate successful sync

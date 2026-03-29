@@ -38,7 +38,6 @@ class WorkflowService {
    */
   async createProjectFromOrder(orderId: string): Promise<string | null> {
     try {
-      console.log('🔄 Creating project from order:', orderId);
 
       // 1. Order-Daten laden
       const { data: order, error: orderError } = await supabase
@@ -128,7 +127,6 @@ class WorkflowService {
    */
   async createInvoiceFromProject(projectId: string): Promise<string | null> {
     try {
-      console.log('🔄 Creating invoice from project:', projectId);
 
       // 1. Projekt-Daten laden
       const { data: project, error: projectError } = await supabase
@@ -403,7 +401,6 @@ class WorkflowService {
       userId: schedule.userId,
     }, async () => {
       // Placeholder für die tatsächliche Schedule-Apply-Logik
-      console.log('Applying AI schedule:', schedule);
       return schedule;
     });
   }

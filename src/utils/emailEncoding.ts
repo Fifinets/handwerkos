@@ -189,19 +189,12 @@ export function testUtf8Encoding(): void {
     'âÍâÍâÍ broken sequence Â­Â­Â­'
   ];
   
-  console.log('UTF-8 Encoding Tests:');
   
   testStrings.forEach((test, index) => {
     const cleaned = cleanContentForUtf8(test);
     const encoded = encodeEmailSubject(test);
     const quotedPrintable = toQuotedPrintable(test);
     
-    console.log(`Test ${index + 1}:`);
-    console.log(`  Original: ${test}`);
-    console.log(`  Cleaned:  ${cleaned}`);
-    console.log(`  Subject:  ${encoded}`);
-    console.log(`  QP:       ${quotedPrintable}`);
-    console.log('');
   });
 }
 

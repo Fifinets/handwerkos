@@ -56,8 +56,6 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
   const createProjectMutation = useCreateProject();
 
   // Debug logging
-  console.log('AddProjectDialog - customers:', customers);
-  console.log('AddProjectDialog - teamMembers:', teamMembers);
   const [formData, setFormData] = useState({
     name: '',
     customer_id: '',
@@ -214,11 +212,6 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
 
       // Add team members to the project if any were selected
       if (teamMemberIds.length > 0 && newProject) {
-        console.log('Adding team members to project:', {
-          projectId: newProject.id,
-          teamMemberIds,
-          teamMemberInserts: teamMemberIds.map(id => ({ project_id: newProject.id, employee_id: id }))
-        });
 
         // Import supabase here to add team members
         const { supabase } = await import('@/integrations/supabase/client');
@@ -233,14 +226,12 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
           .insert(teamMemberInserts);
 
         if (teamError) {
-          console.error('Error adding team members:', teamError);
           toast({
             title: "Warnung",
             description: "Projekt wurde erstellt, aber Team-Mitglieder konnten nicht zugewiesen werden: " + teamError.message,
             variant: "destructive"
           });
         } else {
-          console.log('Team members successfully added to project');
           toast({
             title: "Erfolg",
             description: `Projekt erstellt und ${teamMemberIds.length} Team-Mitglieder zugewiesen.`,

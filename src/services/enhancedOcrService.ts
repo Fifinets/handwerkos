@@ -108,16 +108,12 @@ export class EnhancedOCRService {
     }
 
     try {
-      console.log('Initializing Enhanced OCR Service...');
       
       // Try to load German and English languages
       try {
         this.worker = await createWorker(['deu', 'eng']);
-        console.log('German and English language packs loaded');
       } catch (langError) {
-        console.warn('Multi-language initialization failed, using English only:', langError);
         this.worker = await createWorker('eng');
-        console.log('English language pack loaded');
       }
       
       // Optimized parameters for invoice recognition
@@ -130,7 +126,6 @@ export class EnhancedOCRService {
       });
       
       this.isInitialized = true;
-      console.log('Enhanced OCR Service successfully initialized');
     } catch (error) {
       console.error('Failed to initialize Enhanced OCR Service:', error);
       throw new ApiError(
@@ -188,10 +183,8 @@ export class EnhancedOCRService {
       const fileName = `invoice_${Date.now()}_${fileHash.substring(0, 8)}.${fileExtension}`;
 
       // Extract text using Tesseract
-      console.log('Starting OCR text extraction...');
       const ocrResult = await this.worker!.recognize(file);
       const extractedText = ocrResult.data.text;
-      console.log('OCR text extraction completed');
 
       // Clean extracted text
       const cleanedText = this.cleanExtractedText(extractedText);
@@ -201,18 +194,15 @@ export class EnhancedOCRService {
       let confidenceScores: DetailedConfidenceScores;
 
       if (isOpenAIConfigured()) {
-        console.log('Using AI-enhanced data extraction...');
         try {
           const aiResult = await extractInvoiceWithAI(base64Image);
           structuredData = this.convertAIToStructuredFormat(aiResult);
           confidenceScores = this.calculateAIConfidenceScores(aiResult, structuredData);
         } catch (aiError) {
-          console.warn('AI extraction failed, falling back to pattern matching:', aiError);
           structuredData = this.extractInvoiceDataEnhanced(cleanedText);
           confidenceScores = this.calculateConfidenceScores(cleanedText, structuredData);
         }
       } else {
-        console.log('Using pattern-based data extraction...');
         structuredData = this.extractInvoiceDataEnhanced(cleanedText);
         confidenceScores = this.calculateConfidenceScores(cleanedText, structuredData);
       }
@@ -263,7 +253,6 @@ export class EnhancedOCRService {
           reason: 'OCR processing completed'
         });
       } catch (auditError) {
-        console.warn('Failed to create audit log:', auditError);
       }
 
       // Emit event

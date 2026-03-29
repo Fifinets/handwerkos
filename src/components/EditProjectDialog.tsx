@@ -91,7 +91,6 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
   // Update form data when project changes
   useEffect(() => {
     if (project) {
-      console.log('EditProjectDialog: Updating form with project data:', project);
 
       setFormData({
         name: project.name || '',
@@ -216,18 +215,15 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
   };
 
   const startDelete = () => {
-    console.log('🚀 startDelete called - beginning delete sequence');
     setIsDeleting(true);
     setDeleteProgress(0);
 
     const interval = setInterval(() => {
       setDeleteProgress(prev => {
         const newProgress = prev + (100 / 25); // 2,5 Sekunden = 25 Updates à 100ms
-        console.log('⏰ Delete progress:', Math.round(newProgress) + '%');
 
         if (newProgress >= 100) {
           clearInterval(interval);
-          console.log('✅ Delete timer completed, calling handleDelete');
           handleDelete();
           return 100;
         }
@@ -239,7 +235,6 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
   };
 
   const stopDelete = () => {
-    console.log('⏹️ stopDelete called - canceling delete sequence');
     if (deleteTimer) {
       clearInterval(deleteTimer);
       setDeleteTimer(null);
@@ -290,7 +285,6 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
 
   if (!project) return null;
 
-  console.log('🎯 EditProjectDialog render - onProjectDeleted available:', !!onProjectDeleted);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -404,7 +398,7 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
                   type="button"
                   variant="destructive"
                   className="w-full relative overflow-hidden"
-                  onClick={() => console.log('🖱️ Delete button clicked!')}
+                  onClick={() => {}}
                   onMouseDown={onProjectDeleted ? startDelete : undefined}
                   onMouseUp={onProjectDeleted ? stopDelete : undefined}
                   onMouseLeave={onProjectDeleted ? stopDelete : undefined}

@@ -1004,12 +1004,6 @@ export class AIEstimationService {
   private static async updateEstimationModel(estimation: AIEstimation, accuracy: EstimationAccuracy): Promise<void> {
     // This would update ML models in production
     // For now, just log the learning data
-    console.log('Learning from estimation accuracy:', {
-      category: estimation.estimation_type,
-      variance: accuracy.variance_percentage,
-      accuracy_score: accuracy.accuracy_score,
-      lessons: accuracy.lessons_learned,
-    });
   }
 
   private static identifyImprovementAreas(accuracyRecords: any[], averageAccuracy: number): string[] {
@@ -1048,7 +1042,6 @@ export async function applyEstimateWithApproval(args: {
   }, async () => {
     // Placeholder für die tatsächliche Apply-Logik
     // Diese würde normalerweise die Schätzung in die DB schreiben
-    console.log('Applying AI estimate:', args);
     return args.estimate;
   });
 }

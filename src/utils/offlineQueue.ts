@@ -25,7 +25,6 @@ class OfflineQueueManager {
     queue.push(action);
     await this.saveQueue(queue);
 
-    console.log(`Added offline action: ${type}`, action);
   }
 
   async getQueue(): Promise<OfflineAction[]> {
@@ -53,14 +52,12 @@ class OfflineQueueManager {
     const queue = await this.getQueue();
     if (queue.length === 0) return;
 
-    console.log(`Processing ${queue.length} offline actions`);
 
     const remainingActions: OfflineAction[] = [];
 
     for (const action of queue) {
       try {
         await this.executeAction(action, supabase);
-        console.log(`Successfully processed action: ${action.type}`, action.id);
       } catch (error) {
         console.error(`Failed to process action: ${action.type}`, error);
         
@@ -68,7 +65,6 @@ class OfflineQueueManager {
         if (action.retryCount < this.MAX_RETRIES) {
           remainingActions.push(action);
         } else {
-          console.warn(`Action ${action.id} exceeded max retries and will be discarded`);
         }
       }
     }

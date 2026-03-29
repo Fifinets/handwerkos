@@ -27,6 +27,8 @@ import {
     Calculator
 } from "lucide-react";
 import AMGEKalkulator from "@/components/AMGEKalkulator";
+import { useFeatureAccess } from "@/hooks/useSubscription";
+import { UpgradePrompt } from "@/components/billing/UpgradePrompt";
 import { useToast } from "@/hooks/use-toast";
 import {
     useInvoices,
@@ -45,6 +47,18 @@ const statusLabelMap: Record<string, string> = {
     cancelled: 'Storniert',
     void: 'Storniert',
 };
+
+function DatevExportGated() {
+    const { hasAccess, isLoading, requiredPlan } = useFeatureAccess('datev_export');
+    if (!isLoading && !hasAccess) {
+        return <UpgradePrompt feature="DATEV-Export" requiredPlan={requiredPlan || 'enterprise'} />;
+    }
+    return (
+        <Card className="bg-white border-slate-200 shadow-sm p-12 text-center text-slate-500">
+            DATEV-Export wird bald verfuegbar sein.
+        </Card>
+    );
+}
 
 const FinanceModuleV2 = () => {
     const { toast } = useToast();
@@ -533,9 +547,7 @@ const FinanceModuleV2 = () => {
                 </TabsContent>
 
                 <TabsContent value="taxes" className="m-0">
-                    <Card className="bg-white border-slate-200 shadow-sm p-12 text-center text-slate-500">
-                        Steuerübersicht und DATEV-Export wird geladen...
-                    </Card>
+                    <DatevExportGated />
                 </TabsContent>
             </Tabs>
         </div>

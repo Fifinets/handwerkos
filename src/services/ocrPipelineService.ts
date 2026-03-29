@@ -250,7 +250,6 @@ export class OCRPipelineService {
         });
 
       if (error) {
-        console.warn('Supplier matching failed:', error);
         return [];
       }
 
@@ -312,7 +311,6 @@ export class OCRPipelineService {
         });
 
       if (error) {
-        console.warn('Duplicate detection failed:', error);
         return [];
       }
 

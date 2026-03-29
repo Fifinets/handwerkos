@@ -1,44 +1,35 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect } from "react";
-import IndexV2 from "./pages/IndexV2";
-import Auth from "./pages/Auth";
-import Employee from "./pages/Employee";
-import GmailCallback from "./pages/GmailCallback";
-import Privacy from "./pages/Privacy";
-import NotFound from "./pages/NotFound";
-import MitarbeiterSetupPage from "./pages/MitarbeiterSetupPage";
-import HandwerkerSoftwarePremium from "./pages/HandwerkerSoftwarePremium";
-import Impressum from "./pages/Impressum";
-import Datenschutz from "./pages/Datenschutz";
-import OfferCreationWizard from "./pages/offers/OfferCreationWizard";
-import OfferEditorPage from "./pages/offers/OfferEditorPage";
-import MarketplaceLanding from "./pages/marketplace/MarketplaceLanding";
-import JobPostingWizard from "./pages/marketplace/JobPostingWizard";
-import CustomerDashboard from "./pages/marketplace/CustomerDashboard";
-import MarketplaceAuth from "./pages/marketplace/MarketplaceAuth";
-import JobSearchFeed from "./pages/marketplace/JobSearchFeed";
-import PublicOfferView from "./pages/public/PublicOfferView";
-
-// Webbuilder Imports
-import WebBuilderLayout from "./features/webbuilder/components/WebBuilderLayout";
-import WebBuilderDashboard from "./features/webbuilder/pages/WebBuilderDashboard";
-import TemplateSelector from "./features/webbuilder/pages/TemplateSelector";
-import StyleConfigurator from "./features/webbuilder/pages/StyleConfigurator";
-import ContentInput from "./features/webbuilder/pages/ContentInput";
-import LegalDataInput from "./features/webbuilder/pages/LegalDataInput";
-import WebBuilderEditor from "./features/webbuilder/pages/WebBuilderEditor";
-
-
+import { lazy, Suspense, useEffect } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { GoogleAnalytics } from "./components/GoogleAnalytics";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { eventBus } from "./services/eventBus";
+import CookieBanner from "./components/CookieBanner";
+import NotFound from "./pages/NotFound";
 import "./styles/animations.css";
+
+// Lazy-loaded pages
+const IndexV2 = lazy(() => import("./pages/IndexV2"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Employee = lazy(() => import("./pages/Employee"));
+const GmailCallback = lazy(() => import("./pages/GmailCallback"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const MitarbeiterSetupPage = lazy(() => import("./pages/MitarbeiterSetupPage"));
+const HandwerkerSoftwarePremium = lazy(() => import("./pages/HandwerkerSoftwarePremium"));
+const Impressum = lazy(() => import("./pages/Impressum"));
+const Datenschutz = lazy(() => import("./pages/Datenschutz"));
+const OfferCreationWizard = lazy(() => import("./pages/offers/OfferCreationWizard"));
+const OfferEditorPage = lazy(() => import("./pages/offers/OfferEditorPage"));
+const MarketplaceLanding = lazy(() => import("./pages/marketplace/MarketplaceLanding"));
+const JobPostingWizard = lazy(() => import("./pages/marketplace/JobPostingWizard"));
+const CustomerDashboard = lazy(() => import("./pages/marketplace/CustomerDashboard"));
+const MarketplaceAuth = lazy(() => import("./pages/marketplace/MarketplaceAuth"));
+const JobSearchFeed = lazy(() => import("./pages/marketplace/JobSearchFeed"));
+const PublicOfferView = lazy(() => import("./pages/public/PublicOfferView"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,9 +43,7 @@ const queryClient = new QueryClient({
 
 const EventBusQueryInvalidation = () => {
   useEffect(() => {
-    // Set up EventBus to invalidate React Query cache on relevant events
     const subscriptions = [
-      // Customer events
       eventBus.on('CUSTOMER_CREATED', () => {
         queryClient.invalidateQueries({ queryKey: ['customers'] });
       }),
@@ -64,8 +53,6 @@ const EventBusQueryInvalidation = () => {
       eventBus.on('CUSTOMER_DELETED', () => {
         queryClient.invalidateQueries({ queryKey: ['customers'] });
       }),
-
-      // Project events
       eventBus.on('PROJECT_CREATED', () => {
         queryClient.invalidateQueries({ queryKey: ['projects'] });
         queryClient.invalidateQueries({ queryKey: ['financial-kpis'] });
@@ -81,8 +68,6 @@ const EventBusQueryInvalidation = () => {
       eventBus.on('PROJECT_DELETED' as any, () => {
         queryClient.invalidateQueries({ queryKey: ['projects'] });
       }),
-
-      // Quote events
       eventBus.on('QUOTE_CREATED', () => {
         queryClient.invalidateQueries({ queryKey: ['quotes'] });
       }),
@@ -93,8 +78,6 @@ const EventBusQueryInvalidation = () => {
         queryClient.invalidateQueries({ queryKey: ['quotes'] });
         queryClient.invalidateQueries({ queryKey: ['financial-kpis'] });
       }),
-
-      // Offer events
       eventBus.on('OFFER_CREATED', () => {
         queryClient.invalidateQueries({ queryKey: ['offers'] });
       }),
@@ -127,8 +110,6 @@ const EventBusQueryInvalidation = () => {
       eventBus.on('OFFER_TARGETS_UPDATED', () => {
         queryClient.invalidateQueries({ queryKey: ['offers'] });
       }),
-
-      // Invoice events
       eventBus.on('INVOICE_CREATED', () => {
         queryClient.invalidateQueries({ queryKey: ['invoices'] });
         queryClient.invalidateQueries({ queryKey: ['financial-kpis'] });
@@ -141,16 +122,12 @@ const EventBusQueryInvalidation = () => {
         queryClient.invalidateQueries({ queryKey: ['invoices'] });
         queryClient.invalidateQueries({ queryKey: ['financial-kpis'] });
       }),
-
-      // Time entry events
       eventBus.on('TIMESHEET_CREATED', () => {
         queryClient.invalidateQueries({ queryKey: ['time-entries'] });
       }),
       eventBus.on('TIMESHEET_UPDATED', () => {
         queryClient.invalidateQueries({ queryKey: ['time-entries'] });
       }),
-
-      // Material/Stock events
       eventBus.on('STOCK_ADJUSTED', () => {
         queryClient.invalidateQueries({ queryKey: ['materials'] });
         queryClient.invalidateQueries({ queryKey: ['stock-counts'] });
@@ -162,7 +139,6 @@ const EventBusQueryInvalidation = () => {
       })
     ];
 
-    // Cleanup subscriptions on unmount
     return () => {
       subscriptions.forEach(subscriptionId => eventBus.off(subscriptionId));
     };
@@ -171,7 +147,11 @@ const EventBusQueryInvalidation = () => {
   return null;
 };
 
-import CookieBanner from "./components/CookieBanner";
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+  </div>
+);
 
 const App = () => (
   <ErrorBoundary>
@@ -184,56 +164,40 @@ const App = () => (
           <CookieBanner />
           <BrowserRouter>
             <GoogleAnalytics />
-            <Routes>
-              <Route path="/" element={<HandwerkerSoftwarePremium />} />
-              <Route path="/login" element={<Auth />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/manager" element={<Navigate to="/manager2" replace />} />
-              <Route path="/manager2" element={<IndexV2 />} />
-              <Route path="/employee" element={<Employee />} />
-              <Route path="/auth/callback" element={<GmailCallback />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/impressum" element={<Impressum />} />
-              <Route path="/datenschutz" element={<Datenschutz />} />
-              <Route path="/mitarbeiter-setup" element={<MitarbeiterSetupPage />} />
-              <Route path="/mitarbeiter-setup" element={<MitarbeiterSetupPage />} />
-              <Route path="/handwerkersoftware" element={<HandwerkerSoftwarePremium />} />
+            <Suspense fallback={<LoadingFallback />}>
+              <Routes>
+                <Route path="/" element={<HandwerkerSoftwarePremium />} />
+                <Route path="/login" element={<Auth />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/manager" element={<Navigate to="/manager2" replace />} />
+                <Route path="/manager2" element={<IndexV2 />} />
+                <Route path="/employee" element={<Employee />} />
+                <Route path="/auth/callback" element={<GmailCallback />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/impressum" element={<Impressum />} />
+                <Route path="/datenschutz" element={<Datenschutz />} />
+                <Route path="/mitarbeiter-setup" element={<MitarbeiterSetupPage />} />
+                <Route path="/handwerkersoftware" element={<HandwerkerSoftwarePremium />} />
 
+                {/* Offer Module Routes */}
+                <Route path="/offers/wizard" element={<OfferCreationWizard />} />
+                <Route path="/offers/:id/edit" element={<OfferEditorPage />} />
+                <Route path="/offers/new/edit" element={<OfferEditorPage />} />
 
-              {/* Offer Module Routes */}
-              <Route path="/offers/wizard" element={<OfferCreationWizard />} />
-              <Route path="/offers/:id/edit" element={<OfferEditorPage />} />
-              <Route path="/offers/new/edit" element={<OfferEditorPage />} />
+                {/* Public Routes (no auth) */}
+                <Route path="/public/offer/:token" element={<PublicOfferView />} />
 
-              {/* Public Routes (no auth) */}
-              <Route path="/public/offer/:token" element={<PublicOfferView />} />
+                {/* Marketplace Module Routes */}
+                <Route path="/marktplatz" element={<MarketplaceLanding />} />
+                <Route path="/marktplatz/post" element={<JobPostingWizard />} />
+                <Route path="/marktplatz/customer/dashboard" element={<CustomerDashboard />} />
+                <Route path="/marktplatz/auth" element={<MarketplaceAuth />} />
+                <Route path="/marktplatz/search" element={<JobSearchFeed />} />
 
-              {/* Marketplace Module Routes */}
-              <Route path="/marktplatz" element={<MarketplaceLanding />} />
-              <Route path="/marktplatz/post" element={<JobPostingWizard />} />
-              <Route path="/marktplatz/customer/dashboard" element={<CustomerDashboard />} />
-              <Route path="/marktplatz/auth" element={<MarketplaceAuth />} />
-              <Route path="/marktplatz/search" element={<JobSearchFeed />} />
-
-              {/* Webbuilder Routes */}
-              {/* Webbuilder Routes */}
-              <Route path="/webbuilder">
-                {/* Landing Page: Full Width, No Layout Wrapper */}
-                <Route index element={<WebBuilderDashboard />} />
-
-                {/* App Routes: Wrapped in Layout */}
-                <Route element={<WebBuilderLayout />}>
-                  <Route path="onboarding/templates" element={<TemplateSelector />} />
-                  <Route path="onboarding/style" element={<StyleConfigurator />} />
-                  <Route path="onboarding/content" element={<ContentInput />} />
-                  <Route path="onboarding/legal" element={<LegalDataInput />} />
-                  <Route path="editor/:siteId" element={<WebBuilderEditor />} />
-                </Route>
-              </Route>
-
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
           </BrowserRouter>
         </TooltipProvider>
       </ThemeProvider>

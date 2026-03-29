@@ -43,7 +43,6 @@ class PushNotificationManager {
       const permStatus = await PushNotifications.requestPermissions()
       
       if (permStatus.receive !== 'granted') {
-        console.warn('Push notification permission not granted')
         return
       }
 
@@ -51,7 +50,6 @@ class PushNotificationManager {
       await PushNotifications.register()
       
       this.isInitialized = true
-      console.log('Push notifications initialized successfully')
 
     } catch (error) {
       console.error('Error initializing push notifications:', error)
@@ -63,7 +61,6 @@ class PushNotificationManager {
 
     // On success, we should be able to receive notifications
     PushNotifications.addListener('registration', async (token: Token) => {
-      console.log('Push registration success, token: ', token.value)
       this.currentToken = token.value
       
       if (userId) {
@@ -78,7 +75,6 @@ class PushNotificationManager {
 
     // Show us the notification payload if the app is open on our device
     PushNotifications.addListener('pushNotificationReceived', (notification: PushNotificationSchema) => {
-      console.log('Push notification received: ', notification)
       
       // Show local notification if app is in foreground
       this.showLocalNotification({
@@ -90,7 +86,6 @@ class PushNotificationManager {
 
     // Method called when tapping on a notification
     PushNotifications.addListener('pushNotificationActionPerformed', (notification: ActionPerformed) => {
-      console.log('Push notification action performed: ', notification)
       
       // Handle navigation based on notification data
       this.handleNotificationAction(notification)
@@ -109,9 +104,7 @@ class PushNotificationManager {
         })
 
       if (error) {
-        console.error('Error updating push token:', error)
       } else {
-        console.log('Push token updated successfully')
       }
     } catch (error) {
       console.error('Error saving push token:', error)
@@ -189,7 +182,6 @@ class PushNotificationManager {
         }]
       })
       
-      console.log('Time tracking reminder scheduled')
     } catch (error) {
       console.error('Error scheduling time tracking reminder:', error)
     }
@@ -203,7 +195,6 @@ class PushNotificationManager {
       await LocalNotifications.cancel({
         notifications: [{ id: 1 }]
       })
-      console.log('All notifications cancelled')
     } catch (error) {
       console.error('Error cancelling notifications:', error)
     }

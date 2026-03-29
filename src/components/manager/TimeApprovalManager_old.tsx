@@ -124,7 +124,6 @@ export const TimeApprovalManager: React.FC = () => {
         .order('first_name')
       
       if (error) {
-        console.error('Error fetching employees:', error)
       } else {
         setEmployees(data || [])
       }
@@ -142,7 +141,6 @@ export const TimeApprovalManager: React.FC = () => {
         .order('name')
       
       if (error) {
-        console.error('Error fetching time rules:', error)
         // Fallback zu Standard-Regel
         setTimeRules([{
           id: 'default',
@@ -206,7 +204,6 @@ export const TimeApprovalManager: React.FC = () => {
       const { data, error } = await query
       
       if (error) {
-        console.error('Error fetching segments:', error)
         toast.error('Fehler beim Laden der Zeitsegmente')
       } else {
         setSegments(data || [])

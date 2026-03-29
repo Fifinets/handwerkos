@@ -87,7 +87,6 @@ export function EmailImport({ onEmailImported }: EmailImportProps) {
       });
 
       if (classifyError) {
-        console.error('Classification error:', classifyError);
         // Don't fail the import if classification fails
       }
 

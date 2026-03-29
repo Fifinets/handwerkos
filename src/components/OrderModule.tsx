@@ -52,7 +52,6 @@ const OrderModule = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      console.log('Fetching orders...');
 
       const { data, error } = await supabase
         .from('orders')
@@ -66,7 +65,6 @@ const OrderModule = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching orders:', error);
         toast({
           title: "Fehler",
           description: "Aufträge konnten nicht geladen werden.",
@@ -75,7 +73,6 @@ const OrderModule = () => {
         return;
       }
 
-      console.log('Orders fetched:', data);
       setOrders(data || []);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -91,7 +88,6 @@ const OrderModule = () => {
 
   const handleDeleteOrder = async (id: string) => {
     try {
-      console.log('Deleting order:', id);
 
       const { error } = await supabase
         .from('orders')
@@ -99,7 +95,6 @@ const OrderModule = () => {
         .eq('id', id);
 
       if (error) {
-        console.error('Error deleting order:', error);
         toast({
           title: "Fehler",
           description: "Auftrag konnte nicht gelöscht werden.",
@@ -126,7 +121,6 @@ const OrderModule = () => {
 
   const handleCreateProject = async (orderId: string, orderTitle: string) => {
     try {
-      console.log('Creating project from order:', orderId);
 
       const projectId = await workflowService.createProjectFromOrder(orderId);
       if (projectId) {

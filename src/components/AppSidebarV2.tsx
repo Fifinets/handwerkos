@@ -20,7 +20,8 @@ import {
     MoreVertical,
     UserCircle,
     ClipboardList,
-    BarChart3
+    BarChart3,
+    ShieldCheck
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -58,6 +59,7 @@ const secondaryNavigation = [
     { id: 'timetracking', name: 'Zeiterfassung', icon: Clock },
     { id: 'delivery-notes', name: 'Lieferscheine', icon: ClipboardList },
     { id: 'materials', name: 'Material', icon: Package },
+    { id: 'inspections', name: 'Pruefprotokolle', icon: ShieldCheck },
 ];
 
 interface AppSidebarV2Props {
@@ -244,7 +246,7 @@ export function AppSidebarV2({ activeModule, onModuleChange }: AppSidebarV2Props
                             <Settings className="mr-2 h-4 w-4 text-slate-400" />
                             <span>Einstellungen</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="focus:bg-slate-800 focus:text-slate-100 cursor-pointer" onClick={() => onModuleChange('documents')}>
+                        <DropdownMenuItem className="focus:bg-slate-800 focus:text-slate-100 cursor-pointer" onClick={() => onModuleChange('billing')}>
                             <Receipt className="mr-2 h-4 w-4 text-slate-400" />
                             <span>Abrechnung & Pläne</span>
                         </DropdownMenuItem>

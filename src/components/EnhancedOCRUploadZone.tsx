@@ -347,7 +347,6 @@ export function EnhancedOCRUploadZone({
                       size="sm"
                       onClick={() => {
                         // Navigate to invoice details
-                        console.log('Navigate to invoice:', processing.result?.invoice_id);
                       }}
                     >
                       Details anzeigen

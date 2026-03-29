@@ -64,17 +64,14 @@ export class AttendanceService {
         .maybeSingle()
 
       if (todayAttendance) {
-        console.log('Found existing attendance for today:', todayAttendance)
 
         // If attendance exists and is still open - return it
         if (!todayAttendance.clock_out) {
-          console.log('Attendance is still open (no clock_out) - returning existing')
           return todayAttendance
         }
 
         // If attendance exists but is already closed - reopen it
         // This allows restarting the workday for testing/correction purposes
-        console.log('Attendance is closed. Reopening it. ID:', todayAttendance.id)
 
         const { data: updateData, error: updateError } = await supabase
           .from('attendance')
@@ -87,17 +84,13 @@ export class AttendanceService {
           .select()
           .single()
 
-        console.log('Update result:', { updateData, updateError })
 
         if (updateError) {
-          console.error('Error reopening attendance:', updateError)
           throw new Error(`Fehler beim Wiedereröffnen: ${updateError.message}`)
         }
 
-        console.log('✅ Attendance reopened successfully')
         return updateData
       } else {
-        console.log('No existing attendance for today, creating new one')
       }
 
       // Get employee's company

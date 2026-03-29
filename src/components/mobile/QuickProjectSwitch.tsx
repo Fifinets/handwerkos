@@ -71,7 +71,6 @@ export const QuickProjectSwitch: React.FC<QuickProjectSwitchProps> = ({
   const loadProjects = useCallback(async () => {
     setIsLoading(true)
     try {
-      console.log('🔍 Loading projects from QuickProjectSwitch...')
 
       // Erst einfache Abfrage versuchen
       let { data, error } = await supabase
@@ -79,10 +78,8 @@ export const QuickProjectSwitch: React.FC<QuickProjectSwitchProps> = ({
         .select('id, name')
         .limit(5)
 
-      console.log('📊 Basic project query result:', { data, error })
 
       if (error) {
-        console.error('Basic query failed:', error)
         toast.error(`Basis-Abfrage fehlgeschlagen: ${error.message}`)
         setProjects([])
         return
@@ -90,7 +87,6 @@ export const QuickProjectSwitch: React.FC<QuickProjectSwitchProps> = ({
 
       // Wenn Basis funktioniert, erweiterte Abfrage versuchen
       if (data && data.length > 0) {
-        console.log('📊 Basic query OK, trying extended query...')
         const { data: extendedData, error: extendedError } = await supabase
           .from('projects')
           .select(`
@@ -103,14 +99,11 @@ export const QuickProjectSwitch: React.FC<QuickProjectSwitchProps> = ({
           .order('name')
 
         if (!extendedError && extendedData) {
-          console.log('📊 Extended query successful:', extendedData.length, 'projects')
-          console.log('📊 Sample extended data:', extendedData[0])
           data = extendedData
 
           // Lade Customer-Daten separat und verknüpfe sie
           try {
             const customerIds = [...new Set(data.map(p => p.customer_id).filter(Boolean))]
-            console.log('📊 Customer IDs found:', customerIds)
             let customerMap = new Map()
 
             if (customerIds.length > 0) {
@@ -119,7 +112,6 @@ export const QuickProjectSwitch: React.FC<QuickProjectSwitchProps> = ({
                 .select('id, name, phone')
                 .in('id', customerIds)
 
-              console.log('📊 Customers loaded:', customers?.length || 0)
               if (customers) {
                 customers.forEach(c => customerMap.set(c.id, c))
               }
@@ -136,15 +128,12 @@ export const QuickProjectSwitch: React.FC<QuickProjectSwitchProps> = ({
                 : null
             }))
           } catch (customerError) {
-            console.log('📊 Customer loading failed, continuing without:', customerError)
           }
         } else {
-          console.log('📊 Extended query failed, using basic data')
           console.error('📊 Extended query error details:', extendedError?.message || extendedError)
         }
       }
 
-      console.log('📊 Final projects to set:', data?.length || 0)
       setProjects(data || [])
     } catch (error) {
       console.error('Error loading projects:', error)
@@ -169,7 +158,6 @@ export const QuickProjectSwitch: React.FC<QuickProjectSwitchProps> = ({
         .limit(10)
 
       if (error) {
-        console.error('Failed to load recent projects:', error)
         setRecentProjects([])
         return
       }

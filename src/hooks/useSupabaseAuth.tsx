@@ -45,7 +45,6 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         .single();
 
       if (roleError) {
-        console.warn('Role fetch error, default to employee:', roleError);
         setUserRole('employee');
       } else {
         setUserRole(roleData?.role ?? 'employee');
@@ -59,7 +58,6 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         .single();
 
       if (profileError) {
-        console.warn('Profile fetch error:', profileError);
         setCompanyId(null);
       } else {
         setCompanyId(profileData?.company_id ?? null);
@@ -113,7 +111,6 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     }
 
     try {
-      console.log('Creating Supabase invitation for employee:', email);
 
       // Create temporary user with invite token
       const inviteToken = crypto.randomUUID();
@@ -134,7 +131,6 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         } as any);
 
       if (inviteError) {
-        console.error('Error creating invitation:', inviteError);
         return { success: false, error: 'Fehler beim Erstellen der Einladung' };
       }
 
@@ -154,7 +150,6 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         } as any);
 
       if (employeeError) {
-        console.error('Error creating employee:', employeeError);
         return { success: false, error: 'Fehler beim Erstellen des Mitarbeiters' };
       }
 
@@ -184,10 +179,8 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         });
 
         if (welcomeEmailError) {
-          console.warn('Welcome email failed, trying fallback:', welcomeEmailError);
           throw welcomeEmailError;
         }
-        console.log('Professional welcome email sent successfully');
       } catch (welcomeError) {
         // Fallback to original invitation email
         const { error: emailError } = await supabase.functions.invoke('send-employee-confirmation', {

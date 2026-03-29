@@ -30,7 +30,6 @@ const EmailTemplateManager: React.FC = () => {
       .select('*')
       .order('created_at', { ascending: true });
     if (error) {
-      console.error(error);
       toast({ title: 'Fehler', description: 'Vorlagen konnten nicht geladen werden.' });
     } else {
       setTemplates(data as Template[]);
@@ -53,7 +52,6 @@ const EmailTemplateManager: React.FC = () => {
       user_id: (await supabase.auth.getUser()).data.user?.id
     });
     if (error) {
-      console.error(error);
       toast({ title: 'Fehler', description: 'Vorlage konnte nicht gespeichert werden.' });
     } else {
       toast({ title: 'Vorlage gespeichert', description: `${newTemplate.name} wurde angelegt.` });
@@ -65,7 +63,6 @@ const EmailTemplateManager: React.FC = () => {
   const handleDeleteTemplate = async (id: string) => {
     const { error } = await supabase.from('email_templates').delete().eq('id', id);
     if (error) {
-      console.error(error);
       toast({ title: 'Fehler', description: 'Vorlage konnte nicht gelöscht werden.' });
     } else {
       toast({ title: 'Vorlage gelöscht', description: 'Die Vorlage wurde entfernt.' });
@@ -86,7 +83,6 @@ const EmailTemplateManager: React.FC = () => {
       .update({ name: editData.name, subject: editData.subject, body: editData.body })
       .eq('id', editingTemplateId);
     if (error) {
-      console.error(error);
       toast({ title: 'Fehler', description: 'Vorlage konnte nicht aktualisiert werden.' });
     } else {
       toast({ title: 'Vorlage aktualisiert', description: `${editData.name} wurde aktualisiert.` });

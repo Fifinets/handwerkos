@@ -102,7 +102,6 @@ const ProjectProfitabilityDialog: React.FC<ProjectProfitabilityDialogProps> = ({
             extractedPreCalculation = JSON.parse(preCalcMatch[1]);
             setPreCalculation(extractedPreCalculation);
           } catch (e) {
-            console.warn('Fehler beim Parsen der Vor-Kalkulation:', e);
           }
         }
       }

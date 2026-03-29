@@ -212,7 +212,6 @@ export function VacationManagement() {
           });
 
           if (updateError) {
-            console.error('Error updating vacation days:', updateError);
           }
         }
       }

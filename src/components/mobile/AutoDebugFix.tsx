@@ -10,22 +10,16 @@ import { toast } from 'sonner'
 export const AutoDebugFix: React.FC = () => {
   useEffect(() => {
     const runEmergencyFix = async () => {
-      console.log('🚨🚨🚨 EMERGENCY FIX GESTARTET')
 
       try {
         // 1. Hole aktive Zeiterfassung
         const activeEntryStr = localStorage.getItem('activeTimeEntry')
 
         if (!activeEntryStr) {
-          console.log('✅ Keine aktive Zeiterfassung gefunden - nichts zu fixen')
           return
         }
 
         const activeEntry = JSON.parse(activeEntryStr)
-        console.log('📋 Aktive Zeiterfassung gefunden:', activeEntry)
-        console.log('  - Project ID:', activeEntry.project_id)
-        console.log('  - Date:', activeEntry.date)
-        console.log('  - Start Time:', activeEntry.start_time)
 
         // Zeige Toast
         toast.info('Hängende Zeiterfassung gefunden - versuche automatisch zu speichern...')
@@ -40,24 +34,17 @@ export const AutoDebugFix: React.FC = () => {
         const endMinutes = parseInt(endParts[0]) * 60 + parseInt(endParts[1])
         const hours = (endMinutes - startMinutes) / 60
 
-        console.log('⏰ Start Zeit:', activeEntry.start_time)
-        console.log('⏰ End Zeit:', endTime)
-        console.log('⏰ Berechnete Stunden:', hours)
 
         // 3. Hole User
         const { data: { user }, error: userError } = await supabase.auth.getUser()
 
         if (userError || !user) {
-          console.error('❌ User Fehler:', userError)
           toast.error('Nicht angemeldet - kann nicht speichern')
           return
         }
 
-        console.log('👤 User ID:', user.id)
-        console.log('👤 User Email:', user.email)
 
         // 4. Versuche zu speichern
-        console.log('💾 Versuche in timesheets zu speichern...')
 
         const timesheetData = {
           employee_id: user.id,
@@ -72,7 +59,6 @@ export const AutoDebugFix: React.FC = () => {
           is_billable: true
         }
 
-        console.log('💾 Daten zum Speichern:', timesheetData)
 
         const { data, error } = await supabase
           .from('timesheets')
@@ -81,13 +67,6 @@ export const AutoDebugFix: React.FC = () => {
           .single()
 
         if (error) {
-          console.error('❌❌❌ FEHLER BEIM SPEICHERN:')
-          console.error('Error Object:', error)
-          console.error('Error Code:', error.code)
-          console.error('Error Message:', error.message)
-          console.error('Error Details:', error.details)
-          console.error('Error Hint:', error.hint)
-          console.error('Full Error JSON:', JSON.stringify(error, null, 2))
 
           // Zeige detaillierten Fehler
           toast.error(`SPEICHERN FEHLGESCHLAGEN!\n\nCode: ${error.code}\nMessage: ${error.message}\n\nBitte Screenshot von Console machen (F12)`, {
@@ -95,13 +74,10 @@ export const AutoDebugFix: React.FC = () => {
           })
 
           // ABER: Lösche localStorage trotzdem, um Stuck-State zu verhindern
-          console.log('🧹 Lösche localStorage trotz Fehler, um Stuck-State zu verhindern')
           localStorage.removeItem('activeTimeEntry')
           localStorage.removeItem('activeBreak')
 
         } else {
-          console.log('✅✅✅ ERFOLGREICH GESPEICHERT:')
-          console.log('Saved Data:', data)
 
           // Lösche localStorage
           localStorage.removeItem('activeTimeEntry')
@@ -124,7 +100,6 @@ export const AutoDebugFix: React.FC = () => {
         })
       }
 
-      console.log('🚨🚨🚨 EMERGENCY FIX BEENDET')
     }
 
     // Starte Fix nach 2 Sekunden (damit App geladen ist)

@@ -586,7 +586,6 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
             try {
               summaryText = await summarizeInvoiceDescriptions(allDescriptions, projectName, summaryLength);
             } catch (e) {
-              console.warn('KI-Zusammenfassung fehlgeschlagen, verwende Fallback:', e);
               summaryText = allDescriptions.join('; ');
             }
           } else {
