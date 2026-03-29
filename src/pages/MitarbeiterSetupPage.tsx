@@ -25,9 +25,6 @@ const MitarbeiterSetupPage = () => {
     const validateInvitation = async () => {
       const token = searchParams.get('token');
 
-      // console.log('=== DEBUGGING TOKEN VALIDATION ===');
-      // console.log('URL:', window.location.href);
-      // console.log('Token from URL:', token);
 
       if (!token) {
         // console.error('No token found in URL');
@@ -37,15 +34,12 @@ const MitarbeiterSetupPage = () => {
       }
 
       try {
-        // console.log('Attempting to validate token:', token);
 
         // First, let's check if the table exists and what's in it
         // const { data: allInvitations, error: listError } = await supabase
         //   .from('employee_invitations')
         //   .select('*');
 
-        // console.log('All invitations in DB:', allInvitations);
-        // console.log('List error:', listError);
 
         // Validate invitation token via SECURITY DEFINER function
         // (Direct table access is blocked for anon users)
@@ -53,7 +47,6 @@ const MitarbeiterSetupPage = () => {
           .rpc('get_invitation_by_token', { p_token: token });
         const invitation = invitations && invitations.length > 0 ? invitations[0] : null;
 
-        // console.log('Query result:', { invitation, inviteError });
 
         if (inviteError) {
           toast.error(`Datenbankfehler: ${inviteError.message}`);
@@ -71,9 +64,6 @@ const MitarbeiterSetupPage = () => {
         // Check if token is expired
         const expiryDate = new Date(invitation.expires_at);
         // const now = new Date();
-        // console.log('Token expires:', expiryDate);
-        // console.log('Current time:', now);
-        // console.log('Is expired:', expiryDate < now);
 
         if (expiryDate < new Date()) {
           // console.error('Invitation token expired');
@@ -82,8 +72,6 @@ const MitarbeiterSetupPage = () => {
           return;
         }
 
-        // console.log('Valid invitation found:', invitation);
-        // console.log('Employee data:', invitation.employee_data);
 
         setEmail(invitation.email);
         setFirstName((invitation.employee_data as any)?.firstName || '');
@@ -122,7 +110,6 @@ const MitarbeiterSetupPage = () => {
     setLoading(true);
 
     try {
-      console.log('Creating account for employee:', invitationData.email);
 
       // Create Supabase user account
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
@@ -138,7 +125,6 @@ const MitarbeiterSetupPage = () => {
       });
 
       if (signUpError) {
-        console.error('Error creating user account:', signUpError);
         setError(signUpError.message || 'Fehler beim Erstellen des Kontos');
         return;
       }

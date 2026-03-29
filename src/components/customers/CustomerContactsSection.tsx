@@ -94,7 +94,6 @@ export function CustomerContactsSection({ customerId }: CustomerContactsSectionP
       .order('last_name');
 
     if (error) {
-      console.error('Error fetching contacts:', error);
     } else {
       setContacts((data as CustomerContact[]) || []);
     }
@@ -135,7 +134,6 @@ export function CustomerContactsSection({ customerId }: CustomerContactsSectionP
 
       if (error) {
         toast.error('Kontakt konnte nicht aktualisiert werden');
-        console.error(error);
         return;
       }
       toast.success('Kontakt aktualisiert');
@@ -156,7 +154,6 @@ export function CustomerContactsSection({ customerId }: CustomerContactsSectionP
 
       if (error) {
         toast.error('Kontakt konnte nicht erstellt werden');
-        console.error(error);
         return;
       }
       toast.success('Kontakt hinzugefügt');
@@ -189,7 +186,6 @@ export function CustomerContactsSection({ customerId }: CustomerContactsSectionP
 
     if (error) {
       toast.error('Kontakt konnte nicht gelöscht werden');
-      console.error(error);
       return;
     }
     toast.success('Kontakt gelöscht');

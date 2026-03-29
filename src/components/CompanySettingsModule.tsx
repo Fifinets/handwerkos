@@ -49,7 +49,6 @@ export function CompanySettingsModule() {
   const { data: companySettings, isLoading, error } = useQuery({
     queryKey: ["company-settings"],
     queryFn: async () => {
-      console.log('Fetching company settings...');
       const { data, error } = await supabase
         .from("company_settings")
         .select("*")
@@ -57,7 +56,6 @@ export function CompanySettingsModule() {
         .limit(1)
         .single();
 
-      console.log('Company settings fetch result:', { data, error });
       if (error) throw error;
       return data;
     },
@@ -73,22 +71,17 @@ export function CompanySettingsModule() {
   // Update settings mutation
   const updateSettingsMutation = useMutation({
     mutationFn: async (updatedSettings: Partial<CompanySettings>) => {
-      console.log('updateSettingsMutation called with:', updatedSettings);
-      console.log('Current settings state:', settings);
 
       if (!settings?.id) {
-        console.error('No settings ID found');
         throw new Error("No settings ID");
       }
 
-      console.log('Updating company_settings table with ID:', settings.id);
       const { data, error } = await supabase
         .from("company_settings")
         .update(updatedSettings)
         .eq("id", settings.id)
         .select();
 
-      console.log('Supabase response:', { data, error });
       if (error) throw error;
 
       return data;
@@ -101,10 +94,6 @@ export function CompanySettingsModule() {
       });
     },
     onError: (error) => {
-      console.error("Detailed error updating settings:", error);
-      console.error("Error message:", error.message);
-      console.error("Error details:", error.details);
-      console.error("Error code:", error.code);
 
       toast({
         title: "Fehler beim Speichern",
@@ -115,20 +104,15 @@ export function CompanySettingsModule() {
   });
 
   useEffect(() => {
-    console.log('useEffect triggered. companySettings:', companySettings);
     if (companySettings) {
-      console.log('Setting local state with company settings:', companySettings);
       setSettings(companySettings);
     }
   }, [companySettings]);
 
   const handleSave = () => {
-    console.log('handleSave called with settings:', settings);
     if (settings) {
-      console.log('Calling updateSettingsMutation.mutate with:', settings);
       updateSettingsMutation.mutate(settings);
     } else {
-      console.error('No settings to save');
       toast({
         title: "Fehler",
         description: "Keine Einstellungen zum Speichern vorhanden.",
@@ -152,7 +136,6 @@ export function CompanySettingsModule() {
   }
 
   if (error) {
-    console.error('Company settings error:', error);
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
         <div className="text-muted-foreground">Fehler beim Laden der Firmeneinstellungen</div>
@@ -172,7 +155,6 @@ export function CompanySettingsModule() {
   }
 
   if (!settings) {
-    console.warn('No settings available. companySettings:', companySettings);
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
         <div className="text-muted-foreground">Keine Firmeneinstellungen gefunden</div>

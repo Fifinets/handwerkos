@@ -169,8 +169,6 @@ export class EnhancedInvoiceExtractor {
     const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
     const cleanText = text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
     
-    console.log('🔍 Starting comprehensive invoice extraction...');
-    console.log('📄 Text lines:', lines.length);
 
     // Initialisiere Basis-Datenstruktur
     const invoiceData: InvoiceData = {
@@ -281,17 +279,6 @@ export class EnhancedInvoiceExtractor {
     invoiceData.vatAmount = Object.values(invoiceData.taxAmounts).reduce((sum, amount) => sum + amount, 0);
     invoiceData.description = invoiceData.serviceDescription; // Legacy
 
-    console.log('✅ Invoice extraction completed:', {
-      invoiceNumber: invoiceData.invoiceNumber,
-      supplierName: invoiceData.supplierName,
-      totalAmount: invoiceData.totalAmount,
-      taxRates: invoiceData.taxRates,
-      fieldsExtracted: Object.keys(invoiceData).filter(key => 
-        invoiceData[key as keyof InvoiceData] !== undefined && 
-        invoiceData[key as keyof InvoiceData] !== '' && 
-        invoiceData[key as keyof InvoiceData] !== 0
-      ).length
-    });
 
     return invoiceData;
   }

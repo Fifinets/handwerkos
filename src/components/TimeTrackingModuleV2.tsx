@@ -140,7 +140,6 @@ const TimeTrackingModuleV2 = () => {
       const { data: timeData, error: timeError } = await query;
 
       if (timeError) {
-        console.error('Error fetching time entries:', timeError);
         setLoading(false);
         return;
       }

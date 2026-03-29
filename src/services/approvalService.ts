@@ -20,7 +20,6 @@ async function logApprovalEvent(event: ApprovalEvent): Promise<void> {
   } catch {
     // Non-blocking: falls Backend-Endpoint noch nicht existiert
     // eslint-disable-next-line no-console
-    console.warn('[approval] audit log failed (non-blocking)', event);
   }
 }
 

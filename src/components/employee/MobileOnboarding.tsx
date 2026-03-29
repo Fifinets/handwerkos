@@ -91,7 +91,6 @@ const MobileOnboarding: React.FC<MobileOnboardingProps> = ({ onComplete, onSkip 
       
       setCompletedSteps(prev => new Set(prev).add('location'));
     } catch (error) {
-      console.warn('Location access denied');
       // Still mark as completed since it's optional
       setCompletedSteps(prev => new Set(prev).add('location'));
     }
@@ -109,7 +108,6 @@ const MobileOnboarding: React.FC<MobileOnboardingProps> = ({ onComplete, onSkip 
       
       setCompletedSteps(prev => new Set(prev).add('camera'));
     } catch (error) {
-      console.warn('Camera access denied');
       // Still mark as completed since it's optional
       setCompletedSteps(prev => new Set(prev).add('camera'));
     }

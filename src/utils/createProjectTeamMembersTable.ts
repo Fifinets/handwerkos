@@ -28,11 +28,9 @@ export const createProjectTeamMembersTable = async () => {
     });
 
     if (error) {
-      console.error('Error creating table with rpc:', error);
       return false;
     }
 
-    console.log('project_team_members table created successfully');
     return true;
   } catch (error) {
     console.error('Error creating table:', error);
@@ -71,6 +69,5 @@ GRANT ALL ON public.project_team_members TO authenticated;
 GRANT USAGE ON SCHEMA public TO authenticated;
   `;
   
-  console.log('Copy and run this SQL in the Supabase dashboard:', sql);
   return sql;
 };

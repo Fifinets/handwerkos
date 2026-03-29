@@ -46,7 +46,6 @@ export function EmailSync({ onClose }: EmailSyncProps) {
         setLastSyncTime(data.last_sync_at);
       }
     } catch (error) {
-      console.log('No sync history found');
     }
   };
 
@@ -67,7 +66,6 @@ export function EmailSync({ onClose }: EmailSyncProps) {
     setSyncDetails(forceFullSync ? 'Vollständige Synchronisation läuft...' : 'Neue E-Mails werden synchronisiert...');
 
     try {
-      console.log('Starting email sync...', { forceFullSync, user: user?.id });
 
       const { data, error } = await supabase.functions.invoke('sync-gmail-emails', {
         body: { 
@@ -77,7 +75,6 @@ export function EmailSync({ onClose }: EmailSyncProps) {
       });
 
       if (error) {
-        console.error('Sync error:', error);
         throw new Error(error.message || 'Unbekannter Synchronisationsfehler');
       }
 
@@ -87,7 +84,6 @@ export function EmailSync({ onClose }: EmailSyncProps) {
       setSyncDetails(`${syncedCount} E-Mails erfolgreich synchronisiert. ${message}`);
       setLastSyncTime(new Date().toISOString());
 
-      console.log('Sync completed:', { syncedCount, message });
 
       toast({
         title: "Synchronisation erfolgreich",

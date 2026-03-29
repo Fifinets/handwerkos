@@ -56,7 +56,6 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         });
       }
     } catch {
-      console.warn('GPS nicht verfuegbar');
     }
     return {};
   };

@@ -43,7 +43,6 @@ export const useDeliveryNotePDF = () => {
       if (error) {
         // Fallback wenn Funktion nicht existiert
         if (error.message.includes('function') || error.message.includes('does not exist')) {
-          console.warn('PDF RPC function not found, calling edge function directly')
           return await generatePDFDirect(deliveryNoteId)
         }
         throw error
@@ -119,7 +118,6 @@ export const useDeliveryNotePDF = () => {
       if (error) {
         // Fallback: Status aus delivery_notes Tabelle holen
         if (error.message.includes('function') || error.message.includes('does not exist')) {
-          console.warn('PDF status RPC not found, using fallback')
           const { data: dnData, error: dnError } = await supabase
             .from('delivery_notes')
             .select('pdf_url, pdf_generated_at, status')
@@ -173,7 +171,6 @@ export const useDeliveryNotePDF = () => {
       if (error) {
         // Fallback wenn Funktion nicht existiert
         if (error.message.includes('function') || error.message.includes('does not exist')) {
-          console.warn('Email RPC function not found, calling edge function directly')
           return await sendEmailDirect(params)
         }
         throw error

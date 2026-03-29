@@ -147,7 +147,6 @@ export class GPSLocationManager {
       
       return address.length > 0 ? address.join(', ') : 'Unbekannte Adresse'
     } catch (error) {
-      console.warn('Reverse Geocoding fehlgeschlagen:', error)
       return `${lat.toFixed(6)}, ${lng.toFixed(6)}`
     }
   }
@@ -206,7 +205,6 @@ export class NetworkManager {
     if ('serviceWorker' in navigator) {
       try {
         const registration = await navigator.serviceWorker.register('/sw.js')
-        console.log('Service Worker registriert:', registration)
         return registration
       } catch (error) {
         console.error('Service Worker Registrierung fehlgeschlagen:', error)

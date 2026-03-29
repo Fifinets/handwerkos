@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const addTeamMembersToProject = async (projectId: string, employeeIds: string[]) => {
   try {
-    console.log('Adding team members to project:', { projectId, employeeIds });
 
     const teamMemberInserts = employeeIds.map(employeeId => ({
       project_id: projectId,
@@ -17,11 +16,9 @@ export const addTeamMembersToProject = async (projectId: string, employeeIds: st
       .select();
 
     if (error) {
-      console.error('Error adding team members:', error);
       return { success: false, error: error.message };
     }
 
-    console.log('Team members added successfully:', data);
     return { success: true, data };
 
   } catch (error) {
@@ -38,14 +35,11 @@ export const addTeamMembersToTestProject = async () => {
     "67f0469f-78f3-4193-a6c5-ce2dcfcf7f97", // Filip Bosz 2
   ];
 
-  console.log('🔧 Adding team members to Test project...');
   const result = await addTeamMembersToProject(projectId, employeeIds);
   
   if (result.success) {
-    console.log('✅ Team members added to Test project!');
     alert('Team-Mitglieder wurden zum Test-Projekt hinzugefügt!');
   } else {
-    console.log('❌ Failed to add team members:', result.error);
     alert('Fehler beim Hinzufügen der Team-Mitglieder: ' + result.error);
   }
 

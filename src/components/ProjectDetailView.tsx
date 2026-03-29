@@ -296,7 +296,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           }
         }
       } catch (error) {
-        console.log('Team assignments table might not exist:', error);
       }
       setTeamAssignments(teamMembersProcessed);
 
@@ -312,7 +311,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           totalMaterialCost = materialsData.reduce((sum, entry) => sum + (entry.total_price || 0), 0);
         }
       } catch (error) {
-        console.log('Project materials table might not exist:', error);
       }
 
       // 4. OFFERS: Get offers where project_id = projectId and sum gross_total
@@ -343,7 +341,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           }));
         }
       } catch (error) {
-        console.log('Offers table query error:', error);
       }
       setProjectOffers(processedOffers);
 
@@ -372,7 +369,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           processedMilestones = milestonesData;
         }
       } catch (error) {
-        console.log('Project milestones table might not exist:', error);
       }
       setMilestones(processedMilestones);
 
@@ -392,7 +388,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           processedDocuments = docsData;
         }
       } catch (error) {
-        console.log('Project documents table might not exist:', error);
       }
       setPhotos(processedPhotos);
       setProjectDocuments(processedDocuments);
@@ -410,7 +405,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           processedInvoices = invoicesData;
         }
       } catch (error) {
-        console.log('Invoices table query error:', error);
       }
       setProjectInvoices(processedInvoices);
 
@@ -860,7 +854,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         });
 
       if (error) {
-        console.error('Error adding team member:', error);
         toast({
           title: "Fehler",
           description: "Team-Mitglied konnte nicht hinzugefügt werden",
@@ -2220,7 +2213,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                 });
 
               if (error) {
-                console.error('Error saving time entry:', error);
                 toast({ title: "Fehler", description: "Arbeitszeit konnte nicht gespeichert werden: " + error.message, variant: "destructive" });
                 return;
               }
@@ -2239,7 +2231,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           onClose={() => setIsMaterialFormOpen(false)}
           projectId={project.id}
           onMaterialEntryAdded={(entry) => {
-            console.log('Material entry added:', entry);
             fetchProjectData();
             toast({
               title: "Erfolg",

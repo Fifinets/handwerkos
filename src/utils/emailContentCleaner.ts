@@ -571,11 +571,5 @@ export function testEmailCleaning(): void {
 
   testCases.forEach((testCase, index) => {
     const result = cleanEmailContent(testCase.input);
-    console.log(`Test ${index + 1}:`, {
-      input: testCase.input,
-      expected: testCase.expected,
-      result: result,
-      passed: result.trim() === testCase.expected.trim()
-    });
   });
 }

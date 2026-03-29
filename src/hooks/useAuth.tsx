@@ -34,7 +34,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .single();
 
     if (error) {
-      console.warn('Role fetch error, default to employee:', error);
       setUserRole('employee');
     } else {
       setUserRole(data?.role ?? 'employee');
@@ -58,7 +57,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log('Auth state changed:', _event, session);
       setSession(session);
       setUser(session?.user ?? null);
 

@@ -86,7 +86,6 @@ const DatabaseSetup = () => {
       const { error } = await supabase.rpc('exec_sql', { sql });
       
       if (error) {
-        console.error('Error creating table:', error);
         toast({
           title: "Fehler",
           description: "Tabelle konnte nicht erstellt werden: " + error.message,

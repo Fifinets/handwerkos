@@ -1321,7 +1321,6 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
         // Get current user session to determine company_id
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
-          console.log('useEmployees: No session found');
           return { items: [] };
         }
 
@@ -1330,11 +1329,8 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
           session.user.app_metadata?.company_id ||
           session.user.id;
 
-        console.log('useEmployees: Using company_id:', companyId);
-        console.log('useEmployees: Session user:', session.user);
 
         if (!companyId) {
-          console.error('useEmployees: No company ID available');
           return { items: [] };
         }
 
@@ -1344,7 +1340,6 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
           .select('id, email, status, user_id, company_id')
           .eq('company_id', companyId);
 
-        console.log('useEmployees: DEBUG - All employees for company:', allEmployeesData);
 
         // Main employees query - only get employees who have registered (have user_id)
         // RLS should handle the company filtering automatically
@@ -1368,12 +1363,8 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
           .neq('status', 'eingeladen')  // Exclude invited but not registered
           .order('created_at', { ascending: false });
 
-        console.log('useEmployees: Raw query (no company filter):', employeesData);
-
-        console.log('useEmployees: Employees query result:', employeesData, employeesError);
 
         if (employeesError) {
-          console.error('useEmployees: Error fetching employees:', employeesError);
           return { items: [] };
         }
 
@@ -1413,7 +1404,6 @@ export const useEmployees = (options?: UseApiQueryOptions<any[]>) => {
           };
         }) || [];
 
-        console.log('useEmployees: Final employee list:', employeeList);
         return { items: employeeList };
 
       } catch (error) {
@@ -1676,7 +1666,6 @@ export const useCreateNotification = (
       });
     },
     onError: (error) => {
-      console.error('Create notification error:', error);
       toast({
         title: 'Fehler beim Erstellen',
         description: error.message || 'Die Benachrichtigung konnte nicht erstellt werden.',
@@ -1795,7 +1784,6 @@ export const useRunWorkerJob = (
       });
     },
     onError: (error, jobName) => {
-      console.error('Worker job execution error:', error);
       toast({
         title: 'Fehler beim Ausführen',
         description: `Der Job "${jobName}" konnte nicht ausgeführt werden: ${error.message}`,
@@ -1914,7 +1902,6 @@ export const useGetNextNumber = (
       });
     },
     onError: (error) => {
-      console.error('Get next number error:', error);
       toast({
         title: 'Fehler bei Nummerngenierung',
         description: error.message || 'Die Nummer konnte nicht generiert werden.',
@@ -1949,7 +1936,6 @@ export const useMakeImmutable = (
       });
     },
     onError: (error, variables) => {
-      console.error('Make immutable error:', error);
       toast({
         title: 'Fehler bei Unveränderlichkeit',
         description: error.message || 'Die Entität konnte nicht unveränderlich gemacht werden.',
@@ -1989,7 +1975,6 @@ export const useCreateDocumentHash = (
       });
     },
     onError: (error, variables) => {
-      console.error('Create document hash error:', error);
       toast({
         title: 'Fehler bei Hash-Erstellung',
         description: `Hash für ${variables.fileName} konnte nicht erstellt werden.`,
@@ -2061,7 +2046,6 @@ export const useGenerateDATEVExport = (
       });
     },
     onError: (error, variables) => {
-      console.error('DATEV export error:', error);
       toast({
         title: 'Fehler beim DATEV Export',
         description: error.message || 'Der DATEV CSV Export konnte nicht erstellt werden.',
@@ -2277,7 +2261,6 @@ export const useAISearchDocuments = (
       });
     },
     onError: (error) => {
-      console.error('AI search error:', error);
       toast({
         title: 'Fehler bei AI-Suche',
         description: error.message || 'Die Dokumentensuche konnte nicht durchgeführt werden.',

@@ -12,7 +12,6 @@ const openai = new OpenAI({
  */
 export async function extractInvoiceWithAI(base64Image: string, ocrText?: string): Promise<InvoiceData> {
   try {
-    console.log('OpenAI Extraktion gestartet...');
     
     const systemPrompt = `Du bist ein Experte für die Extraktion von Daten aus deutschen Handwerker-Rechnungen.
     Extrahiere ALLE relevanten Informationen aus der Rechnung und gebe sie als strukturiertes JSON zurück.
@@ -73,7 +72,6 @@ export async function extractInvoiceWithAI(base64Image: string, ocrText?: string
 
     const extractedData = JSON.parse(response.choices[0].message.content || '{}');
     
-    console.log('OpenAI extrahierte Daten:', extractedData);
     
     // Validierung und Defaults
     return {

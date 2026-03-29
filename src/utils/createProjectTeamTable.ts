@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const createProjectTeamMembersTable = async () => {
   try {
-    console.log('Creating project_team_members table...');
 
     const sql = `
       -- Create project_team_members table for managing project team assignments
@@ -85,16 +84,11 @@ export const createProjectTeamMembersTable = async () => {
     const { error } = await supabase.rpc('exec_sql', { sql });
 
     if (error) {
-      console.error('Error creating table:', error);
       
       // If rpc doesn't work, show manual SQL
-      console.log('📋 Please run this SQL manually in Supabase SQL Editor:');
-      console.log(sql);
       return { success: false, sql };
     }
 
-    console.log('✅ project_team_members table created successfully!');
-    console.log('Team members should now be visible in projects.');
     return { success: true, sql };
 
   } catch (error) {
@@ -120,8 +114,6 @@ ALTER TABLE public.project_team_members ENABLE ROW LEVEL SECURITY;
 GRANT ALL ON public.project_team_members TO authenticated;
     `;
     
-    console.log('📋 Manual SQL to create table:');
-    console.log(sql);
     return { success: false, sql };
   }
 };
@@ -135,14 +127,11 @@ export const checkProjectTeamMembersTable = async () => {
       .limit(1);
 
     if (error && error.message.includes('does not exist')) {
-      console.log('❌ project_team_members table does not exist');
       return false;
     }
 
-    console.log('✅ project_team_members table exists');
     return true;
   } catch (error) {
-    console.log('❌ project_team_members table does not exist');
     return false;
   }
 };

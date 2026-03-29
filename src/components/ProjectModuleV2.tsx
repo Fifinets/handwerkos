@@ -158,7 +158,6 @@ const ProjectModuleV2 = () => {
                 return;
             }
 
-            console.log('Fetching employees for companyId:', companyId);
 
             // Auto-cleanup: delete employees stuck in 'eingeladen' status for >24h
             const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -177,12 +176,10 @@ const ProjectModuleV2 = () => {
                 .order('created_at', { ascending: false });
 
             if (employeesError) {
-                console.error('Error fetching employees:', employeesError);
                 setTeamLoading(false);
                 return;
             }
 
-            console.log('Found employees:', employeesData?.length);
 
             // 2. Fetch project assignments separately to be more robust
             const { data: assignmentsData, error: assignmentsError } = await supabase
@@ -197,7 +194,6 @@ const ProjectModuleV2 = () => {
                 `);
 
             if (assignmentsError) {
-                console.warn('Error fetching project assignments (ignoring):', assignmentsError);
                 // We continue even if assignments fail, just no availability check
             }
 
@@ -258,7 +254,6 @@ const ProjectModuleV2 = () => {
                     return employee.name !== 'Unbekannter Mitarbeiter' || employee.id || employee.email;
                 });
 
-            console.log('Final employee list:', employeeList);
             setTeamMembers(employeeList);
 
         } catch (error) {

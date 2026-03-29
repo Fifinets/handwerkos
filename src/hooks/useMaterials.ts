@@ -44,7 +44,6 @@ export const useMaterials = () => {
         .order('name')
 
       if (error) {
-        console.error('Error fetching materials:', error)
         // Use mock data if database is not available
         setMaterials([
           {

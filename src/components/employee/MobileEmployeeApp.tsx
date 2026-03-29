@@ -199,7 +199,6 @@ const MobileEmployeeApp: React.FC = () => {
           });
         },
         (error) => {
-          console.error('Geolocation error:', error);
           toast({
             title: "Standort",
             description: "Standort konnte nicht ermittelt werden",
@@ -445,7 +444,6 @@ const MobileEmployeeApp: React.FC = () => {
         .eq('is_active', true);
 
       if (error) {
-        console.error('Error fetching assigned projects:', error);
         toast({
           title: "Fehler",
           description: "Projekte konnten nicht geladen werden",
@@ -746,7 +744,6 @@ const MobileEmployeeApp: React.FC = () => {
           .single();
 
         if (!employee) {
-          console.error('Employee not found for user');
           return;
         }
 
@@ -836,7 +833,6 @@ const MobileEmployeeApp: React.FC = () => {
           .single();
 
         if (!employee) {
-          console.error('Employee not found for user');
           return;
         }
 

@@ -47,7 +47,6 @@ export function CompanySettingsSimple() {
 
   const createDefaultSettings = async () => {
     try {
-      console.log('Creating default settings...');
       
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
@@ -81,14 +80,12 @@ export function CompanySettingsSimple() {
         is_active: true,
       };
 
-      console.log('Inserting default settings:', defaultSettings);
       const { data, error } = await supabase
         .from("company_settings")
         .insert(defaultSettings)
         .select()
         .single();
 
-      console.log('Insert result:', { data, error });
       if (error) throw error;
 
       setSettings(data);
@@ -109,12 +106,9 @@ export function CompanySettingsSimple() {
 
   const loadSettings = async () => {
     try {
-      console.log('Loading company settings...');
       
       // Check auth first
       const { data: { user }, error: authError } = await supabase.auth.getUser();
-      console.log('Current user:', user);
-      console.log('Auth error:', authError);
       
       if (authError || !user) {
         throw new Error('Nicht angemeldet');
@@ -127,17 +121,14 @@ export function CompanySettingsSimple() {
         .limit(1)
         .maybeSingle();
 
-      console.log('Load result:', { data, error });
 
       if (error) {
-        console.error('Supabase error details:', error);
         throw error;
       }
 
       if (data) {
         setSettings(data);
       } else {
-        console.log('No settings found, creating default...');
         // Create default settings if none exist
         await createDefaultSettings();
       }
@@ -171,7 +162,6 @@ export function CompanySettingsSimple() {
 
     setSaving(true);
     try {
-      console.log('Saving settings:', settings);
       
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
@@ -205,8 +195,6 @@ export function CompanySettingsSimple() {
         project_prefix: settings.project_prefix,
       };
       
-      console.log('Update data:', updateData);
-      console.log('Settings ID:', settings.id);
       
       const { data, error } = await supabase
         .from("company_settings")
@@ -214,7 +202,6 @@ export function CompanySettingsSimple() {
         .eq("id", settings.id)
         .select();
 
-      console.log('Save result:', { data, error });
 
       if (error) {
         throw error;

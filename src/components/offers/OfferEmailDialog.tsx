@@ -55,7 +55,6 @@ export function OfferEmailDialog({ open, onOpenChange, offer, onSend }: OfferEma
         setIsSending(true);
         try {
             // Simulation of email sending
-            console.log('Sending email with data:', data);
             await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
 
             // Call the actual status update

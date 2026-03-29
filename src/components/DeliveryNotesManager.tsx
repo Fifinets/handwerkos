@@ -38,7 +38,6 @@ const DeliveryNotesSimple: React.FC = () => {
         
         if (error) throw error
         setDeliveryNotes([])
-        console.log('Using mock data - delivery notes not available')
       } catch (error) {
         console.error('Error loading delivery notes:', error)
         toast.error('Fehler beim Laden der Lieferscheine')

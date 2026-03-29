@@ -81,7 +81,6 @@ export default function PublicOfferView() {
     try {
       // @ts-ignore
       const { data, error: rpcError } = await supabase.rpc('get_public_offer', { p_token: token });
-      console.log('RPC result:', { data, rpcError, token });
       if (rpcError) throw rpcError;
       setOffer(data as PublicOffer);
     } catch (err: any) {

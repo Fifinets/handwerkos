@@ -210,7 +210,6 @@ const EnhancedMobileTimeTracker: React.FC = () => {
         setProjects(data || [])
       } catch (error: any) {
         if (error.message.includes('relation') || error.message.includes('does not exist')) {
-          console.warn('Projects table not found, using mock data')
           // Mock projects for demo
           setProjects([
             {

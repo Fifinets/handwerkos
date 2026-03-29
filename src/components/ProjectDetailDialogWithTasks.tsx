@@ -61,7 +61,6 @@ const ProjectDetailDialogWithTasks = ({ isOpen, onClose, project }: ProjectDetai
     if (!project) return;
     if (!taskName.trim()) return;
     // TODO: Implement when project_tasks table is created
-    console.log('Add task functionality not yet implemented');
     const error = null;
     if (!error) {
       setTaskName('');
