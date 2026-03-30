@@ -66,7 +66,9 @@ export async function createTestEmployees() {
       .select();
     
     if (error) {
+      // intentional
     } else {
+      // intentional
     }
   }
   

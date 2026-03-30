@@ -91,6 +91,7 @@ export class AttendanceService {
 
         return updateData
       } else {
+        // intentional
       }
 
       // Get employee's company

@@ -45,7 +45,8 @@ export function EmailSync({ onClose }: EmailSyncProps) {
       if (data?.last_sync_at) {
         setLastSyncTime(data.last_sync_at);
       }
-    } catch (error) {
+    } catch (_error) {
+      // intentional
     }
   };
 

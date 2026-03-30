@@ -31,10 +31,6 @@ function useCustomerList() {
 export default function InspectionModule() {
   const { hasAccess, isLoading: accessLoading, requiredPlan } = useFeatureAccess('vde_protocols');
 
-  if (!accessLoading && !hasAccess) {
-    return <UpgradePrompt feature="VDE-Pruefprotokolle" requiredPlan={requiredPlan || 'enterprise'} />;
-  }
-
   const { data: protocols = [] } = useInspectionProtocols();
   const { data: customers = [] } = useCustomerList();
 
@@ -45,6 +41,10 @@ export default function InspectionModule() {
   const [defType, setDefType] = useState<ProtocolType | undefined>();
 
   const { data: selProtocol } = useInspectionProtocol(selProtocolId ?? '');
+
+  if (!accessLoading && !hasAccess) {
+    return <UpgradePrompt feature="VDE-Pruefprotokolle" requiredPlan={requiredPlan || 'enterprise'} />;
+  }
 
   const openNew = (dev?: InspectionDevice) => {
     setSelProtocolId(undefined);

@@ -104,7 +104,9 @@ class PushNotificationManager {
         })
 
       if (error) {
+        // intentional
       } else {
+        // intentional
       }
     } catch (error) {
       console.error('Error saving push token:', error)

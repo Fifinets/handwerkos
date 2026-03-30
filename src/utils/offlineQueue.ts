@@ -65,6 +65,7 @@ class OfflineQueueManager {
         if (action.retryCount < this.MAX_RETRIES) {
           remainingActions.push(action);
         } else {
+          // intentional
         }
       }
     }

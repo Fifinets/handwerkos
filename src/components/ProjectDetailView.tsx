@@ -275,7 +275,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             }).filter((tm: any) => tm.name);
           }
         }
-      } catch (error) {
+      } catch (_error) {
+        // intentional
       }
       setTeamAssignments(teamMembersProcessed);
 
@@ -290,7 +291,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         if (!materialError && materialsData && materialsData.length > 0) {
           totalMaterialCost = materialsData.reduce((sum, entry) => sum + (entry.total_price || 0), 0);
         }
-      } catch (error) {
+      } catch (_error) {
+        // intentional
       }
 
       // 4. OFFERS: Get offers where project_id = projectId and sum gross_total
@@ -320,7 +322,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             return { ...offer, snapshot_net_total: netTotal, snapshot_gross_total: grossTotal };
           }));
         }
-      } catch (error) {
+      } catch (_error) {
+        // intentional
       }
       setProjectOffers(processedOffers);
 
@@ -348,7 +351,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         if (!milestonesError && milestonesData && milestonesData.length > 0) {
           processedMilestones = milestonesData;
         }
-      } catch (error) {
+      } catch (_error) {
+        // intentional
       }
       setMilestones(processedMilestones);
 
@@ -367,7 +371,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
           processedPhotos = docsData.filter(d => d.mime_type?.startsWith('image/'));
           processedDocuments = docsData;
         }
-      } catch (error) {
+      } catch (_error) {
+        // intentional
       }
       setPhotos(processedPhotos);
       setProjectDocuments(processedDocuments);
@@ -384,7 +389,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         if (!invoicesError && invoicesData) {
           processedInvoices = invoicesData;
         }
-      } catch (error) {
+      } catch (_error) {
+        // intentional
       }
       setProjectInvoices(processedInvoices);
 

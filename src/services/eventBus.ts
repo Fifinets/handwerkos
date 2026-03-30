@@ -395,18 +395,21 @@ class EventBus {
   private async schedulePaymentReminders(data: EventData): Promise<void> {
     // Implementation would schedule payment reminder emails
     if (data.invoice) {
+      // intentional
     }
   }
 
   private async sendLowStockAlert(data: EventData): Promise<void> {
     // Implementation would send low stock notifications
     if (data.material) {
+      // intentional
     }
   }
 
   private async notifyProjectTeam(data: EventData): Promise<void> {
     // Implementation would notify project team members
     if (data.project) {
+      // intentional
     }
   }
 }

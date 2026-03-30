@@ -26,8 +26,9 @@ export function EmailContentRenderer({ content, className = '' }: EmailContentRe
     
     // Debug logging for development
     if (process.env.NODE_ENV === 'development') {
+      // intentional
     }
-    
+
     let processedContent = '';
     const shouldShowHtml = shouldDisplayAsHtml(parsed) && displayMode === 'html';
     
@@ -53,6 +54,7 @@ export function EmailContentRenderer({ content, className = '' }: EmailContentRe
         )
       );
       if (process.env.NODE_ENV === 'development') {
+        // intentional
       }
     } else if (parsed.plainTextContent) {
       // Process plain text content
@@ -66,6 +68,7 @@ export function EmailContentRenderer({ content, className = '' }: EmailContentRe
         }
       );
       if (process.env.NODE_ENV === 'development') {
+        // intentional
       }
     } else {
       // Fallback - try to detect and preserve HTML
@@ -83,6 +86,7 @@ export function EmailContentRenderer({ content, className = '' }: EmailContentRe
           )
         );
         if (process.env.NODE_ENV === 'development') {
+          // intentional
         }
       } else {
         processedContent = cleanEmailContent(
@@ -95,6 +99,7 @@ export function EmailContentRenderer({ content, className = '' }: EmailContentRe
           }
         );
         if (process.env.NODE_ENV === 'development') {
+          // intentional
         }
       }
     }

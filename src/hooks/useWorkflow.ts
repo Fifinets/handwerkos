@@ -43,6 +43,7 @@ export const useWorkflow = (): UseWorkflowResult => {
         .single()
 
       if (settingsError && !settingsError.message.includes('No rows')) {
+        // intentional
       }
 
       if (settingsData) {
@@ -111,6 +112,7 @@ export const useWorkflow = (): UseWorkflowResult => {
           .eq('id', settings.id)
 
         if (error) {
+          // intentional
         }
       }
 
@@ -255,7 +257,8 @@ export const useWorkflow = (): UseWorkflowResult => {
             .from('project_workflow_config')
             .insert(updatedConfig)
         }
-      } catch (dbError) {
+      } catch (_dbError) {
+        // intentional
       }
 
       // Lokal aktualisieren

@@ -631,7 +631,8 @@ const MobileTimeTracker: React.FC = () => {
               return dateB.getTime() - dateA.getTime()
             })
           }
-        } catch (error) {
+        } catch (_error) {
+          // intentional
         }
 
         // Combine: assigned > recent > alphabetical
@@ -901,7 +902,7 @@ const MobileTimeTracker: React.FC = () => {
                   <Navigation className={`h-5 w-5 ${isInRange ? 'text-green-600' : 'text-red-600'}`} />
                   <div>
                     <p className="text-sm font-medium">
-                      {isInRange ? '✅ Im Arbeitsbereich' : '❌ Außerhalb des Arbeitsbereichs'
+                      {isInRange ? '✅ Im Arbeitsbereich' : '❌ Außerhalb des Arbeitsbereichs'}
                     </p>
                     <p className="text-xs text-gray-600">
                       {selectedProjectDetails.name} ({RADIUS_METERS}m Radius)

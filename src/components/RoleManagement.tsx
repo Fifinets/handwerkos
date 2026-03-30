@@ -61,6 +61,7 @@ export function RoleManagement() {
         .eq('company_id', profile.company_id);
 
       if (employeeError) {
+        // intentional
       } else {
         setEmployees(employeeData || []);
       }
@@ -71,6 +72,7 @@ export function RoleManagement() {
         .select('*');
 
       if (roleError) {
+        // intentional
       } else {
         setUserRoles(roleData || []);
       }

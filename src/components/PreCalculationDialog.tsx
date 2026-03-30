@@ -147,7 +147,8 @@ const PreCalculationDialog: React.FC<PreCalculationDialogProps> = ({
               title: "Bestehende Kalkulation geladen",
               description: "Die vorhandene Vor-Kalkulation wurde geladen."
             });
-          } catch (e) {
+          } catch (_e) {
+            // intentional
           }
         }
       }

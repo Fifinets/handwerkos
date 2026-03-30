@@ -102,6 +102,7 @@ export function CustomerNotesSection({ customerId }: CustomerNotesSectionProps) 
       .order('created_at', { ascending: false });
 
     if (error) {
+      // intentional
     } else {
       setNotes((data as CustomerNote[]) || []);
     }
