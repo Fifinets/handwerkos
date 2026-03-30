@@ -346,6 +346,7 @@ export function DesktopEmployeePage() {
         company_id: employee.company_id,
         start_time: startISO,
         end_time: endISO,
+        break_duration: timeForm.break_minutes,
         description: timeForm.description,
         status: 'pending',
       });
