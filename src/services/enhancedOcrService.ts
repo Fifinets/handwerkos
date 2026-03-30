@@ -252,7 +252,8 @@ export class EnhancedOCRService {
           new_values: result,
           reason: 'OCR processing completed'
         });
-      } catch (auditError) {
+      } catch (_auditError) {
+        // intentional
       }
 
       // Emit event

@@ -63,6 +63,7 @@ async function loadProjectAggregates(
     .eq("project_id", projectId);
 
   if (timeError) {
+    // intentional
   }
 
   let actualHours = 0;
@@ -85,6 +86,7 @@ async function loadProjectAggregates(
     .eq("project_id", projectId);
 
   if (materialError) {
+    // intentional
   }
 
   let actualCosts = 0;

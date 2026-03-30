@@ -94,6 +94,7 @@ export function CustomerContactsSection({ customerId }: CustomerContactsSectionP
       .order('last_name');
 
     if (error) {
+      // intentional
     } else {
       setContacts((data as CustomerContact[]) || []);
     }

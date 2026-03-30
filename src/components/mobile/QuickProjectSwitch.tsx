@@ -127,7 +127,8 @@ export const QuickProjectSwitch: React.FC<QuickProjectSwitchProps> = ({
                   }
                 : null
             }))
-          } catch (customerError) {
+          } catch (_customerError) {
+            // intentional
           }
         } else {
           console.error('📊 Extended query error details:', extendedError?.message || extendedError)

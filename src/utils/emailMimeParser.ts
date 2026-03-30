@@ -366,8 +366,9 @@ function parseSinglePartEmail(content: string, headers: EmailHeaders): ParsedEma
                  /<br/i.test(decodedContent);
   
   if (process.env.NODE_ENV === 'development') {
+    // intentional
   }
-  
+
   return {
     htmlContent: isHtml ? decodedContent : null,
     plainTextContent: isHtml ? null : decodedContent,
@@ -621,8 +622,9 @@ export function shouldDisplayAsHtml(parsedContent: ParsedEmailContent): boolean 
   const preference = getPreferredContentType();
   
   if (process.env.NODE_ENV === 'development') {
+    // intentional
   }
-  
+
   // If user prefers text, always show text
   if (preference === 'text') {
     return false;

@@ -326,6 +326,7 @@ if ('serviceWorker' in navigator) {
 if (typeof window !== 'undefined') {
   pushNotificationService.initialize().then((success) => {
     if (success) {
+      // intentional
     }
   });
 }

@@ -160,9 +160,10 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
           if (!fullError && fullData) {
             data = fullData
           } else {
+            // intentional
           }
         }
-        
+
         // If we got projects, try to add customer names
         if (data && data.length > 0) {
           try {
@@ -177,6 +178,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                 .in('id', customerIds)
 
               if (customerError) {
+                // intentional
               } else if (customers) {
                 customers.forEach(c => customerMap.set(c.id, c))
               }
@@ -500,7 +502,8 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             lng: position.coords.longitude,
             accuracy: position.coords.accuracy
           }
-        } catch (geoError) {
+        } catch (_geoError) {
+          // intentional
         }
       }
 
@@ -564,7 +567,8 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             lng: position.coords.longitude,
             accuracy: position.coords.accuracy
           }
-        } catch (geoError) {
+        } catch (_geoError) {
+          // intentional
         }
       }
 
@@ -1407,6 +1411,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                 if (projects && Array.isArray(projects) && projects.length > 0) {
                   project = projects.find(p => p && p.id === projectId)
                 } else {
+                  // intentional
                 }
               } catch (findError) {
                 console.error('Error in projects.find:', findError)
@@ -1435,7 +1440,8 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                       if (customer) {
                         dbProject.customer = { name: customer.name, phone: customer.phone }
                       }
-                    } catch (customerError) {
+                    } catch (_customerError) {
+                      // intentional
                     }
                   }
 

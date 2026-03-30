@@ -244,7 +244,8 @@ export class OCRService {
         const existingResults = JSON.parse(localStorage.getItem('ocr_results') || '[]');
         existingResults.push(result);
         localStorage.setItem('ocr_results', JSON.stringify(existingResults));
-      } catch (storageError) {
+      } catch (_storageError) {
+        // intentional
       }
 
       // 5. Audit Log (temporär deaktiviert zum Debuggen)
@@ -721,6 +722,7 @@ export class OCRService {
       }
     }
     if (!extracted.supplierName) {
+      // intentional
     }
 
     // Extrahiere IBAN

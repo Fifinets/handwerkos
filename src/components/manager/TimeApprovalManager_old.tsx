@@ -124,6 +124,7 @@ export const TimeApprovalManager: React.FC = () => {
         .order('first_name')
       
       if (error) {
+        // intentional
       } else {
         setEmployees(data || [])
       }

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { TabsContent } from "@/components/ui/tabs";
 import { MessageSquare } from "lucide-react";
 
-export interface CommentsTabProps {}
+export type CommentsTabProps = Record<string, never>;
 
 const CommentsTab: React.FC<CommentsTabProps> = () => {
   return (

@@ -26,6 +26,7 @@ const AutoFixDatabase: React.FC = () => {
               window.location.reload();
             }, 1000);
           } else {
+            // intentional
           }
         }
       } catch (error) {

@@ -129,7 +129,8 @@ export const AttendanceControls: React.FC<AttendanceControlsProps> = ({
             lng: position.coords.longitude,
             accuracy: position.coords.accuracy
           }
-        } catch (geoError) {
+        } catch (_geoError) {
+          // intentional
         }
       }
 

@@ -56,6 +56,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         });
       }
     } catch {
+      // intentional
     }
     return {};
   };

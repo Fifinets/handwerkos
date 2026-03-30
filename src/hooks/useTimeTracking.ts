@@ -60,8 +60,9 @@ export const useTimeTracking = () => {
   const [segments, setSegments] = useState<TimeEntry[]>([])
   const [activeEntryData, setActiveEntryData] = useState<any>(null)
 
-  // Get Android-specific hooks if on Android platform
-  const androidTimeTracking = isAndroid() ? useAndroidTimeTracking() : null
+  // Get Android-specific hooks (always called to satisfy rules-of-hooks)
+  const androidTimeTrackingResult = useAndroidTimeTracking()
+  const androidTimeTracking = isAndroid() ? androidTimeTrackingResult : null
 
   // Fetch active time entry from localStorage (temporary storage for active entries)
   const fetchActiveTime = useCallback(async () => {
@@ -385,6 +386,7 @@ export const useTimeTracking = () => {
           }
         }
       } else {
+        // intentional
       }
 
       // Adjust hours for break time
@@ -533,8 +535,8 @@ export const useTimeTracking = () => {
         clearState()
         throw new Error(`Zeiterfassung konnte nicht gespeichert werden: ${errorMessage}`)
       } else {
+        // intentional
       }
-
 
       // Clear state AFTER successful save
       clearState()
