@@ -133,7 +133,6 @@ const PreCalculationDialog: React.FC<PreCalculationDialogProps> = ({
         if (preCalcMatch) {
           try {
             const existingCalculation = JSON.parse(preCalcMatch[1]);
-            console.log('📊 Loading existing calculation:', existingCalculation);
             
             // Merge existing calculation with current state
             setCalculation(prev => ({
@@ -148,8 +147,8 @@ const PreCalculationDialog: React.FC<PreCalculationDialogProps> = ({
               title: "Bestehende Kalkulation geladen",
               description: "Die vorhandene Vor-Kalkulation wurde geladen."
             });
-          } catch (e) {
-            console.warn('Error parsing existing calculation:', e);
+          } catch (_e) {
+            // intentional
           }
         }
       }
@@ -342,7 +341,6 @@ const PreCalculationDialog: React.FC<PreCalculationDialogProps> = ({
       // Always set the budget from calculation
       updateData.budget = Math.round(calculation.finalPrice);
       
-      console.log('💰 Setting project budget to:', updateData.budget);
       
       const { error } = await supabase
         .from('projects')

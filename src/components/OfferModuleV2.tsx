@@ -53,6 +53,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import {
     Offer,
+    OfferWithRelations,
     OfferStatus,
     OFFER_STATUS_LABELS,
 } from "@/types/offer";
@@ -219,14 +220,14 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
     const handleSendOffer = async (offer: Offer) => {
         try {
             const result = await sendOfferMutation.mutateAsync(offer.id);
-            const shareLink = (result as any)?.shareLink;
+            const shareLink = result?.shareLink;
             if (shareLink) {
                 setShareLinkData({
                     link: shareLink,
                     offerNumber: offer.offer_number,
-                    customerName: (offer as any).customer_name || '',
+                    customerName: offer.customer_name || '',
                     projectName: offer.project_name || '',
-                    customerEmail: (offer as any).customers?.email || '',
+                    customerEmail: (offer as OfferWithRelations).customer?.email || '',
                 });
             } else {
                 toast({
@@ -575,7 +576,7 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                         <div className="text-slate-500 flex items-center gap-1.5 mt-1">
                                                             <Building2 className="h-3.5 w-3.5 text-slate-400" />
                                                             <span className="truncate max-w-[200px]">{offer.project_name}</span>
-                                                            {(offer as any).project_id && (
+                                                            {offer.project_id && (
                                                                 <Link2 className="h-3.5 w-3.5 text-emerald-500" title="Mit Projekt verknüpft" />
                                                             )}
                                                         </div>
@@ -585,9 +586,9 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                     </td>
                                                     <td className="px-5 py-4 text-center">
                                                         <OfferStatusBadge status={offer.status} />
-                                                        {offer.status === 'sent' && (offer as any).sent_at && (
+                                                        {offer.status === 'sent' && offer.sent_at && (
                                                             <p className="text-[10px] text-slate-400 mt-0.5">
-                                                                vor {Math.max(0, Math.floor((Date.now() - new Date((offer as any).sent_at).getTime()) / (1000 * 60 * 60 * 24)))}d
+                                                                vor {Math.max(0, Math.floor((Date.now() - new Date(offer.sent_at).getTime()) / (1000 * 60 * 60 * 24)))}d
                                                             </p>
                                                         )}
                                                     </td>

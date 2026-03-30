@@ -47,7 +47,6 @@ export class WorkerService {
    * Start the worker service
    */
   static startWorkers(): void {
-    console.log('🔄 Starting HandwerkOS Worker Service...');
     
     this.jobs.forEach(job => {
       if (job.enabled) {
@@ -62,7 +61,6 @@ export class WorkerService {
   private static scheduleJob(job: WorkerJob): void {
     const runJob = async () => {
       try {
-        console.log(`🔄 Running worker job: ${job.name}`);
         job.lastRun = new Date();
 
         switch (job.name) {
@@ -76,12 +74,10 @@ export class WorkerService {
             await this.runNotificationCleanup();
             break;
           default:
-            console.warn(`Unknown worker job: ${job.name}`);
         }
 
         // Schedule next run
         job.nextRun = new Date(Date.now() + job.interval * 60 * 1000);
-        console.log(`✅ Worker job ${job.name} completed. Next run: ${job.nextRun.toISOString()}`);
 
       } catch (error) {
         console.error(`❌ Worker job ${job.name} failed:`, error);
@@ -104,7 +100,6 @@ export class WorkerService {
    */
   private static async runBudgetMonitor(): Promise<void> {
     return apiCall(async () => {
-      console.log('🔍 Checking project budgets...');
 
       // Get all critical budget projects (≥90% utilization)
       // TODO: Re-enable after fixing circular dependency
@@ -145,7 +140,6 @@ export class WorkerService {
         });
       }
 
-      console.log(`🔍 Budget monitor completed. Found ${criticalProjects.length} critical projects.`);
       
     }, 'Budget monitor worker');
   }
@@ -157,7 +151,6 @@ export class WorkerService {
    */
   private static async runOverdueInvoicesCheck(): Promise<void> {
     return apiCall(async () => {
-      console.log('📄 Checking for overdue invoices...');
 
       const today = new Date().toISOString().split('T')[0];
 
@@ -242,7 +235,6 @@ export class WorkerService {
         }
       }
 
-      console.log(`📄 Overdue invoices check completed. Updated ${updatedCount} invoices.`);
 
     }, 'Overdue invoices worker');
   }
@@ -253,7 +245,6 @@ export class WorkerService {
    */
   private static async runNotificationCleanup(): Promise<void> {
     return apiCall(async () => {
-      console.log('🧹 Cleaning up expired notifications...');
 
       // TODO: Re-enable after fixing circular dependency
       // await notificationService.cleanupExpiredNotifications();
@@ -269,7 +260,6 @@ export class WorkerService {
         .eq('archived', true)
         .lt('created_at', thirtyDaysAgo.toISOString());
 
-      console.log('🧹 Notification cleanup completed.');
 
     }, 'Notification cleanup worker');
   }
@@ -293,13 +283,12 @@ export class WorkerService {
     const job = this.jobs.find(j => j.name === jobName);
     if (job) {
       job.enabled = enabled;
-      console.log(`${enabled ? '✅ Enabled' : '❌ Disabled'} worker job: ${jobName}`);
       
       if (enabled) {
         this.scheduleJob(job);
       }
     } else {
-      console.warn(`Unknown worker job: ${jobName}`);
+      // intentional
     }
   }
 
@@ -307,7 +296,6 @@ export class WorkerService {
    * Run a specific job immediately (for testing/debugging)
    */
   static async runJobNow(jobName: string): Promise<void> {
-    console.log(`🚀 Manually triggering worker job: ${jobName}`);
     
     switch (jobName) {
       case 'budget_monitor':

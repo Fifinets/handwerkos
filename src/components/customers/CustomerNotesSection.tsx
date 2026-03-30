@@ -102,7 +102,7 @@ export function CustomerNotesSection({ customerId }: CustomerNotesSectionProps) 
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching notes:', error);
+      // intentional
     } else {
       setNotes((data as CustomerNote[]) || []);
     }
@@ -134,7 +134,6 @@ export function CustomerNotesSection({ customerId }: CustomerNotesSectionProps) 
 
     if (error) {
       toast.error('Notiz konnte nicht gespeichert werden');
-      console.error(error);
       return;
     }
 

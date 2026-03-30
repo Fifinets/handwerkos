@@ -43,7 +43,7 @@ export const useWorkflow = (): UseWorkflowResult => {
         .single()
 
       if (settingsError && !settingsError.message.includes('No rows')) {
-        console.error('Error loading workflow settings:', settingsError)
+        // intentional
       }
 
       if (settingsData) {
@@ -62,7 +62,6 @@ export const useWorkflow = (): UseWorkflowResult => {
           .single()
 
         if (createError) {
-          console.warn('Could not create workflow settings, using defaults:', createError)
           // Verwende lokale Standard-Einstellungen als Fallback
           const fallbackSettings: WorkflowSettings = {
             id: 'fallback',
@@ -113,7 +112,7 @@ export const useWorkflow = (): UseWorkflowResult => {
           .eq('id', settings.id)
 
         if (error) {
-          console.warn('Could not update workflow settings:', error)
+          // intentional
         }
       }
 
@@ -258,8 +257,8 @@ export const useWorkflow = (): UseWorkflowResult => {
             .from('project_workflow_config')
             .insert(updatedConfig)
         }
-      } catch (dbError) {
-        console.warn('Could not save project workflow config:', dbError)
+      } catch (_dbError) {
+        // intentional
       }
 
       // Lokal aktualisieren

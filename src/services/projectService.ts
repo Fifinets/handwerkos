@@ -86,18 +86,10 @@ export class ProjectService {
       const { data, error, count } = await query;
 
       if (error) {
-        console.error('ProjectService.getProjects error:', error);
         throw new Error(error.message);
       }
 
       // Debug logging
-      console.log('ProjectService.getProjects:', {
-        data,
-        count,
-        pagination,
-        filters,
-        error
-      });
 
       return {
         items: data || [],
@@ -134,7 +126,6 @@ export class ProjectService {
       const { data, error } = await query.single();
 
       if (error) {
-        console.error('ProjectService.getProject error:', error);
         throw new Error(error.message);
       }
 
@@ -165,7 +156,7 @@ export class ProjectService {
       const companyId = profile?.company_id || '00000000-0000-0000-0000-000000000000';
 
       // Remove progress_percentage if it exists in the validated data
-      const { progress_percentage, ...cleanData } = validatedData as any;
+      const { progress_percentage, ...cleanData } = validatedData as Record<string, unknown>;
 
       const projectData = {
         ...cleanData,
@@ -182,7 +173,6 @@ export class ProjectService {
         .single();
 
       if (error) {
-        console.error('ProjectService.createProject error:', error);
         throw new Error(error.message);
       }
 
@@ -234,7 +224,6 @@ export class ProjectService {
         .single();
 
       if (error) {
-        console.error('ProjectService.updateProject error:', error);
         throw new Error(error.message);
       }
 
@@ -272,7 +261,6 @@ export class ProjectService {
 
     // Legacy support: If old German statuses slip through, just warn but allow the new target status.
     if (!validTransitions[from]) {
-      console.warn(`Legacy status transition detected from ${from} to ${to}`);
       return;
     }
 
@@ -622,7 +610,6 @@ export class ProjectService {
       const { data, error } = await searchQuery;
 
       if (error) {
-        console.error('ProjectService.searchProjects error:', error);
         throw new Error(error.message);
       }
 

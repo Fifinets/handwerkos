@@ -40,7 +40,6 @@ const GoogleCalendarSettings: React.FC<GoogleCalendarSettingsProps> = ({ onCalen
   const connectToGoogle = async () => {
     setIsLoading(true);
     try {
-      console.log('Starting Google Calendar connection...');
       const success = await googleCalendarAPI.authenticate();
       
       if (success) {

@@ -52,7 +52,6 @@ const GmailCallback = () => {
         });
 
         if (callbackError) {
-          console.error('Gmail callback error:', callbackError);
           toast({
             title: "Gmail Verbindung fehlgeschlagen",
             description: callbackError.message || "Ein Fehler ist aufgetreten",

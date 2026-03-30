@@ -117,30 +117,23 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
     // Clear any old localStorage data on component mount
     localStorage.removeItem('selectedProject')
     setSelectedProject(null)
-    console.log('TodayScreen: Cleared old localStorage data')
   }, [])
 
   // Lade Projekte
   useEffect(() => {
     const loadProjects = async () => {
       try {
-        console.log('🔥 Loading real projects from database...')
-        console.log('🔥 Current selectedProject before loading:', selectedProject)
         
         // First, test if the projects table exists at all
-        console.log('Testing supabase connection...')
         const { data: testData, error: testError } = await supabase
           .from('projects')
           .select('id, name')
           .limit(1)
         
-        console.log('Basic connection test result:', { testData, testError })
         
         if (testError) {
-          console.log('Basic connection failed, trying fallback approach...')
           // If table doesn't exist or we have no access, use mock projects
           // Don't use mock projects - force real data instead
-          console.log('Database connection issue, but trying to continue:', testError.message)
           // Continue to try loading real data below
           // return  // REMOVED - don't return early
         }
@@ -152,10 +145,8 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
           .order('name')
           .limit(10)
 
-        console.log('Simple projects query result:', { data, error })
 
         if (error) {
-          console.error('Even simplest query failed:', error.message)
           throw error
         }
 
@@ -167,14 +158,12 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             .order('name')
 
           if (!fullError && fullData) {
-            console.log('✅ Full project data loaded successfully')
-            console.log('📊 Sample full project:', fullData[0])
             data = fullData
           } else {
-            console.error('❌ Full project query failed:', fullError?.message || fullError)
+            // intentional
           }
         }
-        
+
         // If we got projects, try to add customer names
         if (data && data.length > 0) {
           try {
@@ -183,17 +172,14 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             let customerMap = new Map()
             
             if (customerIds.length > 0) {
-              console.log('📊 Loading customers for IDs:', customerIds)
               const { data: customers, error: customerError } = await supabase
                 .from('customers')
                 .select('id, name, phone')
                 .in('id', customerIds)
 
               if (customerError) {
-                console.error('❌ Customer query failed:', customerError.message)
+                // intentional
               } else if (customers) {
-                console.log('✅ Customers loaded:', customers.length)
-                console.log('📊 Sample customer:', customers[0])
                 customers.forEach(c => customerMap.set(c.id, c))
               }
             }
@@ -208,16 +194,12 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                   }
                 : null
             }))
-            console.log('✅ Projects with customer data merged')
-            console.log('📊 Sample merged project:', data[0])
           } catch (customerError) {
-            console.log('Customer loading failed, using projects without customer names:', customerError)
             // Continue without customer names
           }
         }
         
         if (error) throw error
-        console.log('Loaded projects:', data)
         setProjects(data || [])
         
         if (data && data.length > 0) {
@@ -241,65 +223,45 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   useEffect(() => {
     const loadEmployeeData = async () => {
       try {
-        console.log('🟡 Loading employee data...')
-        console.log('🟡 About to call supabase.auth.getUser()')
 
         const result = await supabase.auth.getUser()
-        console.log('🟡 getUser() returned:', result)
 
         const { data: { user }, error: userError } = result
 
-        console.log('🟡 Extracted user:', user)
-        console.log('🟡 Extracted error:', userError)
 
         if (userError) {
-          console.error('❌ Error getting user:', userError)
           toast.error('Fehler beim Laden des Benutzers')
           return
         }
 
         if (!user) {
-          console.log('❌ No user logged in')
           toast.error('Sie sind nicht angemeldet')
           return
         }
 
-        console.log('✅ User found:', user.id)
-        console.log('✅ User email:', user.email)
 
-        console.log('🔍 Querying employees table with user_id:', user.id)
         const { data: employee, error: employeeError } = await supabase
           .from('employees')
           .select('id')
           .eq('user_id', user.id)
           .single()
 
-        console.log('🔍 Query result - employee:', employee)
-        console.log('🔍 Query result - error:', employeeError)
 
         if (employeeError) {
-          console.error('❌ Error loading employee:', employeeError)
-          console.error('❌ Error code:', employeeError.code)
-          console.error('❌ Error message:', employeeError.message)
-          console.error('❌ Error details:', employeeError.details)
           toast.error('Mitarbeiter-Daten konnten nicht geladen werden: ' + employeeError.message)
           return
         }
 
         if (!employee) {
-          console.log('❌ No employee found for user:', user.id)
           toast.error('Kein Mitarbeiter-Profil gefunden')
           return
         }
 
-        console.log('✅ Employee found:', employee.id)
         setEmployeeId(employee.id)
-        console.log('✅ setEmployeeId called with:', employee.id)
 
         // Load current attendance
         const attendance = await AttendanceService.getCurrentAttendance(employee.id)
         setCurrentAttendance(attendance)
-        console.log('Current attendance:', attendance)
       } catch (error) {
         console.error('Error loading employee data:', error)
         toast.error('Fehler beim Laden der Mitarbeiter-Daten')
@@ -314,12 +276,10 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        console.log('No user found')
         setCompanySettings({ default_break_duration: 15 })
         return
       }
 
-      console.log('Loading company settings for user:', user.id)
 
       const { data, error } = await supabase
         .from('profiles')
@@ -327,10 +287,8 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         .eq('id', user.id)
         .single()
 
-      console.log('User profile result:', { data, error })
 
       if (error || !data?.company_id) {
-        console.log('No company_id found, trying to fix automatically...')
         
         // Try to find and set company_id automatically
         const { data: companies, error: companyError } = await supabase
@@ -340,12 +298,10 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
           .limit(1)
 
         if (companyError || !companies || companies.length === 0) {
-          console.log('No company found, using default break time')
           setCompanySettings({ default_break_duration: 15 })
           return
         }
 
-        console.log('Found company, setting company_id for user:', companies[0].id)
 
         // Update user profile with company_id
         const { error: updateError } = await supabase
@@ -354,12 +310,10 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
           .eq('id', user.id)
 
         if (updateError) {
-          console.log('Failed to update user profile, using default:', updateError.message)
           setCompanySettings({ default_break_duration: 15 })
           return
         }
 
-        console.log('Successfully set company_id, using company settings')
         setCompanySettings({
           default_break_duration: companies[0].default_break_duration,
           default_working_hours_end: companies[0].default_working_hours_end
@@ -367,7 +321,6 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         return
       }
 
-      console.log('Found company_id:', data.company_id)
 
       // First check how many rows exist for this company_id
       const { data: allSettings, error: checkError } = await supabase
@@ -375,14 +328,12 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         .select('id, company_id, default_break_duration')
         .eq('company_id', data.company_id)
 
-      console.log('All company_settings for company_id:', JSON.stringify({ allSettings, checkError, count: allSettings?.length }))
 
       // Also try without company_id filter to see all rows
       const { data: allRows } = await supabase
         .from('company_settings')
         .select('id, company_id, default_break_duration')
 
-      console.log('ALL company_settings in database:', JSON.stringify(allRows))
 
       const { data: settings, error: settingsError } = await supabase
         .from('company_settings')
@@ -390,13 +341,10 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         .eq('company_id', data.company_id)
         .single()
 
-      console.log('Company settings result:', { settings, settingsError })
 
       if (settingsError) {
-        console.log('No company settings found, using default:', settingsError.message)
         setCompanySettings({ default_break_duration: 15, default_working_hours_end: '17:00:00' })
       } else {
-        console.log('Loaded company settings - break duration:', settings.default_break_duration, 'work end:', settings.default_working_hours_end)
         setCompanySettings(settings)
       }
     } catch (error) {
@@ -418,7 +366,6 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
 
       if (error) {
         // Fallback bei fehlender Tabelle
-        console.warn('Time segments table not found, using mock data')
         setTodayStats({
           totalWorkMinutes: 240, // 4h Mock
           totalBreakMinutes: 30,
@@ -529,18 +476,13 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
 
   // Start Arbeitstag (Attendance)
   const handleStartArbeitstag = async () => {
-    console.log('🔵 handleStartArbeitstag called!')
-    console.log('🔵 employeeId:', employeeId)
-    console.log('🔵 arbeitstagLoading:', arbeitstagLoading)
 
     try {
       if (!employeeId) {
-        console.error('❌ No employeeId found!')
         toast.error('Employee ID nicht gefunden')
         return
       }
 
-      console.log('✅ Setting loading to true')
       setArbeitstagLoading(true)
 
       // Get location if available
@@ -560,8 +502,8 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             lng: position.coords.longitude,
             accuracy: position.coords.accuracy
           }
-        } catch (geoError) {
-          console.warn('Could not get location:', geoError)
+        } catch (_geoError) {
+          // intentional
         }
       }
 
@@ -594,25 +536,19 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
 
       // Stop current break if active (WICHTIG: Pause zuerst beenden!)
       if (activeTime.active && activeTime.onBreak) {
-        console.log('⏸️ Ending active break before stopping project...')
         await endBreak()
-        console.log('✅ Break ended')
       }
 
       // Stop current project if active
       if (activeTime.active) {
-        console.log('🛑 Stopping active project before ending workday...')
         toast.info('Beende laufendes Projekt...', { duration: 2000 })
         await stopTracking('Arbeitstag beendet')
-        console.log('✅ Project stopped successfully')
       }
 
       // CLEANUP: Entferne localStorage-Einträge (Fallback falls stopTracking fehlschlägt)
-      console.log('🧹 Cleaning up localStorage...')
       localStorage.removeItem('activeTimeEntry')
       localStorage.removeItem('activeBreak')
       localStorage.removeItem('selectedProject')
-      console.log('✅ localStorage cleaned')
 
       // Get location if available
       let location: { lat: number; lng: number; accuracy?: number } | undefined
@@ -631,8 +567,8 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             lng: position.coords.longitude,
             accuracy: position.coords.accuracy
           }
-        } catch (geoError) {
-          console.warn('Could not get location:', geoError)
+        } catch (_geoError) {
+          // intentional
         }
       }
 
@@ -691,7 +627,6 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
 
               if (settings?.default_break_duration) {
                 breakDuration = settings.default_break_duration
-                console.log('🟢 Loaded break duration from DB:', breakDuration)
               }
             }
           }
@@ -868,15 +803,11 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
 
   const handleStop = async () => {
     try {
-      console.log('🔴 handleStop called')
-      console.log('🔴 Current activeTime:', activeTime)
-      console.log('🔴 localStorage activeTimeEntry:', localStorage.getItem('activeTimeEntry'))
 
       await stopTracking('Manuell gestoppt')
 
       setSelectedProject(null)
       localStorage.removeItem('selectedProject')
-      console.log('✅ handleStop completed successfully')
     } catch (error: any) {
       console.error('❌ Stop error:', error)
       console.error('❌ Error message:', error?.message)
@@ -963,7 +894,6 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             </p>
             <Button
               onClick={() => {
-                console.log('🟢 BUTTON CLICKED!')
                 handleStartArbeitstag()
               }}
               disabled={arbeitstagLoading}
@@ -1299,10 +1229,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
               <Button
                 variant="default"
                 onClick={() => {
-                  console.log('🔥 PROJEKT BUTTON CLICKED!');
-                  console.log('Before setState - showQuickSwitch:', showQuickSwitch);
                   setShowQuickSwitch(true);
-                  console.log('After setState called');
                   toast.info('Projekt-Dialog wird geöffnet...');
                 }}
                 disabled={isLoading}
@@ -1451,7 +1378,6 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
           <CostCenterQuickPick
             employeeId={activeTime.segment.employee_id}
             onCostCenterSelect={async (costCenterId, costCenter) => {
-              console.log('Cost center selected:', costCenterId, costCenter)
               // TODO: Implement cost center time booking
               // This will create a time_entry with type='cost_center'
             }}
@@ -1466,7 +1392,6 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         onClose={() => setShowQuickSwitch(false)}
         onProjectSelect={async (projectId, projectData) => {
           try {
-            console.log('onProjectSelect called with:', projectId, projectData)
 
             // Use the passed projectData if available
             let project = projectData || null
@@ -1480,16 +1405,13 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                 waitCount++
               }
 
-              console.log('projects state after wait:', projects)
-              console.log('projects length:', projects?.length)
 
               // Try to find project in our loaded projects
               try {
                 if (projects && Array.isArray(projects) && projects.length > 0) {
                   project = projects.find(p => p && p.id === projectId)
-                  console.log('Found project in list:', project)
                 } else {
-                  console.log('Projects still not ready after wait:', projects)
+                  // intentional
                 }
               } catch (findError) {
                 console.error('Error in projects.find:', findError)
@@ -1518,8 +1440,8 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                       if (customer) {
                         dbProject.customer = { name: customer.name, phone: customer.phone }
                       }
-                    } catch (customerError) {
-                      console.log('Customer loading failed:', customerError)
+                    } catch (_customerError) {
+                      // intentional
                     }
                   }
 
@@ -1542,7 +1464,6 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             } else if (currentAttendance) {
               // Arbeitstag läuft, aber kein Projekt - starte Projekt automatisch!
               if (project) {
-                console.log('🚀 AUTO-START PROJECT:', project.name)
                 setSelectedProject(project)
                 localStorage.setItem('selectedProject', JSON.stringify(project))
 
@@ -1557,7 +1478,6 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             } else {
               // Kein Arbeitstag aktiv - nur Projekt setzen, nicht starten
               if (project) {
-                console.log('📱 SELECTED PROJECT (not started):', project.name)
                 setSelectedProject(project)
                 localStorage.setItem('selectedProject', JSON.stringify(project))
                 toast.info('Projekt ausgewählt. Bitte starten Sie zuerst den Arbeitstag.')

@@ -119,7 +119,7 @@ export class CustomerService {
       // Try inserting – if customer_number is a duplicate, generate a unique fallback
       const { data: created, error } = await supabase
         .from('customers')
-        .insert(validatedData as any)
+        .insert(validatedData as Record<string, unknown>)
         .select()
         .single();
 
@@ -129,7 +129,7 @@ export class CustomerService {
           const fallbackNumber = `KD-${Date.now()}`;
           const { data: retried, error: retryError } = await supabase
             .from('customers')
-            .insert({ ...validatedData, customer_number: fallbackNumber } as any)
+            .insert({ ...validatedData, customer_number: fallbackNumber } as Record<string, unknown>)
             .select()
             .single();
           if (retryError) {
@@ -273,12 +273,12 @@ export class CustomerService {
 
       const stats = {
         total_projects: projects?.length || 0,
-        active_projects: projects?.filter((p: any) => p.status === 'active').length || 0,
-        completed_projects: projects?.filter((p: any) => p.status === 'completed').length || 0,
-        total_revenue: (invoices as any[])?.filter((i: any) => i.status === 'paid')
-          .reduce((sum: number, i: any) => sum + (i.amount || 0), 0) || 0,
-        pending_invoices: (invoices as any[])?.filter((i: any) => i.status === 'sent').length || 0,
-        overdue_invoices: (invoices as any[])?.filter((i: any) => i.status === 'overdue').length || 0,
+        active_projects: projects?.filter(p => p.status === 'active').length || 0,
+        completed_projects: projects?.filter(p => p.status === 'completed').length || 0,
+        total_revenue: invoices?.filter(i => i.status === 'paid')
+          .reduce((sum, i) => sum + (i.amount || 0), 0) || 0,
+        pending_invoices: invoices?.filter(i => i.status === 'sent').length || 0,
+        overdue_invoices: invoices?.filter(i => i.status === 'overdue').length || 0,
       };
 
       return stats;

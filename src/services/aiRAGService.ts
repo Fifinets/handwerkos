@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 import { apiCall, createQuery, validateInput, getCurrentUserProfile, ApiError, API_ERROR_CODES } from './common';
-import { auditLogService } from './auditLogService';
+import { auditLogService, type AuditEntityType } from './auditLogService';
 import { eventBus } from './eventBus';
 
 // AI RAG types for document indexing and retrieval
@@ -179,7 +179,7 @@ export class AIRAGService {
 
       // Create audit log
       await auditLogService.createAuditLog({
-        entity_type: documentType as any,
+        entity_type: documentType as AuditEntityType,
         entity_id: entityId,
         action: 'CREATE',
         new_values: {

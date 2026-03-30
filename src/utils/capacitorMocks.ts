@@ -11,16 +11,12 @@ export const Capacitor = {
 // Mock StatusBar
 export const StatusBar = {
   setStyle: async (options: any) => {
-    console.log('StatusBar.setStyle (web mock):', options)
   },
   setBackgroundColor: async (options: any) => {
-    console.log('StatusBar.setBackgroundColor (web mock):', options)
   },
   show: async () => {
-    console.log('StatusBar.show (web mock)')
   },
   hide: async () => {
-    console.log('StatusBar.hide (web mock)')
   }
 }
 
@@ -33,7 +29,6 @@ export const Style = {
 // Mock SafeArea
 export const SafeArea = {
   getSafeAreaInsets: async () => {
-    console.log('SafeArea.getSafeAreaInsets (web mock)')
     return { top: 0, bottom: 0, left: 0, right: 0 }
   }
 }
@@ -41,20 +36,16 @@ export const SafeArea = {
 // Mock KeepAwake
 export const KeepAwake = {
   keepAwake: async () => {
-    console.log('KeepAwake.keepAwake (web mock)')
   },
   allowSleep: async () => {
-    console.log('KeepAwake.allowSleep (web mock)')
   }
 }
 
 // Mock Haptics
 export const Haptics = {
   impact: async (options: any) => {
-    console.log('Haptics.impact (web mock):', options)
   },
   vibrate: async (options: any) => {
-    console.log('Haptics.vibrate (web mock):', options)
   }
 }
 
@@ -142,25 +133,20 @@ export const PushNotifications = {
     receive: 'granted' as const
   }),
   register: async () => {
-    console.log('PushNotifications.register (web mock)')
   },
   addListener: (eventName: string, callback: (data: any) => void) => {
-    console.log('PushNotifications.addListener (web mock):', eventName)
     return { remove: () => {} }
   },
   removeAllListeners: () => {
-    console.log('PushNotifications.removeAllListeners (web mock)')
   }
 }
 
 // Mock Local Notifications
 export const LocalNotifications = {
   schedule: async (options: any) => {
-    console.log('LocalNotifications.schedule (web mock):', options)
     // Could show browser notifications here in the future
   },
   cancel: async (options: any) => {
-    console.log('LocalNotifications.cancel (web mock):', options)
   }
 }
 

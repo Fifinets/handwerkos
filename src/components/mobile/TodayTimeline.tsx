@@ -76,7 +76,6 @@ export const TodayTimeline: React.FC<TodayTimelineProps> = ({
 
       if (error) {
         // Fallback Mock-Daten
-        console.warn('Time segments not found, using mock data')
         const mockSegments: TimelineSegment[] = [
           {
             id: 'mock-1',
@@ -287,7 +286,6 @@ export const TodayTimeline: React.FC<TodayTimelineProps> = ({
                               className="h-6 w-6 p-0 opacity-50 hover:opacity-100"
                               onClick={() => {
                                 // TODO: Implement edit segment
-                                console.log('Edit segment:', segment.id)
                               }}
                             >
                               <Edit3 className="h-3 w-3" />

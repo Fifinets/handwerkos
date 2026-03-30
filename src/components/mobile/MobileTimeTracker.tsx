@@ -92,7 +92,6 @@ const MobileTimeTracker: React.FC = () => {
 
   // Force reset selection on component mount
   useEffect(() => {
-    console.log('MobileTimeTracker mounted - resetting selection')
     // Clear ALL project-related localStorage completely
     localStorage.removeItem('selectedProjectDetails')
     localStorage.removeItem('selectedProject') // Remove TodayScreen's saved project
@@ -311,15 +310,10 @@ const MobileTimeTracker: React.FC = () => {
   
   // Debug: Log active time changes
   useEffect(() => {
-    console.log('Active time status changed:', activeTime)
   }, [activeTime])
   
   // Debug: Monitor selectedProject state
   useEffect(() => {
-    console.log('=== STATE UPDATE ===');
-    console.log('selectedProject state:', selectedProject);
-    console.log('selectedProjectDetails state:', selectedProjectDetails);
-    console.log('==================');
   }, [selectedProject, selectedProjectDetails])
 
   // Initialize map when container is ready
@@ -466,10 +460,8 @@ const MobileTimeTracker: React.FC = () => {
 
   // Update project details only when selectedProject changes (not when projects load)
   useEffect(() => {
-    console.log('Selected project changed to:', selectedProject)
     // Only update details if a project is actually selected
     if (selectedProject && selectedProject !== '') {
-      console.log('MobileTimeTracker: Finding project details for:', selectedProject)
       let projectDetails = null
       try {
         if (projects && Array.isArray(projects) && projects.length > 0) {
@@ -480,13 +472,10 @@ const MobileTimeTracker: React.FC = () => {
       }
       if (projectDetails) {
         setSelectedProjectDetails(projectDetails)
-        console.log('Project details updated:', projectDetails)
       } else {
-        console.log('Project not found in list, clearing details')
         setSelectedProjectDetails(null)
       }
     } else {
-      console.log('No project selected - clearing details')
       setSelectedProjectDetails(null)
     }
   }, [selectedProject])
@@ -495,7 +484,6 @@ const MobileTimeTracker: React.FC = () => {
   useEffect(() => {
     const loadProjectsWithAssignments = async () => {
       try {
-        console.log('🚀 STARTING TO LOAD PROJECTS...')
 
         // Reset selection state at start
         setSelectedProject('')
@@ -515,15 +503,12 @@ const MobileTimeTracker: React.FC = () => {
           .order('name')
 
         if (projectsError) {
-          console.error('💥 DATABASE ERROR loading projects:', projectsError)
           toast.error('Fehler beim Laden der Projekte')
           return
         }
 
-        console.log('✅ PROJECTS FROM DATABASE:', projectsData)
 
         if (!projectsData || projectsData.length === 0) {
-          console.log('No projects found in database')
           setProjects([])
           toast.error('Keine Projekte in der Datenbank gefunden')
           return
@@ -544,12 +529,10 @@ const MobileTimeTracker: React.FC = () => {
           .single()
 
         if (!employee) {
-          console.log('No employee record found for user')
           setProjects(projectsData)
           return
         }
 
-        console.log('Current employee ID for assignment check:', employee.id)
 
         // Get project assignments for this employee
         const { data: assignmentsData } = await supabase
@@ -561,7 +544,6 @@ const MobileTimeTracker: React.FC = () => {
           assignmentsData?.map(assignment => assignment.project_id) || []
         )
 
-        console.log('Employee assigned to project IDs:', Array.from(assignedProjectIds))
 
         // Smart sorting: assigned > recent > alphabetical
         const assignedProjectsList = []
@@ -583,7 +565,6 @@ const MobileTimeTracker: React.FC = () => {
           const isAssigned = assignedProjectIds.has(project.id)
           const assignmentInfo = assignmentsData?.find(a => a.project_id === project.id)
 
-          console.log(`Project ${formattedProject.name}: isAssigned=${isAssigned}, customer=${formattedProject.customer?.name}`)
 
           if (isAssigned) {
             assignedProjectsList.push({
@@ -650,8 +631,8 @@ const MobileTimeTracker: React.FC = () => {
               return dateB.getTime() - dateA.getTime()
             })
           }
-        } catch (error) {
-          console.log('No recent timesheets found:', error)
+        } catch (_error) {
+          // intentional
         }
 
         // Combine: assigned > recent > alphabetical
@@ -664,20 +645,14 @@ const MobileTimeTracker: React.FC = () => {
         setProjects(allProjects)
         setAssignedProjects(assignedProjectsList)
 
-        console.log(`Smart sorted projects: ${assignedProjectsList.length} assigned, ${recentProjectsList.length} recent, ${regularProjectsList.length} other`)
-        console.log('Assigned projects:', assignedProjectsList.map(p => p.name))
-        console.log('Recent projects:', recentProjectsList.map(p => p.name))
 
         // No auto-selection - user must choose manually
-        console.log('Projects loaded - user must choose manually')
         // Ensure clean state
         if (!selectedProject) {
           setSelectedProject('')
           setSelectedProjectDetails(null)
         }
 
-        console.log(`Loaded ${allProjects.length} projects: ${assignedProjectsList.length} assigned, ${recentProjectsList.length} recent, ${regularProjectsList.length} other`)
-        console.log('🔍 ALL PROJECTS FROM DATABASE:', allProjects.map(p => ({ id: p.id, name: p.name, customer: p.customer?.name })))
 
       } catch (error) {
         console.error('Error loading projects with assignments:', error)
@@ -927,7 +902,7 @@ const MobileTimeTracker: React.FC = () => {
                   <Navigation className={`h-5 w-5 ${isInRange ? 'text-green-600' : 'text-red-600'}`} />
                   <div>
                     <p className="text-sm font-medium">
-                      {isInRange ? '✅ Im Arbeitsbereich' : '❌ Außerhalb des Arbeitsbereichs'
+                      {isInRange ? '✅ Im Arbeitsbereich' : '❌ Außerhalb des Arbeitsbereichs'}
                     </p>
                     <p className="text-xs text-gray-600">
                       {selectedProjectDetails.name} ({RADIUS_METERS}m Radius)
@@ -973,7 +948,6 @@ const MobileTimeTracker: React.FC = () => {
                     <div
                       className="w-full p-4 text-left rounded-lg border-2 border-green-500 bg-green-50"
                       onClick={() => {
-                        console.log('Clearing selection');
                         setSelectedProject('');
                         setSelectedProjectDetails(null);
                         setUserHasSelectedProject(false);
@@ -1017,7 +991,6 @@ const MobileTimeTracker: React.FC = () => {
                           <div
                             key={project.id}
                             onClick={() => {
-                              console.log('🎯 PROJEKT AUSWAHL:', project);
                               setSelectedProject(project.id);
                               setSelectedProjectDetails(project);
                               setUserHasSelectedProject(true);
@@ -1224,12 +1197,10 @@ const MobileTimeTracker: React.FC = () => {
                               onChange={(e) => {
                                 e.stopPropagation();
                                 const value = e.target.value;
-                                console.log('Switch project selection changed to:', value);
                                 setSelectedProject(value);
                                 // Update project details immediately
                                 const project = projects && projects.length > 0 ? projects.find(p => p.id === value) : null;
                                 if (project) {
-                                  console.log('Found project details for switch:', project);
                                   setSelectedProjectDetails(project);
                                 } else {
                                   setSelectedProjectDetails(null);

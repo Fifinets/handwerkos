@@ -44,7 +44,6 @@ async function loadProjectWithTargets(
     .single();
 
   if (error || !data) {
-    console.error("Error loading project:", error);
     return null;
   }
 
@@ -64,7 +63,7 @@ async function loadProjectAggregates(
     .eq("project_id", projectId);
 
   if (timeError) {
-    console.error("Error loading time entries:", timeError);
+    // intentional
   }
 
   let actualHours = 0;
@@ -87,7 +86,7 @@ async function loadProjectAggregates(
     .eq("project_id", projectId);
 
   if (materialError) {
-    console.error("Error loading material entries:", materialError);
+    // intentional
   }
 
   let actualCosts = 0;

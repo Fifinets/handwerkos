@@ -66,7 +66,6 @@ export async function fetchCompanyAISettings(): Promise<CompanyAISettings | null
     .select('*')
     .maybeSingle();
   if (error) {
-    console.warn('Could not fetch AI settings:', error);
     return null;
   }
   return data;

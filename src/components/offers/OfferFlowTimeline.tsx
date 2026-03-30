@@ -20,9 +20,6 @@ interface FlowStep {
 }
 
 export function OfferFlowTimeline({ offer }: OfferFlowTimelineProps) {
-  // Only show for accepted offers
-  if (offer.status !== 'accepted') return null;
-
   const projectId = offer.project_id;
 
   // Load linked project
@@ -59,6 +56,9 @@ export function OfferFlowTimeline({ offer }: OfferFlowTimelineProps) {
     enabled: !!invoiceId,
     staleTime: 30_000,
   });
+
+  // Only show for accepted offers
+  if (offer.status !== 'accepted') return null;
 
   const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return undefined;

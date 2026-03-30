@@ -338,7 +338,7 @@ class InspectionService {
       const { data: user } = await supabase.auth.getUser();
       try {
         await AuditLogService.createAuditLog({
-          entity_type: 'document' as any,
+          entity_type: 'document',
           entity_id: id,
           action: 'finalize',
           user_id: user.user?.id || '',

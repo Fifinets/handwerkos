@@ -55,7 +55,6 @@ export default function EmployeeWageManagementSimple() {
 
   const fetchWorkingHours = async () => {
     try {
-      console.log('Fetching company working hours...');
       
       // Get working hours from company settings
       const { data, error } = await supabase
@@ -64,12 +63,10 @@ export default function EmployeeWageManagementSimple() {
         .limit(1);
 
       if (error) {
-        console.error('Error fetching working hours:', error);
         return;
       }
 
       if (data) {
-        console.log('Working hours data:', data);
         // Calculate working hours per day
         const startTime = data.default_working_hours_start || '08:00';
         const endTime = data.default_working_hours_end || '17:00';
@@ -85,7 +82,6 @@ export default function EmployeeWageManagementSimple() {
         const workHoursPerDay = workMinutesPerDay / 60;
         const workHoursPerWeek = workHoursPerDay * 5; // 5 Arbeitstage
 
-        console.log(`Calculated: ${workHoursPerDay}h/Tag, ${workHoursPerWeek}h/Woche`);
         setWorkingHoursPerWeek(workHoursPerWeek);
       }
     } catch (error: any) {

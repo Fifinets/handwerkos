@@ -226,7 +226,7 @@ const EditInvoiceDialog: React.FC<EditInvoiceDialogProps> = ({
           gross_amount: netTotal + taxTotal,
           notes: description || null,
           updated_at: new Date().toISOString()
-        } as any)
+        })
         .eq('id', invoice.id);
 
       if (invoiceError) throw invoiceError;

@@ -51,7 +51,6 @@ export const useTimeApproval = () => {
       if (error) {
         // Fallback wenn Funktion nicht existiert
         if (error.message.includes('function') || error.message.includes('does not exist')) {
-          console.warn('Preview function not found, using mock preview')
           return {
             preview_segments: [],
             summary: {
@@ -105,7 +104,6 @@ export const useTimeApproval = () => {
       if (error) {
         // Fallback wenn Funktion nicht existiert
         if (error.message.includes('function') || error.message.includes('does not exist')) {
-          console.warn('Approve function not found, using mock approval')
           toast.success('Zeiten genehmigt (Demo-Modus)')
           return {
             success: true,
@@ -145,7 +143,6 @@ export const useTimeApproval = () => {
 
       if (error) {
         // Fallback zu Standard-Regeln
-        console.warn('Time rules table not found, using defaults')
         return [{
           id: 'default',
           name: 'Standard',
@@ -198,7 +195,6 @@ export const useTimeApproval = () => {
       if (error) {
         // Fallback wenn Tabelle nicht existiert
         if (error.message.includes('relation') || error.message.includes('does not exist')) {
-          console.warn('Time segments table not found, using mock data')
           return []
         }
         throw error

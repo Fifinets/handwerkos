@@ -29,17 +29,15 @@ export const loadAnalytics = () => {
   if (Capacitor.isNativePlatform() || typeof window === 'undefined') return;
 
   if (isInitialized || document.querySelector('script[data-ga="true"]')) {
-    console.log('[Analytics] GA already loaded or initializing...');
     updateConsentState('granted');
     return;
   }
 
-  console.log('[Analytics] Initializing Google Analytics with Consent Mode V2...');
 
   // 1. Initialize dataLayer and gtag
   window.dataLayer = window.dataLayer || [];
-  window.gtag = function gtag() {
-    window.dataLayer.push(arguments);
+  window.gtag = function gtag(...args: unknown[]) {
+    window.dataLayer.push(args);
   };
 
   // 2. Set Default Consent (to granted, because loadAnalytics is ONLY called after explicit user consent)
@@ -61,7 +59,6 @@ export const loadAnalytics = () => {
   gtagScript.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
 
   gtagScript.onload = () => {
-    console.log('[Analytics] GA Script loaded successfully.');
 
     try {
       // Initialize ReactGA4 - this will also trigger the 'config' call
@@ -73,11 +70,9 @@ export const loadAnalytics = () => {
       });
 
       isInitialized = true;
-      console.log('[Analytics] ReactGA4 initialized.');
 
       // Process any pageviews that happened while we were loading
       if (pendingPageViews.length > 0) {
-        console.log(`[Analytics] Processing ${pendingPageViews.length} pending page views.`);
         pendingPageViews.forEach(path => trackPageView(path));
         pendingPageViews = [];
       }
@@ -95,7 +90,6 @@ export const loadAnalytics = () => {
 
 export const updateConsentState = (state: 'granted' | 'denied') => {
   if (typeof window.gtag === 'function') {
-    console.log(`[Analytics] Updating consent state to: ${state}`);
     window.gtag('consent', 'update', {
       'analytics_storage': state
     });
@@ -103,7 +97,6 @@ export const updateConsentState = (state: 'granted' | 'denied') => {
 };
 
 export const removeAnalytics = () => {
-  console.log('[Analytics] Revoking consent and removing analytics...');
   updateConsentState('denied');
 
   // Clear common GA cookies
@@ -128,14 +121,12 @@ export const removeAnalytics = () => {
 
 export const initGA = () => {
   // Just a stub for backward compatibility
-  console.log('[Analytics] initGA ignored - using consent-based loading.');
 };
 
 export const trackPageView = (path: string, title?: string) => {
   if (Capacitor.isNativePlatform() || typeof window === 'undefined') return;
 
   if (!isInitialized) {
-    console.log(`[Analytics] GA not ready. Queuing page view: ${path}`);
     pendingPageViews.push(path);
     return;
   }
@@ -146,7 +137,6 @@ export const trackPageView = (path: string, title?: string) => {
       page: path,
       title: title || document.title
     });
-    console.log(`[Analytics] Tracked page view: ${path}`);
   } catch (error) {
     console.error('[Analytics] Page view tracking failed:', error);
   }
@@ -157,7 +147,6 @@ export const trackEvent = (category: string, action: string, label?: string, val
 
   try {
     ReactGA.event({ category, action, label, value });
-    console.log('[Analytics] Tracked event:', { category, action, label, value });
   } catch (error) {
     console.error('[Analytics] Event tracking failed:', error);
   }

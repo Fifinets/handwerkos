@@ -113,8 +113,8 @@ export default function OfferEditorPage() {
                 const c = customers.find(c => c.id === offer.customer_id);
                 if (c) setSelectedCustomer(c);
             }
-            if (allProjects.length > 0 && !selectedProject && (offer as any).project_id) {
-                const p = allProjects.find(pr => pr.id === (offer as any).project_id);
+            if (allProjects.length > 0 && !selectedProject && offer.project_id) {
+                const p = allProjects.find(pr => pr.id === offer.project_id);
                 if (p) setSelectedProject(p);
             }
             if (offer.project_name) setSubject(offer.project_name);
@@ -208,7 +208,7 @@ export default function OfferEditorPage() {
                         final_text: finalText,
                         is_reverse_charge: isReverseCharge,
                         show_labor_share: showLaborShare,
-                    } as any,
+                    },
                     items: items,
                 });
                 setLastSavedAt(new Date());
@@ -220,7 +220,7 @@ export default function OfferEditorPage() {
                     id: id!,
                     data: {
                         project_name: subject,
-                        ...(selectedProject?.id || (offer as any)?.project_id ? { project_id: selectedProject?.id || (offer as any)?.project_id } : {}),
+                        ...(selectedProject?.id || offer?.project_id ? { project_id: selectedProject?.id || offer?.project_id } : {}),
                         valid_until: validUntil || undefined,
                         // Update customer if selected
                         ...(selectedCustomer ? {
@@ -231,7 +231,7 @@ export default function OfferEditorPage() {
                         final_text: finalText,
                         is_reverse_charge: isReverseCharge,
                         show_labor_share: showLaborShare,
-                    } as any,
+                    },
                 });
 
                 // Sync items separately
@@ -376,7 +376,7 @@ export default function OfferEditorPage() {
 
                 {lockedWarning}
 
-                {offer && <OfferFlowTimeline offer={offer as any} />}
+                {offer && <OfferFlowTimeline offer={offer} />}
 
                 {/* Top Header */}
                 <header className="bg-white border-b px-6 py-3 flex items-center justify-between shadow-sm z-10 print:hidden">
@@ -496,7 +496,7 @@ export default function OfferEditorPage() {
                                                             {(selectedCustomer || offer) ? (
                                                                 <div className="text-sm text-gray-600 pointer-events-none text-left">
                                                                     <p className="font-bold text-gray-900 mb-1">{selectedCustomer?.company_name || offer?.customer_name}</p>
-                                                                    <p>{selectedCustomer?.address || (offer as any)?.snapshot_customer_address}</p>
+                                                                    <p>{selectedCustomer?.address || offer?.customer_address}</p>
                                                                     <p>{selectedCustomer ? `${selectedCustomer.postal_code} ${selectedCustomer.city}` : ''}</p>
                                                                 </div>
                                                             ) : (

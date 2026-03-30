@@ -91,7 +91,6 @@ const EditOrderDialog = ({ open, onOpenChange, order, onOrderUpdated }: EditOrde
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching offers:', error);
         return;
       }
 
@@ -136,7 +135,6 @@ const EditOrderDialog = ({ open, onOpenChange, order, onOrderUpdated }: EditOrde
         .order('company_name');
 
       if (error) {
-        console.error('Error fetching customers:', error);
         return;
       }
 
@@ -161,7 +159,6 @@ const EditOrderDialog = ({ open, onOpenChange, order, onOrderUpdated }: EditOrde
     setLoading(true);
 
     try {
-      console.log('Updating order:', order.id);
 
       const orderData = {
         title: title.trim(),
@@ -182,7 +179,6 @@ const EditOrderDialog = ({ open, onOpenChange, order, onOrderUpdated }: EditOrde
         .eq('id', order.id);
 
       if (error) {
-        console.error('Error updating order:', error);
         toast({
           title: "Fehler",
           description: "Auftrag konnte nicht aktualisiert werden.",

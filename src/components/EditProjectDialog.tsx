@@ -30,6 +30,7 @@ interface Project {
   customer_id?: string;
   start_date?: string;
   end_date?: string;
+  company_name?: string;
 }
 
 interface EditProjectDialogProps {
@@ -91,20 +92,19 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
   // Update form data when project changes
   useEffect(() => {
     if (project) {
-      console.log('EditProjectDialog: Updating form with project data:', project);
 
       setFormData({
         name: project.name || '',
         customer_id: project.customer_id || '',
-        status: (project.status as any) || 'anfrage',
-        startDate: (project as any).start_date || project.startDate || '',
-        endDate: (project as any).end_date || project.endDate || '',
+        status: project.status || 'anfrage',
+        startDate: project.start_date || project.startDate || '',
+        endDate: project.end_date || project.endDate || '',
         project_site_id: project.project_site_id || ''
       });
 
       // Set date range if dates are available
-      const startDate = (project as any).start_date || project.startDate;
-      const endDate = (project as any).end_date || project.endDate;
+      const startDate = project.start_date || project.startDate;
+      const endDate = project.end_date || project.endDate;
 
       if (startDate && endDate) {
         setDateRange({
@@ -216,18 +216,15 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
   };
 
   const startDelete = () => {
-    console.log('🚀 startDelete called - beginning delete sequence');
     setIsDeleting(true);
     setDeleteProgress(0);
 
     const interval = setInterval(() => {
       setDeleteProgress(prev => {
         const newProgress = prev + (100 / 25); // 2,5 Sekunden = 25 Updates à 100ms
-        console.log('⏰ Delete progress:', Math.round(newProgress) + '%');
 
         if (newProgress >= 100) {
           clearInterval(interval);
-          console.log('✅ Delete timer completed, calling handleDelete');
           handleDelete();
           return 100;
         }
@@ -239,7 +236,6 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
   };
 
   const stopDelete = () => {
-    console.log('⏹️ stopDelete called - canceling delete sequence');
     if (deleteTimer) {
       clearInterval(deleteTimer);
       setDeleteTimer(null);
@@ -265,7 +261,8 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
       ] as const;
 
       for (const table of childTables) {
-        await supabase.from(table as any).delete().eq('project_id', id);
+        // Tables may not all exist in generated Supabase types but are valid DB tables
+        await supabase.from(table).delete().eq('project_id', id);
       }
 
       // Now delete the project itself
@@ -273,7 +270,7 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
       if (error) throw error;
 
       toast({ title: 'Projekt gelöscht', description: 'Das Projekt wurde erfolgreich gelöscht.' });
-      eventBus.emit('PROJECT_DELETED' as any, { id });
+      eventBus.emit('PROJECT_DELETED', { id });
       onProjectDeleted(id);
       onClose();
     } catch (error: any) {
@@ -290,7 +287,6 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
 
   if (!project) return null;
 
-  console.log('🎯 EditProjectDialog render - onProjectDeleted available:', !!onProjectDeleted);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -322,7 +318,7 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
               <SelectContent>
                 {customers.map((customer) => (
                   <SelectItem key={customer.id} value={customer.id}>
-                    {(customer as any).company_name || (customer as any).name || 'Unbekannt'}
+                    {customer.company_name || customer.name || 'Unbekannt'}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -404,7 +400,7 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
                   type="button"
                   variant="destructive"
                   className="w-full relative overflow-hidden"
-                  onClick={() => console.log('🖱️ Delete button clicked!')}
+                  onClick={() => {}}
                   onMouseDown={onProjectDeleted ? startDelete : undefined}
                   onMouseUp={onProjectDeleted ? stopDelete : undefined}
                   onMouseLeave={onProjectDeleted ? stopDelete : undefined}

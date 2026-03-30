@@ -44,7 +44,6 @@ export const useMobileTimeTracking = () => {
   // Fetch active time tracking from native plugin
   const fetchActiveTime = useCallback(async () => {
     if (!isNative) {
-      console.log('Not on native platform, using mock data')
       setActiveTime({ active: false })
       return
     }
@@ -67,7 +66,6 @@ export const useMobileTimeTracking = () => {
         setActiveTime({ active: false })
       }
     } catch (error) {
-      console.warn('Native time tracking check failed:', error)
       setActiveTime({ active: false })
     } finally {
       setIsLoading(false)

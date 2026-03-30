@@ -1,12 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export async function createTestEmployees() {
-  console.log('Creating test employees...');
   
   // Get current session
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
-    console.error('No session found');
     return;
   }
   
@@ -14,7 +12,6 @@ export async function createTestEmployees() {
                    session.user.app_metadata?.company_id || 
                    session.user.id;
   
-  console.log('Using company_id:', companyId);
   
   // Helper to generate UUID
   const generateUUID = () => {
@@ -69,9 +66,9 @@ export async function createTestEmployees() {
       .select();
     
     if (error) {
-      console.error('Error creating employee:', employee.email, error);
+      // intentional
     } else {
-      console.log('Created employee:', data);
+      // intentional
     }
   }
   
@@ -81,13 +78,11 @@ export async function createTestEmployees() {
     .select('*')
     .eq('company_id', companyId);
   
-  console.log('All employees after creation:', allEmployees);
-  console.log('Fetch error:', fetchError);
   
   return allEmployees;
 }
 
 // Make it available globally for testing
 if (typeof window !== 'undefined') {
-  (window as any).createTestEmployees = createTestEmployees;
+  window.createTestEmployees = createTestEmployees;
 }

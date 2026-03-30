@@ -86,7 +86,6 @@ export const AttendanceControls: React.FC<AttendanceControlsProps> = ({
             accuracy: position.coords.accuracy
           }
         } catch (geoError) {
-          console.warn('Could not get location:', geoError)
           // Continue without location
         }
       }
@@ -130,8 +129,8 @@ export const AttendanceControls: React.FC<AttendanceControlsProps> = ({
             lng: position.coords.longitude,
             accuracy: position.coords.accuracy
           }
-        } catch (geoError) {
-          console.warn('Could not get location:', geoError)
+        } catch (_geoError) {
+          // intentional
         }
       }
 

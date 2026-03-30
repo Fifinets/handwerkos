@@ -108,7 +108,6 @@ export const useOfflineQueue = () => {
     setQueue(updatedQueue)
     saveQueue(updatedQueue)
     
-    console.log('Added to offline queue:', newEntry)
     
     // Sofort sync versuchen wenn online
     if (isOnline) {
@@ -132,7 +131,7 @@ export const useOfflineQueue = () => {
   const syncEntry = async (entry: OfflineTimeEntry): Promise<boolean> => {
     try {
       switch (entry.type) {
-        case 'start':
+        case 'start': {
           const { error: startError } = await supabase.rpc('rpc_start_time_segment', {
             p_project_id: entry.projectId,
             p_work_type: entry.segmentType,
@@ -140,15 +139,15 @@ export const useOfflineQueue = () => {
           })
           if (startError) throw startError
           break
-          
-        case 'stop':
+        }
+        case 'stop': {
           const { error: stopError } = await supabase.rpc('rpc_stop_time_segment', {
             p_segment_id: entry.localId // TODO: Resolve actual segment ID
           })
           if (stopError) throw stopError
           break
-          
-        case 'switch':
+        }
+        case 'switch': {
           const { error: switchError } = await supabase.rpc('rpc_switch_project', {
             p_from_segment_id: 'current', // TODO: Handle better
             p_to_project_id: entry.projectId,
@@ -156,6 +155,7 @@ export const useOfflineQueue = () => {
           })
           if (switchError) throw switchError
           break
+        }
       }
       
       return true
@@ -172,7 +172,6 @@ export const useOfflineQueue = () => {
     }
     
     setIsSyncing(true)
-    console.log(`Starting sync of ${queue.length} entries`)
     
     const updatedQueue = [...queue]
     let syncedCount = 0
@@ -212,11 +211,9 @@ export const useOfflineQueue = () => {
     }
     
     if (failedCount > 0) {
-      console.warn(`${failedCount} Einträge konnten nicht synchronisiert werden`)
+      // intentional
     }
-    
-    console.log(`Sync completed: ${syncedCount} synced, ${failedCount} failed, ${updatedQueue.length} remaining`)
-    
+
   }, [isOnline, isSyncing, queue, saveQueue])
 
   // Auto-Sync wenn online

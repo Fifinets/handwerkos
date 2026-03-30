@@ -100,10 +100,8 @@ export function useGmailConnection() {
 
       if (!error && data) {
         setIsGmailConnected(true);
-        console.log("Gmail connection verified for user:", user.id);
       } else {
         setIsGmailConnected(false);
-        console.log("No active Gmail connection found for user:", user.id);
       }
     } catch (error) {
       console.error("Error checking Gmail connection:", error);

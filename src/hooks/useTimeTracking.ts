@@ -60,8 +60,9 @@ export const useTimeTracking = () => {
   const [segments, setSegments] = useState<TimeEntry[]>([])
   const [activeEntryData, setActiveEntryData] = useState<any>(null)
 
-  // Get Android-specific hooks if on Android platform
-  const androidTimeTracking = isAndroid() ? useAndroidTimeTracking() : null
+  // Get Android-specific hooks (always called to satisfy rules-of-hooks)
+  const androidTimeTrackingResult = useAndroidTimeTracking()
+  const androidTimeTracking = isAndroid() ? androidTimeTrackingResult : null
 
   // Fetch active time entry from localStorage (temporary storage for active entries)
   const fetchActiveTime = useCallback(async () => {
@@ -217,7 +218,6 @@ export const useTimeTracking = () => {
         .limit(20)
 
       if (error && error.message && !error.message.includes('relation')) {
-        console.error('Error fetching time segments:', error)
 
         // Try with user.id if employee_id fails
         const { data: fallbackData } = await supabase
@@ -243,11 +243,9 @@ export const useTimeTracking = () => {
 
   // Stop time tracking and save to timesheets
   const stopTracking = useCallback(async (notes?: string) => {
-    console.log('🛑🛑🛑 stopTracking START')
 
     // ALWAYS clear state first to prevent stuck state
     const clearState = () => {
-      console.log('🧹 Clearing state...')
       localStorage.removeItem('activeTimeEntry')
       localStorage.removeItem('activeBreak')
       setActiveTime({
@@ -256,18 +254,14 @@ export const useTimeTracking = () => {
         segment: null
       })
       setActiveEntryData(null)
-      console.log('✅ State cleared')
     }
 
     try {
       setIsLoading(true)
-      console.log('🛑 Loading set to true')
 
       const activeEntryStr = localStorage.getItem('activeTimeEntry')
-      console.log('🛑 activeEntryStr:', activeEntryStr)
 
       if (!activeEntryStr) {
-        console.log('⚠️ No active time entry found in localStorage')
         clearState()
         toast.success('Zeiterfassung beendet (keine aktive Session)')
         setIsLoading(false)
@@ -277,7 +271,6 @@ export const useTimeTracking = () => {
       let activeEntry
       try {
         activeEntry = JSON.parse(activeEntryStr)
-        console.log('🛑 Parsed active entry:', activeEntry)
       } catch (parseError) {
         console.error('❌ Failed to parse activeEntry:', parseError)
         clearState()
@@ -288,8 +281,6 @@ export const useTimeTracking = () => {
 
       const now = new Date()
       const endTime = getTimeFromDate(now)
-      console.log('🛑 Current time:', now)
-      console.log('🛑 End time formatted:', endTime)
 
       // Validate required fields
       if (!activeEntry.start_time) {
@@ -309,11 +300,9 @@ export const useTimeTracking = () => {
       }
 
       // Calculate hours
-      console.log('🛑 Calculating hours from', activeEntry.start_time, 'to', endTime)
       let hours
       try {
         hours = calculateHours(activeEntry.start_time, endTime)
-        console.log('🛑 Hours calculated:', hours)
       } catch (calcError) {
         console.error('❌ Failed to calculate hours:', calcError)
         clearState()
@@ -338,7 +327,6 @@ export const useTimeTracking = () => {
             hasManualBreaks = true
           }
         }
-        console.log(`Manual breaks found: ${activeEntry.breaks.length}, total: ${breakMinutes} minutes, lunch time break: ${hasManualBreaks}`)
       }
 
       // Only add automatic lunch break if no manual break during lunch time
@@ -384,7 +372,6 @@ export const useTimeTracking = () => {
 
               if (startBeforeBreak && endAfterBreakEnd) {
                 breakMinutes += breakDuration
-                console.log(`Automatische Mittagspause (${breakDuration} Min) hinzugefügt - keine manuelle Pause erkannt`)
               }
             }
           }
@@ -396,18 +383,16 @@ export const useTimeTracking = () => {
 
           if (startHour < 12 && (endHour > 12 || (endHour === 12 && endMinute >= 30))) {
             breakMinutes += 30
-            console.log('Automatische Mittagspause (30 Min) hinzugefügt (Fallback) - keine manuelle Pause erkannt')
           }
         }
       } else {
-        console.log('Keine automatische Mittagspause - manuelle Pause bereits vorhanden')
+        // intentional
       }
 
       // Adjust hours for break time
       const adjustedHours = Math.max(0, hours - (breakMinutes / 60))
 
       // Get current user (to get employee_id)
-      console.log('🛑 Getting user...')
       const { data: { user }, error: userError } = await supabase.auth.getUser()
       if (userError) {
         console.error('❌ Error getting user:', userError)
@@ -419,12 +404,10 @@ export const useTimeTracking = () => {
         toast.error('Nicht angemeldet')
         return
       }
-      console.log('✅ User ID:', user.id)
 
       // Get employee record - CRITICAL: timesheets table requires valid employee_id AND company_id!
       let employeeId = user.id
       let companyId = null
-      console.log('🛑 Getting employee record with company_id...')
       const { data: employees, error: empError } = await supabase
         .from('employees')
         .select('id, company_id')
@@ -432,10 +415,6 @@ export const useTimeTracking = () => {
         .single()
 
       if (empError) {
-        console.error('❌ NO EMPLOYEE RECORD FOUND!')
-        console.error('❌ This user does not have an employee record in the database')
-        console.error('❌ Error:', empError.message)
-
         // Try to find if ANY employee record exists with this ID directly
         const { data: directEmployee, error: directError } = await supabase
           .from('employees')
@@ -448,30 +427,22 @@ export const useTimeTracking = () => {
           clearState()
           throw new Error('Kein Mitarbeiter-Profil gefunden. Bitte kontaktiere den Administrator, um ein Mitarbeiter-Profil zu erstellen.')
         } else {
-          console.log('✅ Found direct employee record, using user.id')
           employeeId = user.id
           companyId = directEmployee.company_id
-          console.log('✅ Company ID (from direct):', companyId)
         }
       } else if (employees) {
         employeeId = employees.id
         companyId = employees.company_id
-        console.log('✅ Employee ID:', employeeId)
-        console.log('✅ Company ID:', companyId)
       }
 
       // Validate project_id - timesheets table requires NOT NULL project_id
       if (!activeEntry.project_id) {
-        console.error('❌ NO PROJECT_ID!')
-        console.error('❌ The timesheets table requires a project_id (NOT NULL constraint)')
         clearState()
         throw new Error('Keine Projekt-ID gefunden. Die Zeiterfassung kann nur mit einem ausgewählten Projekt gespeichert werden.')
       }
 
       // Validate company_id - RLS policy requires company_id for access control
       if (!companyId) {
-        console.error('❌ NO COMPANY_ID!')
-        console.error('❌ RLS policy requires company_id for timesheets access control')
         clearState()
         throw new Error('Keine Company-ID gefunden. Bitte kontaktiere den Administrator.')
       }
@@ -493,56 +464,32 @@ export const useTimeTracking = () => {
         is_billable: true
       }
 
-      console.log('🛑 Saving to timesheets:', timesheetData)
-      console.log('🛑 Detailed data validation:')
-      console.log('  - employee_id:', employeeId, 'type:', typeof employeeId)
-      console.log('  - project_id:', activeEntry.project_id, 'type:', typeof activeEntry.project_id)
-      console.log('  - company_id:', companyId, 'type:', typeof companyId)
-      console.log('  - date:', activeEntry.date, 'type:', typeof activeEntry.date)
-      console.log('  - start_time:', activeEntry.start_time, 'type:', typeof activeEntry.start_time)
-      console.log('  - end_time:', endTime, 'type:', typeof endTime)
-      console.log('  - hours:', adjustedHours, 'type:', typeof adjustedHours)
-      console.log('  - break_minutes:', breakMinutes, 'type:', typeof breakMinutes)
 
       // CRITICAL: Check if user's profile has the same company_id
       // The RLS policy requires: user_has_company_access(company_id)
       // This checks if auth.uid() has a profile with matching company_id
-      console.log('🔍 Checking user profile company_id for RLS policy...')
       const { data: userProfile, error: profileError } = await supabase
         .from('profiles')
         .select('id, company_id')
         .eq('id', user.id)
         .single()
 
-      console.log('🔍 User Profile:', userProfile)
-      console.log('🔍 Profile Error:', profileError)
 
       if (!userProfile) {
-        console.error('❌ NO USER PROFILE FOUND!')
         throw new Error('Kein Benutzerprofil gefunden. Bitte kontaktiere den Administrator.')
       }
 
-      console.log('🔍 User Profile company_id:', userProfile.company_id)
-      console.log('🔍 Employee company_id:', companyId)
 
       if (userProfile.company_id !== companyId) {
-        console.error('❌ COMPANY_ID MISMATCH!')
-        console.error(`❌ User profile company_id: ${userProfile.company_id}`)
-        console.error(`❌ Employee company_id: ${companyId}`)
-        console.error('❌ RLS policy will REJECT this insert!')
         throw new Error('Company-ID Konflikt! Benutzerprofil und Mitarbeiter haben unterschiedliche Firmen.')
       }
 
       if (!userProfile.company_id) {
-        console.error('❌ USER PROFILE HAS NO COMPANY_ID!')
-        console.error('❌ RLS policy requires user profile to have company_id set')
         throw new Error('Benutzerprofil hat keine Firma zugewiesen. Bitte kontaktiere den Administrator.')
       }
 
-      console.log('✅ RLS Check PASSED: User profile company_id matches employee company_id')
 
       // Save to timesheets table
-      console.log('🛑 About to call supabase.from(timesheets).insert()')
 
       const { data, error } = await supabase
         .from('timesheets')
@@ -550,9 +497,6 @@ export const useTimeTracking = () => {
         .select()
         .single()
 
-      console.log('🛑 Supabase response received')
-      console.log('🛑 data:', data)
-      console.log('🛑 error:', error)
 
       if (error) {
         console.error('❌ Error saving timesheet:', error)
@@ -591,10 +535,8 @@ export const useTimeTracking = () => {
         clearState()
         throw new Error(`Zeiterfassung konnte nicht gespeichert werden: ${errorMessage}`)
       } else {
-        console.log('✅ Timesheet saved successfully:', data)
+        // intentional
       }
-
-      console.log('🛑 Save successful, now clearing state...')
 
       // Clear state AFTER successful save
       clearState()
@@ -606,11 +548,9 @@ export const useTimeTracking = () => {
         toast.success('Zeiterfassung gespeichert!')
       }
 
-      console.log('🛑 Refreshing time segments...')
       // Refresh segments
       await fetchTimeSegments()
 
-      console.log('✅✅✅ stopTracking COMPLETE - SUCCESS')
 
     } catch (error: any) {
       console.error('❌❌❌ CRITICAL ERROR in stopTracking')
@@ -624,7 +564,6 @@ export const useTimeTracking = () => {
       console.error('Full error JSON:', JSON.stringify(error, null, 2))
 
       // EMERGENCY FALLBACK: Clear localStorage anyway to prevent stuck state
-      console.log('🚨🚨🚨 EMERGENCY FALLBACK ACTIVATED')
 
       // Save start_time BEFORE clearing state
       let startTime = '?'
@@ -652,7 +591,6 @@ export const useTimeTracking = () => {
           description: `FEHLER: ${errorMessage}${errorCode}${errorDetails}${errorHint}\n\n⚠️ Die Zeiterfassung wurde gestoppt, aber NICHT in der Datenbank gespeichert!\n\nBitte notiere:\nStart: ${startTime}\nEnde: ${new Date().toTimeString().split(' ')[0]}\n\nUnd trage die Zeit manuell nach!\n\nÖffne Console (F12) für Details.`
         })
 
-        console.log('✅ Emergency fallback completed - state cleared')
       } catch (fallbackError) {
         console.error('❌ EVEN FALLBACK FAILED:', fallbackError)
         toast.error('KRITISCHER FEHLER! Bitte:\n1. Screenshot machen\n2. App neu laden\n3. Support kontaktieren', {
@@ -660,9 +598,7 @@ export const useTimeTracking = () => {
         })
       }
     } finally {
-      console.log('🛑 Setting loading to false')
       setIsLoading(false)
-      console.log('🛑🛑🛑 stopTracking END')
     }
   }, [fetchTimeSegments])
 
@@ -799,8 +735,6 @@ export const useTimeTracking = () => {
     const currentMinutes = Math.floor((new Date().getTime() - startTime.getTime()) / 1000 / 60)
     totalMinutesToday += currentMinutes
 
-    console.log(`⏱️ Total work time today: ${totalMinutesToday} minutes (${Math.floor(totalMinutesToday / 60)}h ${totalMinutesToday % 60}m)`)
-    console.log(`🕐 Current time: ${currentHour}:${currentMinute.toString().padStart(2, '0')}`)
 
     // Lade Company Settings für Arbeitsende
     let workEndTimeMinutes = 17 * 60 // Default: 17:00
@@ -824,7 +758,6 @@ export const useTimeTracking = () => {
             // Parse time string (format: "HH:MM:SS")
             const [endHour, endMinute] = settings.default_working_hours_end.split(':').map(Number)
             workEndTimeMinutes = endHour * 60 + endMinute
-            console.log(`📅 Company work end time: ${endHour}:${endMinute.toString().padStart(2, '0')} (${workEndTimeMinutes} minutes)`)
           }
         }
       }
@@ -846,7 +779,6 @@ export const useTimeTracking = () => {
     if (reachedWorkEndTime || reachedEightHours) {
       if (reachedWorkEndTime && totalMinutesToday >= STANDARD_WORK_HOURS) {
         // Fall A: Beide gleichzeitig (z.B. 8:00 Start, 16:00 Ende = genau 8h)
-        console.log(`⚠️ BOTH: Work end time (${endHour}:${endMin.toString().padStart(2, '0')}) AND 8 hours reached`)
         toast.warning(`✋ Arbeitsende erreicht (${endHour}:${endMin.toString().padStart(2, '0')}) - 8 Stunden gearbeitet!`, {
           duration: 15000,
           description: 'Bitte beenden Sie Ihren Arbeitstag. Bei 10 Arbeitsstunden erfolgt ein automatischer Stop.'
@@ -855,14 +787,12 @@ export const useTimeTracking = () => {
         // Fall B: Nur Arbeitsende-Zeit erreicht (z.B. später gestartet)
         const workedHours = Math.floor(totalMinutesToday / 60)
         const workedMins = totalMinutesToday % 60
-        console.log(`⚠️ WORK END TIME REACHED - ${endHour}:${endMin.toString().padStart(2, '0')} (worked: ${workedHours}h ${workedMins}m)`)
         toast.warning(`✋ Firmen-Arbeitsende erreicht (${endHour}:${endMin.toString().padStart(2, '0')})!`, {
           duration: 15000,
           description: `Sie haben ${workedHours}h ${workedMins}m gearbeitet. Bitte beenden Sie Ihren Arbeitstag.`
         })
       } else if (reachedEightHours) {
         // Fall C: Nur 8 Stunden erreicht (z.B. vor Firmen-Arbeitsende)
-        console.log(`⚠️ 8 HOURS WORKED (work end time: ${endHour}:${endMin.toString().padStart(2, '0')})`)
         toast.warning(`✋ 8 Stunden gearbeitet! Bitte beenden Sie Ihren Arbeitstag.`, {
           duration: 15000,
           description: `Firmen-Arbeitsende ist um ${endHour}:${endMin.toString().padStart(2, '0')}} Uhr. Bei 10 Stunden erfolgt automatischer Stop.`
@@ -873,7 +803,6 @@ export const useTimeTracking = () => {
     // ZWEITE Warnung bei 9:30 Stunden - letzte Chance vor Auto-Stop
     if (totalMinutesToday >= FINAL_WARNING_MINUTES && totalMinutesToday < FINAL_WARNING_MINUTES + 2) {
       const remainingMinutes = MAX_WORK_MINUTES - totalMinutesToday
-      console.log(`⚠️⚠️ 9:30 HOURS REACHED - Final warning (${remainingMinutes} min remaining)`)
       toast.error(`⚠️⚠️ LETZTE WARNUNG! Noch ${remainingMinutes} Min bis zum automatischen Stop!`, {
         duration: 15000,
         description: 'Bei 10 Arbeitsstunden wird die Zeiterfassung automatisch beendet.'
@@ -882,7 +811,6 @@ export const useTimeTracking = () => {
 
     // AUTOMATISCHER STOP bei 10 Stunden (gesetzliche Grenze)
     if (totalMinutesToday >= MAX_WORK_MINUTES) {
-      console.log('🛑🛑🛑 MAX 10 HOURS REACHED - AUTO-STOPPING NOW!')
       toast.error('🛑 10-Stunden-Grenze erreicht! Arbeitstag wird JETZT automatisch beendet.', {
         duration: 20000,
         description: 'Die gesetzliche Höchstarbeitszeit wurde erreicht.'
