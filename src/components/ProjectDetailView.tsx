@@ -686,7 +686,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         .from('employees')
         .select('id, first_name, last_name, email, position')
         .eq('company_id', profile.company_id)
-        .in('status', ['active', 'aktiv']);
+        .not('status', 'eq', 'inactive')
+        .not('status', 'eq', 'gekündigt');
 
       // Filter out employees who are already in the project
       const currentTeamIds = project?.assigned_team || [];
