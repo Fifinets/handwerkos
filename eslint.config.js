@@ -5,7 +5,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist"] },
+  { ignores: ["dist", "ios/", "android/"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
@@ -24,6 +24,8 @@ export default tseslint.config(
         { allowConstantExport: true },
       ],
       "@typescript-eslint/no-unused-vars": "off",
+      // Disabled: crashes with ESLint 9.39+ due to upstream bug in base rule options
+      "@typescript-eslint/no-unused-expressions": "off",
       // Temporarily disable non-critical rules for existing code
       "@typescript-eslint/no-explicit-any": "warn", // Changed from error to warning
       "@typescript-eslint/ban-ts-comment": "warn",
