@@ -23,6 +23,7 @@ import CustomerDashboard from "./pages/marketplace/CustomerDashboard";
 import MarketplaceAuth from "./pages/marketplace/MarketplaceAuth";
 import JobSearchFeed from "./pages/marketplace/JobSearchFeed";
 import PublicOfferView from "./pages/public/PublicOfferView";
+import { ArticleModule } from "./components/articles/ArticleModule";
 
 // Webbuilder Imports
 import WebBuilderLayout from "./features/webbuilder/components/WebBuilderLayout";
@@ -199,6 +200,9 @@ const App = () => (
               <Route path="/mitarbeiter-setup" element={<MitarbeiterSetupPage />} />
               <Route path="/handwerkersoftware" element={<HandwerkerSoftwarePremium />} />
 
+
+              {/* Article Module Routes */}
+              <Route path="/articles" element={<ArticleModule />} />
 
               {/* Offer Module Routes */}
               <Route path="/offers/wizard" element={<OfferCreationWizard />} />

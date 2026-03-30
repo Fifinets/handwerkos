@@ -31,10 +31,6 @@ function useCustomerList() {
 export default function InspectionModule() {
   const { hasAccess, isLoading: accessLoading, requiredPlan } = useFeatureAccess('vde_protocols');
 
-  if (!accessLoading && !hasAccess) {
-    return <UpgradePrompt feature="VDE-Pruefprotokolle" requiredPlan={requiredPlan || 'enterprise'} />;
-  }
-
   const { data: protocols = [] } = useInspectionProtocols();
   const { data: customers = [] } = useCustomerList();
 
@@ -45,6 +41,10 @@ export default function InspectionModule() {
   const [defType, setDefType] = useState<ProtocolType | undefined>();
 
   const { data: selProtocol } = useInspectionProtocol(selProtocolId ?? '');
+
+  if (!accessLoading && !hasAccess) {
+    return <UpgradePrompt feature="VDE-Pruefprotokolle" requiredPlan={requiredPlan || 'enterprise'} />;
+  }
 
   const openNew = (dev?: InspectionDevice) => {
     setSelProtocolId(undefined);
@@ -71,8 +71,11 @@ export default function InspectionModule() {
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Pruefprotokolle</h1>
-          <p className="text-sm text-slate-500">VDE-Pruefungen, Geraete & DGUV V3</p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-slate-800">Pruefprotokolle</h1>
+            <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-xs">DEMO</Badge>
+          </div>
+          <p className="text-sm text-slate-500">VDE-Pruefungen, Geraete & DGUV V3 — Grenzwerte noch nicht normkonform validiert</p>
         </div>
         <Button onClick={() => openNew()}><Plus className="h-4 w-4 mr-1" />Neue Pruefung</Button>
       </div>

@@ -46,11 +46,13 @@ serve(async (req) => {
     // Check for existing Stripe customer
     const { data: existingSub } = await supabase
       .from("subscriptions")
-      .select("stripe_customer_id")
+      .select("stripe_customer_id, stripe_subscription_id, status")
       .eq("company_id", profile.company_id)
       .single();
 
     let customerId = existingSub?.stripe_customer_id;
+    const existingStripeSubId = existingSub?.stripe_subscription_id;
+    const existingStatus = existingSub?.status;
 
     if (!customerId) {
       const customer = await stripe.customers.create({
@@ -63,6 +65,42 @@ serve(async (req) => {
         { company_id: profile.company_id, stripe_customer_id: customerId, status: "incomplete" },
         { onConflict: "company_id" }
       );
+    }
+
+    // If the user already has an active/trialing subscription, update it directly
+    // instead of creating a new checkout session (which would create a second subscription)
+    if (existingStripeSubId && (existingStatus === "active" || existingStatus === "trialing")) {
+      const stripeSubscription = await stripe.subscriptions.retrieve(existingStripeSubId);
+      const currentItemId = stripeSubscription.items.data[0]?.id;
+
+      if (currentItemId) {
+        const updated = await stripe.subscriptions.update(existingStripeSubId, {
+          items: [{ id: currentItemId, price: price_id }],
+          proration_behavior: "create_prorations",
+          metadata: { company_id: profile.company_id },
+        });
+
+        // Look up the new plan_id from the price
+        const { data: plan } = await supabase
+          .from("subscription_plans")
+          .select("id")
+          .eq("stripe_price_id", price_id)
+          .single();
+
+        // Update the local subscription record immediately
+        await supabase.from("subscriptions").update({
+          plan_id: plan?.id || null,
+          status: updated.status,
+          current_period_start: new Date(updated.current_period_start * 1000).toISOString(),
+          current_period_end: new Date(updated.current_period_end * 1000).toISOString(),
+          updated_at: new Date().toISOString(),
+        }).eq("company_id", profile.company_id);
+
+        return new Response(
+          JSON.stringify({ updated: true, plan_id: plan?.id }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     const session = await stripe.checkout.sessions.create({

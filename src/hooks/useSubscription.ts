@@ -6,6 +6,7 @@ import type {
   PlanSlug,
   UsageStats,
 } from '@/types/subscription';
+import { PLAN_FEATURES } from '@/types/subscription';
 import { useToast } from '@/hooks/use-toast';
 
 // ============================================================================
@@ -62,9 +63,8 @@ export function useFeatureAccess(feature: string): {
 
   let requiredPlan: PlanSlug | null = null;
   if (!hasAccess) {
-    const planFeatures = require('@/types/subscription').PLAN_FEATURES;
     for (const slug of ['basic', 'pro', 'enterprise'] as PlanSlug[]) {
-      if (planFeatures[slug]?.includes(feature)) {
+      if (PLAN_FEATURES[slug]?.includes(feature)) {
         requiredPlan = slug;
         break;
       }
@@ -109,12 +109,30 @@ export function useIsSubscribed(): {
 
 export function useCheckout() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (priceId: string) => {
       const result = await SubscriptionService.createCheckout(priceId);
+
+      // If the backend updated the subscription directly (plan switch),
+      // invalidate cache instead of redirecting to checkout
+      if (result.updated) {
+        await queryClient.invalidateQueries({ queryKey: subscriptionKeys.all });
+        return result;
+      }
+
+      // New subscription — redirect to Stripe Checkout
       window.location.href = result.url;
       return result;
+    },
+    onSuccess: (result) => {
+      if (result.updated) {
+        toast({
+          title: 'Plan gewechselt',
+          description: 'Ihr Abo wurde erfolgreich aktualisiert.',
+        });
+      }
     },
     onError: (error: Error) => {
       toast({

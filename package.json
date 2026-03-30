@@ -81,6 +81,7 @@
     "input-otp": "^1.2.4",
     "jimp": "^1.6.0",
     "jspdf": "^4.1.0",
+    "jszip": "^3.10.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.462.0",
     "mapbox-gl": "^3.13.0",

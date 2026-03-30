@@ -145,6 +145,15 @@ export const QUERY_KEYS = {
   siteDocEntries: (projectId: string) => ['site-docs', projectId, 'entries'] as const,
   siteDocEntry: (id: string) => ['site-docs', 'entry', id] as const,
   siteDocPhotos: (projectId: string) => ['site-docs', projectId, 'photos'] as const,
+
+  // Article keys
+  articles: ['articles'] as const,
+  article: (id: string) => ['articles', id] as const,
+  articleSearch: (params: any) => ['articles', 'search', params] as const,
+  articleStats: ['articles', 'stats'] as const,
+  articleCategories: ['articles', 'categories'] as const,
+  articleSuppliers: ['articles', 'suppliers'] as const,
+  datanormImports: ['datanorm-imports'] as const,
 } as const;
 
 // Generic hook types

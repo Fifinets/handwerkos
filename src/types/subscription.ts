@@ -127,6 +127,9 @@ export type OfferPaymentStatusResponse = z.infer<typeof OfferPaymentStatusRespon
 export interface CheckoutSessionResponse {
   url: string;
   session_id: string;
+  // Set when an existing subscription was updated directly (plan switch)
+  updated?: boolean;
+  plan_id?: string;
 }
 
 export interface PortalSessionResponse {

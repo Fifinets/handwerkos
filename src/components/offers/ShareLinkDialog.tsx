@@ -10,10 +10,11 @@ interface ShareLinkDialogProps {
   offerNumber: string;
   customerName: string;
   projectName: string;
+  customerEmail?: string;
 }
 
 export function ShareLinkDialog({
-  open, onOpenChange, shareLink, offerNumber, customerName, projectName
+  open, onOpenChange, shareLink, offerNumber, customerName, projectName, customerEmail
 }: ShareLinkDialogProps) {
   const [copied, setCopied] = useState(false);
 
@@ -28,9 +29,10 @@ export function ShareLinkDialog({
   );
 
   const emailSubject = encodeURIComponent(`Angebot ${offerNumber} — ${projectName}`);
-  const emailBody = encodeURIComponent(
-    `Guten Tag ${customerName},\n\nhiermit erhalten Sie unser Angebot ${offerNumber} für "${projectName}".\n\nSie können das Angebot hier einsehen und direkt annehmen oder ablehnen:\n${shareLink}\n\nBei Fragen stehen wir Ihnen gerne zur Verfügung.\n\nMit freundlichen Grüßen`
-  );
+  const emailBodyText = `Guten Tag ${customerName},\n\nhiermit erhalten Sie unser Angebot ${offerNumber} für "${projectName}".\n\nSie können das Angebot hier einsehen und direkt annehmen oder ablehnen:\n${shareLink}\n\nBei Fragen stehen wir Ihnen gerne zur Verfügung.\n\nMit freundlichen Grüßen`;
+  const emailBody = encodeURIComponent(emailBodyText);
+  const gmailTo = customerEmail ? encodeURIComponent(customerEmail) : '';
+  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${gmailTo}&su=${emailSubject}&body=${emailBody}`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -63,22 +65,20 @@ export function ShareLinkDialog({
 
         {/* Share Buttons */}
         <div className="grid grid-cols-2 gap-3 mt-2">
-          <a
-            href={`https://wa.me/?text=${whatsappText}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={() => window.open(`https://wa.me/?text=${whatsappText}`, '_blank')}
             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
           >
             <MessageCircle className="h-4 w-4" />
             WhatsApp
-          </a>
-          <a
-            href={`mailto:?subject=${emailSubject}&body=${emailBody}`}
+          </button>
+          <button
+            onClick={() => window.open(gmailUrl, '_blank')}
             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
           >
             <Mail className="h-4 w-4" />
-            E-Mail
-          </a>
+            Gmail
+          </button>
         </div>
 
         <Button variant="ghost" onClick={() => onOpenChange(false)} className="mt-2 w-full text-slate-500">

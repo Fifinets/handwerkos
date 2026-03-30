@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   CreditCard,
   ExternalLink,
@@ -13,11 +13,13 @@ import {
   HardDrive,
   Zap,
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   useSubscription,
   usePortalSession,
   useIsSubscribed,
   useUsageStats,
+  subscriptionKeys,
 } from '@/hooks/useSubscription';
 import { SUBSCRIPTION_STATUS_LABELS, PLAN_DISPLAY, PLAN_LIMITS } from '@/types/subscription';
 import { Button } from '@/components/ui/button';
@@ -62,10 +64,23 @@ function UsageBar({ label, icon: Icon, used, max, unit }: {
 }
 
 export function SubscriptionManager() {
+  const queryClient = useQueryClient();
   const { data: subscription, isLoading } = useSubscription();
   const { isSubscribed, isTrialing, daysRemaining } = useIsSubscribed();
   const { data: usage } = useUsageStats();
   const portalSession = usePortalSession();
+
+  // Invalidate subscription cache when returning from Stripe Checkout
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('subscription') === 'success') {
+      queryClient.invalidateQueries({ queryKey: subscriptionKeys.all });
+      // Clean URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete('subscription');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [queryClient]);
 
   if (isLoading) {
     return (

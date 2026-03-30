@@ -59,6 +59,7 @@ const secondaryNavigation = [
     { id: 'timetracking', name: 'Zeiterfassung', icon: Clock },
     { id: 'delivery-notes', name: 'Lieferscheine', icon: ClipboardList },
     { id: 'materials', name: 'Material', icon: Package },
+    { id: 'articles', name: 'Artikeldatenbank', icon: Database },
     { id: 'inspections', name: 'Pruefprotokolle', icon: ShieldCheck },
 ];
 
@@ -73,6 +74,7 @@ export function AppSidebarV2({ activeModule, onModuleChange }: AppSidebarV2Props
     const [isHovered, setIsHovered] = useState(false);
     const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
     const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     const handleSignOut = async () => {
         try {
@@ -91,7 +93,7 @@ export function AppSidebarV2({ activeModule, onModuleChange }: AppSidebarV2Props
         }
     };
 
-    const isExpanded = isHovered;
+    const isExpanded = isHovered || isDropdownOpen;
 
     useEffect(() => {
         if (!isExpanded) {
@@ -203,7 +205,7 @@ export function AppSidebarV2({ activeModule, onModuleChange }: AppSidebarV2Props
             </div>
 
             {/* Navigation Areas */}
-            <div className="flex-1 overflow-y-auto py-4 px-2 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-2 custom-scrollbar">
 
                 {/* Main Nav */}
                 <div className="mb-6">
@@ -223,7 +225,7 @@ export function AppSidebarV2({ activeModule, onModuleChange }: AppSidebarV2Props
 
             {/* Bottom Area: User / Profile / Settings via Popover */}
             <div className="p-2 border-t border-slate-800/60 bg-slate-900/30">
-                <DropdownMenu>
+                <DropdownMenu onOpenChange={setIsDropdownOpen}>
                     <DropdownMenuTrigger asChild>
                         <button className={`w-full flex items-center ${isExpanded ? 'justify-between px-3' : 'justify-center'} py-2.5 rounded-md hover:bg-slate-800 transition-colors`}>
                             <div className="flex items-center gap-3">

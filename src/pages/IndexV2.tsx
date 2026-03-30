@@ -22,6 +22,7 @@ import OfferModuleV2 from "@/components/OfferModuleV2";
 import InvoiceModuleV2 from "@/components/InvoiceModuleV2";
 import ReportsModuleV2 from "@/components/ReportsModuleV2";
 import InspectionModule from "@/components/inspections/InspectionModule";
+import { ArticleModule } from "@/components/articles/ArticleModule";
 import { SubscriptionManager } from "@/components/billing/SubscriptionManager";
 import { VacationManagement } from "@/components/VacationManagement";
 import { toast } from "@/hooks/use-toast";
@@ -117,6 +118,8 @@ const IndexV2 = () => {
                 return <InvoiceModuleV2 />;
             case 'reports':
                 return <ReportsModuleV2 />;
+            case 'articles':
+                return <ArticleModule />;
             case 'inspections':
                 return <InspectionModule />;
             case 'billing':

@@ -450,15 +450,40 @@ const PlannerModuleV2 = () => {
         return result;
     }, [employees, searchTerm, filterProjectId, filterPosition, filterUtilization, projects, employeeUtilization]);
 
-    // ── Auto-assignment: projects in "in_bearbeitung" with team but no planner dates ──
+    // ── Auto-assignment: projects beauftragt/in_bearbeitung with team but no planner dates ──
     const unplannedProjects = useMemo(() => {
         return projects.filter(p => {
-            if (p.status !== 'in_bearbeitung') return false;
+            if (p.status !== 'in_bearbeitung' && p.status !== 'beauftragt') return false;
             const team = p.project_team_assignments?.filter(a => a.is_active) || [];
             if (team.length === 0) return false;
             return team.some(a => !a.start_date);
         });
     }, [projects]);
+
+    // ── Projects without any team members ──
+    const unstaffedProjects = useMemo(() => {
+        return projects.filter(p => {
+            if (p.status === 'abgeschlossen' || p.status === 'storniert') return false;
+            const team = p.project_team_assignments?.filter(a => a.is_active) || [];
+            return team.length === 0;
+        });
+    }, [projects]);
+
+    // ── Employees with no assignments this week ──
+    const idleEmployees = useMemo(() => {
+        const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+        const weekEnd = addDays(weekStart, 6);
+        return filteredEmployees.filter(emp => {
+            const hasAssignment = projects.some(p =>
+                p.project_team_assignments?.some(a =>
+                    a.employee_id === emp.id && a.is_active && a.start_date &&
+                    new Date(a.start_date) <= weekEnd &&
+                    (!a.end_date || new Date(a.end_date) >= weekStart)
+                )
+            );
+            return !hasAssignment;
+        });
+    }, [filteredEmployees, projects, currentDate]);
 
     const handleAutoAssign = async (project: Project) => {
         const team = project.project_team_assignments?.filter(a => a.is_active && !a.start_date) || [];
@@ -513,14 +538,65 @@ const PlannerModuleV2 = () => {
         setShowAssignDialog(true);
     };
 
+    const openAssignForProject = (projectId: string) => {
+        setEntryType('project');
+        setAssignEmployeeId('');
+        setAssignProjectId(projectId);
+        setAssignStartDate('');
+        setAssignEndDate('');
+        setShowAssignDialog(true);
+    };
+
     const handleAssign = async () => {
-        if (!assignEmployeeId || !assignStartDate) {
-            toast({ title: 'Fehler', description: 'Bitte Mitarbeiter und Startdatum angeben.', variant: 'destructive' });
+        if (!assignEmployeeId) {
+            toast({ title: 'Fehler', description: 'Bitte Mitarbeiter angeben.', variant: 'destructive' });
+            return;
+        }
+        if (entryType !== 'project' && !assignStartDate) {
+            toast({ title: 'Fehler', description: 'Bitte Startdatum angeben.', variant: 'destructive' });
             return;
         }
         if (entryType === 'project' && !assignProjectId) {
             toast({ title: 'Fehler', description: 'Bitte ein Projekt auswählen.', variant: 'destructive' });
             return;
+        }
+
+        // Conflict check: warn if employee already has assignments or absence in the date range
+        if (assignStartDate && assignEmployeeId) {
+            const start = new Date(assignStartDate);
+            const end = assignEndDate ? new Date(assignEndDate) : start;
+            const conflicts: string[] = [];
+
+            for (let d = new Date(start); d <= end; d = addDays(d, 1)) {
+                if (d.getDay() === 0 || d.getDay() === 6) continue;
+                const absence = getAbsence(assignEmployeeId, d);
+                if (entryType === 'project') {
+                    const existing = getEmployeeDayAssignments(assignEmployeeId, d);
+                    // Filter out same-project re-assignment
+                    const otherProjects = existing.filter(a => a.project.id !== assignProjectId);
+                    if (otherProjects.length > 0) {
+                        conflicts.push(`${format(d, 'dd.MM.')}: ${otherProjects.map(a => a.project.name).join(', ')}`);
+                    }
+                    if (absence) {
+                        conflicts.push(`${format(d, 'dd.MM.')}: ${absence === 'sick' ? 'Krank' : 'Urlaub'}`);
+                    }
+                } else {
+                    // Vacation/sick: check for project assignments
+                    const existing = getEmployeeDayAssignments(assignEmployeeId, d);
+                    if (existing.length > 0) {
+                        conflicts.push(`${format(d, 'dd.MM.')}: ${existing.map(a => a.project.name).join(', ')}`);
+                    }
+                }
+            }
+
+            if (conflicts.length > 0) {
+                const msg = conflicts.length <= 3
+                    ? conflicts.join('\n')
+                    : `${conflicts.slice(0, 3).join('\n')}\n... und ${conflicts.length - 3} weitere`;
+                if (!confirm(`Konflikt erkannt:\n${msg}\n\nTrotzdem zuweisen?`)) {
+                    return;
+                }
+            }
         }
 
         setAssignSaving(true);
@@ -557,7 +633,7 @@ const PlannerModuleV2 = () => {
                     const { error } = await supabase
                         .from('project_team_assignments')
                         .update({
-                            start_date: assignStartDate,
+                            start_date: assignStartDate || null,
                             end_date: assignEndDate || null,
                             is_active: true,
                             updated_at: new Date().toISOString(),
@@ -571,7 +647,7 @@ const PlannerModuleV2 = () => {
                         .insert({
                             project_id: assignProjectId,
                             employee_id: assignEmployeeId,
-                            start_date: assignStartDate,
+                            start_date: assignStartDate || null,
                             end_date: assignEndDate || null,
                             is_active: true,
                             role: 'team_member',
@@ -786,6 +862,62 @@ const PlannerModuleV2 = () => {
                                         </Button>
                                     );
                                 })}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Unstaffed Projects Banner */}
+            {unstaffedProjects.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                        <Briefcase className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                            <p className="text-sm font-medium text-blue-800">
+                                {unstaffedProjects.length} Projekt{unstaffedProjects.length > 1 ? 'e' : ''} ohne Mitarbeiter
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                                {unstaffedProjects.map(p => (
+                                    <Button
+                                        key={p.id}
+                                        variant="outline"
+                                        size="sm"
+                                        className="bg-white border-blue-300 text-blue-800 hover:bg-blue-100 text-xs h-7"
+                                        onClick={() => openAssignForProject(p.id)}
+                                    >
+                                        <Plus className="h-3 w-3 mr-1" />
+                                        {p.name}
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Idle Employees Banner */}
+            {idleEmployees.length > 0 && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                        <Users className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                            <p className="text-sm font-medium text-emerald-800">
+                                {idleEmployees.length} Mitarbeiter ohne Einsatz diese Woche
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                                {idleEmployees.map(emp => (
+                                    <Button
+                                        key={emp.id}
+                                        variant="outline"
+                                        size="sm"
+                                        className="bg-white border-emerald-300 text-emerald-800 hover:bg-emerald-100 text-xs h-7"
+                                        onClick={() => openAssignDialog(emp.id)}
+                                    >
+                                        <Plus className="h-3 w-3 mr-1" />
+                                        {emp.first_name} {emp.last_name}
+                                    </Button>
+                                ))}
                             </div>
                         </div>
                     </div>
@@ -1140,7 +1272,7 @@ const PlannerModuleV2 = () => {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>Von *</Label>
+                                <Label>Von {entryType !== 'project' ? '*' : ''}</Label>
                                 <Input type="date" value={assignStartDate} onChange={e => setAssignStartDate(e.target.value)} />
                             </div>
                             <div className="space-y-2">
@@ -1148,6 +1280,24 @@ const PlannerModuleV2 = () => {
                                 <Input type="date" value={assignEndDate} onChange={e => setAssignEndDate(e.target.value)} />
                             </div>
                         </div>
+
+                        {entryType === 'project' && !assignStartDate && (
+                            <div className="rounded-lg p-3 text-sm bg-blue-50 border border-blue-200 text-blue-700">
+                                Ohne Datum wird der Mitarbeiter dem Team zugewiesen, aber noch nicht im Kalender eingeplant.
+                            </div>
+                        )}
+
+                        {entryType === 'project' && assignProjectId && (() => {
+                            const selectedProject = projects.find(p => p.id === assignProjectId);
+                            const preBeauftagt = selectedProject && ['anfrage', 'besichtigung', 'angebot', 'angebot_versendet'].includes(selectedProject.status);
+                            if (!preBeauftagt) return null;
+                            return (
+                                <div className="rounded-lg p-3 text-sm bg-amber-50 border border-amber-200 text-amber-700 flex items-start gap-2">
+                                    <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                                    <span>Projekt ist noch nicht beauftragt (Status: {selectedProject.status}). Zuweisung ist moeglich, aber der Auftrag ist noch nicht bestaetig.</span>
+                                </div>
+                            );
+                        })()}
 
                         {entryType !== 'project' && (
                             <div className={`rounded-lg p-3 text-sm ${entryType === 'sick' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-amber-50 border border-amber-200 text-amber-700'}`}>

@@ -627,6 +627,36 @@ export class OfferService {
     }, `Reject offer ${id}`);
   }
 
+  // Revise offer — reset rejected/sent offer back to draft for editing
+  static async reviseOffer(id: string): Promise<Offer> {
+    return apiCall(async () => {
+      const existingOffer = await this.getOffer(id);
+      if (!['rejected', 'sent'].includes(existingOffer.status)) {
+        throw new ApiError(
+          API_ERROR_CODES.BUSINESS_RULE_VIOLATION,
+          'Nur abgelehnte oder versendete Angebote können überarbeitet werden.',
+          { currentStatus: existingOffer.status }
+        );
+      }
+
+      const { data: revisedOffer, error } = await supabase
+        .from('offers')
+        .update({
+          status: 'draft',
+          is_locked: false,
+          sent_at: null,
+          share_token_created_at: null,
+          acceptance_note: null,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return revisedOffer;
+    }, `Revise offer ${id}`);
+  }
+
   // Cancel offer
   static async cancelOffer(id: string): Promise<Offer> {
     return apiCall(async () => {

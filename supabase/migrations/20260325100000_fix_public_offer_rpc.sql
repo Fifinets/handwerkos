@@ -1,12 +1,4 @@
--- 1. Share token column
-ALTER TABLE public.offers
-  ADD COLUMN IF NOT EXISTS share_token UUID DEFAULT gen_random_uuid(),
-  ADD COLUMN IF NOT EXISTS share_token_created_at TIMESTAMPTZ;
-
--- Index for fast token lookups
-CREATE UNIQUE INDEX IF NOT EXISTS idx_offers_share_token ON public.offers(share_token) WHERE share_token IS NOT NULL;
-
--- 2. RPC: Load offer via token (public, no auth needed)
+-- Fix get_public_offer RPC: use company_settings instead of companies
 CREATE OR REPLACE FUNCTION public.get_public_offer(p_token UUID)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -43,7 +35,7 @@ BEGIN
   FROM public.offer_items oi
   WHERE oi.offer_id = v_offer.id;
 
-  -- Load company from company_settings
+  -- Load company from company_settings (not companies)
   SELECT company_name, company_address, company_phone, company_email, tax_number, logo_url
   INTO v_company
   FROM public.company_settings
@@ -84,88 +76,3 @@ BEGIN
   );
 END;
 $$;
-
--- 3. RPC: Accept offer (public)
-CREATE OR REPLACE FUNCTION public.accept_public_offer(p_token UUID, p_name TEXT DEFAULT NULL)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  v_offer RECORD;
-  v_project_id UUID;
-BEGIN
-  SELECT * INTO v_offer
-  FROM public.offers
-  WHERE share_token = p_token AND status = 'sent';
-
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Angebot nicht gefunden oder bereits bearbeitet';
-  END IF;
-
-  IF v_offer.valid_until IS NOT NULL AND v_offer.valid_until::date < CURRENT_DATE THEN
-    RAISE EXCEPTION 'Angebot ist abgelaufen';
-  END IF;
-
-  -- Create project
-  v_project_id := gen_random_uuid();
-  INSERT INTO public.projects (id, company_id, customer_id, name, status, description)
-  VALUES (
-    v_project_id,
-    v_offer.company_id,
-    v_offer.customer_id,
-    v_offer.project_name,
-    'beauftragt',
-    'Erstellt aus Angebot ' || v_offer.offer_number
-  );
-
-  -- Update offer
-  UPDATE public.offers
-  SET status = 'accepted',
-      accepted_at = NOW(),
-      accepted_by = COALESCE(p_name, v_offer.customer_name),
-      is_locked = true,
-      project_id = v_project_id
-  WHERE id = v_offer.id;
-
-  RETURN jsonb_build_object(
-    'success', true,
-    'message', 'Angebot angenommen',
-    'project_id', v_project_id
-  );
-END;
-$$;
-
--- 4. RPC: Reject offer (public)
-CREATE OR REPLACE FUNCTION public.reject_public_offer(p_token UUID, p_reason TEXT DEFAULT NULL)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  v_offer RECORD;
-BEGIN
-  SELECT * INTO v_offer
-  FROM public.offers
-  WHERE share_token = p_token AND status = 'sent';
-
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Angebot nicht gefunden oder bereits bearbeitet';
-  END IF;
-
-  UPDATE public.offers
-  SET status = 'rejected',
-      acceptance_note = p_reason
-  WHERE id = v_offer.id;
-
-  RETURN jsonb_build_object(
-    'success', true,
-    'message', 'Angebot abgelehnt'
-  );
-END;
-$$;
-
--- 5. Grant public access to RPCs
-GRANT EXECUTE ON FUNCTION public.get_public_offer(UUID) TO anon;
-GRANT EXECUTE ON FUNCTION public.accept_public_offer(UUID, TEXT) TO anon;
-GRANT EXECUTE ON FUNCTION public.reject_public_offer(UUID, TEXT) TO anon;

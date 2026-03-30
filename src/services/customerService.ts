@@ -23,7 +23,7 @@ import {
 export class CustomerService {
 
   // Get all customers with pagination and filtering
-  static async getCustomers(
+  async getCustomers(
     pagination?: PaginationQuery,
     filters?: {
       status?: Customer['status'];
@@ -77,7 +77,7 @@ export class CustomerService {
   }
 
   // Get customer by ID
-  static async getCustomer(id: string): Promise<Customer> {
+  async getCustomer(id: string): Promise<Customer> {
     return apiCall(async () => {
       const query = supabase
         .from('customers')
@@ -89,7 +89,7 @@ export class CustomerService {
   }
 
   // Create new customer
-  static async createCustomer(data: CustomerCreate): Promise<Customer> {
+  async createCustomer(data: CustomerCreate): Promise<Customer> {
     return apiCall(async () => {
       // Validate input
       const validatedData = validateInput(CustomerCreateSchema, data);
@@ -146,7 +146,7 @@ export class CustomerService {
 
 
   // Update existing customer
-  static async updateCustomer(id: string, data: CustomerUpdate): Promise<Customer> {
+  async updateCustomer(id: string, data: CustomerUpdate): Promise<Customer> {
     return apiCall(async () => {
       // Validate input
       const validatedData = validateInput(CustomerUpdateSchema, data);
@@ -179,7 +179,7 @@ export class CustomerService {
   }
 
   // Delete customer (with safety checks)
-  static async deleteCustomer(id: string): Promise<void> {
+  async deleteCustomer(id: string): Promise<void> {
     return apiCall(async () => {
       // Check if customer has related projects/quotes
       const { data: relatedProjects } = await supabase
@@ -250,7 +250,7 @@ export class CustomerService {
   }
 
   // Get customer statistics
-  static async getCustomerStats(id: string): Promise<{
+  async getCustomerStats(id: string): Promise<{
     total_projects: number;
     active_projects: number;
     completed_projects: number;
@@ -286,7 +286,7 @@ export class CustomerService {
   }
 
   // Search customers by query
-  static async searchCustomers(query: string, limit: number = 10): Promise<Customer[]> {
+  async searchCustomers(query: string, limit: number = 10): Promise<Customer[]> {
     return apiCall(async () => {
       const searchQuery = supabase
         .from('customers')
@@ -305,7 +305,7 @@ export class CustomerService {
   }
 
   // Generate next customer number
-  static async generateCustomerNumber(): Promise<string> {
+  async generateCustomerNumber(): Promise<string> {
     return apiCall(async () => {
       const profile = await getCurrentUserProfile();
 
@@ -325,7 +325,7 @@ export class CustomerService {
   }
 
   // Get customer projects
-  static async getCustomerProjects(id: string): Promise<any[]> {
+  async getCustomerProjects(id: string): Promise<any[]> {
     return apiCall(async () => {
       const query = supabase
         .from('projects')
@@ -340,7 +340,7 @@ export class CustomerService {
   }
 
   // Get customer invoices
-  static async getCustomerInvoices(id: string): Promise<any[]> {
+  async getCustomerInvoices(id: string): Promise<any[]> {
     return apiCall(async () => {
       const query = supabase
         .from('invoices')
