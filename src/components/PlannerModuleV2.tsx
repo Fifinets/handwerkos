@@ -47,20 +47,20 @@ import { useToast } from '@/hooks/use-toast';
 
 // ── Colors ───────────────────────────────────────────────────
 const PROJECT_COLORS = [
-    { bg: 'bg-blue-500', text: 'text-white', dot: 'bg-blue-500' },
-    { bg: 'bg-emerald-500', text: 'text-white', dot: 'bg-emerald-500' },
-    { bg: 'bg-orange-500', text: 'text-white', dot: 'bg-orange-500' },
-    { bg: 'bg-purple-500', text: 'text-white', dot: 'bg-purple-500' },
-    { bg: 'bg-pink-500', text: 'text-white', dot: 'bg-pink-500' },
-    { bg: 'bg-teal-500', text: 'text-white', dot: 'bg-teal-500' },
-    { bg: 'bg-amber-500', text: 'text-white', dot: 'bg-amber-500' },
-    { bg: 'bg-indigo-500', text: 'text-white', dot: 'bg-indigo-500' },
-    { bg: 'bg-rose-500', text: 'text-white', dot: 'bg-rose-500' },
-    { bg: 'bg-cyan-500', text: 'text-white', dot: 'bg-cyan-500' },
+    { bg: 'bg-blue-100', text: 'text-blue-900', border: 'border-blue-500', dot: 'bg-blue-500' },
+    { bg: 'bg-emerald-100', text: 'text-emerald-900', border: 'border-emerald-500', dot: 'bg-emerald-500' },
+    { bg: 'bg-orange-100', text: 'text-orange-900', border: 'border-orange-500', dot: 'bg-orange-500' },
+    { bg: 'bg-purple-100', text: 'text-purple-900', border: 'border-purple-500', dot: 'bg-purple-500' },
+    { bg: 'bg-pink-100', text: 'text-pink-900', border: 'border-pink-500', dot: 'bg-pink-500' },
+    { bg: 'bg-teal-100', text: 'text-teal-900', border: 'border-teal-500', dot: 'bg-teal-500' },
+    { bg: 'bg-amber-100', text: 'text-amber-900', border: 'border-amber-500', dot: 'bg-amber-500' },
+    { bg: 'bg-indigo-100', text: 'text-indigo-900', border: 'border-indigo-500', dot: 'bg-indigo-500' },
+    { bg: 'bg-rose-100', text: 'text-rose-900', border: 'border-rose-500', dot: 'bg-rose-500' },
+    { bg: 'bg-cyan-100', text: 'text-cyan-900', border: 'border-cyan-500', dot: 'bg-cyan-500' },
 ];
 
-const VACATION_COLOR = { bg: 'bg-amber-300', text: 'text-amber-900' };
-const SICK_COLOR = { bg: 'bg-red-300', text: 'text-red-900' };
+const VACATION_COLOR = { bg: 'bg-amber-100', text: 'text-amber-900', border: 'border-amber-400', dot: 'bg-amber-400' };
+const SICK_COLOR = { bg: 'bg-red-100', text: 'text-red-900', border: 'border-red-400', dot: 'bg-red-400' };
 
 type EntryType = 'project' | 'vacation' | 'sick';
 
@@ -1071,17 +1071,17 @@ const PlannerModuleV2 = () => {
                                     const color = projectColorMap.get(p.id) || PROJECT_COLORS[0];
                                     return (
                                         <div key={p.id} className="flex items-center gap-2">
-                                            <div className={`h-3 w-3 rounded-sm ${color.bg} flex-shrink-0`} />
+                                            <div className={`h-3.5 w-3.5 rounded-sm ${color.bg} border-l-[3px] ${color.border} flex-shrink-0`} />
                                             <span className="text-xs text-slate-700 truncate">{p.name}</span>
                                         </div>
                                     );
                                 })}
                                 <div className="flex items-center gap-2 pt-1 border-t border-slate-100 mt-1">
-                                    <div className={`h-3 w-3 rounded-sm ${VACATION_COLOR.bg} flex-shrink-0`} />
+                                    <div className={`h-3.5 w-3.5 rounded-sm ${VACATION_COLOR.bg} border-l-[3px] ${VACATION_COLOR.border} flex-shrink-0`} />
                                     <span className="text-xs text-slate-700">Urlaub</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <div className={`h-3 w-3 rounded-sm ${SICK_COLOR.bg} flex-shrink-0`} />
+                                    <div className={`h-3.5 w-3.5 rounded-sm ${SICK_COLOR.bg} border-l-[3px] ${SICK_COLOR.border} flex-shrink-0`} />
                                     <span className="text-xs text-slate-700">Krank</span>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -1133,21 +1133,33 @@ const PlannerModuleV2 = () => {
                                                 <TooltipProvider key={i} delayDuration={200}>
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                            <div className={`p-1.5 text-center font-medium ${isMonth ? 'text-[10px]' : 'text-xs'} ${
-                                                                holiday ? 'text-rose-600 bg-rose-50' :
-                                                                isToday ? 'text-blue-600 bg-blue-50' :
-                                                                isWeekend ? 'text-slate-400 bg-slate-50/60' :
-                                                                'text-slate-500'
-                                                            }`}>
-                                                                {isMonth ? (
-                                                                    <><div>{format(day, 'dd')}</div><div className="text-[8px] opacity-60">{format(day, 'EE', { locale: de })}</div></>
-                                                                ) : (
-                                                                    <>
-                                                                        {format(day, 'EEE', { locale: de })}<br />{format(day, 'dd.MM', { locale: de })}
-                                                                        {holiday && <div className="text-[9px] text-rose-500 font-normal truncate">{holiday}</div>}
-                                                                    </>
-                                                                )}
-                                                            </div>
+                                                                                                  <div className={`p-1.5 text-center font-medium ${isMonth ? 'text-[10px]' : 'text-xs'} ${
+                                                holiday ? 'text-rose-600 bg-rose-50' :
+                                                isToday ? 'bg-blue-50' :
+                                                isWeekend ? 'text-slate-400 bg-slate-50/60' :
+                                                'text-slate-500'
+                                            }`}>
+                                                {isMonth ? (
+                                                    <>
+                                                        <div className="flex justify-center">
+                                                            <span className={isToday ? 'inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-600 text-white text-[10px] font-bold' : ''}>
+                                                                {format(day, 'dd')}
+                                                            </span>
+                                                        </div>
+                                                        <div className={`text-[8px] opacity-70 ${isToday ? 'text-blue-600' : ''}`}>{format(day, 'EE', { locale: de })}</div>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <div className={isToday ? 'text-blue-500 font-semibold' : ''}>{format(day, 'EEE', { locale: de })}</div>
+                                                        <div className="flex justify-center mt-0.5">
+                                                            <span className={isToday ? 'inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-600 text-white text-[11px] font-bold' : ''}>
+                                                                {format(day, 'dd.MM', { locale: de })}
+                                                            </span>
+                                                        </div>
+                                                        {holiday && <div className="text-[9px] text-rose-500 font-normal truncate">{holiday}</div>}
+                                                    </>
+                                                )}
+                                            </div>
                                                         </TooltipTrigger>
                                                         {holiday && (
                                                             <TooltipContent side="bottom" className="text-xs">
@@ -1369,13 +1381,14 @@ const EmployeeRow = React.memo(function EmployeeRow({
     onDragLeave: () => void;
     onDrop: (e: DragEvent, employeeId: string, date: string) => void;
 }) {
-    const barH = isMonth ? 18 : 24;
+    const barH = isMonth ? 22 : 30;
     const barGap = 2;
     const numDays = displayDays.length;
 
     const utilColor = utilization > 100 ? 'bg-red-500' : utilization >= 80 ? 'bg-amber-500' : 'bg-emerald-500';
     const utilTextColor = utilization > 100 ? 'text-red-600' : utilization >= 80 ? 'text-amber-600' : 'text-emerald-600';
 
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
     const dayStrings = useMemo(() => displayDays.map(d => format(d, 'yyyy-MM-dd')), [displayDays]);
     const dayIndexMap = useMemo(() => {
         const map = new Map<string, number>();
@@ -1463,14 +1476,19 @@ const EmployeeRow = React.memo(function EmployeeRow({
     return (
         <div className="flex border-b border-slate-100 bg-white group/row hover:bg-slate-50/50">
             {/* Name column */}
-            <div className="w-48 flex-shrink-0 border-r border-slate-200 p-3 flex flex-col justify-center bg-white group-hover/row:bg-slate-50/50 transition-colors">
-                <span className="text-sm font-medium text-slate-800 truncate">{employee.first_name} {employee.last_name}</span>
-                <span className="text-xs text-slate-500 truncate">{employee.position || '—'}</span>
-                <div className="mt-1.5 flex items-center gap-1.5">
-                    <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className={`h-full ${utilColor} rounded-full transition-all`} style={{ width: `${Math.min(utilization, 100)}%` }} />
+            <div className="w-48 flex-shrink-0 border-r border-slate-200 p-2.5 flex items-center gap-2.5 bg-white group-hover/row:bg-slate-50/50 transition-colors">
+                <div className="h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold bg-slate-100 text-slate-600">
+                    {employee.first_name[0]}{employee.last_name[0]}
+                </div>
+                <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium text-slate-800 truncate block">{employee.first_name} {employee.last_name}</span>
+                    <span className="text-xs text-slate-500 truncate block">{employee.position || '—'}</span>
+                    <div className="mt-1 flex items-center gap-1.5">
+                        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className={`h-full ${utilColor} rounded-full transition-all`} style={{ width: `${Math.min(utilization, 100)}%` }} />
+                        </div>
+                        <span className={`text-[10px] font-medium ${utilTextColor} min-w-[28px] text-right`}>{utilization}%</span>
                     </div>
-                    <span className={`text-[10px] font-medium ${utilTextColor} min-w-[28px] text-right`}>{utilization}%</span>
                 </div>
             </div>
 
@@ -1481,6 +1499,7 @@ const EmployeeRow = React.memo(function EmployeeRow({
                     {displayDays.map((day, i) => {
                         const ds = dayStrings[i];
                         const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                        const isToday = ds === todayStr;
                         const holiday = holidays.get(ds);
                         const hasConflict = conflicts?.has(ds);
                         const isDropHere = dropTarget?.employeeId === employee.id && dropTarget?.date === ds;
@@ -1489,8 +1508,8 @@ const EmployeeRow = React.memo(function EmployeeRow({
                             <div
                                 key={i}
                                 className={`h-full relative ${
-                                    holiday ? 'bg-rose-50/50' : isWeekend ? 'bg-slate-50/80' : ''
-                                } ${i > 0 ? 'border-l border-slate-100' : ''} ${
+                                    isDropHere ? '' : isToday ? 'bg-blue-50/60' : holiday ? 'bg-rose-50/50' : isWeekend ? 'bg-slate-50/80' : ''
+                                } ${i > 0 ? 'border-l border-slate-100' : ''} ${isToday && !isDropHere ? 'border-l border-blue-200' : ''} ${
                                     !isDragging ? 'cursor-pointer hover:bg-blue-50/30' : ''
                                 } ${isDropHere ? 'bg-blue-100/60 ring-2 ring-inset ring-blue-400' : ''}`}
                                 onClick={!isDragging ? () => onCellClick(day) : undefined}
@@ -1523,7 +1542,6 @@ const EmployeeRow = React.memo(function EmployeeRow({
                     const left = (bar.startCol / numDays) * 100;
                     const width = ((bar.endCol - bar.startCol + 1) / numDays) * 100;
                     const top = lane * (barH + barGap) + barGap;
-                    const roundL = bar.clipL ? '' : 'rounded-l-md';
                     const roundR = bar.clipR ? '' : 'rounded-r-md';
 
                     return (
@@ -1547,10 +1565,10 @@ const EmployeeRow = React.memo(function EmployeeRow({
                                             });
                                         }}
                                         onDragEnd={onDragEnd}
-                                        className={`absolute ${color.bg} ${color.text} ${roundL} ${roundR} px-2 py-0.5 ${isMonth ? 'text-[8px]' : 'text-[10px]'} font-medium truncate cursor-grab active:cursor-grabbing shadow-sm group/block z-10 flex items-center`}
+                                        className={`absolute ${color.bg} ${color.text} border-l-[3px] ${color.border} ${roundR} pl-1.5 pr-2 py-0.5 ${isMonth ? 'text-[9px]' : 'text-xs'} font-semibold truncate cursor-grab active:cursor-grabbing shadow-sm group/block z-10 flex items-center`}
                                         style={{ left: `${left}%`, width: `${width}%`, top, height: barH, pointerEvents: isDragging ? 'none' : 'auto' }}
                                     >
-                                        {isMonth ? bar.project.name.substring(0, 3) : bar.project.name}
+                                        {bar.project.name}
                                         {!isMonth && (
                                             <button
                                                 className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/block:opacity-100 transition-opacity bg-black/20 rounded p-0.5"
@@ -1586,7 +1604,7 @@ const EmployeeRow = React.memo(function EmployeeRow({
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <div
-                                        className={`absolute ${abColor.bg} ${abColor.text} rounded-md px-2 py-0.5 ${isMonth ? 'text-[8px]' : 'text-[10px]'} font-medium truncate shadow-sm z-10 flex items-center`}
+                                        className={`absolute ${abColor.bg} ${abColor.text} border-l-[3px] ${abColor.border} rounded-r-md pl-1.5 pr-2 py-0.5 ${isMonth ? 'text-[9px]' : 'text-xs'} font-semibold truncate shadow-sm z-10 flex items-center`}
                                         style={{ left: `${left}%`, width: `${width}%`, top, height: barH, pointerEvents: isDragging ? 'none' : 'auto' }}
                                     >
                                         {isMonth ? label[0] : label}
