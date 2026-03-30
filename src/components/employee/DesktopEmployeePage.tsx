@@ -41,7 +41,25 @@ import {
   Plus,
   User,
   LogOut,
+  CheckCircle2,
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useEmployeePermissions } from '@/hooks/useEmployeePermissions';
 import { useDeliveryNotes } from '@/hooks/useDeliveryNotes';
 import { DeliveryNoteStatusBadge } from '@/components/delivery-notes/DeliveryNoteStatusBadge';
@@ -105,6 +123,27 @@ export function DesktopEmployeePage() {
   const [deliveryNoteFormOpen, setDeliveryNoteFormOpen] = useState(false);
   const [editingDeliveryNoteId, setEditingDeliveryNoteId] = useState<string | undefined>();
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>();
+  const [deliveryNotePrefill, setDeliveryNotePrefill] = useState<{
+    work_date?: string; start_time?: string; end_time?: string;
+    break_minutes?: number; description?: string;
+  } | undefined>();
+
+  // Time Entry Form State
+  const [timeFormOpen, setTimeFormOpen] = useState(false);
+  const [timeFormSaving, setTimeFormSaving] = useState(false);
+  const [lieferscheinPromptOpen, setLieferscheinPromptOpen] = useState(false);
+  const [savedTimeEntryData, setSavedTimeEntryData] = useState<{
+    project_id: string; work_date: string; start_time: string;
+    end_time: string; break_minutes: number; description: string;
+  } | null>(null);
+  const [timeForm, setTimeForm] = useState({
+    project_id: '',
+    work_date: new Date().toISOString().split('T')[0],
+    start_time: '07:00',
+    end_time: '15:30',
+    break_minutes: 30,
+    description: '',
+  });
 
   // Vacation Dialog
   const [vacationDialogOpen, setVacationDialogOpen] = useState(false);
@@ -258,6 +297,50 @@ export function DesktopEmployeePage() {
   const handleEditDeliveryNote = (noteId: string, projectId: string) => {
     setEditingDeliveryNoteId(noteId);
     setSelectedProjectId(projectId);
+    setDeliveryNoteFormOpen(true);
+  };
+
+  const handleSaveTimeEntry = async () => {
+    if (!employee || !timeForm.project_id || !timeForm.start_time || !timeForm.end_time) return;
+    setTimeFormSaving(true);
+    try {
+      const startISO = `${timeForm.work_date}T${timeForm.start_time}:00`;
+      const endISO = `${timeForm.work_date}T${timeForm.end_time}:00`;
+      const { error } = await supabase.from('time_entries').insert({
+        employee_id: employee.id,
+        project_id: timeForm.project_id,
+        company_id: employee.company_id,
+        start_time: startISO,
+        end_time: endISO,
+        description: timeForm.description,
+        status: 'pending',
+      });
+      if (error) throw error;
+      toast({ title: 'Zeit gespeichert' });
+      setSavedTimeEntryData({ ...timeForm });
+      setTimeFormOpen(false);
+      fetchTimeEntries();
+      // Prompt: Lieferschein erstellen?
+      setLieferscheinPromptOpen(true);
+    } catch (err) {
+      toast({ title: 'Fehler', description: 'Zeit konnte nicht gespeichert werden.', variant: 'destructive' });
+    } finally {
+      setTimeFormSaving(false);
+    }
+  };
+
+  const handleCreateLieferscheinFromTime = () => {
+    if (!savedTimeEntryData) return;
+    setLieferscheinPromptOpen(false);
+    setEditingDeliveryNoteId(undefined);
+    setSelectedProjectId(savedTimeEntryData.project_id);
+    setDeliveryNotePrefill({
+      work_date: savedTimeEntryData.work_date,
+      start_time: savedTimeEntryData.start_time,
+      end_time: savedTimeEntryData.end_time,
+      break_minutes: savedTimeEntryData.break_minutes,
+      description: savedTimeEntryData.description,
+    });
     setDeliveryNoteFormOpen(true);
   };
 
@@ -604,6 +687,13 @@ export function DesktopEmployeePage() {
                 <h1 className="text-2xl font-bold">Zeiterfassung</h1>
                 <p className="text-muted-foreground">Meine erfassten Arbeitszeiten</p>
               </div>
+              <Button onClick={() => {
+                setTimeForm({ project_id: '', work_date: new Date().toISOString().split('T')[0], start_time: '07:00', end_time: '15:30', break_minutes: 30, description: '' });
+                setTimeFormOpen(true);
+              }}>
+                <Plus className="h-4 w-4 mr-2" />
+                Zeit erfassen
+              </Button>
             </div>
 
             <Card>
@@ -784,19 +874,105 @@ export function DesktopEmployeePage() {
         )}
       </main>
 
+      {/* Zeit erfassen Dialog */}
+      <Dialog open={timeFormOpen} onOpenChange={setTimeFormOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-blue-600" />
+              Zeit erfassen
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>Projekt</Label>
+              <Select value={timeForm.project_id} onValueChange={v => setTimeForm(f => ({ ...f, project_id: v }))}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Projekt wählen..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Datum</Label>
+              <Input type="date" className="mt-1" value={timeForm.work_date}
+                onChange={e => setTimeForm(f => ({ ...f, work_date: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label>Von</Label>
+                <Input type="time" className="mt-1" value={timeForm.start_time}
+                  onChange={e => setTimeForm(f => ({ ...f, start_time: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Bis</Label>
+                <Input type="time" className="mt-1" value={timeForm.end_time}
+                  onChange={e => setTimeForm(f => ({ ...f, end_time: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Pause (min)</Label>
+                <Input type="number" className="mt-1" min={0} step={5} value={timeForm.break_minutes}
+                  onChange={e => setTimeForm(f => ({ ...f, break_minutes: parseInt(e.target.value) || 0 }))} />
+              </div>
+            </div>
+            <div>
+              <Label>Tätigkeitsbeschreibung</Label>
+              <Textarea className="mt-1" rows={3} placeholder="Was wurde gemacht?"
+                value={timeForm.description}
+                onChange={e => setTimeForm(f => ({ ...f, description: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTimeFormOpen(false)}>Abbrechen</Button>
+            <Button onClick={handleSaveTimeEntry} disabled={timeFormSaving || !timeForm.project_id}>
+              {timeFormSaving ? 'Speichern...' : 'Speichern & weiter'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Lieferschein erstellen? Prompt */}
+      <Dialog open={lieferscheinPromptOpen} onOpenChange={setLieferscheinPromptOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              Zeit gespeichert
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            Möchtest du direkt einen Lieferschein für diese Zeit erstellen?
+            Du kannst dort noch Materialien und Fotos hinzufügen.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setLieferscheinPromptOpen(false)}>
+              Nein, später
+            </Button>
+            <Button onClick={handleCreateLieferscheinFromTime}>
+              <ClipboardList className="h-4 w-4 mr-2" />
+              Lieferschein erstellen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Delivery Note Form Dialog */}
-      {selectedProjectId && (
-        <DeliveryNoteForm
-          projectId={selectedProjectId}
-          deliveryNoteId={editingDeliveryNoteId}
-          open={deliveryNoteFormOpen}
-          onOpenChange={setDeliveryNoteFormOpen}
-          onSuccess={() => {
-            fetchDeliveryNotes();
-            setDeliveryNoteFormOpen(false);
-          }}
-        />
-      )}
+      <DeliveryNoteForm
+        projectId={selectedProjectId}
+        deliveryNoteId={editingDeliveryNoteId}
+        prefillData={deliveryNotePrefill}
+        open={deliveryNoteFormOpen}
+        onOpenChange={setDeliveryNoteFormOpen}
+        onSuccess={() => {
+          fetchDeliveryNotes();
+          setDeliveryNoteFormOpen(false);
+          setDeliveryNotePrefill(undefined);
+        }}
+      />
 
       {/* Vacation Dialog */}
       <VacationRequestDialog

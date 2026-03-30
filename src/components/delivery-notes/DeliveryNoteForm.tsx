@@ -26,10 +26,19 @@ import { useDeliveryNotes, type DeliveryNote } from '@/hooks/useDeliveryNotes';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
 
+interface PrefillData {
+  work_date?: string;
+  start_time?: string;
+  end_time?: string;
+  break_minutes?: number;
+  description?: string;
+}
+
 interface DeliveryNoteFormProps {
   projectId?: string;   // optional — wenn leer, zeigt Dropdown
   customerId?: string;
   deliveryNoteId?: string;
+  prefillData?: PrefillData;  // Vorausgefüllte Zeiten aus Zeiterfassung
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
@@ -82,6 +91,7 @@ export function DeliveryNoteForm({
   projectId: initialProjectId,
   customerId,
   deliveryNoteId,
+  prefillData,
   open,
   onOpenChange,
   onSuccess,
@@ -112,14 +122,29 @@ export function DeliveryNoteForm({
   // Fallback hourly rate if employee has none configured in DB
   const [manualHourlyRate, setManualHourlyRate] = useState<number>(0);
 
-  // Form state
+  // Form state — prefillData kommt aus Zeiterfassung
   const [formData, setFormData] = useState({
-    work_date: new Date().toISOString().split('T')[0],
-    start_time: '08:00',
-    end_time: '16:30',
-    break_minutes: 0,
-    description: '',
+    work_date: prefillData?.work_date ?? new Date().toISOString().split('T')[0],
+    start_time: prefillData?.start_time ?? '08:00',
+    end_time: prefillData?.end_time ?? '16:30',
+    break_minutes: prefillData?.break_minutes ?? 0,
+    description: prefillData?.description ?? '',
   });
+
+  // Reset form when prefillData changes (new time entry opened)
+  useEffect(() => {
+    if (!open) return;
+    if (prefillData && !deliveryNoteId) {
+      setFormData({
+        work_date: prefillData.work_date ?? new Date().toISOString().split('T')[0],
+        start_time: prefillData.start_time ?? '08:00',
+        end_time: prefillData.end_time ?? '16:30',
+        break_minutes: prefillData.break_minutes ?? 0,
+        description: prefillData.description ?? '',
+      });
+      setBreakManuallySet(false);
+    }
+  }, [open, prefillData, deliveryNoteId]);
 
   // Fetch projects and employees for dropdown
   useEffect(() => {

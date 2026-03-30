@@ -108,7 +108,9 @@
       "Bash(npm run:*)",
       "Bash(npm audit:*)",
       "Bash(npx eslint:*)",
-      "Bash(python3 -c \":*)"
+      "Bash(python3 -c \":*)",
+      "Bash(timeout 5)",
+      "WebFetch(domain:127.0.0.1)"
     ],
     "deny": []
   }
