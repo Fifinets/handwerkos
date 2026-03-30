@@ -42,6 +42,12 @@ import {
   User,
   LogOut,
   CheckCircle2,
+  LayoutDashboard,
+  AlertCircle,
+  UserCircle,
+  CalendarDays,
+  TrendingUp,
+  FileWarning,
 } from 'lucide-react';
 import {
   Dialog,
@@ -71,7 +77,7 @@ import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useNavigate } from 'react-router-dom';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 
-type TabValue = 'projects' | 'delivery-notes' | 'timesheet' | 'vacation' | 'invoices';
+type TabValue = 'dashboard' | 'projects' | 'delivery-notes' | 'timesheet' | 'vacation' | 'profile' | 'invoices';
 
 interface Project {
   id: string;
@@ -107,7 +113,10 @@ export function DesktopEmployeePage() {
   } = useEmployeePermissions();
 
   // State
-  const [activeTab, setActiveTab] = useState<TabValue>('projects');
+  const [activeTab, setActiveTab] = useState<TabValue>('dashboard');
+  const [profileData, setProfileData] = useState({ position: '', phone: '', hourly_wage: 0, start_date: '' });
+  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
+  const [pwSaving, setPwSaving] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -161,8 +170,33 @@ export function DesktopEmployeePage() {
       fetchDeliveryNotes();
       fetchVacation();
       fetchInvoices();
+      fetchProfileData();
     }
   }, [employee?.id]);
+
+  const fetchProfileData = async () => {
+    if (!employee?.id) return;
+    const { data } = await supabase
+      .from('employees')
+      .select('position, phone, hourly_wage, start_date')
+      .eq('id', employee.id)
+      .single();
+    if (data) setProfileData({ position: data.position || '', phone: data.phone || '', hourly_wage: data.hourly_wage || 0, start_date: data.start_date || '' });
+  };
+
+  // Stunden diese Woche
+  const weekHours = (() => {
+    const now = new Date();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    monday.setHours(0, 0, 0, 0);
+    return timeEntries
+      .filter(e => e.start_time && new Date(e.start_time) >= monday)
+      .reduce((sum, e) => {
+        if (!e.start_time || !e.end_time) return sum;
+        return sum + (new Date(e.end_time).getTime() - new Date(e.start_time).getTime()) / 3600000;
+      }, 0);
+  })();
 
   const fetchProjects = async () => {
     if (!employee) return;
@@ -440,10 +474,12 @@ export function DesktopEmployeePage() {
   }
 
   const navItems: { id: TabValue; icon: any; label: string }[] = [
+    { id: 'dashboard', icon: LayoutDashboard, label: 'Übersicht' },
     { id: 'projects', icon: Building2, label: 'Meine Projekte' },
     { id: 'delivery-notes', icon: ClipboardList, label: 'Lieferscheine' },
     { id: 'timesheet', icon: Clock, label: 'Zeiterfassung' },
     { id: 'vacation', icon: Plane, label: 'Urlaub' },
+    { id: 'profile', icon: UserCircle, label: 'Mein Profil' },
   ];
 
   return (
@@ -524,6 +560,142 @@ export function DesktopEmployeePage() {
 
         {/* Main Content */}
         <main className="flex-1 p-6 overflow-auto">
+        {/* Dashboard Tab */}
+        {activeTab === 'dashboard' && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold">Guten Tag, {employee.first_name}!</h1>
+              <p className="text-muted-foreground">Deine Übersicht für heute</p>
+            </div>
+
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded-lg"><Building2 className="h-5 w-5 text-blue-600" /></div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Aktive Projekte</p>
+                      <p className="text-2xl font-bold">{projects.filter(p => p.status === 'active' || p.status === 'in_bearbeitung' || p.status === 'beauftragt').length}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-amber-100 rounded-lg"><ClipboardList className="h-5 w-5 text-amber-600" /></div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Offene Lieferscheine</p>
+                      <p className="text-2xl font-bold">{deliveryNotes.filter(n => n.status === 'draft' || n.status === 'submitted').length}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-emerald-100 rounded-lg"><TrendingUp className="h-5 w-5 text-emerald-600" /></div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Stunden diese Woche</p>
+                      <p className="text-2xl font-bold">{weekHours.toFixed(1)}h</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-100 rounded-lg"><CalendarDays className="h-5 w-5 text-purple-600" /></div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Resturlaub</p>
+                      <p className="text-2xl font-bold">{vacationDays.total - vacationDays.used} Tage</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Abgelehnte Lieferscheine prominent */}
+            {deliveryNotes.filter(n => n.status === 'rejected').length > 0 && (
+              <Card className="border-red-200 bg-red-50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base text-red-800 flex items-center gap-2">
+                    <FileWarning className="h-5 w-5" />
+                    Abgelehnte Lieferscheine — Überarbeitung erforderlich
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {deliveryNotes.filter(n => n.status === 'rejected').map(note => (
+                    <div key={note.id} className="bg-white rounded-lg p-3 border border-red-200 flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium">{note.delivery_note_number || 'Entwurf'} — {note.project?.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{formatDate(note.work_date)}</p>
+                        {note.rejection_reason && (
+                          <p className="text-xs text-red-700 mt-1 flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                            {note.rejection_reason}
+                          </p>
+                        )}
+                      </div>
+                      {canEditDeliveryNote(note) && (
+                        <Button size="sm" variant="outline" className="border-red-300 text-red-700 hover:bg-red-50 flex-shrink-0"
+                          onClick={() => handleEditDeliveryNote(note.id, note.project_id)}>
+                          <Edit className="h-3 w-3 mr-1" /> Bearbeiten
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Schnellaktionen */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Schnellaktionen</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-3">
+                <Button onClick={() => {
+                  setTimeForm({ project_id: '', work_date: new Date().toISOString().split('T')[0], start_time: '07:00', end_time: '15:30', break_minutes: 30, description: '' });
+                  setTimeFormOpen(true);
+                }}>
+                  <Clock className="h-4 w-4 mr-2" /> Zeit erfassen
+                </Button>
+                <Button variant="outline" onClick={() => handleNewDeliveryNote(projects[0]?.id)}>
+                  <ClipboardList className="h-4 w-4 mr-2" /> Neuer Lieferschein
+                </Button>
+                <Button variant="outline" onClick={() => { setActiveTab('timesheet'); }}>
+                  <Eye className="h-4 w-4 mr-2" /> Alle Zeiteinträge
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Letzte Lieferscheine */}
+            {deliveryNotes.filter(n => n.status !== 'rejected').length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Letzte Lieferscheine</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {deliveryNotes.filter(n => n.status !== 'rejected').slice(0, 5).map(note => (
+                    <div key={note.id} className="flex items-center justify-between py-1.5 border-b last:border-0">
+                      <div>
+                        <span className="text-sm font-medium">{note.delivery_note_number || 'Entwurf'}</span>
+                        <span className="text-sm text-muted-foreground ml-2">{note.project?.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">{formatDate(note.work_date)}</span>
+                        <DeliveryNoteStatusBadge status={note.status} />
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
         {/* Projects Tab */}
         {activeTab === 'projects' && (
           <div>
@@ -633,14 +805,20 @@ export function DesktopEmployeePage() {
                     </TableRow>
                   ) : (
                     deliveryNotes.map((note) => (
-                      <TableRow key={note.id}>
+                      <TableRow key={note.id} className={note.status === 'rejected' ? 'bg-red-50 hover:bg-red-100' : ''}>
                         <TableCell className="font-mono text-sm">
                           {note.delivery_note_number || '-'}
                         </TableCell>
                         <TableCell>{formatDate(note.work_date)}</TableCell>
                         <TableCell>{note.project?.name || '-'}</TableCell>
-                        <TableCell className="max-w-xs truncate">
-                          {note.description || '-'}
+                        <TableCell className="max-w-xs">
+                          <div className="truncate">{note.description || '-'}</div>
+                          {note.status === 'rejected' && note.rejection_reason && (
+                            <div className="flex items-center gap-1 mt-0.5 text-xs text-red-600">
+                              <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                              <span className="truncate">{note.rejection_reason}</span>
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>
                           <DeliveryNoteStatusBadge status={note.status} />
@@ -816,6 +994,102 @@ export function DesktopEmployeePage() {
                   )}
                 </TableBody>
               </Table>
+            </Card>
+          </div>
+        )}
+
+        {/* Profile Tab */}
+        {activeTab === 'profile' && (
+          <div className="max-w-2xl space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold">Mein Profil</h1>
+              <p className="text-muted-foreground">Deine Stammdaten</p>
+            </div>
+
+            <Card>
+              <CardHeader><CardTitle className="text-base flex items-center gap-2"><User className="h-5 w-5" /> Persönliche Daten</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Vorname</Label>
+                    <p className="text-sm font-medium mt-0.5">{employee.first_name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Nachname</Label>
+                    <p className="text-sm font-medium mt-0.5">{employee.last_name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Position</Label>
+                    <p className="text-sm font-medium mt-0.5">{profileData.position || '—'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Telefon</Label>
+                    <p className="text-sm font-medium mt-0.5">{profileData.phone || '—'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Stundenlohn (netto)</Label>
+                    <p className="text-sm font-medium mt-0.5">{profileData.hourly_wage ? formatCurrency(profileData.hourly_wage) + ' /h' : '—'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Angestellt seit</Label>
+                    <p className="text-sm font-medium mt-0.5">{profileData.start_date ? formatDate(profileData.start_date) : '—'}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="text-base flex items-center gap-2"><CalendarDays className="h-5 w-5" /> Urlaub</CardTitle></CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center p-3 bg-slate-50 rounded-lg">
+                    <p className="text-2xl font-bold">{vacationDays.total}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Gesamttage</p>
+                  </div>
+                  <div className="text-center p-3 bg-slate-50 rounded-lg">
+                    <p className="text-2xl font-bold text-amber-600">{vacationDays.used}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Genommen</p>
+                  </div>
+                  <div className="text-center p-3 bg-emerald-50 rounded-lg">
+                    <p className="text-2xl font-bold text-emerald-600">{vacationDays.total - vacationDays.used}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Verbleibend</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="text-base">Passwort ändern</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <Label>Neues Passwort</Label>
+                  <Input type="password" className="mt-1" placeholder="Mindestens 8 Zeichen"
+                    value={pwForm.next} onChange={e => setPwForm(f => ({ ...f, next: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>Passwort bestätigen</Label>
+                  <Input type="password" className="mt-1" placeholder="Passwort wiederholen"
+                    value={pwForm.confirm} onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))} />
+                </div>
+                <Button
+                  disabled={pwSaving || pwForm.next.length < 8 || pwForm.next !== pwForm.confirm}
+                  onClick={async () => {
+                    setPwSaving(true);
+                    try {
+                      const { error } = await supabase.auth.updateUser({ password: pwForm.next });
+                      if (error) throw error;
+                      toast({ title: 'Passwort geändert' });
+                      setPwForm({ current: '', next: '', confirm: '' });
+                    } catch {
+                      toast({ title: 'Fehler beim Ändern', variant: 'destructive' });
+                    } finally {
+                      setPwSaving(false);
+                    }
+                  }}
+                >
+                  {pwSaving ? 'Wird gespeichert...' : 'Passwort speichern'}
+                </Button>
+              </CardContent>
             </Card>
           </div>
         )}
