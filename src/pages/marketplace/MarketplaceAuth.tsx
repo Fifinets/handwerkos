@@ -126,7 +126,7 @@ const MarketplaceAuth = () => {
                         </CardHeader>
                         <CardContent>
                             {!isLogin && (
-                                <Tabs defaultValue="customer" className="mb-6" onValueChange={(v) => setUserType(v as any)}>
+                                <Tabs defaultValue="customer" className="mb-6" onValueChange={(v) => setUserType(v as 'customer' | 'craftsman')}>
                                     <TabsList className="grid w-full grid-cols-2">
                                         <TabsTrigger value="customer">Auftraggeber</TabsTrigger>
                                         <TabsTrigger value="craftsman">Handwerker</TabsTrigger>

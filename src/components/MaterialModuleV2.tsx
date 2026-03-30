@@ -403,7 +403,7 @@ const MaterialModuleV2 = () => {
                                         <div key={movement.id} className="flex justify-between items-start">
                                             <div>
                                                 <div className="font-medium text-sm text-slate-900">
-                                                    {(movement.materials as any)?.name || 'Material'}
+                                                    {(movement.materials as { name?: string } | null)?.name || 'Material'}
                                                 </div>
                                                 <div className="text-xs text-slate-500 mb-1">{movement.movement_type}</div>
                                                 <Badge variant="outline" className={`font-normal text-[10px] px-1.5 py-0 ${movement.quantity > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>

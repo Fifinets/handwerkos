@@ -65,6 +65,7 @@ import {
 import { useDeliveryNotes, type DeliveryNote } from '@/hooks/useDeliveryNotes';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { DeliveryNoteStatusBadge } from './DeliveryNoteStatusBadge';
+import type { DeliveryNoteStatus } from '@/types/delivery-note';
 import { DeliveryNoteForm } from './DeliveryNoteForm';
 import SignatureCapture from '@/components/SignatureCapture';
 
@@ -353,7 +354,7 @@ export function DeliveryNoteList({
                         )}
                       </TableCell>
                       <TableCell>
-                        <DeliveryNoteStatusBadge status={note.status as any} />
+                        <DeliveryNoteStatusBadge status={note.status as DeliveryNoteStatus} />
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -456,7 +457,7 @@ export function DeliveryNoteList({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
               Lieferschein {viewingNote?.delivery_note_number || ''}
-              {viewingNote && <DeliveryNoteStatusBadge status={viewingNote.status as any} />}
+              {viewingNote && <DeliveryNoteStatusBadge status={viewingNote.status as DeliveryNoteStatus} />}
             </DialogTitle>
           </DialogHeader>
 

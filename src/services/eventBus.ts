@@ -261,7 +261,7 @@ class EventBus {
       // Extract relevant information for audit log
       const auditData = this.extractAuditData(event, data);
 
-      await supabase.from('audit_logs' as any).insert({
+      await supabase.from('audit_logs').insert({
         action: this.mapEventToAuditAction(event),
         table_name: this.extractTableName(event),
         record_id: auditData.recordId,
@@ -383,13 +383,11 @@ class EventBus {
   // Workflow automation methods
   private async sendNotification(type: string, data: EventData): Promise<void> {
     // Implementation would integrate with notification service
-    console.log(`Notification: ${type}`, data);
   }
 
   private async autoCreateInvoice(data: EventData): Promise<void> {
     // Implementation would auto-create invoice from completed order
     if (data.order) {
-      console.log('Auto-creating invoice for order:', data.order.id);
       // This would call financeService.createInvoiceFromOrder(data.order)
     }
   }
@@ -397,21 +395,18 @@ class EventBus {
   private async schedulePaymentReminders(data: EventData): Promise<void> {
     // Implementation would schedule payment reminder emails
     if (data.invoice) {
-      console.log('Scheduling payment reminders for invoice:', data.invoice.id);
     }
   }
 
   private async sendLowStockAlert(data: EventData): Promise<void> {
     // Implementation would send low stock notifications
     if (data.material) {
-      console.log('Low stock alert for material:', data.material.name);
     }
   }
 
   private async notifyProjectTeam(data: EventData): Promise<void> {
     // Implementation would notify project team members
     if (data.project) {
-      console.log('Notifying project team of status change:', data.project.name);
     }
   }
 }
@@ -421,17 +416,14 @@ export const eventBus = new EventBus();
 
 // Initialize system event handlers
 eventBus.on('SYSTEM_ERROR', (data) => {
-  console.error('System error:', data);
   // Could integrate with error reporting service
 });
 
 eventBus.on('USER_LOGIN', (data) => {
-  console.log('User logged in:', data.user_id);
   // Track user activity
 });
 
 eventBus.on('USER_LOGOUT', (data) => {
-  console.log('User logged out:', data.user_id);
   // Track user activity
 });
 

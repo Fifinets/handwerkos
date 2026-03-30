@@ -71,7 +71,6 @@ export default function EmployeeWageManagement() {
       // Get current user session to determine company_id
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        console.log('No session found');
         setLoading(false);
         return;
       }
@@ -81,10 +80,8 @@ export default function EmployeeWageManagement() {
                        session.user.app_metadata?.company_id || 
                        session.user.id;
       
-      console.log('Using company_id:', companyId);
 
       if (!companyId) {
-        console.error('No company ID available');
         setLoading(false);
         return;
       }

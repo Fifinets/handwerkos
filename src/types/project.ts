@@ -36,6 +36,19 @@ export interface ProjectBaseData {
   budget_planned?: number;                 // Geplantes Budget
   budget_actual?: number;                  // Aktueller Verbrauch
   
+  // 🔍 Besichtigungs-Felder
+  besichtigung_date?: string;
+  besichtigung_time_start?: string;
+  besichtigung_time_end?: string;
+  besichtigung_employee_id?: string;
+  besichtigung_calendar_event_id?: string;
+
+  // 🔨 Arbeits-/Baustellenplanung
+  work_start_date?: string;
+  work_end_date?: string;
+  work_calendar_event_id?: string;
+  completed_at?: string;
+
   // 🔒 Metadaten
   created_at: string;
   updated_at: string;

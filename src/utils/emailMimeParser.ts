@@ -366,12 +366,6 @@ function parseSinglePartEmail(content: string, headers: EmailHeaders): ParsedEma
                  /<br/i.test(decodedContent);
   
   if (process.env.NODE_ENV === 'development') {
-    console.log('📧 Single part parsing:', {
-      contentType: headers.contentType,
-      hasHtmlTags: /<[a-z][\s\S]*>/i.test(decodedContent),
-      isHtml,
-      contentPreview: decodedContent.substring(0, 200)
-    });
   }
   
   return {
@@ -465,7 +459,6 @@ function decodePartContent(content: string, encoding: string): string {
         return content;
     }
   } catch (error) {
-    console.warn('Failed to decode email content:', error);
     return content;
   }
 }
@@ -628,12 +621,6 @@ export function shouldDisplayAsHtml(parsedContent: ParsedEmailContent): boolean 
   const preference = getPreferredContentType();
   
   if (process.env.NODE_ENV === 'development') {
-    console.log('📧 shouldDisplayAsHtml check:', {
-      preference,
-      hasHtmlContent: !!parsedContent.htmlContent,
-      contentType: parsedContent.contentType,
-      htmlPreview: parsedContent.htmlContent?.substring(0, 100)
-    });
   }
   
   // If user prefers text, always show text
@@ -681,10 +668,4 @@ Content-Type: text/html; charset=utf-8
 --boundary123--`;
 
   const parsed = parseEmailContent(testMultipart);
-  console.log('MIME Parser Test:', {
-    htmlContent: parsed.htmlContent,
-    plainTextContent: parsed.plainTextContent,
-    contentType: parsed.contentType,
-    preferredContent: parsed.preferredContent.substring(0, 100)
-  });
 }

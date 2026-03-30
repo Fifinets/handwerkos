@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const fixCascadeDelete = async () => {
   try {
-    console.log('Fixing cascade delete behavior for projects...');
 
     // The SQL commands to fix cascade delete
     const sql = `
@@ -72,12 +71,9 @@ export const fixCascadeDelete = async () => {
     const { error } = await supabase.rpc('exec_sql', { sql });
 
     if (error) {
-      console.error('Error fixing cascade delete:', error);
       return false;
     }
 
-    console.log('✅ Cascade delete behavior fixed successfully!');
-    console.log('Projects can now be deleted along with their associated emails and other data.');
     return true;
 
   } catch (error) {
@@ -150,8 +146,6 @@ BEGIN
 END $$;
   `;
 
-  console.log('📋 Copy this SQL and run it in your Supabase SQL Editor:');
-  console.log(sql);
   return sql;
 };
 

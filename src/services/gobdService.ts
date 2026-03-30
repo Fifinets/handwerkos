@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 import { apiCall, createQuery, validateInput, getCurrentUserProfile, ApiError, API_ERROR_CODES } from './common';
-import { auditLogService } from './auditLogService';
+import { auditLogService, type AuditEntityType } from './auditLogService';
 import { eventBus } from './eventBus';
 import CryptoJS from 'crypto-js';
 
@@ -269,7 +269,7 @@ export class GoBDService {
 
       // Create audit log
       await auditLogService.createAuditLog({
-        entity_type: entityType as any,
+        entity_type: entityType as AuditEntityType,
         entity_id: entityId,
         action: 'UPDATE',
         new_values: {
@@ -298,7 +298,7 @@ export class GoBDService {
   static async checkImmutability(entityType: string, entityId: string): Promise<ImmutabilityCheck> {
     return apiCall(async () => {
       // Get audit trail to check for immutability events
-      const auditTrail = await auditLogService.getAuditTrail(entityType as any, entityId);
+      const auditTrail = await auditLogService.getAuditTrail(entityType as AuditEntityType, entityId);
       
       // Check different immutability conditions
       let isImmutable = false;
@@ -400,7 +400,7 @@ export class GoBDService {
 
       // Create audit log
       await auditLogService.createAuditLog({
-        entity_type: entityType as any,
+        entity_type: entityType as AuditEntityType,
         entity_id: entityId,
         action: 'CREATE',
         new_values: {
@@ -449,7 +449,7 @@ export class GoBDService {
 
       // Log verification attempt
       await auditLogService.createAuditLog({
-        entity_type: document.entity_type as any,
+        entity_type: document.entity_type as AuditEntityType,
         entity_id: document.entity_id,
         action: 'VIEW',
         new_values: verificationResult,

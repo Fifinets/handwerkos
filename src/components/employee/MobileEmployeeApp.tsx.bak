@@ -173,7 +173,7 @@ const MobileEmployeeApp: React.FC = () => {
           setSafeAreaInsets({ top: isNaN(top) ? 44 : top, bottom: isNaN(bottom) ? 34 : bottom });
         }
       } catch (error) {
-        console.log('StatusBar or SafeArea not available:', error);
+        // StatusBar or SafeArea not available - use fallback
         // Fallback safe area values
         if (Capacitor.isNativePlatform()) {
           setSafeAreaInsets({ top: 44, bottom: 34 });
@@ -677,7 +677,6 @@ const MobileEmployeeApp: React.FC = () => {
           }
         };
       } catch (ocrError) {
-        console.warn('OCR processing failed:', ocrError);
         ocrResult = {
           status: 'failed',
           error: 'OCR processing failed',

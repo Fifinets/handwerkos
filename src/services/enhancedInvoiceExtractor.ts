@@ -169,8 +169,6 @@ export class EnhancedInvoiceExtractor {
     const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
     const cleanText = text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
     
-    console.log('🔍 Starting comprehensive invoice extraction...');
-    console.log('📄 Text lines:', lines.length);
 
     // Initialisiere Basis-Datenstruktur
     const invoiceData: InvoiceData = {
@@ -281,17 +279,6 @@ export class EnhancedInvoiceExtractor {
     invoiceData.vatAmount = Object.values(invoiceData.taxAmounts).reduce((sum, amount) => sum + amount, 0);
     invoiceData.description = invoiceData.serviceDescription; // Legacy
 
-    console.log('✅ Invoice extraction completed:', {
-      invoiceNumber: invoiceData.invoiceNumber,
-      supplierName: invoiceData.supplierName,
-      totalAmount: invoiceData.totalAmount,
-      taxRates: invoiceData.taxRates,
-      fieldsExtracted: Object.keys(invoiceData).filter(key => 
-        invoiceData[key as keyof InvoiceData] !== undefined && 
-        invoiceData[key as keyof InvoiceData] !== '' && 
-        invoiceData[key as keyof InvoiceData] !== 0
-      ).length
-    });
 
     return invoiceData;
   }
@@ -377,7 +364,7 @@ export class EnhancedInvoiceExtractor {
     amounts: {[rate: string]: number};
     netAmounts: {[rate: string]: number};
   } {
-    const vatInfo = { rates: [], amounts: {}, netAmounts: {} } as any;
+    const vatInfo: { rates: number[]; amounts: Record<string, number>; netAmounts: Record<string, number> } = { rates: [], amounts: {}, netAmounts: {} };
     
     // Suche nach MwSt-Sätzen und -Beträgen
     const vatPattern = /(\d{1,2}(?:[,\.]\d{1,2})?)\s*%.*?€?\s*([\d]{1,3}(?:[\.\s]\d{3})*[,\.]\d{2})/gi;

@@ -36,7 +36,6 @@ export class FeatureFlagService {
         })
 
       if (error) {
-        console.error('Error checking feature flag:', error)
         return false
       }
 

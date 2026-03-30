@@ -139,7 +139,7 @@ export default function Impressum() {
           <p>© {new Date().getFullYear()} HandwerkOS – Filip Bosz</p>
           <div className="flex items-center gap-6">
             <Link to="/datenschutz" className="hover:text-white transition-colors">Datenschutz</Link>
-            <button onClick={() => (window as any).openCookieSettings?.()} className="hover:text-white transition-colors">Cookie-Einstellungen</button>
+            <button onClick={() => window.openCookieSettings?.()} className="hover:text-white transition-colors">Cookie-Einstellungen</button>
           </div>
         </div>
       </footer>

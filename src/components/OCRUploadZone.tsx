@@ -102,7 +102,6 @@ export function OCRUploadZone({
 
     try {
       setUploadProgress(25);
-      console.log('Starting OCR processing for:', selectedFile.name);
       await processMutation.mutateAsync(selectedFile);
     } catch (error) {
       console.error('OCR processing failed:', error);

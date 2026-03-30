@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Check, X, Download, Building2, Calendar, FileText, Loader2 } from 'lucide-react';
+import { Check, X, Download, Building2, Calendar, FileText, Loader2, CheckCircle2 } from 'lucide-react';
+import { PaymentButton } from '@/components/billing/PaymentButton';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -61,6 +62,8 @@ const formatDate = (dateStr: string) => {
 
 export default function PublicOfferView() {
   const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
+  const paymentSuccess = searchParams.get('payment') === 'success';
   const [offer, setOffer] = useState<PublicOffer | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,9 +84,10 @@ export default function PublicOfferView() {
       if (rpcError) throw rpcError;
       setOffer(data as PublicOffer);
     } catch (err: any) {
+      console.error('PublicOfferView error:', err);
       setError(err.message?.includes('nicht gefunden')
         ? 'Dieses Angebot ist nicht verfügbar oder wurde noch nicht freigegeben.'
-        : 'Fehler beim Laden des Angebots.');
+        : `Fehler beim Laden des Angebots: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -161,6 +165,15 @@ export default function PublicOfferView() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8">
+        {/* Payment Success Banner */}
+        {paymentSuccess && (
+          <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-xl p-6 text-center">
+            <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto mb-3" />
+            <h2 className="text-xl font-semibold text-emerald-800">Zahlung erfolgreich!</h2>
+            <p className="text-emerald-600 mt-1">Vielen Dank fuer Ihre Zahlung. Sie erhalten in Kuerze eine Bestaetigung.</p>
+          </div>
+        )}
+
         {/* Success/Status Banners */}
         {actionDone === 'accepted' && (
           <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-xl p-6 text-center">
@@ -336,6 +349,17 @@ export default function PublicOfferView() {
                 Ablehnen
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Payment Button - for accepted offers with payment links */}
+        {offer.status === 'accepted' && (
+          <div className="mt-8">
+            <PaymentButton
+              offerId={offer.id}
+              offerStatus={offer.status}
+              grossTotal={offer.snapshot_gross_total || 0}
+            />
           </div>
         )}
 

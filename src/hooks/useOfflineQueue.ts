@@ -108,7 +108,6 @@ export const useOfflineQueue = () => {
     setQueue(updatedQueue)
     saveQueue(updatedQueue)
     
-    console.log('Added to offline queue:', newEntry)
     
     // Sofort sync versuchen wenn online
     if (isOnline) {
@@ -172,7 +171,6 @@ export const useOfflineQueue = () => {
     }
     
     setIsSyncing(true)
-    console.log(`Starting sync of ${queue.length} entries`)
     
     const updatedQueue = [...queue]
     let syncedCount = 0
@@ -212,10 +210,8 @@ export const useOfflineQueue = () => {
     }
     
     if (failedCount > 0) {
-      console.warn(`${failedCount} Einträge konnten nicht synchronisiert werden`)
     }
     
-    console.log(`Sync completed: ${syncedCount} synced, ${failedCount} failed, ${updatedQueue.length} remaining`)
     
   }, [isOnline, isSyncing, queue, saveQueue])
 

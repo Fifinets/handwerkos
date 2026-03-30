@@ -40,7 +40,6 @@ class GoogleCalendarAPI {
       const { data, error } = await supabase.functions.invoke('get-google-client-id');
       
       if (error) {
-        console.error('Failed to get Google Client ID:', error);
         throw new Error('Google Client ID nicht konfiguriert');
       }
       
@@ -53,7 +52,6 @@ class GoogleCalendarAPI {
 
   async authenticate(): Promise<boolean> {
     try {
-      console.log('Starting Google authentication...');
       
       // Ensure client ID is set
       if (!this.clientId) {
@@ -63,7 +61,6 @@ class GoogleCalendarAPI {
       // Load Google APIs
       await this.loadGoogleAPI();
       
-      console.log('Google API loaded, initializing auth...');
       
       // Initialize gapi
       return new Promise((resolve, reject) => {
@@ -80,7 +77,6 @@ class GoogleCalendarAPI {
             this.accessToken = user.getAuthResponse().access_token;
             localStorage.setItem('google_calendar_token', this.accessToken);
             
-            console.log('Google authentication successful');
             resolve(true);
           } catch (error) {
             console.error('Auth initialization failed:', error);
@@ -107,7 +103,6 @@ class GoogleCalendarAPI {
         window.gapi.load('client:auth2', resolve);
       };
       script.onerror = (error) => {
-        console.error('Failed to load Google API script:', error);
         reject(error);
       };
       document.head.appendChild(script);
@@ -120,7 +115,6 @@ class GoogleCalendarAPI {
     }
 
     try {
-      console.log('Fetching calendars from Google API...');
       
       const response = await fetch(
         'https://www.googleapis.com/calendar/v3/users/me/calendarList',
@@ -133,12 +127,10 @@ class GoogleCalendarAPI {
       );
 
       if (!response.ok) {
-        console.error('Calendar API response:', response.status, response.statusText);
         throw new Error(`API call failed: ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log('Calendars loaded:', data.items?.length || 0);
       
       return (data.items || []).map((calendar: any) => ({
         id: calendar.id,
@@ -182,7 +174,6 @@ class GoogleCalendarAPI {
         );
 
         if (!response.ok) {
-          console.warn(`Failed to fetch events for calendar ${calendarId}: ${response.statusText}`);
           continue;
         }
 

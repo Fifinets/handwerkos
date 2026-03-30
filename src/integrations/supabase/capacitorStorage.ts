@@ -18,18 +18,15 @@ import type { SupabaseClientOptions } from '@supabase/supabase-js';
 export const capacitorStorage: SupabaseClientOptions<'public'>['auth']['storage'] = {
   async getItem(key: string): Promise<string | null> {
     try {
-      console.log(`[CapacitorStorage] 🔍 getItem START: ${key}`);
 
       // Add timeout to prevent hanging
       const timeoutPromise = new Promise<null>((resolve) => {
         setTimeout(() => {
-          console.error(`[CapacitorStorage] ⏱️ TIMEOUT getting ${key}`);
           resolve(null);
         }, 5000);
       });
 
       const getPromise = Preferences.get({ key }).then(({ value }) => {
-        console.log(`[CapacitorStorage] ✅ getItem SUCCESS: ${key} -> ${value ? 'found' : 'null'}`);
         return value;
       });
 
@@ -46,18 +43,15 @@ export const capacitorStorage: SupabaseClientOptions<'public'>['auth']['storage'
 
   async setItem(key: string, value: string): Promise<void> {
     try {
-      console.log(`[CapacitorStorage] 💾 setItem START: ${key}`);
 
       // Add timeout
       const timeoutPromise = new Promise<void>((resolve) => {
         setTimeout(() => {
-          console.error(`[CapacitorStorage] ⏱️ TIMEOUT setting ${key}`);
           resolve();
         }, 5000);
       });
 
       const setPromise = Preferences.set({ key, value }).then(() => {
-        console.log(`[CapacitorStorage] ✅ setItem SUCCESS: ${key} -> saved`);
       });
 
       await Promise.race([setPromise, timeoutPromise]);
@@ -71,18 +65,15 @@ export const capacitorStorage: SupabaseClientOptions<'public'>['auth']['storage'
 
   async removeItem(key: string): Promise<void> {
     try {
-      console.log(`[CapacitorStorage] 🗑️ removeItem START: ${key}`);
 
       // Add timeout
       const timeoutPromise = new Promise<void>((resolve) => {
         setTimeout(() => {
-          console.error(`[CapacitorStorage] ⏱️ TIMEOUT removing ${key}`);
           resolve();
         }, 5000);
       });
 
       const removePromise = Preferences.remove({ key }).then(() => {
-        console.log(`[CapacitorStorage] ✅ removeItem SUCCESS: ${key} -> removed`);
       });
 
       await Promise.race([removePromise, timeoutPromise]);

@@ -301,7 +301,6 @@ export class GoBDHooks {
     // Orders with linked invoices cannot be deleted
     // This would need to check the database for related invoices
     // For now, we'll just create an audit log
-    console.log(`Checking delete permissions for order ${orderId}`);
   }
 
   private static async handleImmutabilityTriggers(
@@ -331,7 +330,6 @@ export class GoBDHooks {
   ): Promise<void> {
     // This is handled in the beforeCreate hooks
     // but we could add additional logic here if needed
-    console.log(`Number sequence handled for ${entityType} ${entityId}`);
   }
 
   private static async handleDocumentHashing(

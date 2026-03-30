@@ -10,7 +10,6 @@ export const generateA4PDF = async (elementId: string, filename: string): Promis
     try {
         const element = document.getElementById(elementId);
         if (!element) {
-            console.error(`Element with id ${elementId} not found`);
             return false;
         }
 

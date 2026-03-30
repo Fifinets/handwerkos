@@ -607,7 +607,6 @@ export class GermanAccountingService {
     userId?: string | number;
   }) {
     // Placeholder für tatsächliche Dunning-Logik
-    console.log('Advancing dunning stage:', params);
     return { ...params, newLevel: params.currentLevel + 1 };
   }
 }

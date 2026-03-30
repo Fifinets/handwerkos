@@ -77,7 +77,6 @@ export function useEmployeePermissions() {
           .single();
 
         if (empError) {
-          console.error('Error fetching employee:', empError);
           setEmployee(null);
           setIsLoading(false);
           return;

@@ -180,9 +180,7 @@ export async function apiCall<T>(
   const requestId = generateRequestId();
   
   try {
-    console.log(`[${requestId}] Starting API operation: ${context || 'Unknown'}`);
     const result = await operation();
-    console.log(`[${requestId}] API operation completed successfully`);
     return result;
   } catch (error) {
     console.error(`[${requestId}] API operation failed:`, error);

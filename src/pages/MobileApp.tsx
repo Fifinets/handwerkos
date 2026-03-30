@@ -13,12 +13,10 @@ const MobileApp = () => {
     // Check authentication status and role
     const checkAuthAndRole = async () => {
       try {
-        console.log('Checking auth and role...');
         const { data: { session } } = await supabase.auth.getSession();
         setIsAuthenticated(!!session);
 
         if (session?.user) {
-          console.log('User found:', session.user.id);
           // Rolle abrufen
           const { data: roleData, error } = await supabase
             .from('user_roles')
@@ -26,7 +24,6 @@ const MobileApp = () => {
             .eq('user_id', session.user.id)
             .maybeSingle(); // Verwende maybeSingle statt single
 
-          console.log('Role data:', roleData, 'Error:', error);
 
           // Wenn keine Rolle gefunden, erstelle einen Default-Eintrag
           let userRole = 'employee';
@@ -35,15 +32,12 @@ const MobileApp = () => {
             userRole = roleData.role;
           } else {
             // Kein Eintrag in user_roles gefunden - behandle als Employee
-            console.log('No role found for user, treating as employee');
             userRole = 'employee';
           }
 
-          console.log('User role:', userRole);
 
           // Manager zu /manager weiterleiten
           if (userRole === 'manager') {
-            console.log('Redirecting manager to /manager');
             navigate('/manager2');
             return; // Wichtig: Return hier, damit wir nicht weitermachen
           }
@@ -57,7 +51,6 @@ const MobileApp = () => {
 
     // Timeout als Fallback
     const timeout = setTimeout(() => {
-      console.log('Auth check timeout - proceeding without auth');
       setIsAuthenticated(false);
       setLoading(false);
     }, 5000);

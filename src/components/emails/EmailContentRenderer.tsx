@@ -26,14 +26,6 @@ export function EmailContentRenderer({ content, className = '' }: EmailContentRe
     
     // Debug logging for development
     if (process.env.NODE_ENV === 'development') {
-      console.log('📧 Email parsing debug:', {
-        hasHtmlContent: !!parsed.htmlContent,
-        hasPlainTextContent: !!parsed.plainTextContent,
-        contentType: parsed.contentType,
-        preferredContent: parsed.preferredContent.substring(0, 200),
-        displayMode,
-        shouldShowHtml: shouldDisplayAsHtml(parsed) && displayMode === 'html'
-      });
     }
     
     let processedContent = '';
@@ -61,7 +53,6 @@ export function EmailContentRenderer({ content, className = '' }: EmailContentRe
         )
       );
       if (process.env.NODE_ENV === 'development') {
-        console.log('📧 Using HTML rendering path');
       }
     } else if (parsed.plainTextContent) {
       // Process plain text content
@@ -75,7 +66,6 @@ export function EmailContentRenderer({ content, className = '' }: EmailContentRe
         }
       );
       if (process.env.NODE_ENV === 'development') {
-        console.log('📧 Using plain text rendering path');
       }
     } else {
       // Fallback - try to detect and preserve HTML
@@ -93,7 +83,6 @@ export function EmailContentRenderer({ content, className = '' }: EmailContentRe
           )
         );
         if (process.env.NODE_ENV === 'development') {
-          console.log('📧 Using fallback HTML rendering path');
         }
       } else {
         processedContent = cleanEmailContent(
@@ -106,7 +95,6 @@ export function EmailContentRenderer({ content, className = '' }: EmailContentRe
           }
         );
         if (process.env.NODE_ENV === 'development') {
-          console.log('📧 Using fallback text rendering path');
         }
       }
     }

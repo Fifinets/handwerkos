@@ -36,7 +36,6 @@ export const useNetworkStatus = () => {
           connectionType: status.connectionType
         });
         
-        console.log('Network status changed:', status);
       }
     });
 

@@ -129,18 +129,14 @@ export class OCRService {
     }
 
     try {
-      console.log('Initialisiere Tesseract Worker...');
       
       // Versuche deutsche und englische Sprache zu laden
       try {
         // Lade beide Sprachen für bessere Erkennung
         this.worker = await createWorker(['deu', 'eng']);
-        console.log('Deutsche und englische Sprachdateien geladen');
       } catch (langError) {
-        console.warn('Mehrsprachige Initialisierung fehlgeschlagen, verwende nur Englisch:', langError);
         try {
           this.worker = await createWorker('eng');
-          console.log('Englische Sprachdatei geladen');
         } catch (engError) {
           console.error('Fallback auf Englisch fehlgeschlagen:', engError);
           throw engError;
@@ -157,7 +153,6 @@ export class OCRService {
         tessedit_min_confidence: '60' // Minimale Konfidenz für Zeichen
       });
       this.isInitialized = true;
-      console.log('OCR Service erfolgreich initialisiert mit optimierten Parametern');
     } catch (error) {
       console.error('Failed to initialize OCR Service:', error);
       throw new ApiError(
@@ -193,7 +188,6 @@ export class OCRService {
       let extractedText = '';
       
       // 2. OCR durchführen mit erweiterten Optionen
-      console.log('Starte OCR-Verarbeitung für Datei:', file.name);
       
       // Führe OCR mit verschiedenen Einstellungen durch für bessere Ergebnisse
       const ocrResult = await this.worker!.recognize(file, {
@@ -207,13 +201,9 @@ export class OCRService {
       // Bereinige den erkannten Text
       const cleanedText = this.cleanOCRText(extractedText);
       
-      console.log(`OCR abgeschlossen - Konfidenz: ${ocrConfidence}%`);
-      console.log('OCR Raw Text (erste 500 Zeichen):', extractedText.substring(0, 500));
-      console.log('Bereinigte Version:', cleanedText.substring(0, 500));
       
       // Prüfe ob OpenAI verfügbar ist
       if (isOpenAIConfigured()) {
-        console.log('Verwende OpenAI Vision API für Extraktion...');
         
         // Verwende OpenAI für intelligente Extraktion (base64 bereits vorhanden)
         try {
@@ -225,7 +215,6 @@ export class OCRService {
             amount: 0.95,
             supplier: 0.95
           };
-          console.log('OpenAI Extraktion erfolgreich!');
         } catch (aiError) {
           console.error('OpenAI fehlgeschlagen, falle zurück auf Regex:', aiError);
           // Fallback auf Regex-Extraktion mit bereinigtem Text
@@ -233,7 +222,6 @@ export class OCRService {
           confidenceScores = this.calculateConfidenceScores(cleanedText, structuredData);
         }
       } else {
-        console.log('OpenAI nicht konfiguriert, verwende erweiterte Regex-Extraktion');
         // 3. Strukturierte Daten extrahieren mit erweitertem Extraktor
         structuredData = EnhancedInvoiceExtractor.extractInvoiceData(cleanedText);
         confidenceScores = this.calculateConfidenceScores(cleanedText, structuredData);
@@ -256,13 +244,10 @@ export class OCRService {
         const existingResults = JSON.parse(localStorage.getItem('ocr_results') || '[]');
         existingResults.push(result);
         localStorage.setItem('ocr_results', JSON.stringify(existingResults));
-        console.log('OCR result saved locally:', result.id);
       } catch (storageError) {
-        console.warn('LocalStorage failed, continuing without storage:', storageError);
       }
 
       // 5. Audit Log (temporär deaktiviert zum Debuggen)
-      console.log('OCR result created successfully:', result.id);
 
       // 6. Event emittieren
       eventBus.emit('OCR_PROCESSED', {
@@ -338,12 +323,6 @@ export class OCRService {
 
       // 3. Audit Log (temporär deaktiviert - Schema-Unterschied)
       try {
-        console.log('Audit log: Invoice created from OCR', {
-          entity_id: invoice.id,
-          invoice_number: validatedData.invoiceNumber,
-          supplier_name: validatedData.supplierName,
-          total_amount: validatedData.totalAmount
-        });
         // await AuditLogService.createAuditLog({
         //   entity_type: 'invoice',
         //   entity_id: invoice.id,
@@ -390,10 +369,8 @@ export class OCRService {
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
         
-        console.log(`Retrieved ${filteredResults.length} OCR results from localStorage`);
         return filteredResults;
       } catch (error) {
-        console.warn('Failed to read from localStorage, returning empty array:', error);
         return [];
       }
     }, 'Get OCR results');
@@ -425,11 +402,6 @@ export class OCRService {
       }
 
       try {
-        console.log('Audit log: OCR result rejected', {
-          entity_id: ocrId,
-          status: 'rejected',
-          reason
-        });
         // await AuditLogService.createAuditLog({
         //   entity_type: 'document',
         //   entity_id: ocrId,
@@ -545,7 +517,6 @@ export class OCRService {
           // Validierung: Position nur hinzufügen wenn sinnvoll
           if (position.quantity > 0 && position.totalPrice > 0) {
             positions.push(position);
-            console.log('Position gefunden:', position);
           }
           break;
         }
@@ -559,7 +530,6 @@ export class OCRService {
     // Original-Text behalten für Positionsextraktion
     const originalText = text;
     const cleanText = text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-    console.log('OCR Clean Text:', cleanText);
     
     // Verbesserte deutsche Rechnungsmuster
     const patterns = {
@@ -660,14 +630,12 @@ export class OCRService {
 
     const extracted: Partial<InvoiceData> = {};
     
-    console.log('Starting extraction from text:', cleanText.substring(0, 200));
 
     // Extrahiere Rechnungsnummer
     for (const pattern of patterns.invoiceNumber) {
       const match = cleanText.match(pattern);
       if (match) {
         extracted.invoiceNumber = match[1].trim();
-        console.log('Rechnungsnummer gefunden:', match[1]);
         break;
       }
     }
@@ -676,7 +644,6 @@ export class OCRService {
       const fallbackMatch = cleanText.match(/2020-001/);
       if (fallbackMatch) {
         extracted.invoiceNumber = fallbackMatch[0];
-        console.log('Rechnungsnummer per Fallback:', fallbackMatch[0]);
       }
     }
 
@@ -750,12 +717,10 @@ export class OCRService {
       const match = cleanText.match(pattern);
       if (match && match[1] && match[1].length > 3) {
         extracted.supplierName = match[1].trim();
-        console.log('Supplier found:', match[1]);
         break;
       }
     }
     if (!extracted.supplierName) {
-      console.log('No supplier found in:', cleanText.substring(0, 100));
     }
 
     // Extrahiere IBAN
@@ -834,7 +799,6 @@ export class OCRService {
     const positions = this.extractInvoicePositions(originalText);
     if (positions.length > 0) {
       extracted.positions = positions;
-      console.log(`${positions.length} Positionen extrahiert`);
     }
     
     // Berechnete Werte
