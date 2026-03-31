@@ -100,31 +100,41 @@ self.addEventListener('sync', (event) => {
 
 // Push Notifications
 self.addEventListener('push', (event) => {
-  const options = {
-    body: event.data ? event.data.text() : 'Neue Benachrichtigung',
+  let title = 'HandwerkOS';
+  let options = {
+    body: 'Neue Benachrichtigung',
     icon: '/icons/icon-192x192.png',
     badge: '/icons/badge-72x72.png',
     vibrate: [100, 50, 100],
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: 1
-    },
+    data: { dateOfArrival: Date.now() },
     actions: [
-      {
-        action: 'explore',
-        title: 'Öffnen',
-        icon: '/icons/checkmark.png'
-      },
-      {
-        action: 'close',
-        title: 'Schließen',
-        icon: '/icons/xmark.png'
-      }
+      { action: 'open', title: 'Öffnen' },
+      { action: 'dismiss', title: 'Verwerfen' }
     ]
   };
 
+  if (event.data) {
+    try {
+      const payload = event.data.json();
+      title = payload.title || title;
+      options.body = payload.body || options.body;
+      options.data = {
+        ...options.data,
+        action_url: payload.data?.action_url || '/',
+        type: payload.data?.type || 'general',
+        priority: payload.data?.priority || 'medium',
+      };
+      if (payload.data?.priority === 'urgent') {
+        options.vibrate = [200, 100, 200, 100, 200];
+        options.requireInteraction = true;
+      }
+    } catch {
+      options.body = event.data.text();
+    }
+  }
+
   event.waitUntil(
-    self.registration.showNotification('HandwerkOS', options)
+    self.registration.showNotification(title, options)
   );
 });
 
@@ -132,18 +142,22 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  if (event.action === 'explore') {
-    // App öffnen
-    event.waitUntil(
-      clients.matchAll().then((clients) => {
-        if (clients.length > 0) {
-          return clients[0].focus();
-        } else {
-          return clients.openWindow('/employee');
+  if (event.action === 'dismiss') return;
+
+  const actionUrl = event.notification.data?.action_url || '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin)) {
+          client.focus();
+          client.navigate(actionUrl);
+          return;
         }
-      })
-    );
-  }
+      }
+      return clients.openWindow(actionUrl);
+    })
+  );
 });
 
 // Sync Offline-Daten mit Server
