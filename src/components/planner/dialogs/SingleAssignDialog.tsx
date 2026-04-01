@@ -71,6 +71,10 @@ export function SingleAssignDialog({
   };
 
   const handleAssign = async () => {
+    if (!companyId) {
+      toast({ title: 'Fehler', description: 'Keine Firma zugeordnet.', variant: 'destructive' });
+      return;
+    }
     if (!employeeId) {
       toast({ title: 'Fehler', description: 'Bitte Mitarbeiter angeben.', variant: 'destructive' });
       return;

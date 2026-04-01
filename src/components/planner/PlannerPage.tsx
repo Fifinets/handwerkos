@@ -83,14 +83,16 @@ export function PlannerPage() {
   const { push: pushUndo, undo: handleUndo, count: undoCount } = useUndoStack(invalidateAll);
 
   // ── Display days ───────────────────────────────────────────
-  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const displayDays = useMemo(() => {
     if (viewMode === 'day') return [currentDate];
-    if (viewMode === 'week') return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+    if (viewMode === 'week') {
+      const ws = startOfWeek(currentDate, { weekStartsOn: 1 });
+      return Array.from({ length: 7 }, (_, i) => addDays(ws, i));
+    }
     const mStart = startOfMonth(currentDate);
     const mEnd = endOfMonth(currentDate);
     return eachDayOfInterval({ start: mStart, end: mEnd });
-  }, [currentDate, viewMode, weekStart]);
+  }, [currentDate, viewMode]);
 
   const isMonth = viewMode === 'month';
 
@@ -267,11 +269,12 @@ export function PlannerPage() {
     const endDate = project.work_end_date || project.end_date || null;
     try {
       for (const member of team) {
-        await supabase
+        const { error } = await supabase
           .from('project_team_assignments')
           .update({ start_date: startDate, end_date: endDate, updated_at: new Date().toISOString() })
           .eq('project_id', project.id)
           .eq('employee_id', member.employee_id);
+        if (error) throw error;
       }
       toast({ title: 'Auto-Planung', description: `${team.length} Mitarbeiter für "${project.name}" eingeplant.` });
       invalidateAll();
@@ -283,14 +286,6 @@ export function PlannerPage() {
   // ── Remove assignment ──────────────────────────────────────
   const handleRemoveAssignment = async (projectId: string, employeeId: string) => {
     if (!confirm('Zuweisung entfernen?')) return;
-    pushUndo({
-      description: 'Zuweisung entfernt',
-      revert: async () => {
-        await supabase.from('project_team_assignments')
-          .update({ is_active: true, updated_at: new Date().toISOString() })
-          .eq('project_id', projectId).eq('employee_id', employeeId);
-      },
-    });
     const { error } = await supabase
       .from('project_team_assignments')
       .update({ is_active: false, updated_at: new Date().toISOString() })
@@ -299,6 +294,14 @@ export function PlannerPage() {
     if (error) {
       toast({ title: 'Fehler', description: error.message, variant: 'destructive' });
     } else {
+      pushUndo({
+        description: 'Zuweisung entfernt',
+        revert: async () => {
+          await supabase.from('project_team_assignments')
+            .update({ is_active: true, updated_at: new Date().toISOString() })
+            .eq('project_id', projectId).eq('employee_id', employeeId);
+        },
+      });
       toast({ title: 'Zuweisung entfernt' });
       invalidateAll();
     }
@@ -358,24 +361,6 @@ export function PlannerPage() {
       : null;
 
     try {
-      pushUndo({
-        description: 'Zuweisung verschoben',
-        revert: async () => {
-          if (sourceEmployeeId === targetEmployeeId) {
-            await supabase.from('project_team_assignments')
-              .update({ start_date: assignmentStartDate, end_date: assignmentEndDate, updated_at: new Date().toISOString() })
-              .eq('project_id', projectId).eq('employee_id', sourceEmployeeId).eq('is_active', true);
-          } else {
-            await supabase.from('project_team_assignments')
-              .update({ is_active: true, start_date: assignmentStartDate, end_date: assignmentEndDate, updated_at: new Date().toISOString() })
-              .eq('project_id', projectId).eq('employee_id', sourceEmployeeId);
-            await supabase.from('project_team_assignments')
-              .update({ is_active: false, updated_at: new Date().toISOString() })
-              .eq('project_id', projectId).eq('employee_id', targetEmployeeId).eq('is_active', true);
-          }
-        },
-      });
-
       if (sourceEmployeeId === targetEmployeeId) {
         await supabase
           .from('project_team_assignments')
@@ -409,6 +394,25 @@ export function PlannerPage() {
             .insert({ project_id: projectId, employee_id: targetEmployeeId, start_date: newStart, end_date: newEnd, is_active: true, role: 'team_member' });
         }
       }
+
+      pushUndo({
+        description: 'Zuweisung verschoben',
+        revert: async () => {
+          if (sourceEmployeeId === targetEmployeeId) {
+            await supabase.from('project_team_assignments')
+              .update({ start_date: assignmentStartDate, end_date: assignmentEndDate, updated_at: new Date().toISOString() })
+              .eq('project_id', projectId).eq('employee_id', sourceEmployeeId).eq('is_active', true);
+          } else {
+            await supabase.from('project_team_assignments')
+              .update({ is_active: true, start_date: assignmentStartDate, end_date: assignmentEndDate, updated_at: new Date().toISOString() })
+              .eq('project_id', projectId).eq('employee_id', sourceEmployeeId);
+            await supabase.from('project_team_assignments')
+              .update({ is_active: false, updated_at: new Date().toISOString() })
+              .eq('project_id', projectId).eq('employee_id', targetEmployeeId).eq('is_active', true);
+          }
+        },
+      });
+
       toast({ title: 'Zuweisung verschoben' });
       invalidateAll();
     } catch (err: any) {

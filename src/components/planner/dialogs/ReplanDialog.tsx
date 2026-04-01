@@ -144,7 +144,11 @@ export function ReplanDialog({
           .eq('project_id', sourceProject.id)
           .eq('employee_id', empId)
       );
-      await Promise.all(deactivatePromises);
+      const deactivateResults = await Promise.all(deactivatePromises);
+      const deactivateErrors = deactivateResults.filter(r => r.error);
+      if (deactivateErrors.length > 0) {
+        toast({ title: 'Teilweise Fehler', description: `${deactivateErrors.length} Deaktivierungen fehlgeschlagen.`, variant: 'destructive' });
+      }
 
       const assignPromises = Array.from(selectedEmployees).map(async (empId) => {
         const { data: existing } = await supabase
@@ -163,7 +167,11 @@ export function ReplanDialog({
             .insert({ project_id: targetProjectId, employee_id: empId, start_date: startDate || null, end_date: endDate || null, is_active: true, role: 'team_member' });
         }
       });
-      await Promise.all(assignPromises);
+      const assignResults = await Promise.all(assignPromises);
+      const assignErrors = assignResults.filter(r => r.error);
+      if (assignErrors.length > 0) {
+        toast({ title: 'Teilweise Fehler', description: `${assignErrors.length} Zuweisungen fehlgeschlagen.`, variant: 'destructive' });
+      }
 
       const targetName = projects.find(p => p.id === targetProjectId)?.name || '';
       toast({ title: 'Team umgeplant', description: `${selectedEmployees.size} MA von "${sourceProject.name}" auf "${targetName}" umgeplant.` });
@@ -196,12 +204,14 @@ export function ReplanDialog({
         .maybeSingle();
 
       if (existing) {
-        await supabase.from('project_team_assignments')
+        const { error } = await supabase.from('project_team_assignments')
           .update({ start_date: projStart || null, end_date: projEnd || null, is_active: true, updated_at: new Date().toISOString() })
           .eq('id', existing.id);
+        if (error) throw error;
       } else {
-        await supabase.from('project_team_assignments')
+        const { error } = await supabase.from('project_team_assignments')
           .insert({ project_id: sourceProject.id, employee_id: replacementEmployeeId, start_date: projStart || null, end_date: projEnd || null, is_active: true, role: 'team_member' });
+        if (error) throw error;
       }
 
       const rep = employees.find(e => e.id === replacementEmployeeId);

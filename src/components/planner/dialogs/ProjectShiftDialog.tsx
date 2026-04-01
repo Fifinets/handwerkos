@@ -82,7 +82,11 @@ export function ProjectShiftDialog({
           .eq('employee_id', a.employee_id)
           .eq('is_active', true);
       });
-      await Promise.all(promises);
+      const results = await Promise.all(promises);
+      const errors = results.filter(r => r.error);
+      if (errors.length > 0) {
+        toast({ title: 'Teilweise Fehler', description: `${errors.length} Zuweisungen fehlgeschlagen.`, variant: 'destructive' });
+      }
 
       toast({ title: 'Projekt verschoben', description: `"${project.name}" um ${shiftDays} Tage verschoben (${activeAssignments.length} Zuweisungen).` });
       onOpenChange(false);

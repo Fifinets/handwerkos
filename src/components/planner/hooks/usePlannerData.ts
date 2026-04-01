@@ -21,6 +21,7 @@ export function usePlannerData() {
       return (data || []) as PlannerEmployee[];
     },
     enabled: !!companyId,
+    staleTime: 30_000,
   });
 
   const projectsQuery = useQuery({
@@ -35,6 +36,7 @@ export function usePlannerData() {
       return (data || []) as PlannerProject[];
     },
     enabled: !!companyId,
+    staleTime: 30_000,
   });
 
   const vacationsQuery = useQuery({
@@ -49,6 +51,7 @@ export function usePlannerData() {
       return (data || []) as VacationRequest[];
     },
     enabled: !!companyId,
+    staleTime: 30_000,
   });
 
   const calendarEventsQuery = useQuery({
@@ -62,6 +65,7 @@ export function usePlannerData() {
       return (data || []) as CalendarEvent[];
     },
     enabled: !!companyId,
+    staleTime: 30_000,
   });
 
   const invalidateAll = () => {
