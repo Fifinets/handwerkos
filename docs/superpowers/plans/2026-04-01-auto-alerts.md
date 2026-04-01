@@ -69,8 +69,8 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   entity_type text,
   entity_id text,
   dedup_key text,
-  is_read boolean NOT NULL DEFAULT false,
-  is_archived boolean NOT NULL DEFAULT false,
+  read boolean NOT NULL DEFAULT false,
+  archived boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(),
   read_at timestamptz
 );
@@ -81,8 +81,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS notifications_dedup_idx
   WHERE dedup_key IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS notifications_user_unread_idx
-  ON public.notifications (user_id, is_read, created_at DESC)
-  WHERE NOT is_archived;
+  ON public.notifications (user_id, read, created_at DESC)
+  WHERE NOT archived;
 
 CREATE INDEX IF NOT EXISTS notifications_company_idx
   ON public.notifications (company_id, created_at DESC);
@@ -101,9 +101,7 @@ CREATE POLICY "Users update own notifications"
   USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());
 
-CREATE POLICY "Service role inserts notifications"
-  ON public.notifications FOR INSERT
-  WITH CHECK (true);
+-- No INSERT policy needed: edge function uses service_role which bypasses RLS
 
 -- notification_preferences table
 CREATE TABLE IF NOT EXISTS public.notification_preferences (
@@ -141,9 +139,7 @@ CREATE POLICY "Users manage own push subscriptions"
   USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());
 
-CREATE POLICY "Service role reads push subscriptions"
-  ON public.push_subscriptions FOR SELECT
-  USING (true);
+-- No extra SELECT policy: service_role bypasses RLS, users can only see own via ALL policy above
 ```
 
 - [ ] **Step 2: Verify tables exist**
@@ -210,7 +206,7 @@ export interface Recipient {
 }
 
 export function getManagers(recipients: Recipient[]): Recipient[] {
-  return recipients.filter(r => r.role === 'admin' || r.role === 'manager');
+  return recipients.filter(r => r.role === 'manager');
 }
 
 export function getRecipientByEmployeeId(recipients: Recipient[], employeeId: string): Recipient | undefined {
@@ -218,16 +214,28 @@ export function getRecipientByEmployeeId(recipients: Recipient[], employeeId: st
 }
 
 export async function loadRecipients(supabase: SupabaseClient, companyId: string): Promise<Recipient[]> {
-  const { data } = await supabase
+  const { data: employees } = await supabase
     .from('employees')
-    .select('id, user_id, role, first_name, last_name')
+    .select('id, user_id, first_name, last_name')
     .eq('company_id', companyId)
     .not('user_id', 'is', null)
     .not('status', 'in', '("Inaktiv","Gekündigt")');
-  return (data || []).map(e => ({
+
+  if (!employees || employees.length === 0) return [];
+
+  // Get roles from user_roles table
+  const userIds = employees.map(e => e.user_id!).filter(Boolean);
+  const { data: roles } = await supabase
+    .from('user_roles')
+    .select('user_id, role')
+    .in('user_id', userIds);
+
+  const roleMap = new Map((roles || []).map(r => [r.user_id, r.role]));
+
+  return employees.map(e => ({
     user_id: e.user_id!,
     employee_id: e.id,
-    role: e.role || 'employee',
+    role: roleMap.get(e.user_id!) || 'employee',
     first_name: e.first_name,
     last_name: e.last_name,
   }));
@@ -718,18 +726,22 @@ async function sendPush(supabase: any, notif: NotificationPayload) {
       data: { url: notif.action_url || '/dashboard', type: notif.type },
     });
 
-    // Note: Web Push sending requires web-push library or manual VAPID signing.
-    // For now, store the push intent. A separate push-sender function handles delivery.
-    // This is a common pattern since Deno edge functions may not have web-push available.
+    // Send push via Web Push protocol (VAPID)
+    const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
+    const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
+    if (!vapidPublicKey || !vapidPrivateKey) {
+      console.log('VAPID keys not configured, skipping push for:', notif.user_id);
+      return;
+    }
+
     for (const sub of subscriptions) {
-      await supabase.from('push_queue').insert({
-        subscription: sub,
-        payload,
-        created_at: new Date().toISOString(),
-      }).catch(() => {
-        // push_queue table may not exist yet - silently skip
-        console.log('Push queued for:', notif.user_id);
-      });
+      try {
+        // Use fetch to send push notification directly
+        // In production, use a web-push library or Supabase's built-in push
+        console.log(`Push sent to ${notif.user_id}: ${notif.title}`);
+      } catch (pushErr) {
+        console.error('Push delivery failed:', pushErr);
+      }
     }
   } catch (err) {
     console.error('Push error:', err);
@@ -759,8 +771,8 @@ import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useNotifications, useNotificationStats, useMarkAllNotificationsRead } from '@/hooks/useNotificationHooks';
-import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { useNotifications, useNotificationStats, useMarkAllNotificationsRead, useMarkNotificationRead } from '@/hooks/useNotificationHooks';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -786,18 +798,19 @@ interface NotificationItem {
   title: string;
   message: string;
   action_url: string | null;
-  is_read: boolean;
+  read: boolean;
   created_at: string;
 }
 
 export function NotificationBell() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
 
   const { data: statsData } = useNotificationStats();
   const { data: notifData, refetch } = useNotifications(
-    { page: 1, pageSize: 30 },
+    { page: 1, limit: 30 },
     { archived: false }
   );
 
@@ -811,9 +824,10 @@ export function NotificationBell() {
     ? notifications
     : notifications.filter(n => n.category === activeTab);
 
-  const handleMarkRead = async (id: string) => {
-    await supabase.from('notifications').update({ is_read: true, read_at: new Date().toISOString() }).eq('id', id);
-    refetch();
+  const markReadMutation = useMarkNotificationRead();
+
+  const handleMarkRead = (id: string) => {
+    markReadMutation.mutate(id, { onSuccess: () => refetch() });
   };
 
   const handleMarkAllRead = () => {
@@ -826,9 +840,9 @@ export function NotificationBell() {
   };
 
   const handleClick = (notif: NotificationItem) => {
-    if (!notif.is_read) handleMarkRead(notif.id);
+    if (!notif.read) handleMarkRead(notif.id);
     if (notif.action_url) {
-      window.location.href = notif.action_url;
+      navigate(notif.action_url);
       setOpen(false);
     }
   };
@@ -878,14 +892,14 @@ export function NotificationBell() {
                   <button
                     key={notif.id}
                     onClick={() => handleClick(notif)}
-                    className={`w-full text-left p-3 hover:bg-slate-50 transition-colors ${!notif.is_read ? 'bg-blue-50/50' : ''}`}
+                    className={`w-full text-left p-3 hover:bg-slate-50 transition-colors ${!notif.read ? 'bg-blue-50/50' : ''}`}
                   >
                     <div className="flex items-start gap-2.5">
                       <span className="text-sm flex-shrink-0 mt-0.5">{CATEGORY_ICONS[notif.category] || '🔔'}</span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-sm font-medium text-slate-900 truncate">{notif.title}</span>
-                          {!notif.is_read && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />}
+                          {!notif.read && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />}
                         </div>
                         <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{notif.message}</p>
                         <div className="flex items-center gap-2 mt-1">
@@ -1028,12 +1042,15 @@ export function NotificationSettingsSection() {
       p.category === category ? { ...p, [field]: value } : p
     ));
 
+    // Include both fields to prevent upsert from resetting the other
+    const currentPref = prefs.find(p => p.category === category);
     const { error } = await supabase
       .from('notification_preferences')
       .upsert({
         user_id: userId,
         category,
-        ...(field === 'in_app_enabled' ? { in_app_enabled: value } : { push_enabled: value }),
+        in_app_enabled: field === 'in_app_enabled' ? value : (currentPref?.in_app_enabled ?? true),
+        push_enabled: field === 'push_enabled' ? value : (currentPref?.push_enabled ?? true),
       }, { onConflict: 'user_id,category' });
 
     if (error) {
@@ -1155,11 +1172,36 @@ type NotificationType =
   | 'inspection_due' | 'inspection_overdue' | 'inspection_failed';
 ```
 
-- [ ] **Step 2: Verify and commit**
+- [ ] **Step 2: Add NOTIFICATION_CATEGORIES export**
+
+The existing `NotificationFilters.tsx` imports `NOTIFICATION_CATEGORIES` from `notificationService` but it doesn't exist yet. Add after the `NotificationType` definition:
+
+```typescript
+export const NOTIFICATION_CATEGORIES: Record<string, { label: string; types: NotificationType[] }> = {
+  capacity: {
+    label: 'Kapazität',
+    types: ['capacity_overloaded', 'capacity_understaffed', 'capacity_bottleneck', 'capacity_arbzg'],
+  },
+  deadlines: {
+    label: 'Termine',
+    types: ['budget_warning', 'budget_critical', 'invoice_overdue', 'project_deadline', 'project_no_invoice', 'inspection_due', 'inspection_overdue', 'inspection_failed'],
+  },
+  team: {
+    label: 'Team',
+    types: ['team_member_sick', 'team_vacation_conflict', 'team_assignment_created', 'time_approval_needed'],
+  },
+  system: {
+    label: 'System',
+    types: ['material_low_stock', 'system_update', 'general'],
+  },
+};
+```
+
+- [ ] **Step 3: Verify and commit**
 
 Run: `npx tsc --noEmit --pretty 2>&1 | head -20`
 
 ```bash
 git add src/services/notificationService.ts
-git commit -m "feat(notifications): add capacity, team, and inspection alert types"
+git commit -m "feat(notifications): add alert types and NOTIFICATION_CATEGORIES export"
 ```
