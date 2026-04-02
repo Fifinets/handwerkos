@@ -15,7 +15,7 @@ import {
 import {
   Calendar as CalendarIcon, Users, Briefcase, Plus, ChevronLeft, ChevronRight,
   Search, Palmtree, X, AlertTriangle, Eye, Zap, Undo2, BarChart3,
-  ArrowRight, CalendarClock,
+  ArrowRight, CalendarClock, Settings, Truck, Gauge, Wrench,
 } from "lucide-react";
 import {
   addDays, addMonths, format, startOfWeek, startOfMonth, endOfMonth,
@@ -47,6 +47,7 @@ export function PlannerPage() {
   // ── Data from React Query ──────────────────────────────────
   const {
     employees, projects, vacations, calendarEvents,
+    devices, equipmentAssignments,
     isLoading, invalidateAll, companyId,
   } = usePlannerData();
 
@@ -140,6 +141,18 @@ export function PlannerPage() {
     vacations.forEach(v => { if (today >= v.start_date && today <= v.end_date) ids.add(v.employee_id); });
     return ids.size;
   }, [vacations]);
+
+  const equipmentInUse = useMemo(() => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const activeDeviceIds = new Set<string>();
+    equipmentAssignments.forEach(a => {
+      if (!a.is_active) return;
+      const start = a.start_date || '';
+      const end = a.end_date || '9999-12-31';
+      if (today >= start && today <= end) activeDeviceIds.add(a.device_id);
+    });
+    return activeDeviceIds.size;
+  }, [equipmentAssignments]);
 
   // ── Unique positions ───────────────────────────────────────
   const uniquePositions = useMemo(() => {
@@ -456,6 +469,7 @@ export function PlannerPage() {
         freeCount={Math.max(0, employees.length - assignedEmployeeIds.size)}
         vacationTodayCount={vacationTodayCount}
         totalConflicts={totalConflictCount}
+        equipmentInUse={equipmentInUse}
         isLoading={isLoading}
       />
 
@@ -780,6 +794,68 @@ export function PlannerPage() {
                       onDrop={handleDrop}
                     />
                   ))
+                )}
+
+                {/* Equipment Section */}
+                {devices.length > 0 && (
+                  <>
+                    <div className="flex border-b-2 border-slate-300 bg-slate-100 sticky top-0 z-10">
+                      <div className="w-48 flex-shrink-0 border-r border-slate-200 p-3 font-semibold text-sm text-slate-700 bg-slate-100 flex items-center gap-2">
+                        <Settings className="h-4 w-4" /> Geräte &amp; Fahrzeuge
+                      </div>
+                      <div className="flex-1" />
+                    </div>
+                    {devices.map(device => {
+                      const assignments = equipmentAssignments.filter(a => a.device_id === device.id);
+                      const Icon = device.category === 'fahrzeug' ? Truck : device.category === 'messgeraet' ? Gauge : Wrench;
+                      return (
+                        <div key={device.id} className="flex border-b border-slate-100 bg-white group/row hover:bg-slate-50/50">
+                          <div className="w-48 flex-shrink-0 border-r border-slate-200 p-2.5 flex items-center gap-2.5 bg-white">
+                            <div className="h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs bg-slate-100 text-slate-600">
+                              <Icon className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm font-medium text-slate-800 truncate block">{device.device_name}</span>
+                              <span className="text-xs text-slate-500 truncate block">{device.current_location || '—'}</span>
+                            </div>
+                          </div>
+                          <div className="flex-1 relative" style={{ minHeight: 48 }}>
+                            <div className="absolute inset-0" style={{ display: 'grid', gridTemplateColumns: `repeat(${displayDays.length}, 1fr)` }}>
+                              {displayDays.map((day, i) => {
+                                const ds = format(day, 'yyyy-MM-dd');
+                                const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                                const isToday = ds === format(new Date(), 'yyyy-MM-dd');
+                                return (
+                                  <div key={i} className={`h-full ${isToday ? 'bg-blue-50/60' : isWeekend ? 'bg-slate-50/80' : ''} ${i > 0 ? 'border-l border-slate-100' : ''}`} />
+                                );
+                              })}
+                            </div>
+                            {assignments.map(a => {
+                              const project = projects.find(p => p.id === a.project_id);
+                              if (!project) return null;
+                              const color = projectColorMap.get(a.project_id) || PROJECT_COLORS[0];
+                              const startStr = a.start_date || (displayDays[0] && format(displayDays[0], 'yyyy-MM-dd'));
+                              const endStr = a.end_date || (displayDays[displayDays.length - 1] && format(displayDays[displayDays.length - 1], 'yyyy-MM-dd'));
+                              const startIdx = displayDays.findIndex(d => format(d, 'yyyy-MM-dd') >= (startStr || ''));
+                              const endIdx = displayDays.findIndex(d => format(d, 'yyyy-MM-dd') > (endStr || ''));
+                              const effectiveStart = Math.max(0, startIdx === -1 ? 0 : startIdx);
+                              const effectiveEnd = endIdx === -1 ? displayDays.length - 1 : endIdx - 1;
+                              if (effectiveEnd < effectiveStart) return null;
+                              const left = (effectiveStart / displayDays.length) * 100;
+                              const width = ((effectiveEnd - effectiveStart + 1) / displayDays.length) * 100;
+                              return (
+                                <div key={a.project_id}
+                                  className={`absolute ${color.bg} ${color.text} border-l-[3px] ${color.border} rounded-r-md pl-1.5 pr-2 py-0.5 text-xs font-semibold truncate shadow-sm z-10 flex items-center`}
+                                  style={{ left: `${left}%`, width: `${width}%`, top: 4, height: 26 }}>
+                                  {project.name}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
                 )}
               </div>
             </CardContent>

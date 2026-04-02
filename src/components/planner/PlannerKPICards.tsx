@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Briefcase, Users, Palmtree, AlertTriangle } from "lucide-react";
+import { Briefcase, Users, Palmtree, AlertTriangle, Settings } from "lucide-react";
 
 function KpiCard({ icon: Icon, iconBg, iconColor, value, label }: {
   icon: any; iconBg: string; iconColor: string; value: string | number; label: string;
@@ -26,11 +26,12 @@ interface PlannerKPICardsProps {
   freeCount: number;
   vacationTodayCount: number;
   totalConflicts: number;
+  equipmentInUse: number;
 }
 
-export function PlannerKPICards({ isLoading, projectCount, assignedCount, freeCount, vacationTodayCount, totalConflicts }: PlannerKPICardsProps) {
+export function PlannerKPICards({ isLoading, projectCount, assignedCount, freeCount, vacationTodayCount, totalConflicts, equipmentInUse }: PlannerKPICardsProps) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-6 gap-4">
       <KpiCard icon={Briefcase} iconBg="bg-blue-50" iconColor="text-blue-600"
         value={isLoading ? '—' : projectCount} label="Aktive Projekte" />
       <KpiCard icon={Users} iconBg="bg-amber-50" iconColor="text-amber-600"
@@ -43,6 +44,8 @@ export function PlannerKPICards({ isLoading, projectCount, assignedCount, freeCo
         iconBg={totalConflicts > 0 ? "bg-red-50" : "bg-slate-50"}
         iconColor={totalConflicts > 0 ? "text-red-600" : "text-slate-400"}
         value={isLoading ? '—' : totalConflicts} label="Konflikte" />
+      <KpiCard icon={Settings} iconBg="bg-slate-50" iconColor="text-slate-600"
+        value={isLoading ? '—' : equipmentInUse} label="Geräte im Einsatz" />
     </div>
   );
 }
