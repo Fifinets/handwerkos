@@ -92,6 +92,19 @@ export const QUERY_KEYS = {
   employees: ['employees'] as const,
   employee: (id: string) => ['employees', id] as const,
 
+  // Planner keys
+  plannerEmployees: (companyId: string) => ['planner', 'employees', companyId] as const,
+  plannerProjects: (companyId: string) => ['planner', 'projects', companyId] as const,
+  plannerVacations: (companyId: string) => ['planner', 'vacations', companyId] as const,
+  plannerCalendarEvents: (companyId: string) => ['planner', 'calendar-events', companyId] as const,
+  plannerDevices: (companyId: string) => ['planner', 'devices', companyId] as const,
+  plannerEquipmentAssignments: (companyId: string) => ['planner', 'equipment-assignments', companyId] as const,
+
+  // Machine/Equipment keys
+  machines: ['machines'] as const,
+  machine: (id: string) => ['machines', id] as const,
+  machineAssignments: (deviceId: string) => ['machines', deviceId, 'assignments'] as const,
+
   // Site Documentation keys
   siteDocEntries: (projectId: string) => ['site-docs', projectId, 'entries'] as const,
   siteDocEntry: (id: string) => ['site-docs', 'entry', id] as const,
