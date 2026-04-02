@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { QUERY_KEYS } from '@/hooks/useQueryKeys';
 import { useQueryClient } from '@tanstack/react-query';
-import type { PlannerProject, PlannerEmployee, VacationRequest, CalendarEvent } from '../types';
+import type { PlannerProject, PlannerEmployee, VacationRequest, CalendarEvent, PlannerDevice, EquipmentAssignment } from '../types';
 
 export function usePlannerData() {
   const { companyId } = useSupabaseAuth();
@@ -68,6 +68,35 @@ export function usePlannerData() {
     staleTime: 30_000,
   });
 
+  const devicesQuery = useQuery({
+    queryKey: QUERY_KEYS.plannerDevices(companyId || ''),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('inspection_devices')
+        .select('id, device_name, category, condition, operating_hours, current_location')
+        .eq('company_id', companyId!)
+        .eq('status', 'active');
+      if (error) throw error;
+      return (data || []) as PlannerDevice[];
+    },
+    enabled: !!companyId,
+    staleTime: 30_000,
+  });
+
+  const equipmentAssignmentsQuery = useQuery({
+    queryKey: QUERY_KEYS.plannerEquipmentAssignments(companyId || ''),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('equipment_assignments')
+        .select('device_id, project_id, start_date, end_date, is_active')
+        .eq('is_active', true);
+      if (error) throw error;
+      return (data || []) as EquipmentAssignment[];
+    },
+    enabled: !!companyId,
+    staleTime: 30_000,
+  });
+
   const invalidateAll = () => {
     if (!companyId) return;
     queryClient.invalidateQueries({ queryKey: ['planner'] });
@@ -78,7 +107,9 @@ export function usePlannerData() {
     projects: projectsQuery.data || [],
     vacations: vacationsQuery.data || [],
     calendarEvents: calendarEventsQuery.data || [],
-    isLoading: employeesQuery.isLoading || projectsQuery.isLoading || vacationsQuery.isLoading || calendarEventsQuery.isLoading,
+    devices: devicesQuery.data || [],
+    equipmentAssignments: equipmentAssignmentsQuery.data || [],
+    isLoading: employeesQuery.isLoading || projectsQuery.isLoading || vacationsQuery.isLoading || calendarEventsQuery.isLoading || devicesQuery.isLoading,
     invalidateAll,
     companyId,
   };

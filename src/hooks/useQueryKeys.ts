@@ -97,6 +97,8 @@ export const QUERY_KEYS = {
   plannerProjects: (companyId: string) => ['planner', 'projects', companyId] as const,
   plannerVacations: (companyId: string) => ['planner', 'vacations', companyId] as const,
   plannerCalendarEvents: (companyId: string) => ['planner', 'calendar-events', companyId] as const,
+  plannerDevices: (companyId: string) => ['planner', 'devices', companyId] as const,
+  plannerEquipmentAssignments: (companyId: string) => ['planner', 'equipment-assignments', companyId] as const,
 
   // Machine/Equipment keys
   machines: ['machines'] as const,
