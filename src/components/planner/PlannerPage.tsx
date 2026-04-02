@@ -710,7 +710,7 @@ export function PlannerPage() {
                               <div className={`p-1.5 text-center font-medium ${isMonth ? 'text-[10px]' : 'text-xs'} ${
                                 holiday ? 'text-rose-600 bg-rose-50' :
                                 isToday ? 'bg-blue-50' :
-                                isWeekend ? 'text-slate-400 bg-slate-50/60' :
+                                isWeekend ? 'text-slate-400 bg-slate-200/60' :
                                 'text-slate-500'
                               }`}>
                                 {isMonth ? (
@@ -726,10 +726,11 @@ export function PlannerPage() {
                                   <>
                                     <div className={isToday ? 'text-blue-500 font-semibold' : ''}>{format(day, 'EEE', { locale: de })}</div>
                                     <div className="flex justify-center mt-0.5">
-                                      <span className={isToday ? 'inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-600 text-white text-[11px] font-bold' : ''}>
-                                        {format(day, 'dd.MM', { locale: de })}
+                                      <span className={isToday ? 'inline-flex items-center justify-center h-7 w-7 rounded-full bg-blue-600 text-white text-xs font-bold' : ''}>
+                                        {format(day, 'dd', { locale: de })}
                                       </span>
                                     </div>
+                                    <div className={`text-[9px] opacity-60 ${isToday ? 'text-blue-600' : ''}`}>{format(day, 'MM.', { locale: de })}</div>
                                     {holiday && <div className="text-[9px] text-rose-500 font-normal truncate">{holiday}</div>}
                                   </>
                                 )}
@@ -826,7 +827,7 @@ export function PlannerPage() {
                                 const isWeekend = day.getDay() === 0 || day.getDay() === 6;
                                 const isToday = ds === format(new Date(), 'yyyy-MM-dd');
                                 return (
-                                  <div key={i} className={`h-full ${isToday ? 'bg-blue-50/60' : isWeekend ? 'bg-slate-50/80' : ''} ${i > 0 ? 'border-l border-slate-100' : ''}`} />
+                                  <div key={i} className={`h-full ${isToday ? 'bg-blue-50/60' : isWeekend ? 'bg-slate-200/50' : ''} ${i > 0 ? 'border-l border-slate-100' : ''}`} />
                                 );
                               })}
                             </div>
@@ -1077,7 +1078,7 @@ const EmployeeRow = React.memo(function EmployeeRow({
             return (
               <div key={i}
                 className={`h-full relative ${
-                  isDropHere ? '' : isToday ? 'bg-blue-50/60' : holiday ? 'bg-rose-50/50' : isWeekend ? 'bg-slate-50/80' : ''
+                  isDropHere ? '' : isToday ? 'bg-blue-50/60' : holiday ? 'bg-rose-50/50' : isWeekend ? 'bg-slate-200/50' : ''
                 } ${i > 0 ? 'border-l border-slate-100' : ''} ${isToday && !isDropHere ? 'border-l border-blue-200' : ''} ${
                   !isDragging ? 'cursor-pointer hover:bg-blue-50/30' : ''
                 } ${isDropHere ? 'bg-blue-100/60 ring-2 ring-inset ring-blue-400' : ''}`}
