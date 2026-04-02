@@ -3,7 +3,8 @@ import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { UserCheck, User, Bell } from 'lucide-react';
+import { UserCheck, User } from 'lucide-react';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { AppSidebarV2 } from "@/components/AppSidebarV2";
 import ExecutiveDashboardV2 from "@/components/ExecutiveDashboardV2";
 import CustomerModuleV2 from "@/components/CustomerModuleV2";
@@ -146,10 +147,7 @@ const IndexV2 = () => {
                     </div>
 
                     <div className="flex items-center space-x-3">
-                        <Button variant="ghost" size="icon" className="text-slate-500 hover:text-slate-700 relative">
-                            <Bell className="h-5 w-5" />
-                            <span className="absolute top-2 right-2.5 w-2 h-2 bg-rose-500 rounded-full border border-white"></span>
-                        </Button>
+                        <NotificationBell />
 
                         <ThemeToggle />
 
