@@ -43,6 +43,8 @@ export function MachineFormDialog({ open, onOpenChange, companyId, device, onSuc
   const [condition, setCondition] = useState<string>('gut');
   const [operatingHours, setOperatingHours] = useState(0);
   const [inspectionInterval, setInspectionInterval] = useState(12);
+  const [purchaseDate, setPurchaseDate] = useState('');
+  const [purchasePrice, setPurchasePrice] = useState<number | ''>('');
 
   useEffect(() => {
     if (open && device) {
@@ -55,10 +57,13 @@ export function MachineFormDialog({ open, onOpenChange, companyId, device, onSuc
       setCondition(device.condition || 'gut');
       setOperatingHours(device.operating_hours || 0);
       setInspectionInterval(device.inspection_interval_months || 12);
+      setPurchaseDate(device.purchase_date || '');
+      setPurchasePrice(device.purchase_price || '');
     } else if (open) {
       setName(''); setCategory('werkzeug'); setManufacturer(''); setModel('');
       setSerialNumber(''); setLocation(''); setCondition('gut'); setOperatingHours(0);
       setInspectionInterval(12);
+      setPurchaseDate(''); setPurchasePrice('');
     }
   }, [open, device]);
 
@@ -82,6 +87,8 @@ export function MachineFormDialog({ open, onOpenChange, companyId, device, onSuc
         condition,
         operating_hours: operatingHours,
         inspection_interval_months: inspectionInterval,
+        purchase_date: purchaseDate || null,
+        purchase_price: purchasePrice || null,
         device_type: category === 'messgeraet' ? 'geraet' : 'geraet' as const,
         updated_at: new Date().toISOString(),
       };
@@ -171,6 +178,17 @@ export function MachineFormDialog({ open, onOpenChange, companyId, device, onSuc
             <div className="space-y-2">
               <Label>Prüfintervall (Monate)</Label>
               <Input type="number" value={inspectionInterval} onChange={e => setInspectionInterval(Number(e.target.value))} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Kaufdatum</Label>
+              <Input type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Anschaffungspreis</Label>
+              <Input type="number" step="0.01" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value ? Number(e.target.value) : '')} placeholder="0.00" />
             </div>
           </div>
         </div>

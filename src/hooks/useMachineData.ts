@@ -80,5 +80,6 @@ export function useDeviceAssignments(deviceId: string) {
       return (data || []) as EquipmentAssignment[];
     },
     enabled: !!deviceId,
+    staleTime: 30_000,
   });
 }

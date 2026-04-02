@@ -83,6 +83,7 @@ export function usePlannerData() {
     staleTime: 30_000,
   });
 
+  // Company-filtered via RLS policy (joins inspection_devices.company_id)
   const equipmentAssignmentsQuery = useQuery({
     queryKey: QUERY_KEYS.plannerEquipmentAssignments(companyId || ''),
     queryFn: async () => {
