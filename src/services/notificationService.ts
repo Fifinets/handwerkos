@@ -4,15 +4,33 @@ import { apiCall, createQuery, validateInput, getCurrentUserProfile, ApiError, A
 import { eventBus } from './eventBus';
 
 // Notification types and interfaces
-export type NotificationType = 
-  | 'budget_warning' 
-  | 'budget_critical' 
-  | 'invoice_overdue' 
-  | 'project_deadline' 
-  | 'time_approval_needed'
-  | 'material_low_stock'
-  | 'system_update'
-  | 'general';
+export type NotificationType =
+  | 'budget_warning' | 'budget_critical' | 'invoice_overdue'
+  | 'project_deadline' | 'project_no_invoice'
+  | 'time_approval_needed' | 'material_low_stock'
+  | 'system_update' | 'general'
+  | 'capacity_overloaded' | 'capacity_understaffed' | 'capacity_bottleneck' | 'capacity_arbzg'
+  | 'team_member_sick' | 'team_vacation_conflict' | 'team_assignment_created'
+  | 'inspection_due' | 'inspection_overdue' | 'inspection_failed';
+
+export const NOTIFICATION_CATEGORIES: Record<string, { label: string; types: NotificationType[] }> = {
+  capacity: {
+    label: 'Kapazität',
+    types: ['capacity_overloaded', 'capacity_understaffed', 'capacity_bottleneck', 'capacity_arbzg'],
+  },
+  deadlines: {
+    label: 'Termine',
+    types: ['budget_warning', 'budget_critical', 'invoice_overdue', 'project_deadline', 'project_no_invoice', 'inspection_due', 'inspection_overdue', 'inspection_failed'],
+  },
+  team: {
+    label: 'Team',
+    types: ['team_member_sick', 'team_vacation_conflict', 'team_assignment_created', 'time_approval_needed'],
+  },
+  system: {
+    label: 'System',
+    types: ['material_low_stock', 'system_update', 'general'],
+  },
+};
 
 export type NotificationPriority = 'low' | 'medium' | 'high' | 'urgent';
 
@@ -71,7 +89,7 @@ export interface NotificationStats {
 // Zod schemas
 const NotificationCreateSchema = z.object({
   user_id: z.string().uuid(),
-  type: z.enum(['budget_warning', 'budget_critical', 'invoice_overdue', 'project_deadline', 'time_approval_needed', 'material_low_stock', 'system_update', 'general']),
+  type: z.enum(['budget_warning', 'budget_critical', 'invoice_overdue', 'project_deadline', 'project_no_invoice', 'time_approval_needed', 'material_low_stock', 'system_update', 'general', 'capacity_overloaded', 'capacity_understaffed', 'capacity_bottleneck', 'capacity_arbzg', 'team_member_sick', 'team_vacation_conflict', 'team_assignment_created', 'inspection_due', 'inspection_overdue', 'inspection_failed']),
   priority: z.enum(['low', 'medium', 'high', 'urgent']),
   title: z.string().min(1).max(200),
   message: z.string().min(1).max(1000),
@@ -270,10 +288,21 @@ export class NotificationService {
         budget_critical: 0,
         invoice_overdue: 0,
         project_deadline: 0,
+        project_no_invoice: 0,
         time_approval_needed: 0,
         material_low_stock: 0,
         system_update: 0,
         general: 0,
+        capacity_overloaded: 0,
+        capacity_understaffed: 0,
+        capacity_bottleneck: 0,
+        capacity_arbzg: 0,
+        team_member_sick: 0,
+        team_vacation_conflict: 0,
+        team_assignment_created: 0,
+        inspection_due: 0,
+        inspection_overdue: 0,
+        inspection_failed: 0,
       };
 
       const notificationsByPriority: Record<NotificationPriority, number> = {

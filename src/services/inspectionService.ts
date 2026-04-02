@@ -477,6 +477,56 @@ class InspectionService {
       return data;
     }, 'Create inspection schedule');
   }
+  // ============================================================================
+  // EQUIPMENT ASSIGNMENTS
+  // ============================================================================
+
+  static async assignDeviceToProject(deviceId: string, projectId: string, startDate: string | null, endDate: string | null, notes?: string) {
+    const { data: existing } = await supabase
+      .from('equipment_assignments')
+      .select('id')
+      .eq('device_id', deviceId)
+      .eq('project_id', projectId)
+      .maybeSingle();
+
+    if (existing) {
+      const { error } = await supabase
+        .from('equipment_assignments')
+        .update({ start_date: startDate, end_date: endDate, is_active: true, notes: notes || null, updated_at: new Date().toISOString() })
+        .eq('id', existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from('equipment_assignments')
+        .insert({ device_id: deviceId, project_id: projectId, start_date: startDate, end_date: endDate, is_active: true, notes: notes || null });
+      if (error) throw error;
+    }
+  }
+
+  static async unassignDeviceFromProject(deviceId: string, projectId: string) {
+    const { error } = await supabase
+      .from('equipment_assignments')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('device_id', deviceId)
+      .eq('project_id', projectId);
+    if (error) throw error;
+  }
+
+  static async updateDeviceCondition(deviceId: string, condition: string) {
+    const { error } = await supabase
+      .from('inspection_devices')
+      .update({ condition, updated_at: new Date().toISOString() })
+      .eq('id', deviceId);
+    if (error) throw error;
+  }
+
+  static async updateOperatingHours(deviceId: string, hours: number) {
+    const { error } = await supabase
+      .from('inspection_devices')
+      .update({ operating_hours: hours, updated_at: new Date().toISOString() })
+      .eq('id', deviceId);
+    if (error) throw error;
+  }
 }
 
 export { InspectionService };

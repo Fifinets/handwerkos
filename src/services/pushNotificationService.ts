@@ -70,10 +70,12 @@ class PushNotificationService {
     }
 
     try {
-      // VAPID Public Key - sollte aus Environment-Variablen kommen
-      const applicationServerKey = this.urlB64ToUint8Array(
-        'BNXzx_QQW9jiYQKnZ8QGfxp2YR4QTHVr5MiOZlJ8dZFjkPJr8J9rVgEoTz5pXbJxJ5rJ8pXQrJ8VGHJrXzPQrJs'
-      );
+      const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+      if (!vapidPublicKey) {
+        console.error('VITE_VAPID_PUBLIC_KEY not configured');
+        return null;
+      }
+      const applicationServerKey = this.urlB64ToUint8Array(vapidPublicKey);
 
       this.subscription = await this.registration.pushManager.subscribe({
         userVisibleOnly: true,
@@ -234,6 +236,32 @@ class PushNotificationService {
       outputArray[i] = rawData.charCodeAt(i);
     }
     return outputArray;
+  }
+
+  async saveSubscriptionToDb(subscription: PushSubscription): Promise<void> {
+    const { supabase } = await import('@/integrations/supabase/client');
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: employee } = await supabase
+      .from('employees')
+      .select('id, company_id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!employee) return;
+
+    await supabase.from('employee_push_tokens').upsert({
+      user_id: user.id,
+      employee_id: employee.id,
+      company_id: employee.company_id,
+      token: JSON.stringify(subscription.toJSON()),
+      platform: 'web',
+      last_used_at: new Date().toISOString(),
+    }, {
+      onConflict: 'user_id,token',
+    });
   }
 
   // Status-Checker
