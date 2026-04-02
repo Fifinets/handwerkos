@@ -48,6 +48,14 @@ Deno.serve(async (req: Request) => {
         allNotifications.push(...check.notifications);
       }
 
+      // Batch-load all preferences for this company's users
+      const userIds = [...new Set(allNotifications.map(n => n.user_id))];
+      const { data: allPrefs } = await supabase
+        .from('notification_preferences')
+        .select('user_id, category, in_app_enabled, push_enabled')
+        .in('user_id', userIds);
+      const prefMap = new Map((allPrefs || []).map(p => [`${p.user_id}:${p.category}`, p]));
+
       // Check user preferences and deduplicate
       let inserted = 0;
       let skippedPref = 0;
@@ -56,14 +64,7 @@ Deno.serve(async (req: Request) => {
       for (const notif of allNotifications) {
         // Check notification preferences
         const category = notif.category || getCategoryFromType(notif.type);
-        const { data: pref } = await supabase
-          .from('notification_preferences')
-          .select('in_app_enabled, push_enabled')
-          .eq('user_id', notif.user_id)
-          .eq('category', category)
-          .maybeSingle();
-
-        // Default: enabled if no preference set
+        const pref = prefMap.get(`${notif.user_id}:${category}`);
         const inAppEnabled = pref?.in_app_enabled ?? true;
         const pushEnabled = pref?.push_enabled ?? true;
 

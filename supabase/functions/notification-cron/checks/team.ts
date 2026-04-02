@@ -11,6 +11,16 @@ export async function checkTeam(
   const todayStr = new Date().toISOString().split('T')[0];
   const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
 
+  // Batch-load all active assignments for this company
+  const { data: allAssignments } = await supabase
+    .from('project_team_assignments')
+    .select('employee_id, project_id, start_date, end_date, is_active, projects(name, company_id)')
+    .eq('is_active', true);
+
+  const companyAssignments = (allAssignments || []).filter(
+    a => (a as any).projects?.company_id === companyId
+  );
+
   // 1. Sick employees on active projects
   const { data: sickToday } = await supabase
     .from('vacation_requests')
@@ -25,16 +35,8 @@ export async function checkTeam(
     const emp = (sick as any).employees;
     const empName = emp ? `${emp.first_name} ${emp.last_name}` : 'Mitarbeiter';
 
-    // Check if this employee has active project assignments covering today
-    const { data: activeAssignments } = await supabase
-      .from('project_team_assignments')
-      .select('project_id, projects(name, company_id)')
-      .eq('employee_id', sick.employee_id)
-      .eq('is_active', true);
-
-    const companyProjects = (activeAssignments || []).filter(
-      a => (a as any).projects?.company_id === companyId
-    );
+    // Filter batch-loaded assignments for this employee
+    const companyProjects = companyAssignments.filter(a => a.employee_id === sick.employee_id);
 
     for (const assignment of companyProjects) {
       const projName = (assignment as any).projects?.name || 'Projekt';
@@ -65,17 +67,13 @@ export async function checkTeam(
     const emp = (vac as any).employees;
     const empName = emp ? `${emp.first_name} ${emp.last_name}` : 'Mitarbeiter';
 
-    const { data: conflicting } = await supabase
-      .from('project_team_assignments')
-      .select('project_id, projects(name, company_id)')
-      .eq('employee_id', vac.employee_id)
-      .eq('is_active', true)
-      .lte('start_date', vac.end_date)
-      .or(`end_date.gte.${vac.start_date},end_date.is.null`);
-
-    const companyConflicts = (conflicting || []).filter(
-      a => (a as any).projects?.company_id === companyId
-    );
+    // Filter batch-loaded assignments for date overlap with vacation
+    const companyConflicts = companyAssignments.filter(a => {
+      if (a.employee_id !== vac.employee_id) return false;
+      const start = a.start_date || '2000-01-01';
+      const end = a.end_date || '2099-12-31';
+      return start <= vac.end_date && end >= vac.start_date;
+    });
 
     if (companyConflicts.length > 0) {
       const projName = (companyConflicts[0] as any).projects?.name || 'Projekt';

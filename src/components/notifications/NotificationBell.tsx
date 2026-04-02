@@ -43,10 +43,11 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
 
-  const { data: statsData } = useNotificationStats();
+  const { data: statsData } = useNotificationStats({ refetchInterval: 60_000 });
   const { data: notifData, refetch } = useNotifications(
     { page: 1, limit: 30 },
-    { archived: false }
+    { archived: false },
+    { refetchInterval: 60_000 } // Poll every 60 seconds
   );
 
   const markAllRead = useMarkAllNotificationsRead();

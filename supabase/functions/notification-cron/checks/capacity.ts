@@ -35,6 +35,9 @@ export async function checkCapacity(
   if (!employees || employees.length === 0) return { notifications, checkName: 'capacity', itemsChecked: 0 };
 
   // Get active project assignments
+  // Note: project_team_assignments has no company_id column.
+  // We filter by company via the projects relation in JS below.
+  // service_role bypasses RLS so we get all companies' data.
   const { data: assignments } = await supabase
     .from('project_team_assignments')
     .select('employee_id, start_date, end_date, is_active, project_id, projects(name, status, company_id)')
