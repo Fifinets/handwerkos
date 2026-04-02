@@ -37,6 +37,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Legend, Area, AreaChart
 } from 'recharts';
+import { UtilizationTrendsTab } from './reports/UtilizationTrendsTab';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
@@ -513,6 +514,10 @@ const ReportsModuleV2: React.FC = () => {
             <Building2 className="h-4 w-4 mr-2" />
             Kunden
           </TabsTrigger>
+          <TabsTrigger value="auslastung" className="data-[state=active]:bg-slate-100">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            Auslastung
+          </TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -929,6 +934,11 @@ const ReportsModuleV2: React.FC = () => {
               </Card>
             </>
           )}
+        </TabsContent>
+
+        {/* Auslastung Tab */}
+        <TabsContent value="auslastung" className="mt-6 space-y-6">
+          <UtilizationTrendsTab />
         </TabsContent>
       </Tabs>
     </div>
