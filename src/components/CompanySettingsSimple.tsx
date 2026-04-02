@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Building2, Mail, Settings, Clock, DollarSign, FileText, Calendar, History } from "lucide-react";
 import { AuditLogViewer } from "./AuditLogViewer";
+import { NotificationSettingsSection } from './notifications/NotificationSettingsSection';
 
 interface CompanySettings {
   id: string;
@@ -457,6 +458,8 @@ export function CompanySettingsSimple() {
                 </div>
               </CardContent>
             </Card>
+
+            <NotificationSettingsSection />
 
             {/* Financial Settings */}
             <Card>
