@@ -31,11 +31,11 @@ export interface TrendSummary {
   trendDelta: number;
 }
 
-interface Assignment {
+interface TimeEntry {
   employee_id: string;
-  start_date: string | null;
-  end_date: string | null;
-  is_active: boolean;
+  start_time: string;
+  end_time: string | null;
+  break_duration: number | null;
 }
 
 interface Vacation {
@@ -57,16 +57,20 @@ export function useUtilizationTrends() {
   const dataQuery = useQuery({
     queryKey: ['utilization-trends', companyId],
     queryFn: async () => {
-      const [empRes, assignRes, vacRes] = await Promise.all([
+      // Load 12 months of time entries (actual hours worked)
+      const twelveMonthsAgo = subMonths(new Date(), 12).toISOString();
+      const [empRes, timeRes, vacRes] = await Promise.all([
         supabase
           .from('employees')
           .select('id, first_name, last_name, position')
           .eq('company_id', companyId!)
           .not('status', 'in', '("Inaktiv","Gekündigt")'),
         supabase
-          .from('project_team_assignments')
-          .select('employee_id, start_date, end_date, is_active')
-          .eq('is_active', true),
+          .from('time_entries')
+          .select('employee_id, start_time, end_time, break_duration')
+          .eq('company_id', companyId!)
+          .not('end_time', 'is', null)
+          .gte('start_time', twelveMonthsAgo),
         supabase
           .from('vacation_requests')
           .select('employee_id, start_date, end_date')
@@ -75,7 +79,7 @@ export function useUtilizationTrends() {
       ]);
       return {
         employees: (empRes.data || []) as Employee[],
-        assignments: (assignRes.data || []) as Assignment[],
+        timeEntries: (timeRes.data || []) as TimeEntry[],
         vacations: (vacRes.data || []) as Vacation[],
       };
     },
@@ -92,7 +96,20 @@ export function useUtilizationTrends() {
       };
     }
 
-    const { employees, assignments, vacations } = dataQuery.data;
+    const { employees, timeEntries, vacations } = dataQuery.data;
+
+    // Pre-index time entries by employee+date for fast lookup
+    const timeByEmpDate = new Map<string, number>(); // 'empId:yyyy-MM-dd' → hours worked
+    for (const entry of timeEntries) {
+      if (!entry.end_time) continue;
+      const start = new Date(entry.start_time);
+      const end = new Date(entry.end_time);
+      const breakMin = entry.break_duration || 0;
+      const hoursWorked = Math.max(0, (end.getTime() - start.getTime()) / (1000 * 60 * 60) - breakMin / 60);
+      const dateKey = format(start, 'yyyy-MM-dd');
+      const key = `${entry.employee_id}:${dateKey}`;
+      timeByEmpDate.set(key, (timeByEmpDate.get(key) || 0) + hoursWorked);
+    }
     const now = new Date();
     const months: { start: Date; end: Date; key: string; label: string }[] = [];
 
@@ -144,14 +161,9 @@ export function useUtilizationTrends() {
             continue;
           }
 
-          // Check assignment (any active project)
-          const isAssigned = assignments.some(a => {
-            if (a.employee_id !== emp.id) return false;
-            const start = a.start_date || '2000-01-01';
-            const end = a.end_date || '2099-12-31';
-            return ds >= start && ds <= end;
-          });
-          if (isAssigned) assignedDays++;
+          // Check actual hours worked (from time_entries)
+          const hoursWorked = timeByEmpDate.get(`${emp.id}:${ds}`) || 0;
+          if (hoursWorked > 0) assignedDays++;
         }
 
         const available = workDays - absentDays;
