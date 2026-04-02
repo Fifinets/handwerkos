@@ -48,6 +48,23 @@ export interface CalendarEvent {
   assigned_employees: string[] | null;
 }
 
+export interface PlannerDevice {
+  id: string;
+  device_name: string;
+  category: 'werkzeug' | 'fahrzeug' | 'messgeraet';
+  condition: string;
+  operating_hours: number;
+  current_location: string | null;
+}
+
+export interface EquipmentAssignment {
+  device_id: string;
+  project_id: string;
+  start_date: string | null;
+  end_date: string | null;
+  is_active: boolean;
+}
+
 export interface DragPayload {
   projectId: string;
   employeeId: string;
@@ -61,6 +78,6 @@ export interface UndoEntry {
   revert: () => Promise<void>;
 }
 
-export type EntryType = 'project' | 'vacation' | 'sick';
+export type EntryType = 'project' | 'vacation' | 'sick' | 'equipment';
 export type ViewMode = 'day' | 'week' | 'month';
 export type UtilizationFilter = 'all' | 'overloaded' | 'available';
