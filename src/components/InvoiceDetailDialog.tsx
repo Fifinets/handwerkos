@@ -24,7 +24,8 @@ import {
   Save,
   Plus,
   Trash2,
-  X
+  X,
+  FileCheck
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import InvoicePrintView from "./InvoicePrintView";
@@ -531,6 +532,56 @@ const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
             >
               <Download className="h-4 w-4 mr-2" />
               {pdfGenerating ? 'Erstelle...' : 'PDF'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                if (!fullInvoice?.invoice_number) {
+                  toast({ title: 'Fehler', description: 'Rechnungsnummer fehlt.', variant: 'destructive' });
+                  return;
+                }
+                if (!fullInvoice?.customer_id) {
+                  toast({ title: 'Fehler', description: 'Kein Kunde zugeordnet.', variant: 'destructive' });
+                  return;
+                }
+
+                toast({ title: 'E-Rechnung wird erstellt...' });
+                try {
+                  const { data: { session } } = await supabase.auth.getSession();
+                  const response = await fetch(
+                    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-zugferd-invoice`,
+                    {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session?.access_token}`,
+                      },
+                      body: JSON.stringify({ invoice_id: fullInvoice.id }),
+                    }
+                  );
+
+                  if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || 'E-Rechnung fehlgeschlagen');
+                  }
+
+                  const blob = await response.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `${fullInvoice.invoice_number}_ZUGFeRD.pdf`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  toast({ title: 'E-Rechnung erstellt', description: `${fullInvoice.invoice_number}_ZUGFeRD.pdf heruntergeladen.` });
+                } catch (err: any) {
+                  toast({ title: 'Fehler', description: err.message || 'E-Rechnung konnte nicht erstellt werden.', variant: 'destructive' });
+                }
+              }}
+              className="text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+            >
+              <FileCheck className="h-4 w-4 mr-1" />
+              E-Rechnung
             </Button>
             <Button variant="outline" size="sm">
               <Mail className="h-4 w-4 mr-2" />
