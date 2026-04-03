@@ -21,8 +21,9 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Trash2, Camera, Package, Clock, Save, AlertTriangle, Info, Users, Euro, X } from 'lucide-react';
+import { Plus, Trash2, Camera, Package, Clock, Save, AlertTriangle, Info, Users, Euro, X, Ruler } from 'lucide-react';
 import { useDeliveryNotes, type DeliveryNote } from '@/hooks/useDeliveryNotes';
+import { AufmassTab, type AufmassItem } from './AufmassTab';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -108,6 +109,7 @@ export function DeliveryNoteForm({
 
   const [materials, setMaterials] = useState<MaterialItem[]>([]);
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [aufmassItems, setAufmassItems] = useState<AufmassItem[]>([]);
   const [activeTab, setActiveTab] = useState('details');
   const [submitting, setSubmitting] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -265,6 +267,7 @@ export function DeliveryNoteForm({
       });
       setMaterials([]);
       setPhotos([]);
+      setAufmassItems([]);
       setSelectedEmployeeIds([]);
       setActiveTab('details');
     }
@@ -510,7 +513,7 @@ export function DeliveryNoteForm({
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="details" className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
               Arbeitszeit
@@ -523,6 +526,10 @@ export function DeliveryNoteForm({
                   {materialBrutto.toFixed(0)}€
                 </span>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="aufmass" className="flex items-center gap-2">
+              <Ruler className="h-4 w-4" />
+              Aufmaß ({aufmassItems.length})
             </TabsTrigger>
             <TabsTrigger value="photos" className="flex items-center gap-2">
               <Camera className="h-4 w-4" />
@@ -930,6 +937,15 @@ export function DeliveryNoteForm({
                 )}
               </div>
             )}
+          </TabsContent>
+
+          {/* ---- AUFMASS TAB ---- */}
+          <TabsContent value="aufmass" className="space-y-4 mt-4 min-h-[600px]">
+            <AufmassTab
+              projectId={selectedProjectId || null}
+              items={aufmassItems}
+              onItemsChange={setAufmassItems}
+            />
           </TabsContent>
 
           {/* ---- PHOTOS TAB ---- */}

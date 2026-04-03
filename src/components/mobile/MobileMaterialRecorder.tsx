@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import {
   Package,
@@ -16,12 +17,25 @@ import {
   AlertTriangle,
   Camera,
   Boxes,
-  TrendingDown
+  TrendingDown,
+  Ruler
 } from "lucide-react"
 import { useMaterials } from "@/hooks/useMaterials"
 import { toast } from "sonner"
 import { Geolocation } from '@capacitor/geolocation'
 import { Camera as CapacitorCamera, CameraResultType } from '@capacitor/camera'
+
+/**
+ * Computes the deviation color class between planned and actual quantities.
+ * Green: within +/-5%, Amber: within +/-20%, Red: >20%
+ */
+function getDeviationColor(planned: number, actual: number): { bg: string; text: string; label: string } {
+  if (planned <= 0) return { bg: 'bg-gray-50', text: 'text-gray-600', label: '' }
+  const deviation = Math.abs((actual - planned) / planned)
+  if (deviation <= 0.05) return { bg: 'bg-green-50', text: 'text-green-700', label: 'Im Rahmen' }
+  if (deviation <= 0.20) return { bg: 'bg-amber-50', text: 'text-amber-700', label: 'Abweichung' }
+  return { bg: 'bg-red-50', text: 'text-red-700', label: 'Starke Abweichung' }
+}
 
 interface MobileMaterialRecorderProps {
   projectId: string
@@ -54,6 +68,21 @@ const MobileMaterialRecorder: React.FC<MobileMaterialRecorderProps> = ({
   const [showConfirm, setShowConfirm] = useState(false)
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [photoData, setPhotoData] = useState<string | null>(null)
+
+  // Aufmass mode state
+  const [aufmassMode, setAufmassMode] = useState(false)
+  const [plannedQuantity, setPlannedQuantity] = useState('')
+  const [measurementNote, setMeasurementNote] = useState('')
+
+  // Deviation indicator for Aufmass mode
+  const deviation = useMemo(() => {
+    const planned = parseFloat(plannedQuantity)
+    const actual = parseFloat(quantity)
+    if (aufmassMode && !isNaN(planned) && !isNaN(actual) && planned > 0) {
+      return getDeviationColor(planned, actual)
+    }
+    return null
+  }, [aufmassMode, plannedQuantity, quantity])
 
   // Get filtered materials
   const filteredMaterials = searchQuery ? searchMaterials(searchQuery) : materials
@@ -117,16 +146,31 @@ const MobileMaterialRecorder: React.FC<MobileMaterialRecorderProps> = ({
       return
     }
 
-    const result = await recordMaterialUsage({
+    // Build notes: append measurement note if in Aufmass mode
+    const combinedNotes = aufmassMode && measurementNote
+      ? (notes ? `${notes} | Aufmass: ${measurementNote}` : `Aufmass: ${measurementNote}`)
+      : notes || undefined
+
+    const usageData: Record<string, unknown> = {
       project_id: projectId,
       material_id: selectedMaterial.id,
       employee_id: '', // Will be set in hook
       quantity: quantityNum,
       unit_price: selectedMaterial.unit_price,
-      notes: notes || undefined,
+      notes: combinedNotes,
       used_at: new Date().toISOString(),
-      location: currentLocation || undefined
-    })
+      location: currentLocation || undefined,
+    }
+
+    // Include Aufmass data when mode is active
+    if (aufmassMode) {
+      const plannedNum = parseFloat(plannedQuantity)
+      usageData.planned_quantity = isNaN(plannedNum) ? undefined : plannedNum
+      usageData.actual_quantity = quantityNum
+      usageData.measurement_note = measurementNote || undefined
+    }
+
+    const result = await recordMaterialUsage(usageData as any)
 
     if (result.success) {
       // Reset form
@@ -135,6 +179,8 @@ const MobileMaterialRecorder: React.FC<MobileMaterialRecorderProps> = ({
       setNotes('')
       setShowConfirm(false)
       setPhotoData(null)
+      setPlannedQuantity('')
+      setMeasurementNote('')
 
       if (onMaterialAdded) {
         onMaterialAdded()
@@ -152,6 +198,8 @@ const MobileMaterialRecorder: React.FC<MobileMaterialRecorderProps> = ({
     setNotes('')
     setShowConfirm(false)
     setPhotoData(null)
+    setPlannedQuantity('')
+    setMeasurementNote('')
   }
 
   return (
@@ -279,9 +327,49 @@ const MobileMaterialRecorder: React.FC<MobileMaterialRecorderProps> = ({
                   </CardContent>
                 </Card>
 
+                {/* Aufmass Toggle */}
+                <div className="flex items-center justify-between rounded-lg border p-3">
+                  <div className="flex items-center gap-2">
+                    <Ruler className="h-4 w-4 text-gray-600" />
+                    <Label htmlFor="aufmass-mode" className="cursor-pointer font-medium">
+                      Aufmaß-Modus
+                    </Label>
+                  </div>
+                  <Switch
+                    id="aufmass-mode"
+                    checked={aufmassMode}
+                    onCheckedChange={setAufmassMode}
+                  />
+                </div>
+
                 <div className="space-y-3">
+                  {/* Aufmass: Geplant (read-only planned quantity) */}
+                  {aufmassMode && (
+                    <div>
+                      <Label htmlFor="planned-quantity">Geplant</Label>
+                      <div className="flex gap-2 mt-1">
+                        <Input
+                          id="planned-quantity"
+                          type="number"
+                          inputMode="decimal"
+                          step="any"
+                          placeholder="Geplante Menge"
+                          value={plannedQuantity}
+                          onChange={(e) => setPlannedQuantity(e.target.value)}
+                          className="flex-1 bg-gray-50"
+                        />
+                        <div className="flex items-center px-3 bg-gray-100 rounded-md">
+                          <span className="text-sm font-medium">{selectedMaterial.unit}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Quantity / Tatsaechlich */}
                   <div>
-                    <Label htmlFor="quantity">Menge *</Label>
+                    <Label htmlFor="quantity">
+                      {aufmassMode ? 'Tatsächlich *' : 'Menge *'}
+                    </Label>
                     <div className="flex gap-2 mt-1">
                       <Input
                         id="quantity"
@@ -298,6 +386,42 @@ const MobileMaterialRecorder: React.FC<MobileMaterialRecorderProps> = ({
                       </div>
                     </div>
                   </div>
+
+                  {/* Aufmass deviation indicator */}
+                  {aufmassMode && deviation && (
+                    <Card className={`${deviation.bg} border-0`}>
+                      <CardContent className="p-3">
+                        <div className={`flex items-center justify-between text-sm ${deviation.text}`}>
+                          <span className="font-medium">{deviation.label}</span>
+                          <span>
+                            {(() => {
+                              const planned = parseFloat(plannedQuantity)
+                              const actual = parseFloat(quantity)
+                              if (isNaN(planned) || planned <= 0 || isNaN(actual)) return ''
+                              const pct = ((actual - planned) / planned) * 100
+                              const sign = pct >= 0 ? '+' : ''
+                              return `${sign}${pct.toFixed(1)}%`
+                            })()}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Aufmass: measurement note */}
+                  {aufmassMode && (
+                    <div>
+                      <Label htmlFor="measurement-note">Notiz (Aufmaß)</Label>
+                      <Textarea
+                        id="measurement-note"
+                        placeholder="z.B. Abweichungsgrund, Nachbestellung nötig..."
+                        value={measurementNote}
+                        onChange={(e) => setMeasurementNote(e.target.value)}
+                        className="mt-1"
+                        rows={2}
+                      />
+                    </div>
+                  )}
 
                   <div>
                     <Label htmlFor="notes">Notizen (optional)</Label>

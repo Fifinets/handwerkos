@@ -24,7 +24,8 @@ import {
   ChevronRight,
   Check,
   AlertCircle,
-  Euro
+  Euro,
+  Ruler
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -114,6 +115,8 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
   const [deliveryNotes, setDeliveryNotes] = useState<DeliveryNoteData[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntryData[]>([]);
   const [projectMaterials, setProjectMaterials] = useState<ProjectMaterialData[]>([]);
+  // Aufmaß: map from offer item description to actual_quantity
+  const [aufmassMap, setAufmassMap] = useState<Record<string, number>>({});
 
   // Selections
   const [selectedOffers, setSelectedOffers] = useState<string[]>([]);
@@ -282,6 +285,22 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
       }));
       setProjectMaterials(processedMat);
 
+      // Load Aufmaß data: delivery_note_items with actual_quantity set
+      // These are linked to delivery_notes for this project
+      const { data: aufmassData } = await supabase
+        .from('delivery_note_items')
+        .select('material_name, actual_quantity, delivery_note_id, delivery_notes!inner(project_id)')
+        .eq('delivery_notes.project_id', projectId)
+        .not('actual_quantity', 'is', null) as { data: Array<{ material_name: string | null; actual_quantity: number }> | null };
+
+      const newAufmassMap: Record<string, number> = {};
+      (aufmassData || []).forEach((item) => {
+        if (item.material_name && item.actual_quantity != null) {
+          newAufmassMap[item.material_name] = item.actual_quantity;
+        }
+      });
+      setAufmassMap(newAufmassMap);
+
     } catch (error) {
       console.error('Error loading project data:', error);
       toast({
@@ -306,13 +325,14 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
   const calculateTotals = () => {
     let netTotal = 0;
 
-    // From offers
+    // From offers (use Aufmaß actual_quantity when available)
     if (includeOfferItems) {
       selectedOffers.forEach(offerId => {
         const offer = offers.find(o => o.id === offerId);
         if (offer) {
           offer.items.forEach(item => {
-            netTotal += item.quantity * item.unit_price_net;
+            const qty = aufmassMap[item.description] ?? item.quantity;
+            netTotal += qty * item.unit_price_net;
           });
         }
       });
@@ -435,19 +455,21 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
       let positionNumber = 1;
 
       // 1. Offer items first (contract items, no date grouping)
+      //    Use Aufmaß actual_quantity when available
       if (includeOfferItems) {
         selectedOffers.forEach(offerId => {
           const offer = offers.find(o => o.id === offerId);
           if (offer) {
             offer.items.forEach(item => {
+              const qty = aufmassMap[item.description] ?? item.quantity;
               docItems.push({
                 invoice_id: invoiceData.id,
                 position: positionNumber++,
                 description: item.description,
-                quantity: item.quantity,
+                quantity: qty,
                 unit: item.unit,
                 unit_price: item.unit_price_net,
-                total_price: item.quantity * item.unit_price_net,
+                total_price: qty * item.unit_price_net,
                 company_id: companyId
               });
             });
@@ -752,6 +774,14 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
                 2. Konfigurieren
               </span>
             </div>
+
+            {/* Aufmaß info banner */}
+            {Object.keys(aufmassMap).length > 0 && (
+              <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm text-blue-800">
+                <Ruler className="h-4 w-4 flex-shrink-0 text-blue-600" />
+                <span>{"Aufmaß-Daten vorhanden \u2014 tatsächliche Mengen werden verwendet"}</span>
+              </div>
+            )}
 
             {step === 'select' && (
               <>
