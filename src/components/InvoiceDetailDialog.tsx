@@ -50,6 +50,9 @@ interface Invoice {
   paid_at: string | null;
   sent_at: string | null;
   payment_terms: string | null;
+  reminder_level?: number | null;
+  reminder_count?: number | null;
+  last_reminder_sent_at?: string | null;
   service_period_start: string | null;
   service_period_end: string | null;
   customer_id: string | null;
@@ -463,6 +466,16 @@ const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
                     <StatusIcon className="h-3 w-3 mr-1" />
                     {statusConfig.label}
                   </Badge>
+                  {(fullInvoice.reminder_level ?? 0) > 0 && (
+                    <Badge className={
+                      fullInvoice.reminder_level === 1 ? 'bg-amber-100 text-amber-800 border-amber-200' :
+                      fullInvoice.reminder_level === 2 ? 'bg-orange-100 text-orange-800 border-orange-200' :
+                      'bg-red-100 text-red-800 border-red-200'
+                    }>
+                      {fullInvoice.reminder_level === 1 ? 'Zahlungserinnerung' :
+                       fullInvoice.reminder_level === 2 ? '1. Mahnung' : '2. Mahnung'}
+                    </Badge>
+                  )}
                   {hasUnsavedChanges && (
                     <Badge className="bg-amber-100 text-amber-700 border-amber-200 animate-pulse">
                       Ungespeichert
@@ -583,6 +596,38 @@ const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
               <FileCheck className="h-4 w-4 mr-1" />
               E-Rechnung
             </Button>
+            {(fullInvoice.status === 'sent' || fullInvoice.status === 'overdue') && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  const level = fullInvoice.reminder_level || 1;
+                  const levelText = level === 1 ? 'Zahlungserinnerung' : level === 2 ? '1. Mahnung' : '2. Mahnung';
+
+                  const { error } = await supabase
+                    .from('invoices')
+                    .update({
+                      reminder_level: Math.max(level, 1),
+                      reminder_count: (fullInvoice.reminder_count || 0) + 1,
+                      last_reminder_sent_at: new Date().toISOString(),
+                      updated_at: new Date().toISOString(),
+                    })
+                    .eq('id', fullInvoice.id);
+
+                  if (error) {
+                    toast({ title: 'Fehler', description: error.message, variant: 'destructive' });
+                  } else {
+                    toast({ title: `${levelText} gesendet`, description: `Mahnung für ${fullInvoice.invoice_number} wurde vermerkt.` });
+                    if (typeof onUpdate === 'function') onUpdate();
+                    fetchInvoiceDetails();
+                  }
+                }}
+                className="text-orange-700 border-orange-200 hover:bg-orange-50"
+              >
+                <Mail className="h-4 w-4 mr-1" />
+                Mahnung senden
+              </Button>
+            )}
             <Button variant="outline" size="sm">
               <Mail className="h-4 w-4 mr-2" />
               E-Mail
