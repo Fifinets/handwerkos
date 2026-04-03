@@ -183,7 +183,7 @@ Deno.serve(async (req: Request) => {
 
     // Totals
     y -= 10;
-    page.drawLine({ start: { x: margin + 350, y + 6 }, end: { x: width - margin, y + 6 }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
+    page.drawLine({ start: { x: margin + 350, y: y + 6 }, end: { x: width - margin, y: y + 6 }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
     page.drawText('Netto:', { x: margin + 350, y: y - 4, size: 10, font });
     page.drawText(`${zugferdData.netAmount.toFixed(2)} €`, { x: colX[5], y: y - 4, size: 10, font });
     y -= 18;
