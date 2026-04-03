@@ -3,11 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Mail, Settings, Clock, DollarSign, FileText, Calendar, History } from "lucide-react";
+import { Building2, Mail, Settings, Clock, DollarSign, FileText, Calendar, History, Bell } from "lucide-react";
 import { AuditLogViewer } from "./AuditLogViewer";
 import { NotificationSettingsSection } from './notifications/NotificationSettingsSection';
 
@@ -38,6 +39,11 @@ interface CompanySettings {
   project_prefix?: string;
   default_currency?: string;
   default_tax_rate?: number;
+  // Mahnwesen
+  auto_reminders_enabled?: boolean;
+  reminder_days_1?: number;
+  reminder_days_2?: number;
+  reminder_days_3?: number;
 }
 
 export function CompanySettingsSimple() {
@@ -78,6 +84,11 @@ export function CompanySettingsSimple() {
         invoice_prefix: "RE",
         quote_prefix: "AN",
         project_prefix: "PR",
+        // Mahnwesen defaults
+        auto_reminders_enabled: false,
+        reminder_days_1: 3,
+        reminder_days_2: 14,
+        reminder_days_3: 28,
         is_active: true,
       };
 
@@ -194,6 +205,11 @@ export function CompanySettingsSimple() {
         invoice_prefix: settings.invoice_prefix,
         quote_prefix: settings.quote_prefix,
         project_prefix: settings.project_prefix,
+        // Mahnwesen
+        auto_reminders_enabled: settings.auto_reminders_enabled,
+        reminder_days_1: settings.reminder_days_1,
+        reminder_days_2: settings.reminder_days_2,
+        reminder_days_3: settings.reminder_days_3,
       };
       
       
@@ -225,7 +241,7 @@ export function CompanySettingsSimple() {
     }
   };
 
-  const updateSetting = (key: keyof CompanySettings, value: string | number) => {
+  const updateSetting = (key: keyof CompanySettings, value: string | number | boolean) => {
     if (settings) {
       setSettings({ ...settings, [key]: value });
     }
@@ -460,6 +476,69 @@ export function CompanySettingsSimple() {
             </Card>
 
             <NotificationSettingsSection />
+
+            {/* Mahnwesen */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5" />
+                  Mahnwesen
+                </CardTitle>
+                <CardDescription>
+                  Automatische Zahlungserinnerungen und Mahnungen konfigurieren
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="auto_reminders_enabled">Automatischer Mahnversand</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Zahlungserinnerungen und Mahnungen werden automatisch nach den konfigurierten Fristen versendet
+                    </p>
+                  </div>
+                  <Switch
+                    id="auto_reminders_enabled"
+                    checked={settings.auto_reminders_enabled ?? false}
+                    onCheckedChange={(checked) => updateSetting("auto_reminders_enabled", checked)}
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="reminder_days_1">Zahlungserinnerung nach (Tage)</Label>
+                    <Input
+                      id="reminder_days_1"
+                      type="number"
+                      min="1"
+                      value={settings.reminder_days_1 ?? 3}
+                      onChange={(e) => updateSetting("reminder_days_1", Number(e.target.value))}
+                      placeholder="3"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reminder_days_2">1. Mahnung nach (Tage)</Label>
+                    <Input
+                      id="reminder_days_2"
+                      type="number"
+                      min="1"
+                      value={settings.reminder_days_2 ?? 14}
+                      onChange={(e) => updateSetting("reminder_days_2", Number(e.target.value))}
+                      placeholder="14"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reminder_days_3">2. Mahnung nach (Tage)</Label>
+                    <Input
+                      id="reminder_days_3"
+                      type="number"
+                      min="1"
+                      value={settings.reminder_days_3 ?? 28}
+                      onChange={(e) => updateSetting("reminder_days_3", Number(e.target.value))}
+                      placeholder="28"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Financial Settings */}
             <Card>
