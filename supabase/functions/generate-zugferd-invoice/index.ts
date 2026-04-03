@@ -1,7 +1,7 @@
 // supabase/functions/generate-zugferd-invoice/index.ts
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
-import { PDFDocument, StandardFonts, rgb, PDFName, PDFString, PDFArray, PDFDict, PDFStream, PDFHexString } from 'https://cdn.skypack.dev/pdf-lib@1.17.1';
+import { PDFDocument, StandardFonts, rgb, PDFName, PDFString, PDFHexString } from 'https://esm.sh/pdf-lib@1.17.1';
 import { generateZugferdXml, ZugferdInvoice, ZugferdLineItem } from './zugferd-xml.ts';
 
 const corsHeaders = {
