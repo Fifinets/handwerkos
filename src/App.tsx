@@ -13,6 +13,8 @@ import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
 import MitarbeiterSetupPage from "./pages/MitarbeiterSetupPage";
 import HandwerkerSoftwarePremium from "./pages/HandwerkerSoftwarePremium";
+import LandingPageV2 from "./pages/LandingPageV2";
+import LandingPageLight from "./pages/LandingPageLight";
 import Impressum from "./pages/Impressum";
 import Datenschutz from "./pages/Datenschutz";
 import OfferCreationWizard from "./pages/offers/OfferCreationWizard";
@@ -199,6 +201,8 @@ const App = () => (
               <Route path="/mitarbeiter-setup" element={<MitarbeiterSetupPage />} />
               <Route path="/mitarbeiter-setup" element={<MitarbeiterSetupPage />} />
               <Route path="/handwerkersoftware" element={<HandwerkerSoftwarePremium />} />
+              <Route path="/landingpagev2" element={<LandingPageV2 />} />
+              <Route path="/hell" element={<LandingPageLight />} />
 
 
               {/* Article Module Routes */}

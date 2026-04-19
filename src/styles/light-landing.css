@@ -1,0 +1,276 @@
+/* Light Landing Page Styles — scoped to .light-landing */
+
+.light-landing {
+  --light-bg: #FFFFFF;
+  --light-bg-elevated: #F8FAFC;
+  --light-bg-card: #FFFFFF;
+  --light-bg-subtle: #F1F5F9;
+  --light-accent: #0284C7;
+  --light-accent-hover: #0369A1;
+  --light-accent-glow: rgba(2, 132, 199, 0.25);
+  --light-accent-subtle: rgba(2, 132, 199, 0.08);
+  --light-text: #0F172A;
+  --light-text-muted: #475569;
+  --light-text-dim: #64748B;
+  --light-border: rgba(15, 23, 42, 0.08);
+  --light-border-strong: rgba(15, 23, 42, 0.12);
+  --light-gradient: linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%);
+  --light-gradient-soft: linear-gradient(135deg, #E0F2FE 0%, #F0F9FF 100%);
+
+  background: var(--light-bg);
+  color: var(--light-text);
+  min-height: 100vh;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes light-fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes light-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes light-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes light-glow-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.04); }
+}
+
+/* ===== REVEAL ===== */
+.light-landing .light-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.light-landing .light-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.light-landing .light-stagger-1 { transition-delay: 0ms; }
+.light-landing .light-stagger-2 { transition-delay: 100ms; }
+.light-landing .light-stagger-3 { transition-delay: 200ms; }
+.light-landing .light-stagger-4 { transition-delay: 300ms; }
+
+/* ===== TYPOGRAPHY ===== */
+.light-landing .light-headline {
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  color: var(--light-text);
+}
+
+.light-landing .light-headline-accent {
+  background: var(--light-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.light-landing .light-subline {
+  font-size: clamp(1.0625rem, 1.75vw, 1.375rem);
+  color: var(--light-text-muted);
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.light-landing .light-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: var(--light-accent-subtle);
+  border: 1px solid rgba(2, 132, 199, 0.18);
+  border-radius: 100px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--light-accent);
+  letter-spacing: 0.01em;
+}
+
+/* ===== CARDS ===== */
+.light-landing .light-card {
+  background: var(--light-bg-card);
+  border: 1px solid var(--light-border);
+  border-radius: 20px;
+  transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.light-landing .light-card:hover {
+  border-color: rgba(2, 132, 199, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 24px 48px -16px rgba(2, 132, 199, 0.18),
+              0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.light-landing .light-card-subtle {
+  background: var(--light-bg-elevated);
+  border: 1px solid var(--light-border);
+  border-radius: 20px;
+}
+
+/* ===== BUTTONS ===== */
+.light-landing .light-btn-primary {
+  background: var(--light-gradient);
+  color: #FFFFFF;
+  font-weight: 600;
+  padding: 14px 28px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 4px 14px var(--light-accent-glow);
+  position: relative;
+  overflow: hidden;
+}
+
+.light-landing .light-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px var(--light-accent-glow);
+}
+
+.light-landing .light-btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.light-landing .light-btn-primary:hover::after {
+  opacity: 1;
+}
+
+.light-landing .light-btn-secondary {
+  background: #FFFFFF;
+  color: var(--light-text);
+  font-weight: 500;
+  padding: 14px 28px;
+  border-radius: 12px;
+  border: 1px solid var(--light-border-strong);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.light-landing .light-btn-secondary:hover {
+  border-color: var(--light-accent);
+  color: var(--light-accent);
+  background: var(--light-accent-subtle);
+}
+
+/* ===== HERO ORB ===== */
+.light-landing .light-hero-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  animation: light-glow-pulse 6s ease-in-out infinite;
+}
+
+/* ===== GRID PATTERN BACKGROUND ===== */
+.light-landing .light-grid-bg {
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: center;
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+}
+
+/* ===== STEP NUMBER ===== */
+.light-landing .light-step-number {
+  background: var(--light-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  font-size: 3rem;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+/* ===== SMOOTH SCROLL ===== */
+.light-landing {
+  scroll-behavior: smooth;
+}
+
+/* ===== DETAILS / FAQ ===== */
+.light-landing details.light-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.light-landing details[open] .light-faq-icon {
+  transform: rotate(180deg);
+}
+
+.light-landing .light-faq-icon {
+  transition: transform 0.25s ease;
+}
+
+/* ===== NAV BLUR ===== */
+.light-landing .light-nav {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: saturate(180%) blur(16px);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
+  border-bottom: 1px solid var(--light-border);
+}
+
+/* ===== FEATURE ICON BADGE ===== */
+.light-landing .light-icon-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--light-accent-subtle);
+  color: var(--light-accent);
+  transition: all 0.3s ease;
+}
+
+.light-landing .light-card:hover .light-icon-badge {
+  background: var(--light-accent);
+  color: #FFFFFF;
+  transform: scale(1.05);
+}
+
+/* ===== FINAL CTA GLOW ===== */
+.light-landing .light-cta-hero {
+  background: linear-gradient(135deg, #EFF6FF 0%, #F0F9FF 50%, #E0F2FE 100%);
+  border: 1px solid rgba(2, 132, 199, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.light-landing .light-cta-hero::before {
+  content: '';
+  position: absolute;
+  top: -30%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  aspect-ratio: 1;
+  background: radial-gradient(circle, var(--light-accent-glow) 0%, transparent 60%);
+  filter: blur(60px);
+  pointer-events: none;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .light-landing .light-hero-orb {
+    filter: blur(50px);
+  }
+}
