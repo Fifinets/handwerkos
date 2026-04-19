@@ -1,0 +1,301 @@
+/* Light Landing Page Styles — helle Variante der HandwerkOS Landingpage */
+
+/* ===== COLOR SYSTEM ===== */
+.light-landing {
+  --light-bg: #FFFFFF;
+  --light-bg-elevated: #F8FAFC;
+  --light-bg-subtle: #F1F5F9;
+  --light-bg-card: #FFFFFF;
+  --light-accent: #0891B2;
+  --light-accent-hover: #0E7490;
+  --light-accent-glow: rgba(8, 145, 178, 0.25);
+  --light-accent-subtle: rgba(8, 145, 178, 0.08);
+  --light-text: #0F172A;
+  --light-text-muted: #475569;
+  --light-text-dim: #64748B;
+  --light-border: #E2E8F0;
+  --light-border-strong: #CBD5E1;
+  --light-gradient: linear-gradient(135deg, #06B6D4 0%, #0891B2 100%);
+  --light-gradient-soft: linear-gradient(135deg, #ECFEFF 0%, #F0F9FF 100%);
+  --light-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --light-shadow-md: 0 4px 12px rgba(15, 23, 42, 0.06);
+  --light-shadow-lg: 0 20px 40px rgba(15, 23, 42, 0.08);
+  --light-shadow-glow: 0 10px 40px rgba(8, 145, 178, 0.18);
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes light-fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes light-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes light-glow-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+/* ===== REVEAL ===== */
+.light-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.light-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ===== TYPOGRAPHY ===== */
+.light-landing .light-headline {
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  color: var(--light-text);
+}
+
+.light-landing .light-headline-accent {
+  background: var(--light-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.light-landing .light-subline {
+  font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+  color: var(--light-text-muted);
+  line-height: 1.65;
+}
+
+.light-landing .light-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--light-accent);
+}
+
+/* ===== CARDS ===== */
+.light-landing .light-card {
+  background: var(--light-bg-card);
+  border: 1px solid var(--light-border);
+  border-radius: 16px;
+  box-shadow: var(--light-shadow-sm);
+  transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.light-landing .light-card:hover {
+  border-color: rgba(8, 145, 178, 0.35);
+  transform: translateY(-4px);
+  box-shadow: var(--light-shadow-lg);
+}
+
+.light-landing .light-card-soft {
+  background: var(--light-bg-elevated);
+  border: 1px solid var(--light-border);
+  border-radius: 16px;
+}
+
+/* ===== BUTTONS ===== */
+.light-landing .light-btn-primary {
+  background: var(--light-gradient);
+  color: #FFFFFF;
+  font-weight: 600;
+  padding: 14px 28px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: var(--light-shadow-md);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.light-landing .light-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--light-shadow-glow);
+}
+
+.light-landing .light-btn-secondary {
+  background: #FFFFFF;
+  color: var(--light-text);
+  font-weight: 500;
+  padding: 14px 28px;
+  border-radius: 12px;
+  border: 1px solid var(--light-border-strong);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.light-landing .light-btn-secondary:hover {
+  border-color: var(--light-accent);
+  color: var(--light-accent);
+  background: var(--light-accent-subtle);
+}
+
+.light-landing .light-btn-ghost {
+  background: transparent;
+  color: var(--light-text-muted);
+  font-weight: 500;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.light-landing .light-btn-ghost:hover {
+  color: var(--light-text);
+  background: var(--light-bg-subtle);
+}
+
+/* ===== BADGES ===== */
+.light-landing .light-trust-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: var(--light-accent-subtle);
+  border: 1px solid rgba(8, 145, 178, 0.2);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--light-accent-hover);
+}
+
+.light-landing .light-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--light-bg-subtle);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--light-text-muted);
+}
+
+/* ===== DECOR ===== */
+.light-landing .light-hero-orb {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  opacity: 0.5;
+  animation: light-glow-pulse 6s ease-in-out infinite;
+}
+
+.light-landing .light-hero-orb-cyan {
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, transparent 70%);
+}
+
+.light-landing .light-hero-orb-violet {
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.18) 0%, transparent 70%);
+}
+
+.light-landing .light-grid-bg {
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 75%);
+}
+
+/* ===== STEP FLOW ICON ===== */
+.light-landing .light-flow-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--light-bg-elevated);
+  border: 1px solid var(--light-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--light-text-muted);
+  transition: all 0.25s ease;
+}
+
+.light-landing .light-flow-icon:hover {
+  border-color: var(--light-accent);
+  color: var(--light-accent);
+  background: var(--light-accent-subtle);
+  transform: translateY(-2px);
+}
+
+/* ===== FEATURE ICON ===== */
+.light-landing .light-feature-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--light-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  box-shadow: var(--light-shadow-md);
+}
+
+/* ===== NAV ===== */
+.light-landing .light-nav {
+  backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.85);
+  border-bottom: 1px solid var(--light-border);
+}
+
+/* ===== MOCK DASHBOARD ===== */
+.light-landing .light-mock {
+  background: var(--light-bg-card);
+  border: 1px solid var(--light-border);
+  border-radius: 20px;
+  box-shadow: var(--light-shadow-lg);
+  overflow: hidden;
+}
+
+.light-landing .light-mock-header {
+  background: var(--light-bg-elevated);
+  border-bottom: 1px solid var(--light-border);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.light-landing .light-mock-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* ===== FAQ ===== */
+.light-landing details.light-faq {
+  background: var(--light-bg-card);
+  border: 1px solid var(--light-border);
+  border-radius: 14px;
+  transition: all 0.25s ease;
+}
+
+.light-landing details.light-faq[open] {
+  border-color: rgba(8, 145, 178, 0.3);
+  box-shadow: var(--light-shadow-md);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .light-landing .light-hero-orb {
+    width: 280px;
+    height: 280px;
+  }
+}
