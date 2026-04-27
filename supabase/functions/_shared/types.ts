@@ -37,8 +37,7 @@ export interface AgentTaskRow {
 export interface RouterRequestUser {
   trigger?: 'user';
   message: string;
-  companyId: string;
-  userId: string;
+  // companyId/userId are derived from the JWT, NOT from the body
 }
 
 export interface RouterRequestHeartbeat {
@@ -46,7 +45,7 @@ export interface RouterRequestHeartbeat {
   agent: AgentType;
   action: string;
   payload?: Record<string, unknown>;
-  companyId: string;
+  companyId: string;  // service_role caller is trusted
 }
 
 export type RouterRequest = RouterRequestUser | RouterRequestHeartbeat;
