@@ -1,29 +1,52 @@
 import { assertEquals, assertExists } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import { executeTool, TOOL_SCHEMAS } from './tools.ts';
 
-// Minimaler Fake-Client der die Methoden aufzeichnet
-function createFakeSupabase() {
+// Minimaler Fake-Client der die Methoden aufzeichnet.
+// `customerLookups` simuliert die zwei Customer-Queries (primary auf company_name,
+// fallback auf contact_person) — Tests können das Verhalten pro Run setzen.
+type CustomerLookupResult = { data: unknown; error: unknown };
+
+function createFakeSupabase(opts?: {
+  customerLookups?: CustomerLookupResult[];
+}) {
   const calls: Array<{ table: string; op: string; args: unknown }> = [];
+  const lookupQueue = [...(opts?.customerLookups ?? [
+    { data: { id: 'cust-1', company_name: 'Müller GmbH', email: 'm@m.de' }, error: null },
+  ])];
   return {
     calls,
     from(table: string) {
       return {
         select() {
+          // Verkettung: select().eq().ilike().limit().maybeSingle()
+          // ODER select().ilike().limit().maybeSingle() (ohne eq)
+          // ODER insert(...).select().single()
+          const eqCall = (col: string, val: unknown) => {
+            calls.push({ table, op: 'select_eq', args: { col, val } });
+            return ilikeChain;
+          };
+          const ilikeCall = (_col: string, val: string) => {
+            calls.push({ table, op: 'select_ilike', args: val });
+            return chainTerminal;
+          };
+          const chainTerminal = {
+            limit() { return chainTerminal; },
+            single: () => Promise.resolve(
+              lookupQueue.shift() ?? { data: null, error: null },
+            ),
+            maybeSingle: () => Promise.resolve(
+              lookupQueue.shift() ?? { data: null, error: null },
+            ),
+          };
+          const ilikeChain = { ilike: ilikeCall, limit: chainTerminal.limit };
+          // Auch der Insert-Pfad braucht .select().single():
           return {
-            ilike(_col: string, val: string) {
-              calls.push({ table, op: 'select_ilike', args: val });
-              return {
-                limit() { return this; },
-                single: () => Promise.resolve({
-                  data: { id: 'cust-1', company_name: 'Müller GmbH', email: 'm@m.de' },
-                  error: null,
-                }),
-                maybeSingle: () => Promise.resolve({
-                  data: { id: 'cust-1', company_name: 'Müller GmbH', email: 'm@m.de' },
-                  error: null,
-                }),
-              };
-            },
+            eq: eqCall,
+            ilike: ilikeCall,
+            single: () => Promise.resolve({
+              data: { id: `${table}-new-id` },
+              error: null,
+            }),
           };
         },
         insert(args: unknown) {
@@ -61,8 +84,44 @@ Deno.test('executeTool: get_customer queries customers and returns row', async (
   const result = await executeTool('get_customer', { name: 'Müller' }, fake as any, 'task-1', 'comp-1');
   // deno-lint-ignore no-explicit-any
   assertEquals((result as any).id, 'cust-1');
+  // Erste Operation muss ein eq('company_id', ...) sein — sonst wäre der
+  // Multi-Tenant-Filter nicht aktiv (Cross-Tenant-Leak via service_role).
   assertEquals(fake.calls[0].table, 'customers');
-  assertEquals(fake.calls[0].op, 'select_ilike');
+  assertEquals(fake.calls[0].op, 'select_eq');
+  // deno-lint-ignore no-explicit-any
+  assertEquals((fake.calls[0].args as any).col, 'company_id');
+  // deno-lint-ignore no-explicit-any
+  assertEquals((fake.calls[0].args as any).val, 'comp-1');
+  assertEquals(fake.calls[1].op, 'select_ilike');
+});
+
+Deno.test('executeTool: get_customer falls back to contact_person when company_name misses', async () => {
+  const fake = createFakeSupabase({
+    customerLookups: [
+      { data: null, error: null }, // primary (company_name) miss
+      { data: { id: 'cust-2', contact_person: 'Hans Schmidt' }, error: null }, // fallback hit
+    ],
+  });
+  // deno-lint-ignore no-explicit-any
+  const result = await executeTool('get_customer', { name: 'Schmidt' }, fake as any, 'task-1', 'comp-1');
+  // deno-lint-ignore no-explicit-any
+  assertEquals((result as any).id, 'cust-2');
+  // Beide Queries hatten company_id Filter:
+  const eqCalls = fake.calls.filter((c) => c.op === 'select_eq');
+  assertEquals(eqCalls.length, 2);
+});
+
+Deno.test('executeTool: get_customer returns error when both queries miss', async () => {
+  const fake = createFakeSupabase({
+    customerLookups: [
+      { data: null, error: null },
+      { data: null, error: null },
+    ],
+  });
+  // deno-lint-ignore no-explicit-any
+  const result = await executeTool('get_customer', { name: 'Nobody' }, fake as any, 'task-1', 'comp-1');
+  // deno-lint-ignore no-explicit-any
+  assertExists((result as any).error);
 });
 
 Deno.test('executeTool: get_wuerth_prices returns mock prices for each item', async () => {

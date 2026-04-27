@@ -101,23 +101,32 @@ export async function executeTool(
 }
 
 async function getCustomer(supabase: SupabaseClient, companyId: string, name: string) {
-  // Suche zuerst in company_name, dann fallback auf contact_person
-  const { data, error } = await supabase
+  // Suche zuerst in company_name, dann fallback auf contact_person.
+  // company_id-Filter ist kritisch: service_role bypasst RLS, also muss der
+  // Tenant-Scope hier explizit gesetzt werden (sonst Cross-Tenant-Leak).
+  const customerColumns = 'id, company_name, contact_person, email, phone, address, city, zip_code';
+  const primary = await supabase
     .from('customers')
-    .select('id, company_name, contact_person, email, phone, address, city, zip_code')
+    .select(customerColumns)
+    .eq('company_id', companyId)
     .ilike('company_name', `%${name}%`)
     .limit(1)
     .maybeSingle();
-  if (error) return { error: error.message };
-  if (data) return data;
+  if (primary.data) return primary.data;
 
   const fallback = await supabase
     .from('customers')
-    .select('id, company_name, contact_person, email, phone, address, city, zip_code')
+    .select(customerColumns)
+    .eq('company_id', companyId)
     .ilike('contact_person', `%${name}%`)
     .limit(1)
     .maybeSingle();
-  return fallback.data ?? { error: `Kein Kunde gefunden für "${name}"` };
+  if (fallback.data) return fallback.data;
+  return {
+    error: primary.error?.message
+      ?? fallback.error?.message
+      ?? `Kein Kunde gefunden für "${name}"`,
+  };
 }
 
 function getWuerthPrices(items: string[]) {
@@ -128,6 +137,10 @@ function getWuerthPrices(items: string[]) {
     einheit: 'Stk',
   }));
 }
+
+// Standard-MwSt für Deutschland. Reduzierter Satz (7%) und Reverse-Charge
+// werden in einer späteren Phase über companies.default_vat_rate konfigurierbar.
+const DEFAULT_VAT_RATE = 19.0;
 
 async function createOffer(
   supabase: SupabaseClient,
@@ -144,8 +157,10 @@ async function createOffer(
   };
   const positionen = (input.positionen as Position[]) ?? [];
   const gesamtNetto = positionen.reduce((sum, p) => sum + p.menge * p.einzelpreis, 0);
-  const vatRate = 19.0;
-  const offerNumber = `KI-${Date.now()}`;
+  const vatRate = DEFAULT_VAT_RATE;
+  // Draft-Nummer mit Zufalls-Suffix gegen Kollisionen bei parallelen Agent-Runs.
+  // Die finale Dokumentnummer wird vom DB-Trigger beim Status-Wechsel auf 'sent' vergeben.
+  const offerNumber = `KI-${Date.now()}-${crypto.randomUUID().slice(0, 4)}`;
 
   const { data: offer, error: offerErr } = await supabase
     .from('offers')
@@ -175,6 +190,9 @@ async function createOffer(
   }
 
   // offer_items
+  // TODO: in einer Folge-Iteration als RPC mit Transaktion zusammenfassen,
+  // damit ein Fehler in der Mitte keine orphaned offers-Zeilen hinterlässt.
+  // Aktuell: Draft-Status, manuell aufräumbar — für MVP akzeptabel.
   for (let i = 0; i < positionen.length; i++) {
     const p = positionen[i];
     const { error: itemErr } = await supabase
