@@ -2,6 +2,9 @@ import type { AgentType, IntentClassification } from './types.ts';
 
 const VALID_AGENTS: ReadonlySet<AgentType> = new Set(['offers', 'invoices', 'planning', 'materials']);
 
+// CODE_FENCE_RE is anchored — it requires the fenced block to be the entire trimmed input.
+// LLM responses with surrounding prose will fail JSON.parse and throw. This is intentional:
+// the system prompt instructs Anthropic to return JSON only, and loud failures are GoBD-auditable.
 const CODE_FENCE_RE = /^```(?:json)?\s*\n?([\s\S]*?)\n?```$/;
 
 export function parseIntentResponse(rawText: string): IntentClassification {
@@ -30,8 +33,9 @@ export function parseIntentResponse(rawText: string): IntentClassification {
     throw new Error('Missing required field: action');
   }
 
-  const entities = (obj.entities && typeof obj.entities === 'object')
-    ? obj.entities as Record<string, unknown>
+  const entitiesRaw = obj.entities;
+  const entities = (entitiesRaw && typeof entitiesRaw === 'object' && !Array.isArray(entitiesRaw))
+    ? entitiesRaw as Record<string, unknown>
     : {};
 
   return {

@@ -52,3 +52,15 @@ Deno.test('parseIntentResponse: defaults entities to empty object', () => {
   const result = parseIntentResponse(raw);
   assertEquals(result.entities, {});
 });
+
+Deno.test('parseIntentResponse: defaults entities to empty object when null', () => {
+  const raw = '{"agent":"offers","action":"create","entities":null}';
+  const result = parseIntentResponse(raw);
+  assertEquals(result.entities, {});
+});
+
+Deno.test('parseIntentResponse: defaults entities to empty object when array', () => {
+  const raw = '{"agent":"offers","action":"create","entities":[1,2,3]}';
+  const result = parseIntentResponse(raw);
+  assertEquals(result.entities, {});
+});
