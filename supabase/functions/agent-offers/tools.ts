@@ -104,7 +104,8 @@ async function getCustomer(supabase: SupabaseClient, companyId: string, name: st
   // Suche zuerst in company_name, dann fallback auf contact_person.
   // company_id-Filter ist kritisch: service_role bypasst RLS, also muss der
   // Tenant-Scope hier explizit gesetzt werden (sonst Cross-Tenant-Leak).
-  const customerColumns = 'id, company_name, contact_person, email, phone, address, city, zip_code';
+  // Schema-Hinweis: Spalte heißt postal_code (nicht zip_code).
+  const customerColumns = 'id, company_name, contact_person, email, phone, address, city, postal_code';
   const primary = await supabase
     .from('customers')
     .select(customerColumns)
