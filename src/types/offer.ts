@@ -192,6 +192,9 @@ export const OfferSchema = z.object({
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
   created_by: z.string().uuid().nullable(),
+  // Agent-Engine Markierung (optional, default false). Phase 1 Migration.
+  created_by_agent: z.boolean().optional(),
+  agent_task_id: z.string().uuid().nullable().optional(),
 });
 
 // ============================================================================
