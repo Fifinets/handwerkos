@@ -136,8 +136,26 @@ export function useAgentChat(): UseAgentChatResult {
     }
   }, []);
 
-  const approve = useCallback(async (_taskId: string) => {
-    throw new Error('approve not implemented yet — see Task 4');
+  const approve = useCallback(async (taskId: string) => {
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData?.user?.id ?? null;
+    const approvedAt = new Date().toISOString();
+    const { error } = await supabase
+      .from('agent_tasks')
+      .update({
+        status: 'done',
+        approved_at: approvedAt,
+        approved_by: userId,
+      })
+      .eq('id', taskId);
+    if (error) {
+      console.error('approve failed:', error);
+      return;
+    }
+    // Optimistic local update — Realtime would also bring it but UI feels snappier
+    setMessages((prev) =>
+      prev.map((m) => (m.taskId === taskId ? { ...m, status: 'done' } : m)),
+    );
   }, []);
 
   return { messages, isLoading, sendMessage, approve };

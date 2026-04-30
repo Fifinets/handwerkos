@@ -3,6 +3,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { useAgentChat } from './useAgentChat';
 
 let capturedRealtimeCallback: ((payload: { new: Record<string, unknown> }) => void) | null = null;
+const updateCalls: Array<{ table: string; args: Record<string, unknown> }> = [];
 
 vi.mock('@/integrations/supabase/client', () => {
   const mockChannel = {
@@ -42,8 +43,11 @@ vi.mock('@/integrations/supabase/client', () => {
           };
         }
         return {
-          update: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ error: null }),
+          update: vi.fn((args: Record<string, unknown>) => {
+            updateCalls.push({ table, args });
+            return {
+              eq: vi.fn().mockResolvedValue({ error: null }),
+            };
           }),
         };
       }),
@@ -55,6 +59,7 @@ describe('useAgentChat', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     capturedRealtimeCallback = null;
+    updateCalls.length = 0;
   });
 
   it('starts with empty messages and isLoading=false', () => {
@@ -164,5 +169,40 @@ describe('useAgentChat', () => {
     await waitFor(() => expect(supabase.channel).toHaveBeenCalled());
     unmount();
     expect(supabase.removeChannel).toHaveBeenCalled();
+  });
+
+  it('approve updates agent_tasks status to done with approved_at and approved_by', async () => {
+    const { result } = renderHook(() => useAgentChat());
+    await act(async () => {
+      await result.current.approve('task-1');
+    });
+
+    const agentTasksUpdate = updateCalls.find((c) => c.table === 'agent_tasks');
+    expect(agentTasksUpdate).toBeDefined();
+    expect(agentTasksUpdate!.args).toMatchObject({
+      status: 'done',
+      approved_by: 'user-1',
+    });
+    expect(agentTasksUpdate!.args.approved_at).toBeTruthy();
+  });
+
+  it('approve marks the matching message as done in local state', async () => {
+    const { result } = renderHook(() => useAgentChat());
+    await waitFor(() => expect(capturedRealtimeCallback).not.toBeNull());
+
+    await act(async () => {
+      await result.current.sendMessage('Test');
+    });
+    await act(async () => {
+      capturedRealtimeCallback!({
+        new: { id: 'task-1', status: 'awaiting_approval' },
+      });
+    });
+    expect(result.current.messages.find((m) => m.taskId === 'task-1')?.status).toBe('awaiting_approval');
+
+    await act(async () => {
+      await result.current.approve('task-1');
+    });
+    expect(result.current.messages.find((m) => m.taskId === 'task-1')?.status).toBe('done');
   });
 });
