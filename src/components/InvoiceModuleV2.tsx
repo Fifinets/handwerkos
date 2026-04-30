@@ -39,6 +39,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
+import { AgentBadge } from "@/components/agents/AgentBadge";
 import { AddInvoiceDialog } from "./AddInvoiceDialog";
 import InvoiceDetailDialog from "./InvoiceDetailDialog";
 
@@ -58,6 +59,7 @@ interface Invoice {
   customer_id: string | null;
   project_id: string | null;
   created_at: string;
+  created_by_agent?: boolean | null;
   customers?: {
     company_name: string | null;
     contact_person: string | null;
@@ -487,6 +489,7 @@ const InvoiceModuleV2 = () => {
                                   {invoice.customers.company_name}
                                 </span>
                               )}
+                              {invoice.created_by_agent && <AgentBadge />}
                               {invoice.projects?.name && (
                                 <span className="flex items-center gap-1 text-slate-400">
                                   {invoice.projects.name}
