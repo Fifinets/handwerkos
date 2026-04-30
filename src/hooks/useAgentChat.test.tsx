@@ -1,10 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { useAgentChat } from './useAgentChat';
+
+let capturedRealtimeCallback: ((payload: { new: Record<string, unknown> }) => void) | null = null;
 
 vi.mock('@/integrations/supabase/client', () => {
   const mockChannel = {
-    on: vi.fn().mockReturnThis(),
+    on: vi.fn((_event: string, _config: unknown, cb: typeof capturedRealtimeCallback) => {
+      capturedRealtimeCallback = cb;
+      return mockChannel;
+    }),
     subscribe: vi.fn().mockReturnThis(),
   };
   return {
@@ -23,19 +28,25 @@ vi.mock('@/integrations/supabase/client', () => {
           error: null,
         }),
       },
-      from: vi.fn(() => ({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { company_id: 'comp-1' },
-              error: null,
+      from: vi.fn((table: string) => {
+        if (table === 'profiles') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { company_id: 'comp-1' },
+                  error: null,
+                }),
+              }),
             }),
+          };
+        }
+        return {
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null }),
           }),
-        }),
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ error: null }),
-        }),
-      })),
+        };
+      }),
     },
   };
 });
@@ -43,6 +54,7 @@ vi.mock('@/integrations/supabase/client', () => {
 describe('useAgentChat', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    capturedRealtimeCallback = null;
   });
 
   it('starts with empty messages and isLoading=false', () => {
@@ -104,5 +116,53 @@ describe('useAgentChat', () => {
       await result.current.sendMessage('   ');
     });
     expect(result.current.messages).toHaveLength(0);
+  });
+
+  it('subscribes to agent_tasks updates filtered by company_id on mount', async () => {
+    const { supabase } = await import('@/integrations/supabase/client');
+    renderHook(() => useAgentChat());
+    await waitFor(() => {
+      expect(supabase.channel).toHaveBeenCalled();
+    });
+    const channelMockResult = vi.mocked(supabase.channel).mock.results[0].value;
+    const onCall = channelMockResult.on.mock.calls[0];
+    expect(onCall[1]).toMatchObject({
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'agent_tasks',
+      filter: 'company_id=eq.comp-1',
+    });
+  });
+
+  it('updates the agent message status from a realtime event', async () => {
+    const { result } = renderHook(() => useAgentChat());
+    await waitFor(() => expect(capturedRealtimeCallback).not.toBeNull());
+
+    await act(async () => {
+      await result.current.sendMessage('Test');
+    });
+
+    await act(async () => {
+      capturedRealtimeCallback!({
+        new: {
+          id: 'task-1',
+          status: 'awaiting_approval',
+          output: { offerId: 'offer-1', preview: { customer: 'Müller' }, agentMessage: 'Fertig.' },
+        },
+      });
+    });
+
+    const agentMsg = result.current.messages.find((m) => m.taskId === 'task-1');
+    expect(agentMsg?.status).toBe('awaiting_approval');
+    expect(agentMsg?.preview).toEqual({ customer: 'Müller' });
+    expect(agentMsg?.agentMessage).toBe('Fertig.');
+  });
+
+  it('cleans up the realtime channel on unmount', async () => {
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { unmount } = renderHook(() => useAgentChat());
+    await waitFor(() => expect(supabase.channel).toHaveBeenCalled());
+    unmount();
+    expect(supabase.removeChannel).toHaveBeenCalled();
   });
 });

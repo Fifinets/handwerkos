@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export type AgentMessageStatus =
@@ -25,9 +25,73 @@ export interface UseAgentChatResult {
   approve: (taskId: string) => Promise<void>;
 }
 
+interface AgentTaskRowMinimal {
+  id: string;
+  status?: AgentMessageStatus;
+  output?: { preview?: Record<string, unknown>; agentMessage?: string; offerId?: string } | null;
+  error?: string | null;
+}
+
 export function useAgentChat(): UseAgentChatResult {
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [companyId, setCompanyId] = useState<string | null>(null);
+
+  // Load companyId from profiles on mount (single source of truth, matches Phase 1 router auth)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) return;
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', userData.user.id)
+        .single();
+      if (!cancelled && profile?.company_id) {
+        setCompanyId(profile.company_id as string);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Realtime subscription on agent_tasks UPDATE for our company
+  useEffect(() => {
+    if (!companyId) return;
+    const channel = supabase
+      .channel(`agent-tasks-${companyId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'agent_tasks',
+          filter: `company_id=eq.${companyId}`,
+        },
+        (payload: { new: AgentTaskRowMinimal }) => {
+          const row = payload.new;
+          setMessages((prev) =>
+            prev.map((m) => {
+              if (m.taskId !== row.id) return m;
+              return {
+                ...m,
+                status: row.status ?? m.status,
+                preview: row.output?.preview ?? m.preview ?? null,
+                agentMessage: row.output?.agentMessage ?? m.agentMessage,
+                content:
+                  row.error
+                    ? `Fehler: ${row.error}`
+                    : row.output?.agentMessage ?? m.content,
+              };
+            }),
+          );
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [companyId]);
 
   const sendMessage = useCallback(async (text: string) => {
     const trimmed = text.trim();
@@ -72,7 +136,6 @@ export function useAgentChat(): UseAgentChatResult {
     }
   }, []);
 
-  // Approve will be added in Task 4
   const approve = useCallback(async (_taskId: string) => {
     throw new Error('approve not implemented yet — see Task 4');
   }, []);
