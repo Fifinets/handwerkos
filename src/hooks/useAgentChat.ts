@@ -113,14 +113,31 @@ export function useAgentChat(): UseAgentChatResult {
     setIsLoading(true);
 
     try {
+      // Refresh the session first so an expired access_token doesn't make
+      // auth.getUser(jwt) fail server-side.
+      await supabase.auth.getSession();
+
       const { data, error } = await supabase.functions.invoke('agent-router', {
         body: { message: trimmed },
       });
       if (error || !data?.taskId) {
+        // Try to surface the actual function response body for debugging
+        let detail = error?.message ?? 'Router-Fehler';
+        // deno-lint-ignore no-explicit-any
+        const ctx = (error as any)?.context;
+        if (ctx && typeof ctx === 'object') {
+          try {
+            const responseBody = await ctx.json?.().catch(() => null) ?? await ctx.text?.().catch(() => null);
+            if (responseBody) {
+              detail = `${detail} — ${typeof responseBody === 'string' ? responseBody : JSON.stringify(responseBody)}`;
+            }
+          } catch { /* ignore */ }
+        }
+        console.error('agent-router failed:', { error, detail });
         setMessages((prev) =>
           prev.map((m) =>
             m.id === agentPlaceholderId
-              ? { ...m, status: 'failed', content: error?.message ?? 'Router-Fehler' }
+              ? { ...m, status: 'failed', content: detail }
               : m,
           ),
         );

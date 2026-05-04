@@ -28,6 +28,10 @@ vi.mock('@/integrations/supabase/client', () => {
           data: { user: { id: 'user-1' } },
           error: null,
         }),
+        getSession: vi.fn().mockResolvedValue({
+          data: { session: { access_token: 'mock-token' } },
+          error: null,
+        }),
       },
       from: vi.fn((table: string) => {
         if (table === 'profiles') {
