@@ -1,5 +1,6 @@
 import type Anthropic from 'https://esm.sh/@anthropic-ai/sdk@0.27.0';
 import type { SupabaseClient } from '../_shared/supabase.ts';
+import { getFirstActiveEmployee } from '../_shared/employees.ts';
 
 export const TOOL_SCHEMAS: Anthropic.Tool[] = [
   {
@@ -158,6 +159,10 @@ async function createAppointment(
   const startTime = typeof input.startTime === 'string' ? input.startTime : null;
   const isFullDay = !startTime;
 
+  // Default-Mitarbeiter zuweisen — egal welcher, User editiert in der UI.
+  const employee = await getFirstActiveEmployee(supabase, companyId);
+  const assignedEmployees = employee ? [employee.id] : null;
+
   const { data, error } = await supabase
     .from('calendar_events')
     .insert({
@@ -171,6 +176,8 @@ async function createAppointment(
       is_full_day: isFullDay,
       location: typeof input.location === 'string' ? input.location : null,
       type: typeof input.type === 'string' ? input.type : 'appointment',
+      assigned_employees: assignedEmployees,
+      created_by: employee?.user_id ?? null,
     })
     .select('id')
     .single();
@@ -183,6 +190,9 @@ async function createAppointment(
     title,
     date,
     startTime,
+    assignedEmployee: employee
+      ? `${employee.first_name ?? ''} ${employee.last_name ?? ''}`.trim() || 'unbenannt'
+      : null,
     note: 'Termin im Kalender angelegt — bestätige zur Übernahme.',
   };
 }

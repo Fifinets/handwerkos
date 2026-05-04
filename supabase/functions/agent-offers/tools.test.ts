@@ -1,53 +1,52 @@
 import { assertEquals, assertExists } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import { executeTool, TOOL_SCHEMAS } from './tools.ts';
 
-// Minimaler Fake-Client der die Methoden aufzeichnet.
-// `customerLookups` simuliert die zwei Customer-Queries (primary auf company_name,
-// fallback auf contact_person) — Tests können das Verhalten pro Run setzen.
-type CustomerLookupResult = { data: unknown; error: unknown };
+// Minimaler Fake-Client der alle Methoden chainable supported und pro Tabelle
+// einen festen "single result" zurückliefert. Kompositionen die wir testen:
+//   .from(t).select().eq()...?.ilike()?.order?.limit?.maybeSingle()
+//   .from(t).insert(args).select().single()
+//   .from(t).update(args).eq() => Promise<{error: null}>
+type LookupResult = { data: unknown; error: unknown };
 
 function createFakeSupabase(opts?: {
-  customerLookups?: CustomerLookupResult[];
+  // Customer-Queries (primary + fallback) pro Aufruf
+  customerLookups?: LookupResult[];
+  // Employees-Query (getFirstActiveEmployee) — default: ein Mitarbeiter
+  employeeLookup?: LookupResult;
 }) {
   const calls: Array<{ table: string; op: string; args: unknown }> = [];
-  const lookupQueue = [...(opts?.customerLookups ?? [
+  const customerQueue = [...(opts?.customerLookups ?? [
     { data: { id: 'cust-1', company_name: 'Müller GmbH', email: 'm@m.de' }, error: null },
   ])];
+  const employeeResult = opts?.employeeLookup ?? {
+    data: { id: 'emp-1', user_id: 'usr-1', first_name: 'Hans', last_name: 'Schmidt' },
+    error: null,
+  };
+
   return {
     calls,
     from(table: string) {
       return {
-        select() {
-          // Verkettung: select().eq().ilike().limit().maybeSingle()
-          // ODER select().ilike().limit().maybeSingle() (ohne eq)
-          // ODER insert(...).select().single()
-          const eqCall = (col: string, val: unknown) => {
-            calls.push({ table, op: 'select_eq', args: { col, val } });
-            return ilikeChain;
-          };
-          const ilikeCall = (_col: string, val: string) => {
-            calls.push({ table, op: 'select_ilike', args: val });
-            return chainTerminal;
-          };
-          const chainTerminal = {
-            limit() { return chainTerminal; },
+        select(_cols?: string) {
+          const chain = {
+            eq: (col: string, val: unknown) => {
+              calls.push({ table, op: 'select_eq', args: { col, val } });
+              return chain;
+            },
+            ilike: (_col: string, val: string) => {
+              calls.push({ table, op: 'select_ilike', args: val });
+              return chain;
+            },
+            order: () => chain,
+            limit: () => chain,
             single: () => Promise.resolve(
-              lookupQueue.shift() ?? { data: null, error: null },
+              table === 'employees' ? employeeResult : customerQueue.shift() ?? { data: null, error: null },
             ),
             maybeSingle: () => Promise.resolve(
-              lookupQueue.shift() ?? { data: null, error: null },
+              table === 'employees' ? employeeResult : customerQueue.shift() ?? { data: null, error: null },
             ),
           };
-          const ilikeChain = { ilike: ilikeCall, limit: chainTerminal.limit };
-          // Auch der Insert-Pfad braucht .select().single():
-          return {
-            eq: eqCall,
-            ilike: ilikeCall,
-            single: () => Promise.resolve({
-              data: { id: `${table}-new-id` },
-              error: null,
-            }),
-          };
+          return chain;
         },
         insert(args: unknown) {
           calls.push({ table, op: 'insert', args });
@@ -169,6 +168,36 @@ Deno.test('executeTool: create_offer inserts into offers and offer_items', async
   assertEquals(inserts[0].table, 'offers');
   assertEquals(inserts[1].table, 'offer_items');
   assertEquals(inserts[2].table, 'offer_items');
+  // Default-Mitarbeiter wurde zugewiesen (created_by = employee.user_id)
+  // deno-lint-ignore no-explicit-any
+  const offerInsert = inserts[0].args as any;
+  assertEquals(offerInsert.created_by, 'usr-1');
+  assertEquals(r.assignedEmployee, 'Hans Schmidt');
+});
+
+Deno.test('executeTool: create_offer when no active employee exists — created_by stays null', async () => {
+  const fake = createFakeSupabase({
+    employeeLookup: { data: null, error: null },
+  });
+  // deno-lint-ignore no-explicit-any
+  const result = await executeTool(
+    'create_offer',
+    {
+      customerId: 'cust-1',
+      customerName: 'Müller GmbH',
+      projectName: 'X',
+      positionen: [{ beschreibung: 'X', menge: 1, einheit: 'Stk', einzelpreis: 10 }],
+    },
+    fake as any,
+    'task-1',
+    'comp-1',
+  );
+  const inserts = fake.calls.filter((c) => c.op === 'insert');
+  // deno-lint-ignore no-explicit-any
+  const offerInsert = inserts[0].args as any;
+  assertEquals(offerInsert.created_by, null);
+  // deno-lint-ignore no-explicit-any
+  assertEquals((result as any).assignedEmployee, null);
 });
 
 Deno.test('executeTool: request_approval updates agent_tasks status', async () => {

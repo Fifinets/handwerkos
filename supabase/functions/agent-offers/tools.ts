@@ -1,5 +1,6 @@
 import type Anthropic from 'https://esm.sh/@anthropic-ai/sdk@0.27.0';
 import type { SupabaseClient } from '../_shared/supabase.ts';
+import { getFirstActiveEmployee } from '../_shared/employees.ts';
 
 export const TOOL_SCHEMAS: Anthropic.Tool[] = [
   {
@@ -163,6 +164,11 @@ async function createOffer(
   // Die finale Dokumentnummer wird vom DB-Trigger beim Status-Wechsel auf 'sent' vergeben.
   const offerNumber = `KI-${Date.now()}-${crypto.randomUUID().slice(0, 4)}`;
 
+  // Default-Mitarbeiter zuweisen — egal welcher, User editiert in der UI.
+  // offers.created_by ist auth.users(id), also brauchen wir employee.user_id.
+  const employee = await getFirstActiveEmployee(supabase, companyId);
+  const createdByUserId = employee?.user_id ?? null;
+
   const { data: offer, error: offerErr } = await supabase
     .from('offers')
     .insert({
@@ -175,6 +181,7 @@ async function createOffer(
       project_name: input.projectName,
       project_location: input.projectLocation ?? null,
       status: 'draft',
+      created_by: createdByUserId,
       created_by_agent: true,
       agent_task_id: taskId,
       snapshot_subtotal_net: gesamtNetto,
@@ -215,7 +222,15 @@ async function createOffer(
     }
   }
 
-  return { offerId: offer.id, offerNumber, gesamtNetto, gesamtBrutto: gesamtNetto * (1 + vatRate / 100) };
+  return {
+    offerId: offer.id,
+    offerNumber,
+    gesamtNetto,
+    gesamtBrutto: gesamtNetto * (1 + vatRate / 100),
+    assignedEmployee: employee
+      ? `${employee.first_name ?? ''} ${employee.last_name ?? ''}`.trim() || 'unbenannt'
+      : null,
+  };
 }
 
 async function requestApproval(

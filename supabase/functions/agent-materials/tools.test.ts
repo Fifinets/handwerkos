@@ -4,6 +4,7 @@ import { executeTool, TOOL_SCHEMAS } from './tools.ts';
 function createFakeSupabase(opts?: {
   materialsResult?: { data: unknown; error: unknown };
   suppliersResult?: { data: unknown; error: unknown };
+  employeeLookup?: { data: unknown; error: unknown };
 }) {
   const calls: Array<{ table: string; op: string; args: unknown }> = [];
   const materialsResult = opts?.materialsResult ?? {
@@ -17,6 +18,10 @@ function createFakeSupabase(opts?: {
     data: [
       { id: 'sup-1', name: 'Würth', contact_person: 'Hr. Klein', email: 'klein@wuerth.de', is_active: true },
     ],
+    error: null,
+  };
+  const employeeResult = opts?.employeeLookup ?? {
+    data: { id: 'emp-1', user_id: 'usr-1', first_name: 'Hans', last_name: 'Schmidt' },
     error: null,
   };
   return {
@@ -45,6 +50,8 @@ function createFakeSupabase(opts?: {
             lt: ltCall,
             order: orderCall,
             limit: limitCall,
+            single: () => Promise.resolve(table === 'employees' ? employeeResult : { data: null, error: null }),
+            maybeSingle: () => Promise.resolve(table === 'employees' ? employeeResult : { data: null, error: null }),
             then: (resolve: (r: { data: unknown; error: unknown }) => void) => resolve(result),
           };
           return chainAfterFilter;
@@ -151,6 +158,10 @@ Deno.test('executeTool: create_material_order inserts order header + items', asy
   const r = result as any;
   assertEquals(r.orderId, 'material_orders-new-id');
   assertEquals(r.totalAmount, 100 * 0.85 + 50 * 4.5);
+  // Default-Mitarbeiter wurde zugewiesen
+  // deno-lint-ignore no-explicit-any
+  assertEquals((inserts[0].args as any).created_by, 'usr-1');
+  assertEquals(r.assignedEmployee, 'Hans Schmidt');
 });
 
 Deno.test('executeTool: request_approval updates agent_tasks status', async () => {

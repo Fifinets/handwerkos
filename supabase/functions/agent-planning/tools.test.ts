@@ -3,6 +3,7 @@ import { executeTool, TOOL_SCHEMAS } from './tools.ts';
 
 function createFakeSupabase(opts?: {
   eventsResult?: { data: unknown; error: unknown };
+  employeeLookup?: { data: unknown; error: unknown };
 }) {
   const calls: Array<{ table: string; op: string; args: unknown }> = [];
   const eventsResult = opts?.eventsResult ?? {
@@ -17,6 +18,10 @@ function createFakeSupabase(opts?: {
         type: 'appointment',
       },
     ],
+    error: null,
+  };
+  const employeeResult = opts?.employeeLookup ?? {
+    data: { id: 'emp-1', user_id: 'usr-1', first_name: 'Hans', last_name: 'Schmidt' },
     error: null,
   };
   return {
@@ -44,7 +49,8 @@ function createFakeSupabase(opts?: {
             lte: lteCall,
             order: orderCall,
             limit: limitCall,
-            single: () => Promise.resolve({ data: null, error: null }),
+            single: () => Promise.resolve(table === 'employees' ? employeeResult : { data: null, error: null }),
+            maybeSingle: () => Promise.resolve(table === 'employees' ? employeeResult : { data: null, error: null }),
             then: (resolve: (r: { data: unknown; error: unknown }) => void) => resolve(eventsResult),
           };
           return chainAfterFilter;
@@ -128,7 +134,7 @@ Deno.test('executeTool: daily_briefing accepts "tomorrow"', async () => {
   assertExists(r.date);
 });
 
-Deno.test('executeTool: create_appointment inserts into calendar_events with company_id', async () => {
+Deno.test('executeTool: create_appointment inserts into calendar_events with company_id and assigned_employees', async () => {
   const fake = createFakeSupabase();
   // deno-lint-ignore no-explicit-any
   const result = await executeTool(
@@ -153,8 +159,13 @@ Deno.test('executeTool: create_appointment inserts into calendar_events with com
   assertEquals(args.title, 'Termin Müller');
   assertEquals(args.start_date, '2026-05-15');
   assertEquals(args.start_time, '09:00');
+  // Default-Mitarbeiter wurde zugewiesen
+  assertEquals(args.assigned_employees, ['emp-1']);
+  assertEquals(args.created_by, 'usr-1');
   // deno-lint-ignore no-explicit-any
-  assertEquals((result as any).eventId, 'calendar_events-new-id');
+  const r = result as any;
+  assertEquals(r.eventId, 'calendar_events-new-id');
+  assertEquals(r.assignedEmployee, 'Hans Schmidt');
 });
 
 Deno.test('executeTool: create_appointment defaults to is_full_day=true when no time given', async () => {

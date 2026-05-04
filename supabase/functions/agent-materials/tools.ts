@@ -1,5 +1,6 @@
 import type Anthropic from 'https://esm.sh/@anthropic-ai/sdk@0.27.0';
 import type { SupabaseClient } from '../_shared/supabase.ts';
+import { getFirstActiveEmployee } from '../_shared/employees.ts';
 
 export const TOOL_SCHEMAS: Anthropic.Tool[] = [
   {
@@ -167,6 +168,10 @@ async function createMaterialOrder(
   );
   const orderNumber = `KI-MAT-${Date.now()}-${crypto.randomUUID().slice(0, 4)}`;
 
+  // Default-Mitarbeiter zuweisen — egal welcher, User editiert in der UI.
+  const employee = await getFirstActiveEmployee(supabase, companyId);
+  const createdByUserId = employee?.user_id ?? null;
+
   const { data: order, error: orderErr } = await supabase
     .from('material_orders')
     .insert({
@@ -180,6 +185,7 @@ async function createMaterialOrder(
       status: 'draft',
       total_amount: totalAmount,
       notes: typeof input.notes === 'string' ? input.notes : null,
+      created_by: createdByUserId,
     })
     .select('id')
     .single();
@@ -207,7 +213,15 @@ async function createMaterialOrder(
     }
   }
 
-  return { orderId: order.id, orderNumber, totalAmount, itemCount: items.length };
+  return {
+    orderId: order.id,
+    orderNumber,
+    totalAmount,
+    itemCount: items.length,
+    assignedEmployee: employee
+      ? `${employee.first_name ?? ''} ${employee.last_name ?? ''}`.trim() || 'unbenannt'
+      : null,
+  };
 }
 
 async function requestApproval(
