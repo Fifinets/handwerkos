@@ -110,8 +110,9 @@ serve(async (req) => {
     return jsonResponse(result, 200);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'unknown';
-    console.error('agent-router error:', message);
-    // Generic message to caller — full detail in logs
+    const stack = err instanceof Error ? err.stack : undefined;
+    console.error('agent-router error:', message, stack);
+    // Generic message to caller — full detail in Edge Function logs only.
     return jsonResponse({ error: 'internal error' }, 500);
   }
 });
