@@ -10,6 +10,7 @@ describe('ApprovalCard', () => {
       projectName: 'Zählertausch',
       gesamtNetto: 555,
       positionsAnzahl: 2,
+      assignedEmployee: 'Hans Schmidt',
     },
     agentMessage: 'Angebot erstellt.',
     onApprove: vi.fn(),
@@ -33,27 +34,40 @@ describe('ApprovalCard', () => {
     expect(screen.getByText('Angebot erstellt.')).toBeInTheDocument();
   });
 
-  it('clicking Freigeben calls onApprove with taskId', () => {
+  it('renders the assigned employee', () => {
+    render(<ApprovalCard {...baseProps} />);
+    expect(screen.getByText(/Hans Schmidt/)).toBeInTheDocument();
+    expect(screen.getByText(/änderbar/i)).toBeInTheDocument();
+  });
+
+  it('makes clear no auto-send happens', () => {
+    render(<ApprovalCard {...baseProps} />);
+    expect(screen.getByText(/verschickt nichts selbstständig/i)).toBeInTheDocument();
+  });
+
+  it('clicking Übernommen calls onApprove with taskId', () => {
     const onApprove = vi.fn();
     render(<ApprovalCard {...baseProps} onApprove={onApprove} />);
-    fireEvent.click(screen.getByRole('button', { name: /freigeben/i }));
+    fireEvent.click(screen.getByRole('button', { name: /übernommen/i }));
     expect(onApprove).toHaveBeenCalledWith('task-1');
   });
 
-  it('clicking Ansehen calls onNavigateToOffers', () => {
+  it('clicking Zum Bearbeiten calls onNavigateToOffers', () => {
     const onNavigateToOffers = vi.fn();
     render(<ApprovalCard {...baseProps} onNavigateToOffers={onNavigateToOffers} />);
-    fireEvent.click(screen.getByRole('button', { name: /ansehen/i }));
+    fireEvent.click(screen.getByRole('button', { name: /bearbeiten/i }));
     expect(onNavigateToOffers).toHaveBeenCalled();
   });
 
-  it('when alreadyApproved is true, Freigeben button is disabled', () => {
+  it('when alreadyApproved is true, Übernommen button is disabled', () => {
     render(<ApprovalCard {...baseProps} alreadyApproved={true} />);
-    expect(screen.getByRole('button', { name: /freigegeben/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /übernommen/i })).toBeDisabled();
   });
 
-  it('shows fallback text when preview fields are missing', () => {
+  it('renders without crashing when preview fields are missing', () => {
     render(<ApprovalCard {...baseProps} preview={{}} />);
-    expect(screen.getByText(/freigeben/i)).toBeInTheDocument();
+    // Both buttons still rendered
+    expect(screen.getByRole('button', { name: /übernommen/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /bearbeiten/i })).toBeInTheDocument();
   });
 });

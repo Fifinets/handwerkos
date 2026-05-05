@@ -1,4 +1,4 @@
-import { CheckCircle2, ExternalLink, Sparkles } from 'lucide-react';
+import { CheckCircle2, Pencil, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -31,13 +31,14 @@ export function ApprovalCard({
   const projectName = preview.projectName as string | undefined;
   const gesamtNetto = formatCurrency(preview.gesamtNetto);
   const positionsAnzahl = preview.positionsAnzahl as number | undefined;
+  const assignedEmployee = preview.assignedEmployee as string | undefined;
 
   return (
     <Card className="border-violet-200 bg-violet-50/50">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
           <Sparkles className="h-4 w-4 text-violet-600" />
-          Angebot zur Freigabe
+          Entwurf zur Übernahme
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -66,24 +67,36 @@ export function ApprovalCard({
               <span className="font-medium">{gesamtNetto}</span>
             </div>
           )}
+          {assignedEmployee && (
+            <div>
+              <span className="text-muted-foreground">Bearbeiter: </span>
+              <span className="font-medium">{assignedEmployee}</span>
+              <span className="ml-1 text-xs text-muted-foreground">(änderbar)</span>
+            </div>
+          )}
         </div>
 
         {agentMessage && (
           <p className="text-sm text-muted-foreground italic">{agentMessage}</p>
         )}
 
+        <p className="text-xs text-muted-foreground border-t border-violet-200 pt-2">
+          Der Entwurf liegt im Modul. Du bearbeitest und versendest dort wie gewohnt — der KI-Assistent verschickt nichts selbstständig.
+        </p>
+
         <div className="flex gap-2">
           <Button
             onClick={() => onApprove(taskId)}
             disabled={alreadyApproved}
+            variant="outline"
             className="flex-1"
           >
             <CheckCircle2 className="mr-2 h-4 w-4" />
-            {alreadyApproved ? 'Freigegeben' : 'Freigeben'}
+            {alreadyApproved ? 'Übernommen' : 'Übernommen'}
           </Button>
-          <Button variant="outline" onClick={onNavigateToOffers}>
-            <ExternalLink className="mr-2 h-4 w-4" />
-            Ansehen
+          <Button onClick={onNavigateToOffers} className="flex-1">
+            <Pencil className="mr-2 h-4 w-4" />
+            Zum Bearbeiten
           </Button>
         </div>
       </CardContent>

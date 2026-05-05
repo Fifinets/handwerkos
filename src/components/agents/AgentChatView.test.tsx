@@ -51,7 +51,7 @@ describe('AgentChatView', () => {
     ]);
     render(<AgentChatView onNavigateToOffers={onNavigateToOffers} />);
     expect(screen.getByText(/Müller GmbH/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /freigeben/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /übernommen/i })).toBeInTheDocument();
   });
 
   it('clicking the send button calls sendMessage with the input value', () => {
@@ -95,7 +95,7 @@ describe('AgentChatView', () => {
       },
     ]);
     render(<AgentChatView onNavigateToOffers={onNavigateToOffers} />);
-    fireEvent.click(screen.getByRole('button', { name: /freigeben/i }));
+    fireEvent.click(screen.getByRole('button', { name: /übernommen/i }));
     expect(approve).toHaveBeenCalledWith('task-1');
   });
 });
