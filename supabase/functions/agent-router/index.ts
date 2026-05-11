@@ -33,6 +33,25 @@ Beispiele:
 
 const VALID_AGENTS = new Set<AgentType>(['offers', 'invoices', 'planning', 'materials']);
 
+type EmailCategory = 'Anfrage' | 'Auftrag' | 'Rechnung';
+
+interface EmailDispatchTarget {
+  agentType: AgentType | 'invoices_inbound';
+  action: string;
+  // If functionSlug is set, agent-router invokes that function directly
+  // instead of agent-${agentType}. Used for non-LLM handlers.
+  functionSlug?: string;
+}
+
+const EMAIL_CATEGORY_MAPPING: Record<EmailCategory, EmailDispatchTarget> = {
+  Anfrage:  { agentType: 'offers',           action: 'draft_quote_from_email' },
+  Auftrag:  { agentType: 'planning',         action: 'link_to_existing_order' },
+  Rechnung: { agentType: 'invoices_inbound', action: 'process_inbound_invoice_email',
+              functionSlug: 'process-email-invoice' },
+};
+
+const SUPPORTED_EMAIL_CATEGORIES = Object.keys(EMAIL_CATEGORY_MAPPING) as EmailCategory[];
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: CORS_HEADERS });
@@ -64,6 +83,33 @@ serve(async (req) => {
         body.companyId,
         'heartbeat',
         null,
+      );
+      return jsonResponse(result, 200);
+    }
+
+    if (body.trigger === 'email') {
+      const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      if (!serviceRoleKey || jwt !== serviceRoleKey) {
+        return jsonResponse({ error: 'email trigger requires service-role authorization' }, 403);
+      }
+      if (!isValidEmailBody(body)) {
+        return jsonResponse({ error: 'invalid email body — emailId, category, companyId required' }, 400);
+      }
+      const target = EMAIL_CATEGORY_MAPPING[body.category];
+      const payload = {
+        emailId: body.emailId,
+        category: body.category,
+        extractedData: body.extractedData ?? {},
+      };
+      const result = await dispatchAgent(
+        supabase,
+        target.agentType as AgentType,
+        target.action,
+        payload,
+        body.companyId,
+        'email' as TriggerType,
+        null,
+        target.functionSlug,
       );
       return jsonResponse(result, 200);
     }
@@ -130,6 +176,25 @@ function isValidUserBody(body: unknown): body is { trigger?: 'user'; message: st
   return true;
 }
 
+interface EmailTriggerBody {
+  trigger: 'email';
+  emailId: string;
+  category: EmailCategory;
+  companyId: string;
+  extractedData?: Record<string, unknown>;
+}
+
+function isValidEmailBody(body: unknown): body is EmailTriggerBody {
+  if (!body || typeof body !== 'object') return false;
+  const b = body as Record<string, unknown>;
+  if (b.trigger !== 'email') return false;
+  if (typeof b.emailId !== 'string' || b.emailId.length === 0) return false;
+  if (typeof b.companyId !== 'string' || b.companyId.length === 0) return false;
+  if (typeof b.category !== 'string') return false;
+  if (!SUPPORTED_EMAIL_CATEGORIES.includes(b.category as EmailCategory)) return false;
+  return true;
+}
+
 async function classifyIntent(message: string): Promise<IntentClassification> {
   const anthropic = createAnthropicClient();
   const response = await anthropic.messages.create({
@@ -147,12 +212,13 @@ async function classifyIntent(message: string): Promise<IntentClassification> {
 
 async function dispatchAgent(
   supabase: ReturnType<typeof createServiceRoleClient>,
-  agentType: AgentType,
+  agentType: AgentType | 'invoices_inbound',
   action: string,
   payload: Record<string, unknown>,
   companyId: string,
   triggerType: TriggerType,
   intent: IntentClassification | null,
+  functionSlug?: string,
 ) {
   const { data: task, error } = await supabase
     .from('agent_tasks')
@@ -173,7 +239,8 @@ async function dispatchAgent(
 
   const taskId = task.id as string;
 
-  const { error: invokeErr } = await supabase.functions.invoke(`agent-${agentType}`, {
+  const targetSlug = functionSlug ?? `agent-${agentType}`;
+  const { error: invokeErr } = await supabase.functions.invoke(targetSlug, {
     body: { taskId, action, payload },
   });
 
@@ -182,13 +249,13 @@ async function dispatchAgent(
       .from('agent_tasks')
       .update({
         status: 'failed',
-        error: `dispatch to agent-${agentType} failed: ${invokeErr.message ?? 'unknown'}`,
+        error: `dispatch to ${targetSlug} failed: ${invokeErr.message ?? 'unknown'}`,
       })
       .eq('id', taskId);
-    console.error(`agent-router: dispatch to agent-${agentType} failed for task ${taskId}:`, invokeErr.message);
+    console.error(`agent-router: dispatch to ${targetSlug} failed for task ${taskId}:`, invokeErr.message);
   }
 
-  console.log(`agent-router: dispatched`, { taskId, agent: agentType, action, triggerType, companyId });
+  console.log(`agent-router: dispatched`, { taskId, agent: agentType, action, triggerType, companyId, targetSlug });
 
   return { taskId, agent: agentType, action };
 }
