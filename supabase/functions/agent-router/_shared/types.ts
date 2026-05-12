@@ -11,7 +11,17 @@ export interface IntentClassification {
   entities: Record<string, unknown>;
 }
 
+export type EmailCategory = 'Anfrage' | 'Auftrag' | 'Rechnung';
+
+export interface EmailRouterRequest {
+  trigger: 'email';
+  emailId: string;
+  category: EmailCategory;
+  companyId: string;
+  extractedData?: Record<string, unknown>;
+}
+
 export type RouterRequest =
   | { trigger: 'heartbeat'; agent: AgentType; action: string; payload?: Record<string, unknown>; companyId: string }
-  | { trigger: 'email'; emailId: string; category: 'Anfrage' | 'Auftrag' | 'Rechnung'; companyId: string; extractedData?: Record<string, unknown> }
+  | EmailRouterRequest
   | { trigger?: 'user'; message: string };

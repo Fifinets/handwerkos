@@ -3,10 +3,12 @@ import { createServiceRoleClient } from '../_shared/supabase.ts';
 import { createAnthropicClient, ANTHROPIC_MODEL } from '../_shared/anthropic.ts';
 import { parseIntentResponse } from '../_shared/intent.ts';
 import type {
-  RouterRequest,
   AgentType,
   TriggerType,
   IntentClassification,
+  RouterRequest,
+  EmailCategory,
+  EmailRouterRequest,
 } from '../_shared/types.ts';
 
 const CORS_HEADERS = {
@@ -32,8 +34,6 @@ Beispiele:
 - "Bestell Kabel NYM 3x1.5 für Baustelle Hauptstraße" -> {"agent":"materials","action":"order","entities":{"item":"NYM 3x1.5","project":"Hauptstraße"}}`;
 
 const VALID_AGENTS = new Set<AgentType>(['offers', 'invoices', 'planning', 'materials']);
-
-type EmailCategory = 'Anfrage' | 'Auftrag' | 'Rechnung';
 
 interface EmailDispatchTarget {
   agentType: AgentType | 'invoices_inbound';
@@ -103,11 +103,11 @@ serve(async (req) => {
       };
       const result = await dispatchAgent(
         supabase,
-        target.agentType as AgentType,
+        target.agentType,
         target.action,
         payload,
         body.companyId,
-        'email' as TriggerType,
+        'email',
         null,
         target.functionSlug,
       );
@@ -176,15 +176,7 @@ function isValidUserBody(body: unknown): body is { trigger?: 'user'; message: st
   return true;
 }
 
-interface EmailTriggerBody {
-  trigger: 'email';
-  emailId: string;
-  category: EmailCategory;
-  companyId: string;
-  extractedData?: Record<string, unknown>;
-}
-
-function isValidEmailBody(body: unknown): body is EmailTriggerBody {
+function isValidEmailBody(body: unknown): body is EmailRouterRequest {
   if (!body || typeof body !== 'object') return false;
   const b = body as Record<string, unknown>;
   if (b.trigger !== 'email') return false;
