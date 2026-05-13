@@ -43,16 +43,18 @@ serve(async (req) => {
   );
 
   let taskId = '';
+  let emailId = '';
   try {
     const body = (await req.json()) as InvokeBody;
     if (typeof body.taskId !== 'string' || body.taskId.length === 0) {
       return jsonResponse({ error: 'taskId required' }, 400);
     }
     taskId = body.taskId;
-    const emailId = body.payload?.emailId;
-    if (typeof emailId !== 'string' || emailId.length === 0) {
+    const payloadEmailId = body.payload?.emailId;
+    if (typeof payloadEmailId !== 'string' || payloadEmailId.length === 0) {
       throw new Error('payload.emailId required');
     }
+    emailId = payloadEmailId;
 
     const result = await processInboundInvoice(supabase, emailId);
     await markCompleted(supabase, taskId, result, emailId);
@@ -60,7 +62,9 @@ serve(async (req) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'unknown';
     console.error('process-email-invoice error:', message);
-    if (taskId) await markFailed(supabase, taskId, message);
+    // emailId may be unset if the error happened before parsing — fall back to
+    // recovering it from the task input inside markFailed.
+    if (taskId) await markFailed(supabase, taskId, message, emailId || undefined);
     return jsonResponse({ ok: false, error: message }, 500);
   }
 });
@@ -87,16 +91,27 @@ async function markCompleted(
   }).eq('id', emailId);
 }
 
-async function markFailed(supabase: SupabaseClient, taskId: string, error: string) {
+async function markFailed(
+  supabase: SupabaseClient,
+  taskId: string,
+  error: string,
+  emailId?: string,
+) {
   await supabase.from('agent_tasks').update({ status: 'failed', error }).eq('id', taskId);
-  // Also bump emails.processing_status — fetch the email_id from the task input.
-  const { data: task } = await supabase
-    .from('agent_tasks').select('input').eq('id', taskId).maybeSingle();
-  const emailId = (task?.input as Record<string, unknown> | null)?.emailId;
-  if (typeof emailId === 'string') {
+
+  // Bump emails.processing_status. Use the caller-provided emailId when available;
+  // otherwise recover it from the task input (covers errors thrown before parsing).
+  let resolvedEmailId = emailId;
+  if (!resolvedEmailId) {
+    const { data: task } = await supabase
+      .from('agent_tasks').select('input').eq('id', taskId).maybeSingle();
+    const recovered = (task?.input as Record<string, unknown> | null)?.emailId;
+    if (typeof recovered === 'string') resolvedEmailId = recovered;
+  }
+  if (resolvedEmailId) {
     await supabase.from('emails').update({
       processing_status: 'needs_review',
-    }).eq('id', emailId);
+    }).eq('id', resolvedEmailId);
   }
 }
 
@@ -191,8 +206,11 @@ async function matchSupplier(
     if (data?.id) return { id: data.id, confidence: 0.99 };
   }
   if (name) {
+    // Escape pgsql ilike wildcards so e.g. "100% Strom GmbH" doesn't match every
+    // supplier whose name starts with "100".
+    const safeName = name.replace(/[\\%_]/g, '\\$&');
     const { data } = await supabase
-      .from('suppliers').select('id').ilike('name', `%${name}%`).maybeSingle();
+      .from('suppliers').select('id').ilike('name', `%${safeName}%`).maybeSingle();
     if (data?.id) return { id: data.id, confidence: 0.75 };
   }
   return { id: null, confidence: 0 };
