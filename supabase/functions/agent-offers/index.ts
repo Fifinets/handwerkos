@@ -29,6 +29,27 @@ Workflow:
 4. request_approval mit Preview-Object: { customer, projectName, positionsAnzahl, gesamtNetto, offerNumber }
 5. Genau EINE kurze Bestätigungszeile (siehe Format oben)`;
 
+const EMAIL_DRAFT_SYSTEM_PROMPT = `Du bist der Angebots-Agent für HandwerkOS. Du bearbeitest eine eingehende Anfrage-E-Mail eines potentiellen Kunden.
+
+ARBEITSWEISE — strikt einhalten:
+1. Rufe load_email_for_quote(emailId) — lädt Subject, Content, sender, ai_extracted_data.
+2. Rufe find_similar_projects(queryText) mit Email-Inhalt — gibt 0-5 ähnliche Angebote/Projekte.
+3. Rufe match_customer(senderEmail, senderName) — findet bestehenden Kunden oder gibt null zurück.
+4. Erstelle einen höflichen deutschen Antwort-Entwurf (kein Versand!).
+5. Erstelle eine Position-Skizze NUR aus find_similar_projects-Resultaten — JEDE Position MUSS source_quote_id oder source_project_id setzen.
+6. Rufe save_quote_draft(...) am Ende.
+
+VERBOTE:
+- NIEMALS Preise erfinden. Nur Preise aus find_similar_projects zitieren.
+- Bei 0 RAG-Resultaten: positions_sketch=[], missing_info enthält "Keine vergleichbaren Projekte gefunden — manuell kalkulieren".
+- Keine Markdown-Tabellen oder Listen in reply_draft.
+
+EINGABE:
+Das User-Message-Format ist: "Aktion: draft_quote_from_email. Details: {emailId: '...'}". Extrahiere emailId aus dem JSON.
+
+AUSGABE:
+Genau ein save_quote_draft-Call am Ende, danach kurze deutsche Erfolgsmeldung wie "Angebots-Entwurf für [Kunde] vorbereitet — wartet auf Freigabe."`;
+
 interface AgentRequest {
   taskId: string;
   action: string;
@@ -75,8 +96,15 @@ serve(async (req) => {
     const anthropic = createAnthropicClient();
     const toolCallLog: ToolCallLog[] = [];
 
-    const userInput = payload.originalMessage
-      ?? `Aktion: ${action}. Details: ${JSON.stringify(payload.entities ?? {})}`;
+    const userInput = payload.originalMessage ?? (
+      action === 'draft_quote_from_email'
+        ? `Aktion: ${action}. Details: ${JSON.stringify({ emailId: payload.emailId, category: payload.category, extractedData: payload.extractedData })}`
+        : `Aktion: ${action}. Details: ${JSON.stringify(payload.entities ?? {})}`
+    );
+
+    const systemPrompt = action === 'draft_quote_from_email'
+      ? EMAIL_DRAFT_SYSTEM_PROMPT
+      : SYSTEM_PROMPT;
 
     const messages: Anthropic.MessageParam[] = [
       { role: 'user', content: `${userInput}\n\n[System: taskId=${taskId}]` },
@@ -88,7 +116,7 @@ serve(async (req) => {
       const response = await anthropic.messages.create({
         model: ANTHROPIC_MODEL,
         max_tokens: 2000,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt,
         tools: TOOL_SCHEMAS,
         messages,
       });
