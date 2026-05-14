@@ -7,6 +7,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
+import { AgentSuggestionBadge } from "./emails/AgentSuggestionBadge";
+import { AgentSuggestionReviewDialog } from "./emails/AgentSuggestionReviewDialog";
+import { useAgentSuggestions } from "@/hooks/useAgentSuggestions";
 import {
     Mail,
     Inbox,
@@ -74,6 +77,64 @@ const mockEmails: Email[] = [
         category: 'Invoice'
     }
 ];
+
+interface EmailRowProps {
+    email: Email;
+    isSelected: boolean;
+    onSelect: () => void;
+    getCategoryColor: (category?: string) => string;
+}
+
+const EmailRow = ({ email, isSelected, onSelect, getCategoryColor }: EmailRowProps) => {
+    const [dialogTaskId, setDialogTaskId] = useState<string | null>(null);
+    const { suggestions } = useAgentSuggestions(email.id);
+    const activeSuggestion = suggestions.find((s) => s.id === dialogTaskId);
+
+    return (
+        <div
+            className={`p-4 cursor-pointer transition-colors border-l-2 ${isSelected ? 'bg-slate-50 border-l-slate-900' : 'hover:bg-slate-50/50 border-l-transparent'
+                }`}
+            onClick={onSelect}
+        >
+            <div className="flex justify-between items-start mb-1">
+                <span className={`text-sm truncate pr-2 ${!email.isRead ? 'font-semibold text-slate-900' : 'font-medium text-slate-700'}`}>
+                    {email.sender}
+                </span>
+                <span className={`text-xs whitespace-nowrap ${!email.isRead ? 'font-medium text-slate-900' : 'text-slate-500'}`}>
+                    {email.date}
+                </span>
+            </div>
+            <div className={`text-xs mb-1.5 truncate ${!email.isRead ? 'font-medium text-slate-900' : 'text-slate-600'}`}>
+                {email.subject}
+            </div>
+            <div className="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-2">
+                {email.preview}
+            </div>
+            <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                    {email.category && (
+                        <Badge variant="outline" className={`text-[10px] font-normal px-1.5 py-0 h-4 ${getCategoryColor(email.category)}`}>
+                            {email.category}
+                        </Badge>
+                    )}
+                    <AgentSuggestionBadge
+                        emailId={email.id}
+                        onClick={() => setDialogTaskId(suggestions[0]?.id ?? null)}
+                    />
+                </div>
+                {email.isStarred && <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400 shrink-0" />}
+            </div>
+            {activeSuggestion && (
+                <AgentSuggestionReviewDialog
+                    suggestion={activeSuggestion}
+                    emailId={email.id}
+                    open={!!dialogTaskId}
+                    onClose={() => setDialogTaskId(null)}
+                />
+            )}
+        </div>
+    );
+};
 
 const EmailModuleV2 = () => {
     const [activeFolder, setActiveFolder] = useState('inbox');
@@ -201,35 +262,13 @@ const EmailModuleV2 = () => {
                     <ScrollArea className="flex-1">
                         <div className="divide-y divide-slate-100">
                             {mockEmails.map((email) => (
-                                <div
+                                <EmailRow
                                     key={email.id}
-                                    className={`p-4 cursor-pointer transition-colors border-l-2 ${selectedEmail?.id === email.id ? 'bg-slate-50 border-l-slate-900' : 'hover:bg-slate-50/50 border-l-transparent'
-                                        }`}
-                                    onClick={() => setSelectedEmail(email)}
-                                >
-                                    <div className="flex justify-between items-start mb-1">
-                                        <span className={`text-sm truncate pr-2 ${!email.isRead ? 'font-semibold text-slate-900' : 'font-medium text-slate-700'}`}>
-                                            {email.sender}
-                                        </span>
-                                        <span className={`text-xs whitespace-nowrap ${!email.isRead ? 'font-medium text-slate-900' : 'text-slate-500'}`}>
-                                            {email.date}
-                                        </span>
-                                    </div>
-                                    <div className={`text-xs mb-1.5 truncate ${!email.isRead ? 'font-medium text-slate-900' : 'text-slate-600'}`}>
-                                        {email.subject}
-                                    </div>
-                                    <div className="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-2">
-                                        {email.preview}
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        {email.category && (
-                                            <Badge variant="outline" className={`text-[10px] font-normal px-1.5 py-0 h-4 ${getCategoryColor(email.category)}`}>
-                                                {email.category}
-                                            </Badge>
-                                        )}
-                                        {email.isStarred && <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />}
-                                    </div>
-                                </div>
+                                    email={email}
+                                    isSelected={selectedEmail?.id === email.id}
+                                    onSelect={() => setSelectedEmail(email)}
+                                    getCategoryColor={getCategoryColor}
+                                />
                             ))}
                         </div>
                     </ScrollArea>
