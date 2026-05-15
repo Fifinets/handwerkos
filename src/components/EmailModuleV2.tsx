@@ -145,7 +145,9 @@ const EmailModuleV2 = () => {
     const { emails: liveEmails, isLoading: emailsLoading } = useLiveEmails();
     // Fallback to mockEmails only while loading or when DB has zero rows, so
     // the design view still works in dev. Real users will see live data.
+    const isUsingMockData = liveEmails.length === 0 && !emailsLoading;
     const displayEmails: Email[] = liveEmails.length > 0 ? liveEmails : mockEmails;
+    const unreadCount = displayEmails.filter((e) => !e.isRead).length;
     const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
     const selectedEmail: Email | null =
         displayEmails.find((e) => e.id === selectedEmailId) ?? displayEmails[0] ?? null;
@@ -165,7 +167,12 @@ const EmailModuleV2 = () => {
             {/* Top Header */}
             <div className="flex justify-between items-center shrink-0">
                 <div>
-                    <h1 className="text-2xl font-semibold text-slate-900">Posteingang</h1>
+                    <div className="flex items-center gap-2">
+                        <h1 className="text-2xl font-semibold text-slate-900">Posteingang</h1>
+                        {isUsingMockData && (
+                            <Badge variant="outline" className="text-xs">Demo-Daten</Badge>
+                        )}
+                    </div>
                     <p className="text-sm text-slate-500 mt-1">Verwalten Sie Ihre E-Mails und generieren Sie automatisch Angebote.</p>
                 </div>
                 <Button className="bg-slate-900 hover:bg-slate-800 text-white" onClick={() => setIsComposing(true)}>
@@ -192,7 +199,9 @@ const EmailModuleV2 = () => {
                             >
                                 <Inbox className="h-4 w-4 mr-3 text-slate-500" />
                                 Posteingang
-                                <span className="ml-auto bg-slate-900 text-white text-[10px] px-1.5 py-0.5 rounded-full">3</span>
+                                {unreadCount > 0 && (
+                                    <span className="ml-auto bg-slate-900 text-white text-[10px] px-1.5 py-0.5 rounded-full">{unreadCount}</span>
+                                )}
                             </Button>
                             <Button
                                 variant="ghost"

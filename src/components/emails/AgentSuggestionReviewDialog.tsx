@@ -60,8 +60,10 @@ export function AgentSuggestionReviewDialog({ suggestion, emailId, open, onClose
   async function handleSend() {
     setBusy(true);
     try {
+      // NB: send-email-reply expects { emailId, replyContent } — not `body`.
+      // See supabase/functions/send-email-reply/index.ts:190 for the contract.
       const { error } = await supabase.functions.invoke('send-email-reply', {
-        body: { emailId, body: replyDraft },
+        body: { emailId, replyContent: replyDraft },
       });
       if (error) throw new Error(error.message);
       await markTaskDone('sent');

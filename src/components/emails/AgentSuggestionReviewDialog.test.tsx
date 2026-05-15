@@ -50,11 +50,20 @@ describe('AgentSuggestionReviewDialog', () => {
     expect(screen.getByText(/Bestandsinstallation vorhanden/)).toBeInTheDocument();
   });
 
-  it('on "Senden" click: invokes send-email-reply then marks task done', async () => {
+  it('on "Senden" click: invokes send-email-reply with the correct payload shape', async () => {
     const onClose = vi.fn();
     render(<AgentSuggestionReviewDialog suggestion={sampleAnfrage as any} open={true} onClose={onClose} emailId="e-1" />);
     fireEvent.click(screen.getByRole('button', { name: /senden/i }));
-    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('send-email-reply', expect.any(Object)));
+    // Contract: send-email-reply expects { emailId, replyContent } — NOT `body`.
+    // See supabase/functions/send-email-reply/index.ts.
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith('send-email-reply', {
+        body: {
+          emailId: 'e-1',
+          replyContent: expect.stringContaining('Sehr geehrter Herr Müller'),
+        },
+      })
+    );
     await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 
