@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AgentSuggestionBadge } from "./emails/AgentSuggestionBadge";
 import { AgentSuggestionReviewDialog } from "./emails/AgentSuggestionReviewDialog";
 import { useAgentSuggestions } from "@/hooks/useAgentSuggestions";
+import { useLiveEmails } from "@/hooks/useLiveEmails";
 import {
     Mail,
     Inbox,
@@ -138,9 +139,16 @@ const EmailRow = ({ email, isSelected, onSelect, getCategoryColor }: EmailRowPro
 
 const EmailModuleV2 = () => {
     const [activeFolder, setActiveFolder] = useState('inbox');
-    const [selectedEmail, setSelectedEmail] = useState<Email | null>(mockEmails[0]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isComposing, setIsComposing] = useState(false);
+
+    const { emails: liveEmails, isLoading: emailsLoading } = useLiveEmails();
+    // Fallback to mockEmails only while loading or when DB has zero rows, so
+    // the design view still works in dev. Real users will see live data.
+    const displayEmails: Email[] = liveEmails.length > 0 ? liveEmails : mockEmails;
+    const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
+    const selectedEmail: Email | null =
+        displayEmails.find((e) => e.id === selectedEmailId) ?? displayEmails[0] ?? null;
 
     const getCategoryColor = (category?: string) => {
         switch (category) {
@@ -261,12 +269,18 @@ const EmailModuleV2 = () => {
                     </div>
                     <ScrollArea className="flex-1">
                         <div className="divide-y divide-slate-100">
-                            {mockEmails.map((email) => (
+                            {emailsLoading && (
+                                <div className="p-4 text-xs text-slate-400">E-Mails werden geladen…</div>
+                            )}
+                            {!emailsLoading && displayEmails.length === 0 && (
+                                <div className="p-4 text-xs text-slate-400">Keine E-Mails.</div>
+                            )}
+                            {displayEmails.map((email) => (
                                 <EmailRow
                                     key={email.id}
                                     email={email}
                                     isSelected={selectedEmail?.id === email.id}
-                                    onSelect={() => setSelectedEmail(email)}
+                                    onSelect={() => setSelectedEmailId(email.id)}
                                     getCategoryColor={getCategoryColor}
                                 />
                             ))}
