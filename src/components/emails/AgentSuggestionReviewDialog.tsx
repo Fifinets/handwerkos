@@ -156,13 +156,17 @@ export function AgentSuggestionReviewDialog({ suggestion, emailId, open, onClose
           </div>
         )}
 
-        {/* Missing info */}
+        {/* Missing info — Filip's own notes, NOT customer questions */}
         {Array.isArray(preview.missing_info) && preview.missing_info.length > 0 && (
           <div className="text-sm text-amber-600">
-            <strong>Offene Fragen:</strong>
+            <strong>Klärung für dich (geht NICHT an den Kunden):</strong>
             <ul className="list-disc list-inside">
               {preview.missing_info.map((q, i) => <li key={i}>{q}</li>)}
             </ul>
+            <p className="text-xs text-amber-700/70 mt-1 italic">
+              Fachliche Punkte für deinen Besichtigungstermin oder die Kalkulation.
+              Rückfragen an den Kunden sind im Antwort-Entwurf oben.
+            </p>
           </div>
         )}
 
