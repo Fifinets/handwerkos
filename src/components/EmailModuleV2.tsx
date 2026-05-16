@@ -11,6 +11,7 @@ import { AgentSuggestionBadge } from "./emails/AgentSuggestionBadge";
 import { AgentSuggestionReviewDialog } from "./emails/AgentSuggestionReviewDialog";
 import { useAgentSuggestions } from "@/hooks/useAgentSuggestions";
 import { useLiveEmails } from "@/hooks/useLiveEmails";
+import { ConnectGmailButton } from "./ConnectGmailButton";
 import {
     Mail,
     Inbox,
@@ -176,10 +177,13 @@ const EmailModuleV2 = () => {
                     </div>
                     <p className="text-sm text-slate-500 mt-1">Verwalten Sie Ihre E-Mails und generieren Sie automatisch Angebote.</p>
                 </div>
-                <Button className="bg-slate-900 hover:bg-slate-800 text-white" onClick={() => setIsComposing(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Neue E-Mail
-                </Button>
+                <div className="flex items-center gap-2">
+                    <ConnectGmailButton />
+                    <Button className="bg-slate-900 hover:bg-slate-800 text-white" onClick={() => setIsComposing(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Neue E-Mail
+                    </Button>
+                </div>
             </div>
 
             <div className="flex flex-1 gap-4 min-h-0">

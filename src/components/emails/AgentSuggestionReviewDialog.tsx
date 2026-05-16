@@ -62,10 +62,16 @@ export function AgentSuggestionReviewDialog({ suggestion, emailId, open, onClose
     try {
       // NB: send-email-reply expects { emailId, replyContent } — not `body`.
       // See supabase/functions/send-email-reply/index.ts:190 for the contract.
-      const { error } = await supabase.functions.invoke('send-email-reply', {
+      const { data, error } = await supabase.functions.invoke('send-email-reply', {
         body: { emailId, replyContent: replyDraft },
       });
-      if (error) throw new Error(error.message);
+      // supabase-js wraps server errors generically ("non-2xx status code") and
+      // returns the actual error body in `data.error`. Surface it to the user
+      // so common cases like "Gmail connection not found" are actionable.
+      if (error || (data && data.error)) {
+        const raw = (data && data.error) || (error instanceof Error ? error.message : String(error));
+        throw new Error(humanizeSendError(raw));
+      }
       await markTaskDone('sent');
       toast({ title: 'Antwort gesendet', description: 'Vorschlag wurde abgeschickt.' });
       onClose();
@@ -78,6 +84,19 @@ export function AgentSuggestionReviewDialog({ suggestion, emailId, open, onClose
     } finally {
       setBusy(false);
     }
+  }
+
+  function humanizeSendError(raw: string): string {
+    if (/gmail connection not found/i.test(raw)) {
+      return 'Gmail ist noch nicht verbunden. Bitte oben rechts auf "Gmail verbinden" klicken und den OAuth-Flow durchlaufen, bevor du Antworten verschickst.';
+    }
+    if (/invalid user token|missing or invalid authorization/i.test(raw)) {
+      return 'Authentifizierung abgelaufen — bitte abmelden und erneut anmelden, dann nochmal versuchen.';
+    }
+    if (/original email not found/i.test(raw)) {
+      return 'Die ursprüngliche E-Mail wurde nicht gefunden (evtl. inzwischen gelöscht).';
+    }
+    return raw;
   }
 
   async function handleReject() {
