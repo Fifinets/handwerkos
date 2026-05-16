@@ -12,6 +12,7 @@ export interface LiveEmail {
   senderEmail: string;
   subject: string;
   preview: string;
+  content: string;
   date: string;
   isRead: boolean;
   isStarred: boolean;
@@ -64,7 +65,8 @@ function formatDate(iso: string): string {
 }
 
 function rowToLiveEmail(row: EmailRow): LiveEmail {
-  const previewSource = row.ai_summary?.trim() || row.content?.trim() || '';
+  const fullContent = row.content?.trim() || '';
+  const previewSource = row.ai_summary?.trim() || fullContent;
   const preview = previewSource.length > 240
     ? previewSource.substring(0, 240) + '…'
     : previewSource;
@@ -74,6 +76,7 @@ function rowToLiveEmail(row: EmailRow): LiveEmail {
     senderEmail: row.sender_email,
     subject: row.subject || '(kein Betreff)',
     preview,
+    content: fullContent,
     date: formatDate(row.received_at),
     isRead: !!row.is_read,
     isStarred: !!row.is_starred,

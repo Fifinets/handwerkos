@@ -37,6 +37,7 @@ interface Email {
     senderEmail: string;
     subject: string;
     preview: string;
+    content?: string;
     date: string;
     isRead: boolean;
     isStarred: boolean;
@@ -359,13 +360,11 @@ const EmailModuleV2 = () => {
                                 </div>
                             </div>
 
-                            {/* Email Body */}
+                            {/* Email Body — use full content when available, fall back to preview */}
                             <ScrollArea className="flex-1 p-6 pt-0">
                                 <div className="prose prose-sm prose-slate max-w-none">
                                     <p className="whitespace-pre-line text-slate-700 leading-relaxed">
-                                        {selectedEmail.preview}
-                                        {'\n\n'}
-                                        Das ist eine detailliertere Vorschau des Nachrichtentextes, der hier mit einer ScrollArea versehen ist. In der realen Anwendung würde hier der HTML oder Plain Text Body der E-Mail vollständig angezeigt. Die Abstände sind großzügig bemessen, damit das Lesen sehr leicht fällt.
+                                        {selectedEmail.content?.trim() || selectedEmail.preview}
                                     </p>
                                 </div>
                             </ScrollArea>
