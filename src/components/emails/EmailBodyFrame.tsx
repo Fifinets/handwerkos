@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { repairMojibake } from '@/lib/mojibake';
 
 interface Props {
   /** Full HTML body (preferred). Empty string means fall back to plainText. */
@@ -110,54 +111,4 @@ function wrapPlainText(text: string): string {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
   body { margin: 0; padding: 16px; font-family: -apple-system, system-ui, sans-serif; font-size: 14px; color: #1e293b; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; }
 </style></head><body>${escaped}</body></html>`;
-}
-
-/**
- * Repair UTF-8 → Latin-1 → UTF-8 mojibake.
- *
- * Symptom: "Weâre here" displays as "Weâ□□re here" instead
- * of "We're here". The bytes 0xE2 0x80 0x99 (UTF-8 for the right-single-quote)
- * were decoded as three Latin-1 chars, then re-encoded as UTF-8.
- *
- * Fix: read each JS char as a single byte and decode the byte sequence
- * as UTF-8. Only runs when the string actually has classic mojibake markers
- * so correctly-encoded text isn't mangled.
- *
- * Real fix belongs in sync-gmail-emails (set the right charset on the MIME
- * part). This is a client-side rescue for what's already in the DB.
- */
-function repairMojibake(s: string): string {
-  if (!s) return s;
-  if (!looksLikeMojibake(s)) return s;
-  try {
-    const bytes = new Uint8Array(s.length);
-    for (let i = 0; i < s.length; i++) {
-      const code = s.charCodeAt(i);
-      if (code > 0xff) return s; // not a Latin-1-shaped string, abort
-      bytes[i] = code;
-    }
-    const repaired = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
-    // Sanity check: the repaired version should have FEWER mojibake markers,
-    // otherwise we made it worse and should keep the original.
-    return countMojibake(repaired) < countMojibake(s) ? repaired : s;
-  } catch {
-    return s;
-  }
-}
-
-// Two mojibake families:
-//   â + (0x80..0x9F)   — `â` followed by C1 control char (the unrenderable
-//                              squares in the user's Google Cloud screenshot).
-//   Ã + (0x80..0xBF)   — `Ã{vowel}`, classic mojibake of German umlauts /
-//                              accented Latin chars.
-//   Â + (0xA0..0xBF)   — `Â{punct}`, e.g. `Â ` for non-breaking-space.
-const MOJIBAKE_MARKERS_SOURCE = '\\u00e2[\\u0080-\\u009f]|\\u00c3[\\u0080-\\u00bf]|\\u00c2[\\u00a0-\\u00bf]';
-
-function looksLikeMojibake(s: string): boolean {
-  return new RegExp(MOJIBAKE_MARKERS_SOURCE).test(s);
-}
-
-function countMojibake(s: string): number {
-  const matches = s.match(new RegExp(MOJIBAKE_MARKERS_SOURCE, 'g'));
-  return matches ? matches.length : 0;
 }

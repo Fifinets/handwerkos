@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { repairMojibake } from '@/lib/mojibake';
 
 /**
  * UI-shaped Email used by EmailModuleV2.
@@ -70,15 +71,19 @@ function rowToLiveEmail(row: EmailRow): LiveEmail {
   const fullContent = row.content?.trim() || '';
   const htmlContent = row.html_content?.trim() || '';
   // Preview prefers ai_summary (clean), then plain content, never HTML soup.
-  const previewSource = row.ai_summary?.trim() || stripHtmlForPreview(fullContent);
+  // Repair mojibake here so the list preview ("Du hast 250,00€ EUR") doesn't
+  // show "Du hast 250,00Â âÂ EUR" — same fix the EmailBodyFrame already does
+  // for the body, but applied earlier so the sidebar list is also clean.
+  const rawPreviewSource = row.ai_summary?.trim() || stripHtmlForPreview(fullContent);
+  const previewSource = repairMojibake(rawPreviewSource);
   const preview = previewSource.length > 240
     ? previewSource.substring(0, 240) + '…'
     : previewSource;
   return {
     id: row.id,
-    sender: row.sender_name || row.sender_email,
+    sender: repairMojibake(row.sender_name || row.sender_email),
     senderEmail: row.sender_email,
-    subject: row.subject || '(kein Betreff)',
+    subject: repairMojibake(row.subject || '(kein Betreff)'),
     preview,
     content: fullContent,
     htmlContent,
