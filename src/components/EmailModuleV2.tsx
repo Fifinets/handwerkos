@@ -12,6 +12,7 @@ import { AgentSuggestionReviewDialog } from "./emails/AgentSuggestionReviewDialo
 import { useAgentSuggestions } from "@/hooks/useAgentSuggestions";
 import { useLiveEmails } from "@/hooks/useLiveEmails";
 import { ConnectGmailButton } from "./ConnectGmailButton";
+import { EmailBodyFrame } from "./emails/EmailBodyFrame";
 import {
     Mail,
     Inbox,
@@ -39,6 +40,7 @@ interface Email {
     subject: string;
     preview: string;
     content?: string;
+    htmlContent?: string;
     date: string;
     isRead: boolean;
     isStarred: boolean;
@@ -364,13 +366,13 @@ const EmailModuleV2 = () => {
                                 </div>
                             </div>
 
-                            {/* Email Body — use full content when available, fall back to preview */}
-                            <ScrollArea className="flex-1 p-6 pt-0">
-                                <div className="prose prose-sm prose-slate max-w-none">
-                                    <p className="whitespace-pre-line text-slate-700 leading-relaxed">
-                                        {selectedEmail.content?.trim() || selectedEmail.preview}
-                                    </p>
-                                </div>
+                            {/* Email Body — sandboxed iframe so HTML mail renders correctly
+                                without bleeding styles or running scripts. */}
+                            <ScrollArea className="flex-1">
+                                <EmailBodyFrame
+                                    html={selectedEmail.htmlContent ?? ''}
+                                    plainText={selectedEmail.content ?? selectedEmail.preview}
+                                />
                             </ScrollArea>
 
                             {/* Quick Reply Box */}

@@ -13,6 +13,7 @@ export interface LiveEmail {
   subject: string;
   preview: string;
   content: string;
+  htmlContent: string;
   date: string;
   isRead: boolean;
   isStarred: boolean;
@@ -25,6 +26,7 @@ interface EmailRow {
   sender_email: string;
   sender_name: string | null;
   content: string | null;
+  html_content: string | null;
   ai_summary: string | null;
   received_at: string;
   is_read: boolean | null;
@@ -66,7 +68,9 @@ function formatDate(iso: string): string {
 
 function rowToLiveEmail(row: EmailRow): LiveEmail {
   const fullContent = row.content?.trim() || '';
-  const previewSource = row.ai_summary?.trim() || fullContent;
+  const htmlContent = row.html_content?.trim() || '';
+  // Preview prefers ai_summary (clean), then plain content, never HTML soup.
+  const previewSource = row.ai_summary?.trim() || stripHtmlForPreview(fullContent);
   const preview = previewSource.length > 240
     ? previewSource.substring(0, 240) + '…'
     : previewSource;
@@ -77,11 +81,33 @@ function rowToLiveEmail(row: EmailRow): LiveEmail {
     subject: row.subject || '(kein Betreff)',
     preview,
     content: fullContent,
+    htmlContent,
     date: formatDate(row.received_at),
     isRead: !!row.is_read,
     isStarred: !!row.is_starred,
     category: categoryFromName(row.email_categories?.name),
   };
+}
+
+/**
+ * Strip HTML tags + collapse whitespace so an HTML body doesn't produce a
+ * preview line full of `<html><head>...` markup. Cheap regex, NOT a sanitizer.
+ */
+function stripHtmlForPreview(text: string): string {
+  if (!text) return '';
+  // If it doesn't even look like HTML, leave it.
+  if (!/<[a-z!/]/i.test(text)) return text;
+  return text
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /**
@@ -96,7 +122,7 @@ export function useLiveEmails() {
       const { data, error } = await supabase
         .from('emails')
         .select(
-          'id, subject, sender_email, sender_name, content, ai_summary, received_at, is_read, is_starred, email_categories(name)'
+          'id, subject, sender_email, sender_name, content, html_content, ai_summary, received_at, is_read, is_starred, email_categories(name)'
         )
         .order('received_at', { ascending: false })
         .limit(50);
