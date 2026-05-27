@@ -34,6 +34,7 @@ android/build/
 android/.gradle/
 android/capacitor-cordova-android-plugins/build/
 android/app/src/main/assets/public/
+android/www/
 *.apk
 *.aab
 local.properties
@@ -41,6 +42,7 @@ local.properties
 # iOS (falls später verwendet)
 ios/App/Pods/
 ios/App/build/
+ios/App/App/public/
 ai-bot/.env
 
 # Environment variables
