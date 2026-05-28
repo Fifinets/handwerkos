@@ -98,8 +98,26 @@ interface MessageBubbleProps {
   onNavigateToOffers: () => void;
 }
 
+function summarizeAgentText(content: string): string {
+  // When the agent dumps a verbose markdown block, take the first
+  // non-empty, non-table line as the summary. Falls back to the full
+  // content if it's already short.
+  const lines = content.split('\n').map((l) => l.trim()).filter(Boolean);
+  const firstNonTable = lines.find((l) => !l.startsWith('|') && !l.startsWith('#') && !l.startsWith('**Zusammenfassung'));
+  if (firstNonTable && firstNonTable.length <= 200) return firstNonTable;
+  return content;
+}
+
 function MessageBubble({ msg, approve, onNavigateToOffers }: MessageBubbleProps) {
   const isUser = msg.role === 'user';
+  // When an ApprovalCard is shown, the card carries the structured info —
+  // collapse the agent's verbose markdown body to a one-line summary so the
+  // chat stays compact (Paperclip-style, per spec).
+  const showApprovalCard =
+    msg.status === 'awaiting_approval' && msg.taskId && msg.preview;
+  const displayContent = showApprovalCard
+    ? summarizeAgentText(msg.content)
+    : msg.content;
   return (
     <div className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
       <div
@@ -108,12 +126,12 @@ function MessageBubble({ msg, approve, onNavigateToOffers }: MessageBubbleProps)
           isUser ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-900',
         )}
       >
-        <p className="whitespace-pre-wrap">{msg.content}</p>
-        {msg.status === 'awaiting_approval' && msg.taskId && msg.preview && (
+        <p className="whitespace-pre-wrap">{displayContent}</p>
+        {showApprovalCard && (
           <div className="mt-3">
             <ApprovalCard
-              taskId={msg.taskId}
-              preview={msg.preview}
+              taskId={msg.taskId!}
+              preview={msg.preview!}
               agentMessage={msg.agentMessage}
               alreadyApproved={false}
               onApprove={approve}
