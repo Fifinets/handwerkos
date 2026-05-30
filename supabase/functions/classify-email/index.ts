@@ -25,6 +25,37 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
 
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    );
+
+    // Atomic claim: only this run gets to classify. If another instance
+    // is already classifying or has finished, exit silently.
+    const { data: claimed, error: claimError } = await supabase
+      .from('emails')
+      .update({ processing_status: 'classifying' })
+      .eq('id', emailId)
+      .eq('processing_status', 'pending')
+      .select('id')
+      .maybeSingle();
+
+    if (claimError) {
+      console.error('classify-email claim error:', claimError);
+      return new Response(JSON.stringify({ error: 'claim failed', detail: claimError.message }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!claimed) {
+      console.log(`classify-email: email ${emailId} not in 'pending' state, skipping`);
+      return new Response(JSON.stringify({ skipped: true, reason: 'not pending' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const openAIPrompt = `Du bist ein KI-Assistent für die Klassifizierung und Analyse deutscher Geschäfts-E-Mails in einem Handwerksunternehmen.
 Analysiere den Inhalt dieser E-Mail und gib die passende Kategorie sowie strukturierte Informationen zurück.
 
@@ -129,8 +160,8 @@ Antworte ausschließlich mit diesem JSON.`;
     const customerId = customerData?.id || null;
     console.log('Customer lookup for email:', senderEmail, 'found:', customerId);
 
-    // E-Mail-Eintrag aktualisieren (nur mit existierenden Feldern)
-    const updateData = {
+    // E-Mail-Eintrag aktualisieren (ohne processing_status – das setzt der Bridge-Block unten)
+    const updateData: Record<string, unknown> = {
       ai_category_id: categoryId,
       ai_confidence: confidence || 0.8,
       ai_sentiment: extractedData?.sentiment || 'neutral',
@@ -138,7 +169,6 @@ Antworte ausschließlich mit diesem JSON.`;
       customer_id: customerId,
       priority: extractedData?.priority || 'normal',
       processed_at: new Date().toISOString(),
-      processing_status: "completed"
     };
 
     // Store extracted data as JSON in ai_extracted_data field
@@ -160,11 +190,64 @@ Antworte ausschließlich mit diesem JSON.`;
 
     console.log('Email classification completed successfully');
 
+    // Bridge into agent-router for in-scope categories with high confidence.
+    // Spec: docs/superpowers/specs/2026-05-11-email-action-pipeline-design.md
+    const SUPPORTED = new Set(['Anfrage', 'Auftrag', 'Rechnung']);
+    const confidenceVal = typeof parsed.confidence === 'number' ? parsed.confidence : 0;
+    const categoryVal = parsed.category;
+
+    let newStatus: string;
+    if (confidenceVal < 0.6) {
+      newStatus = 'needs_review';
+    } else if (!SUPPORTED.has(categoryVal)) {
+      newStatus = 'out_of_scope';
+    } else {
+      newStatus = 'dispatched';
+    }
+
+    await supabase.from('emails').update({ processing_status: newStatus }).eq('id', emailId);
+
+    if (newStatus === 'dispatched') {
+      // Fetch company_id for this email - we need it for agent-router dispatch.
+      const { data: emailRow } = await supabase
+        .from('emails')
+        .select('company_id')
+        .eq('id', emailId)
+        .single();
+
+      if (emailRow?.company_id) {
+        const { error: invokeError } = await supabaseAdmin.functions.invoke('agent-router', {
+          body: {
+            trigger: 'email',
+            emailId,
+            category: categoryVal,
+            companyId: emailRow.company_id,
+            extractedData: parsed.extractedData ?? {},
+          },
+        });
+
+        if (invokeError) {
+          console.error('classify-email: agent-router dispatch failed:', invokeError);
+          await supabase
+            .from('emails')
+            .update({ processing_status: 'dispatch_failed' })
+            .eq('id', emailId);
+        }
+      } else {
+        console.error(`classify-email: email ${emailId} has no company_id, cannot dispatch`);
+        await supabase
+          .from('emails')
+          .update({ processing_status: 'dispatch_failed' })
+          .eq('id', emailId);
+      }
+    }
+
     return new Response(JSON.stringify({
       success: true,
       category,
       categoryId,
       customerId,
+      processingStatus: newStatus,
       parsed
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }
