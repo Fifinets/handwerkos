@@ -21,7 +21,8 @@ import {
     UserCircle,
     ClipboardList,
     BarChart3,
-    ShieldCheck
+    ShieldCheck,
+    Sparkles
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -36,6 +37,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const mainNavigation = [
+    { id: 'agent-chat', name: 'KI-Assistent', icon: Sparkles },
     { id: 'dashboard', name: 'Dashboard', icon: TrendingUp },
     { id: 'projects', name: 'Projekte', icon: Building2 },
     { id: 'offers', name: 'Angebote', icon: FileText },

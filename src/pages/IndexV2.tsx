@@ -26,6 +26,7 @@ import InspectionModule from "@/components/inspections/InspectionModule";
 import { ArticleModule } from "@/components/articles/ArticleModule";
 import { SubscriptionManager } from "@/components/billing/SubscriptionManager";
 import { VacationManagement } from "@/components/VacationManagement";
+import { AgentChatView } from "@/components/agents/AgentChatView";
 import { toast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
@@ -125,6 +126,8 @@ const IndexV2 = () => {
                 return <InspectionModule />;
             case 'billing':
                 return <SubscriptionManager />;
+            case 'agent-chat':
+                return <AgentChatView onNavigateToOffers={() => setActiveModule('offers')} />;
             default:
                 return <ExecutiveDashboardV2 onNavigate={setActiveModule} />;
         }

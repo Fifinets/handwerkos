@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AgentBadge } from "@/components/agents/AgentBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -555,6 +556,7 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                         <div className="font-semibold text-slate-900 flex items-center gap-1.5">
                                                             <User className="h-3.5 w-3.5 text-slate-400" />
                                                             <span className="truncate max-w-[200px]">{offer.customer_name}</span>
+                                                            {offer.created_by_agent && <AgentBadge className="ml-1" />}
                                                             {(() => {
                                                                 const nachfass = getNachfassBadge(offer);
                                                                 if (!nachfass) return null;
