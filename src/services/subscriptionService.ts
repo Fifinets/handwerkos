@@ -171,6 +171,6 @@ export class SubscriptionService {
 
     if (employee?.company_id) return employee.company_id;
 
-    return '00000000-0000-0000-0000-000000000000';
+    throw new ApiError(API_ERROR_CODES.NOT_FOUND, 'Kein Unternehmen gefunden. Bitte erstellen Sie zuerst ein Unternehmensprofil.');
   }
 }
