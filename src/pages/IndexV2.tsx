@@ -131,22 +131,22 @@ const IndexV2 = () => {
     };
 
     return (
-        <div className="min-h-screen w-full bg-slate-50 flex">
+        <div className="min-h-screen w-full min-w-0 overflow-x-hidden bg-slate-50 flex">
             {/* V2 Sidebar with strict Lucide Icons and grouped dark theme */}
             <AppSidebarV2 activeModule={activeModule} onModuleChange={setActiveModule} />
 
-            <div className="flex-1 flex flex-col min-h-screen ml-16 lg:ml-16 transition-all duration-300">
+            <div className="flex-1 min-w-0 flex flex-col min-h-screen ml-16 lg:ml-16 transition-all duration-300">
 
                 {/* Cleaner Top Header */}
-                <header className="h-16 border-b border-slate-200 bg-white sticky top-0 z-30 shadow-sm flex items-center justify-between px-6">
-                    <div className="flex items-center space-x-4">
+                <header className="h-16 border-b border-slate-200 bg-white sticky top-0 z-30 shadow-sm flex items-center justify-between gap-3 px-3 sm:px-6">
+                    <div className="flex min-w-0 items-center space-x-4">
                         <h2 className="text-lg font-semibold text-slate-800 hidden sm:block">Manager Arbeitsbereich</h2>
                         <Badge variant="secondary" className="bg-teal-50 text-teal-700 border-teal-200 shadow-sm">
                             V2 Redesign
                         </Badge>
                     </div>
 
-                    <div className="flex items-center space-x-3">
+                    <div className="flex shrink-0 items-center space-x-3">
                         <NotificationBell />
 
                         <ThemeToggle />
@@ -166,7 +166,7 @@ const IndexV2 = () => {
                 </header>
 
                 {/* Main Content Area */}
-                <main className="flex-1 overflow-auto bg-slate-50/50">
+                <main className="flex-1 min-w-0 overflow-auto bg-slate-50/50">
                     {renderModule()}
                 </main>
             </div>

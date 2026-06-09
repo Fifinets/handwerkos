@@ -31,7 +31,7 @@ interface PlannerKPICardsProps {
 
 export function PlannerKPICards({ isLoading, projectCount, assignedCount, freeCount, vacationTodayCount, totalConflicts, equipmentInUse }: PlannerKPICardsProps) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-6 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-3 sm:gap-4">
       <KpiCard icon={Briefcase} iconBg="bg-blue-50" iconColor="text-blue-600"
         value={isLoading ? '—' : projectCount} label="Aktive Projekte" />
       <KpiCard icon={Users} iconBg="bg-amber-50" iconColor="text-amber-600"

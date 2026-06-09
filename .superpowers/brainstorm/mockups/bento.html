@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HandwerkOS — Bento Grid Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #050510; color: #f8fafc; overflow-x: hidden; }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 100;
+    display: flex; align-items: center; gap: 32px;
+    background: rgba(255,255,255,0.04); backdrop-filter: blur(24px);
+    border: 1px solid rgba(255,255,255,0.06); border-radius: 60px;
+    padding: 10px 12px 10px 24px;
+  }
+  .nav-logo { font-weight: 800; font-size: 16px; }
+  .nav-logo span { color: #f59e0b; }
+  .nav-links { display: flex; gap: 24px; }
+  .nav-links a { color: #64748b; text-decoration: none; font-size: 13px; transition: color 0.2s; }
+  .nav-links a:hover { color: #f8fafc; }
+  .nav-cta {
+    background: linear-gradient(135deg, #f59e0b, #ef4444); color: white;
+    padding: 8px 20px; border-radius: 50px; font-weight: 700; font-size: 13px;
+    text-decoration: none;
+  }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh; padding: 140px 48px 80px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .hero-top { text-align: center; margin-bottom: 56px; }
+  .hero-badge {
+    background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(239,68,68,0.08));
+    border: 1px solid rgba(245,158,11,0.2); padding: 6px 18px; border-radius: 50px;
+    font-size: 12px; color: #fbbf24; display: inline-block; margin-bottom: 24px;
+    letter-spacing: 0.5px;
+  }
+  .hero h1 {
+    font-size: clamp(44px, 7vw, 72px); font-weight: 900; line-height: 1.05;
+    letter-spacing: -2px; margin-bottom: 20px;
+  }
+  .hero h1 .warm { background: linear-gradient(90deg, #f59e0b, #ef4444); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero-sub { font-size: 18px; color: #64748b; max-width: 500px; margin: 0 auto 32px; line-height: 1.7; }
+  .hero-ctas { display: flex; gap: 12px; justify-content: center; align-items: center; }
+  .btn-warm {
+    background: linear-gradient(135deg, #f59e0b, #ef4444); color: white;
+    padding: 14px 32px; border-radius: 12px; font-size: 15px; font-weight: 700;
+    text-decoration: none; box-shadow: 0 0 40px rgba(245,158,11,0.3);
+    transition: transform 0.2s;
+  }
+  .btn-warm:hover { transform: translateY(-2px); }
+  .btn-ghost {
+    color: #94a3b8; padding: 14px 32px; border-radius: 12px; font-size: 15px;
+    text-decoration: none; border: 1px solid rgba(255,255,255,0.08);
+  }
+  .trial-note { font-size: 13px; color: #475569; margin-top: 16px; }
+  .trial-note span { color: #22c55e; }
+
+  /* BENTO GRID */
+  .bento {
+    display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: minmax(140px, auto);
+    gap: 16px; max-width: 1100px; width: 100%;
+    animation: fadeUp 1s ease-out 0.3s both;
+  }
+  .bento-card {
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px; padding: 24px; position: relative; overflow: hidden;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+  .bento-card:hover { border-color: rgba(255,255,255,0.12); transform: translateY(-2px); }
+  .bento-card.span-2 { grid-column: span 2; }
+  .bento-card.row-2 { grid-row: span 2; }
+  .bento-card .icon { font-size: 28px; margin-bottom: 12px; }
+  .bento-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .bento-card p { font-size: 12px; color: #64748b; line-height: 1.5; }
+  .bento-card.highlight {
+    background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(239,68,68,0.04));
+    border-color: rgba(245,158,11,0.15);
+  }
+  .bento-card.accent {
+    background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.04));
+    border-color: rgba(99,102,241,0.15);
+  }
+
+  /* Mini dashboard inside bento */
+  .mini-chart { display: flex; gap: 3px; align-items: flex-end; height: 60px; margin-top: 12px; }
+  .mini-bar { flex: 1; border-radius: 3px; transition: height 0.5s; }
+  .mini-stat { font-size: 28px; font-weight: 900; margin-top: 8px; }
+  .mini-stat.green { color: #22c55e; }
+  .mini-stat.amber { color: #f59e0b; }
+
+  /* Project list inside bento */
+  .mini-list { margin-top: 12px; }
+  .mini-list-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 11px;
+  }
+  .mini-list-item:last-child { border: none; }
+  .mini-status { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* SECTIONS */
+  .section { padding: 120px 48px; text-align: center; }
+  .section-badge { font-size: 12px; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-bottom: 16px; }
+  .section-title { font-size: clamp(32px, 5vw, 48px); font-weight: 800; letter-spacing: -1px; margin-bottom: 20px; line-height: 1.1; }
+  .section-sub { font-size: 16px; color: #64748b; max-width: 500px; margin: 0 auto 56px; line-height: 1.6; }
+
+  /* 3-STEP FLOW */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; max-width: 900px; margin: 0 auto; }
+  .step {
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px; padding: 36px 28px; text-align: center;
+    position: relative;
+  }
+  .step-num {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 16px; margin: 0 auto 16px;
+  }
+  .step h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .step p { font-size: 13px; color: #64748b; line-height: 1.6; }
+  .step-arrow {
+    position: absolute; right: -24px; top: 50%; transform: translateY(-50%);
+    font-size: 20px; color: #334155;
+  }
+
+  /* PRICING */
+  .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 900px; margin: 0 auto; }
+  .price-card {
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px; padding: 36px 28px; text-align: left;
+    transition: transform 0.3s;
+  }
+  .price-card:hover { transform: translateY(-4px); }
+  .price-card.featured {
+    background: linear-gradient(160deg, rgba(245,158,11,0.08), rgba(239,68,68,0.04));
+    border-color: rgba(245,158,11,0.25);
+    box-shadow: 0 0 60px rgba(245,158,11,0.08);
+  }
+  .popular-badge { background: linear-gradient(135deg, #f59e0b, #ef4444); color: white; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px; display: inline-block; margin-bottom: 16px; }
+  .price-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .price-desc { font-size: 13px; color: #64748b; margin-bottom: 20px; }
+  .price-amount { font-size: 42px; font-weight: 900; letter-spacing: -2px; }
+  .price-period { font-size: 13px; color: #64748b; margin-bottom: 24px; }
+  .price-features { list-style: none; padding: 0; margin-bottom: 28px; }
+  .price-features li { font-size: 13px; color: #94a3b8; padding: 6px 0; }
+  .price-features li::before { content: "✓ "; color: #f59e0b; font-weight: 700; }
+  .price-btn { display: block; text-align: center; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none; border: 1px solid rgba(255,255,255,0.1); color: #cbd5e1; }
+  .price-btn.featured-btn { background: linear-gradient(135deg, #f59e0b, #ef4444); color: white; border: none; }
+
+  /* TESTIMONIALS */
+  .testimonials-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1000px; margin: 0 auto; }
+  .t-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 28px; text-align: left; }
+  .t-text { font-size: 14px; color: #94a3b8; line-height: 1.7; margin-bottom: 20px; font-style: italic; }
+  .t-author { display: flex; align-items: center; gap: 12px; }
+  .t-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #ef4444); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+  .t-name { font-size: 14px; font-weight: 600; }
+  .t-role { font-size: 12px; color: #64748b; }
+
+  /* FAQ */
+  .faq-list { max-width: 680px; margin: 0 auto; text-align: left; }
+  .faq-item { border-bottom: 1px solid rgba(255,255,255,0.06); padding: 20px 0; }
+  .faq-q { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+  .faq-a { font-size: 14px; color: #64748b; line-height: 1.6; }
+
+  /* FOOTER CTA */
+  .footer-cta { padding: 120px 48px; text-align: center; position: relative; }
+  .footer-cta h2 { font-size: clamp(36px, 5vw, 56px); font-weight: 900; letter-spacing: -1.5px; margin-bottom: 16px; }
+  .footer-cta p { font-size: 16px; color: #64748b; margin-bottom: 32px; }
+
+  footer { padding: 48px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; font-size: 13px; color: #475569; }
+  footer a { color: #475569; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<!-- NAV (pill style) -->
+<nav>
+  <div class="nav-logo">Handwerk<span>OS</span></div>
+  <div class="nav-links">
+    <a href="#">Features</a>
+    <a href="#">Preise</a>
+    <a href="#">Demo</a>
+  </div>
+  <a href="#" class="nav-cta">Loslegen</a>
+</nav>
+
+<!-- HERO + BENTO -->
+<section class="hero">
+  <div class="hero-top">
+    <div class="hero-badge">&#x1F525; Alles was dein Betrieb braucht</div>
+    <h1>Handwerk<br/><span class="warm">revolutioniert</span></h1>
+    <p class="hero-sub">Von der Kalkulation bis zur Rechnung. Eine Plattform, die mitdenkt.</p>
+    <div class="hero-ctas">
+      <a href="#" class="btn-warm">Kostenlos starten &rarr;</a>
+      <a href="#" class="btn-ghost">Demo ansehen</a>
+    </div>
+    <div class="trial-note"><span>&#x2713;</span> 14 Tage kostenlos &middot; Keine Kreditkarte</div>
+  </div>
+
+  <!-- BENTO GRID -->
+  <div class="bento">
+    <!-- Revenue card (big) -->
+    <div class="bento-card span-2 highlight">
+      <div class="icon">&#x1F4CA;</div>
+      <h3>Echtzeit-Dashboard</h3>
+      <p>Umsatz, Auslastung, offene Posten &mdash; alles auf einen Blick</p>
+      <div class="mini-stat green">&euro;142.800</div>
+      <div style="font-size: 11px; color: #64748b;">Umsatz Q1 2026</div>
+      <div class="mini-chart">
+        <div class="mini-bar" style="height: 35%; background: rgba(34,197,94,0.3);"></div>
+        <div class="mini-bar" style="height: 50%; background: rgba(34,197,94,0.3);"></div>
+        <div class="mini-bar" style="height: 40%; background: rgba(34,197,94,0.3);"></div>
+        <div class="mini-bar" style="height: 65%; background: rgba(34,197,94,0.4);"></div>
+        <div class="mini-bar" style="height: 55%; background: rgba(34,197,94,0.4);"></div>
+        <div class="mini-bar" style="height: 75%; background: rgba(34,197,94,0.5);"></div>
+        <div class="mini-bar" style="height: 60%; background: rgba(34,197,94,0.5);"></div>
+        <div class="mini-bar" style="height: 85%; background: rgba(34,197,94,0.6);"></div>
+        <div class="mini-bar" style="height: 70%; background: rgba(34,197,94,0.6);"></div>
+        <div class="mini-bar" style="height: 90%; background: rgba(34,197,94,0.7);"></div>
+        <div class="mini-bar" style="height: 80%; background: rgba(34,197,94,0.8);"></div>
+        <div class="mini-bar" style="height: 100%; background: #22c55e;"></div>
+      </div>
+    </div>
+
+    <!-- KI card -->
+    <div class="bento-card accent">
+      <div class="icon">&#x1F916;</div>
+      <h3>KI-Kalkulation</h3>
+      <p>Automatische Kostensch&auml;tzung in Sekunden</p>
+      <div class="mini-stat" style="color: #818cf8;">2 Min</div>
+      <div style="font-size: 11px; color: #64748b;">pro Angebot</div>
+    </div>
+
+    <!-- Mobile -->
+    <div class="bento-card">
+      <div class="icon">&#x1F4F1;</div>
+      <h3>Mobile App</h3>
+      <p>Baustelle to go &mdash; Fotos, Zeiten, Aufma&szlig;e</p>
+    </div>
+
+    <!-- Projects list (big) -->
+    <div class="bento-card span-2 row-2">
+      <div class="icon">&#x1F4CB;</div>
+      <h3>Projektverwaltung</h3>
+      <p>Vom Angebot bis zur Schlussrechnung</p>
+      <div class="mini-list">
+        <div class="mini-list-item">
+          <span style="color: #cbd5e1;">Elektroinstallation EFH M&uuml;ller</span>
+          <span class="mini-status" style="background: rgba(34,197,94,0.15); color: #4ade80;">Aktiv</span>
+        </div>
+        <div class="mini-list-item">
+          <span style="color: #cbd5e1;">Sanierung Altbau Hauptstr.</span>
+          <span class="mini-status" style="background: rgba(234,179,8,0.15); color: #facc15;">Material</span>
+        </div>
+        <div class="mini-list-item">
+          <span style="color: #cbd5e1;">PV-Anlage Dach Schmidt</span>
+          <span class="mini-status" style="background: rgba(99,102,241,0.15); color: #a5b4fc;">Angebot</span>
+        </div>
+        <div class="mini-list-item">
+          <span style="color: #cbd5e1;">Ladestation Tiefgarage</span>
+          <span class="mini-status" style="background: rgba(34,197,94,0.15); color: #4ade80;">Aktiv</span>
+        </div>
+        <div class="mini-list-item">
+          <span style="color: #cbd5e1;">Rauchmelder Wohnanlage</span>
+          <span class="mini-status" style="background: rgba(168,85,247,0.15); color: #c084fc;">Fertig</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- E-Rechnung -->
+    <div class="bento-card">
+      <div class="icon">&#x1F4C4;</div>
+      <h3>E-Rechnung</h3>
+      <p>ZUGFeRD &amp; XRechnung, GoBD-konform</p>
+    </div>
+
+    <!-- DATEV -->
+    <div class="bento-card highlight">
+      <div class="icon">&#x1F4E4;</div>
+      <h3>DATEV Export</h3>
+      <p>Ein Klick f&uuml;r deinen Steuerberater</p>
+    </div>
+
+    <!-- Team -->
+    <div class="bento-card accent">
+      <div class="icon">&#x1F465;</div>
+      <h3>Team-Planung</h3>
+      <p>Auslastung, Urlaub, Kapazit&auml;ten</p>
+      <div class="mini-stat amber">87%</div>
+      <div style="font-size: 11px; color: #64748b;">Auslastung</div>
+    </div>
+
+    <!-- Zeiterfassung -->
+    <div class="bento-card">
+      <div class="icon">&#x23F1;&#xFE0F;</div>
+      <h3>Zeiterfassung</h3>
+      <p>Stempeln per App, automatisch zugeordnet</p>
+    </div>
+  </div>
+</section>
+
+<!-- 3 STEPS -->
+<section class="section" style="background: linear-gradient(180deg, #050510 0%, #0a0a1a 100%);">
+  <div class="section-badge" style="color: #f59e0b;">So einfach geht's</div>
+  <h2 class="section-title">In 3 Schritten startklar</h2>
+  <div class="section-sub">Kein IT-Studium n&ouml;tig. Einfach loslegen.</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Registrieren</h3>
+      <p>Kostenloses Konto in 30 Sekunden erstellen. Keine Kreditkarte.</p>
+      <div class="step-arrow">&rarr;</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>Einrichten</h3>
+      <p>Betriebsdaten eingeben, Logo hochladen, fertig. Oder Daten importieren.</p>
+      <div class="step-arrow">&rarr;</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Loslegen</h3>
+      <p>Erstes Angebot erstellen, Team einladen, produktiv werden.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section" style="background: #0a0a1a;">
+  <div class="section-badge" style="color: #22c55e;">Preise</div>
+  <h2 class="section-title">Transparent. Ohne Haken.</h2>
+  <div class="section-sub">Starte kostenlos, upgrade wenn du w&auml;chst.</div>
+  <div class="pricing-grid">
+    <div class="price-card">
+      <div class="price-name">Starter</div>
+      <div class="price-desc">F&uuml;r Einzelunternehmer</div>
+      <div class="price-amount">&euro;29</div>
+      <div class="price-period">pro Monat</div>
+      <ul class="price-features">
+        <li>Bis 3 Mitarbeiter</li>
+        <li>10 Projekte</li>
+        <li>Angebote &amp; Kunden</li>
+        <li>Zeiterfassung</li>
+      </ul>
+      <a href="#" class="price-btn">14 Tage kostenlos</a>
+    </div>
+    <div class="price-card featured">
+      <div class="popular-badge">Beliebt</div>
+      <div class="price-name">Handwerker</div>
+      <div class="price-desc">F&uuml;r wachsende Betriebe</div>
+      <div class="price-amount">&euro;59</div>
+      <div class="price-period">pro Monat</div>
+      <ul class="price-features">
+        <li>Bis 10 Mitarbeiter</li>
+        <li>Unbegrenzte Projekte</li>
+        <li>KI-Kalkulation</li>
+        <li>E-Rechnung &amp; OCR</li>
+        <li>Mitarbeiterverwaltung</li>
+      </ul>
+      <a href="#" class="price-btn featured-btn">14 Tage kostenlos</a>
+    </div>
+    <div class="price-card">
+      <div class="price-name">Meisterbetrieb</div>
+      <div class="price-desc">F&uuml;r etablierte Teams</div>
+      <div class="price-amount">&euro;99</div>
+      <div class="price-period">pro Monat</div>
+      <ul class="price-features">
+        <li>Unbegrenzt Mitarbeiter</li>
+        <li>VDE-Protokolle</li>
+        <li>DATEV Export</li>
+        <li>API-Zugriff</li>
+        <li>Priorit&auml;tssupport</li>
+      </ul>
+      <a href="#" class="price-btn">14 Tage kostenlos</a>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="section" style="background: linear-gradient(180deg, #0a0a1a 0%, #050510 100%);">
+  <div class="section-badge" style="color: #f59e0b;">Stimmen</div>
+  <h2 class="section-title">Was Handwerker sagen</h2>
+  <div style="height: 56px;"></div>
+  <div class="testimonials-grid">
+    <div class="t-card">
+      <div class="t-text">"Seitdem ich HandwerkOS nutze, spare ich jeden Tag mindestens eine Stunde B&uuml;roarbeit. Angebote gehen jetzt in Minuten raus."</div>
+      <div class="t-author">
+        <div class="t-avatar">MK</div>
+        <div><div class="t-name">Markus K.</div><div class="t-role">Elektromeister, M&ouml;nchengladbach</div></div>
+      </div>
+    </div>
+    <div class="t-card">
+      <div class="t-text">"Die Nachkalkulation zeigt mir sofort, wo ich nachbessern muss. Endlich habe ich den &Uuml;berblick &uuml;ber alle Projekte."</div>
+      <div class="t-author">
+        <div class="t-avatar">SW</div>
+        <div><div class="t-name">Sandra W.</div><div class="t-role">SHK-Betrieb, D&uuml;sseldorf</div></div>
+      </div>
+    </div>
+    <div class="t-card">
+      <div class="t-text">"Der DATEV-Export allein spart mir jeden Monat einen halben Tag. Mein Steuerberater ist begeistert."</div>
+      <div class="t-author">
+        <div class="t-avatar">TH</div>
+        <div><div class="t-name">Thomas H.</div><div class="t-role">Malerbetrieb, K&ouml;ln</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section" style="background: #050510;">
+  <div class="section-badge" style="color: #06b6d4;">FAQ</div>
+  <h2 class="section-title">H&auml;ufige Fragen</h2>
+  <div style="height: 40px;"></div>
+  <div class="faq-list">
+    <div class="faq-item"><div class="faq-q">Brauche ich technische Vorkenntnisse?</div><div class="faq-a">Nein. HandwerkOS ist so einfach wie WhatsApp. Wenn du ein Smartphone bedienen kannst, kannst du HandwerkOS nutzen.</div></div>
+    <div class="faq-item"><div class="faq-q">Kann ich meine bestehenden Daten importieren?</div><div class="faq-a">Ja. Wir unterst&uuml;tzen Import aus Excel, CSV und g&auml;ngigen Handwerkerprogrammen.</div></div>
+    <div class="faq-item"><div class="faq-q">Ist HandwerkOS GoBD-konform?</div><div class="faq-a">Ja. Alle Dokumente sind revisionssicher gespeichert mit vollst&auml;ndigem Audit-Log.</div></div>
+    <div class="faq-item"><div class="faq-q">Kann ich jederzeit k&uuml;ndigen?</div><div class="faq-a">Ja, monatlich k&uuml;ndbar. Keine Mindestlaufzeit, keine versteckten Kosten.</div></div>
+  </div>
+</section>
+
+<!-- FOOTER CTA -->
+<section class="footer-cta" style="background: linear-gradient(180deg, #050510 0%, #0a0a1a 100%);">
+  <h2>Bereit durchzustarten?</h2>
+  <p>14 Tage kostenlos. Keine Kreditkarte n&ouml;tig.</p>
+  <a href="#" class="btn-warm" style="display: inline-block;">Jetzt kostenlos starten &rarr;</a>
+</section>
+
+<footer>
+  <div>&copy; 2026 HandwerkOS</div>
+  <div style="display: flex; gap: 24px;"><a href="#">Datenschutz</a><a href="#">Impressum</a><a href="#">AGB</a></div>
+</footer>
+
+</body>
+</html>

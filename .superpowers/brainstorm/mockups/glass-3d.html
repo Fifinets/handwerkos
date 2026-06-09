@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HandwerkOS — 3D Glass Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', -apple-system, sans-serif; background: #000; color: #f8fafc; overflow-x: hidden; }
+  h1, h2, h3, .nav-logo, .btn-primary, .price-amount, .stat-num { font-family: 'Space Grotesk', sans-serif; }
+
+  /* ===== GRID BACKGROUND ===== */
+  .grid-bg {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  /* ===== NAV (Pill / Floating) ===== */
+  nav {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 100;
+    display: flex; align-items: center; gap: 28px;
+    background: rgba(10,10,20,0.6); backdrop-filter: blur(24px) saturate(1.5);
+    border: 1px solid rgba(255,255,255,0.06); border-radius: 60px;
+    padding: 10px 14px 10px 28px;
+  }
+  .nav-logo { font-weight: 700; font-size: 17px; letter-spacing: -0.5px; }
+  .nav-logo span { background: linear-gradient(135deg, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .nav-links { display: flex; gap: 24px; }
+  .nav-links a { color: #64748b; text-decoration: none; font-size: 13px; font-weight: 500; transition: color 0.2s; cursor: pointer; }
+  .nav-links a:hover { color: #e2e8f0; }
+  .nav-cta {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white;
+    padding: 9px 22px; border-radius: 50px; font-weight: 600; font-size: 13px;
+    text-decoration: none; cursor: pointer;
+    box-shadow: 0 0 20px rgba(99,102,241,0.25);
+    transition: box-shadow 0.3s, transform 0.2s;
+  }
+  .nav-cta:hover { box-shadow: 0 0 30px rgba(99,102,241,0.4); transform: translateY(-1px); }
+
+  /* ===== HERO ===== */
+  .hero {
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    position: relative; padding: 140px 24px 80px; z-index: 1;
+  }
+
+  /* Gradient orbs */
+  .orb { position: absolute; border-radius: 50%; pointer-events: none; }
+  .orb-1 { width: 600px; height: 600px; background: radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%); top: 5%; left: 5%; animation: drift1 12s ease-in-out infinite; }
+  .orb-2 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(168,85,247,0.12) 0%, transparent 70%); bottom: 10%; right: 0%; animation: drift2 15s ease-in-out infinite; }
+  .orb-3 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(56,189,248,0.10) 0%, transparent 70%); top: 40%; left: 55%; animation: drift3 10s ease-in-out infinite; }
+
+  @keyframes drift1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(50px,30px); } }
+  @keyframes drift2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-40px,-50px); } }
+  @keyframes drift3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(25px,-25px); } }
+
+  .hero-content { position: relative; z-index: 2; }
+
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2);
+    backdrop-filter: blur(12px); padding: 8px 20px; border-radius: 50px;
+    font-size: 13px; color: #a5b4fc; margin-bottom: 32px;
+    animation: fadeUp 0.6s ease-out;
+  }
+  .hero-badge svg { width: 16px; height: 16px; }
+
+  .hero h1 {
+    font-size: clamp(48px, 7.5vw, 82px); font-weight: 700; line-height: 1.02;
+    letter-spacing: -3px; margin-bottom: 24px;
+    animation: fadeUp 0.7s ease-out 0.1s both;
+  }
+  .hero .gradient-text {
+    background: linear-gradient(135deg, #818cf8 0%, #c084fc 40%, #38bdf8 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero-sub {
+    font-size: 18px; color: #64748b; max-width: 480px; margin: 0 auto 40px;
+    line-height: 1.7; font-weight: 400;
+    animation: fadeUp 0.7s ease-out 0.2s both;
+  }
+  .hero-ctas {
+    display: flex; gap: 14px; justify-content: center; align-items: center;
+    animation: fadeUp 0.7s ease-out 0.3s both;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white;
+    padding: 16px 36px; border-radius: 14px; font-size: 16px; font-weight: 600;
+    text-decoration: none; cursor: pointer; letter-spacing: -0.3px;
+    box-shadow: 0 0 50px rgba(99,102,241,0.35), inset 0 1px 0 rgba(255,255,255,0.1);
+    transition: transform 0.2s, box-shadow 0.3s;
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 70px rgba(99,102,241,0.5), inset 0 1px 0 rgba(255,255,255,0.15); }
+  .btn-ghost {
+    display: flex; align-items: center; gap: 8px;
+    color: #94a3b8; padding: 16px 28px; border-radius: 14px; font-size: 16px;
+    text-decoration: none; cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.08);
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .btn-ghost:hover { border-color: rgba(255,255,255,0.2); color: #e2e8f0; }
+  .btn-ghost svg { width: 18px; height: 18px; }
+
+  /* Trust bar */
+  .trust-bar {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 20px; font-size: 13px; color: #475569;
+    animation: fadeUp 0.7s ease-out 0.35s both;
+  }
+  .trust-bar .dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; }
+
+  /* 3D Feature cards */
+  .hero-cards {
+    display: flex; gap: 16px; margin-top: 64px; perspective: 1200px;
+    animation: fadeUp 0.8s ease-out 0.5s both;
+  }
+  .hero-card {
+    background: rgba(255,255,255,0.03); backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.06); border-radius: 16px;
+    padding: 24px 20px; width: 180px; text-align: left;
+    transition: transform 0.4s, border-color 0.3s, box-shadow 0.4s;
+    cursor: pointer;
+  }
+  .hero-card:nth-child(1) { transform: rotateY(10deg) rotateX(-2deg); }
+  .hero-card:nth-child(2) { transform: rotateY(0deg) translateY(-8px); box-shadow: 0 20px 60px rgba(99,102,241,0.1); border-color: rgba(99,102,241,0.15); }
+  .hero-card:nth-child(3) { transform: rotateY(-10deg) rotateX(-2deg); }
+  .hero-card:hover { transform: rotateY(0deg) rotateX(0deg) translateY(-8px); border-color: rgba(99,102,241,0.25); box-shadow: 0 20px 60px rgba(99,102,241,0.15); }
+
+  .hero-card .card-icon {
+    width: 40px; height: 40px; border-radius: 10px; margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .hero-card .card-icon svg { width: 20px; height: 20px; }
+  .hero-card .card-icon.indigo { background: rgba(99,102,241,0.12); color: #818cf8; }
+  .hero-card .card-icon.emerald { background: rgba(16,185,129,0.12); color: #34d399; }
+  .hero-card .card-icon.amber { background: rgba(245,158,11,0.12); color: #fbbf24; }
+  .hero-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .hero-card p { font-size: 12px; color: #64748b; line-height: 1.4; }
+  .hero-card .card-stat { font-size: 24px; font-weight: 700; margin-top: 12px; }
+  .hero-card .card-stat.green { color: #22c55e; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ===== SECTIONS ===== */
+  section { position: relative; z-index: 1; }
+  .section-inner { max-width: 1100px; margin: 0 auto; padding: 120px 48px; }
+  .section-badge { font-size: 12px; text-transform: uppercase; letter-spacing: 2px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; justify-content: center; }
+  .section-badge svg { width: 16px; height: 16px; }
+  .section-title { font-size: clamp(32px, 4.5vw, 52px); font-weight: 700; letter-spacing: -1.5px; margin-bottom: 16px; line-height: 1.08; text-align: center; }
+  .section-sub { font-size: 17px; color: #64748b; max-width: 480px; margin: 0 auto 64px; line-height: 1.6; text-align: center; }
+
+  /* ===== PAIN POINTS ===== */
+  .pain-section { background: linear-gradient(180deg, #000 0%, #050510 100%); }
+  .pain-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .pain-card {
+    background: rgba(239,68,68,0.03); border: 1px solid rgba(239,68,68,0.08);
+    border-radius: 16px; padding: 32px 24px; cursor: pointer;
+    transition: border-color 0.3s, transform 0.2s;
+  }
+  .pain-card:hover { border-color: rgba(239,68,68,0.2); transform: translateY(-3px); }
+  .pain-card .card-icon { width: 44px; height: 44px; border-radius: 12px; background: rgba(239,68,68,0.08); color: #f87171; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+  .pain-card .card-icon svg { width: 22px; height: 22px; }
+  .pain-card h3 { font-size: 17px; font-weight: 600; margin-bottom: 8px; }
+  .pain-card p { font-size: 14px; color: #64748b; line-height: 1.6; }
+
+  /* ===== FEATURES BENTO ===== */
+  .features-section { background: #050510; }
+  .bento { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: minmax(160px, auto); gap: 16px; }
+  .bento-card {
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 18px; padding: 28px; overflow: hidden;
+    transition: border-color 0.3s, transform 0.3s; cursor: pointer;
+  }
+  .bento-card:hover { border-color: rgba(99,102,241,0.2); transform: translateY(-3px); }
+  .bento-card.span-2 { grid-column: span 2; }
+  .bento-card.row-2 { grid-row: span 2; }
+  .bento-card.accent { background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(168,85,247,0.03)); border-color: rgba(99,102,241,0.1); }
+  .bento-card .card-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+  .bento-card .card-icon svg { width: 22px; height: 22px; }
+  .bento-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .bento-card p { font-size: 13px; color: #64748b; line-height: 1.5; }
+
+  /* Mini chart */
+  .mini-chart { display: flex; gap: 3px; align-items: flex-end; height: 70px; margin-top: 16px; }
+  .mini-bar { flex: 1; border-radius: 3px 3px 0 0; }
+  .mini-stat { font-size: 32px; font-weight: 700; margin-top: 10px; letter-spacing: -1px; }
+
+  /* Mini project list */
+  .mini-list { margin-top: 16px; }
+  .mini-list-item { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 12px; }
+  .mini-list-item:last-child { border: none; }
+  .mini-status { padding: 3px 10px; border-radius: 6px; font-size: 10px; font-weight: 600; }
+
+  /* ===== APP PREVIEW ===== */
+  .preview-section { background: linear-gradient(180deg, #050510, #0a0a1e); }
+  .app-frame {
+    max-width: 950px; margin: 0 auto;
+    background: rgba(17,24,39,0.8); backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px; overflow: hidden;
+    box-shadow: 0 50px 120px rgba(99,102,241,0.12), 0 0 0 1px rgba(255,255,255,0.03);
+  }
+  .app-titlebar {
+    display: flex; align-items: center; gap: 8px; padding: 14px 20px;
+    background: rgba(15,23,42,0.6); border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .app-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .app-content { padding: 28px; }
+  .app-tabs { display: flex; gap: 4px; margin-bottom: 24px; }
+  .app-tab { padding: 8px 18px; border-radius: 10px; font-size: 13px; color: #64748b; cursor: pointer; transition: all 0.2s; }
+  .app-tab.active { background: rgba(99,102,241,0.12); color: #a5b4fc; }
+  .dash-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .dash-card {
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 12px; padding: 18px;
+  }
+  .dash-card .label { font-size: 11px; color: #64748b; margin-bottom: 6px; }
+  .dash-card .value { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+  .app-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .app-table th { text-align: left; color: #475569; font-weight: 600; padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+  .app-table td { padding: 14px; border-bottom: 1px solid rgba(255,255,255,0.03); color: #cbd5e1; }
+  .status { padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; }
+  .s-green { background: rgba(34,197,94,0.12); color: #4ade80; }
+  .s-yellow { background: rgba(234,179,8,0.12); color: #facc15; }
+  .s-blue { background: rgba(99,102,241,0.12); color: #a5b4fc; }
+
+  /* ===== PRICING ===== */
+  .pricing-section { background: #0a0a1e; }
+  .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .price-card {
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 20px; padding: 36px 28px;
+    transition: transform 0.3s; cursor: pointer;
+  }
+  .price-card:hover { transform: translateY(-4px); }
+  .price-card.featured {
+    background: linear-gradient(160deg, rgba(99,102,241,0.08), rgba(168,85,247,0.04));
+    border-color: rgba(99,102,241,0.2);
+    box-shadow: 0 0 80px rgba(99,102,241,0.08);
+  }
+  .popular { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; font-size: 11px; font-weight: 700; padding: 5px 14px; border-radius: 20px; display: inline-block; margin-bottom: 16px; }
+  .price-name { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .price-desc { font-size: 13px; color: #64748b; margin-bottom: 24px; }
+  .price-amount { font-size: 48px; font-weight: 700; letter-spacing: -2px; }
+  .price-period { font-size: 14px; color: #64748b; margin-bottom: 28px; }
+  .price-features { list-style: none; padding: 0; margin-bottom: 32px; }
+  .price-features li { font-size: 14px; color: #94a3b8; padding: 7px 0; display: flex; align-items: center; gap: 10px; }
+  .price-features li svg { width: 16px; height: 16px; color: #6366f1; flex-shrink: 0; }
+  .price-btn {
+    display: block; text-align: center; padding: 14px; border-radius: 12px;
+    font-size: 15px; font-weight: 600; text-decoration: none;
+    border: 1px solid rgba(255,255,255,0.08); color: #cbd5e1;
+    transition: all 0.2s; cursor: pointer;
+  }
+  .price-btn:hover { border-color: rgba(99,102,241,0.4); color: #fff; }
+  .price-btn.featured-btn { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; box-shadow: 0 0 30px rgba(99,102,241,0.25); }
+  .price-btn.featured-btn:hover { box-shadow: 0 0 50px rgba(99,102,241,0.4); }
+
+  /* ===== TESTIMONIALS ===== */
+  .testimonials-section { background: linear-gradient(180deg, #0a0a1e, #050510); }
+  .t-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .t-card {
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 16px; padding: 28px; cursor: pointer;
+    transition: border-color 0.3s;
+  }
+  .t-card:hover { border-color: rgba(255,255,255,0.1); }
+  .t-stars { color: #fbbf24; font-size: 14px; margin-bottom: 16px; letter-spacing: 2px; }
+  .t-text { font-size: 14px; color: #94a3b8; line-height: 1.7; margin-bottom: 20px; }
+  .t-author { display: flex; align-items: center; gap: 12px; }
+  .t-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #a855f7); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+  .t-name { font-size: 14px; font-weight: 600; }
+  .t-role { font-size: 12px; color: #64748b; }
+
+  /* ===== FAQ ===== */
+  .faq-section { background: #050510; }
+  .faq-list { max-width: 680px; margin: 0 auto; }
+  .faq-item { border-bottom: 1px solid rgba(255,255,255,0.05); padding: 24px 0; cursor: pointer; }
+  .faq-item:hover .faq-q { color: #c7d2fe; }
+  .faq-q { font-size: 16px; font-weight: 600; margin-bottom: 10px; transition: color 0.2s; display: flex; justify-content: space-between; align-items: center; }
+  .faq-q svg { width: 18px; height: 18px; color: #475569; flex-shrink: 0; }
+  .faq-a { font-size: 14px; color: #64748b; line-height: 1.7; padding-right: 32px; }
+
+  /* ===== FOOTER CTA ===== */
+  .footer-cta-section { background: #000; position: relative; overflow: hidden; }
+  .footer-cta-inner { text-align: center; position: relative; z-index: 2; }
+  .footer-cta-inner h2 { font-size: clamp(36px, 5vw, 60px); font-weight: 700; letter-spacing: -2px; margin-bottom: 16px; }
+  .footer-cta-inner p { font-size: 17px; color: #64748b; margin-bottom: 36px; }
+  .cta-glow { position: absolute; top: 50%; left: 50%; width: 500px; height: 300px; background: radial-gradient(ellipse, rgba(99,102,241,0.15) 0%, transparent 70%); transform: translate(-50%, -50%); }
+
+  /* ===== FOOTER ===== */
+  footer { padding: 48px; border-top: 1px solid rgba(255,255,255,0.04); display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #334155; position: relative; z-index: 1; }
+  footer a { color: #475569; text-decoration: none; cursor: pointer; transition: color 0.2s; }
+  footer a:hover { color: #94a3b8; }
+
+  /* SVG check icon helper */
+  .check-icon { display: inline-block; }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Handwerk<span>OS</span></div>
+  <div class="nav-links">
+    <a>Features</a>
+    <a>Preise</a>
+    <a>Demo</a>
+    <a>FAQ</a>
+  </div>
+  <a class="nav-cta">Kostenlos testen</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <div class="hero-content">
+    <div class="hero-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      KI-powered Handwerkersoftware
+    </div>
+
+    <h1>Die Software die<br/><span class="gradient-text">Handwerker lieben</span></h1>
+
+    <p class="hero-sub">Schluss mit Zettelwirtschaft. Angebote, Projekte, Rechnungen und DATEV — alles in einer Plattform.</p>
+
+    <div class="hero-ctas">
+      <a class="btn-primary">Jetzt kostenlos starten</a>
+      <a class="btn-ghost">
+        <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Demo ansehen
+      </a>
+    </div>
+
+    <div class="trust-bar">
+      <span class="dot"></span> 14 Tage kostenlos &middot; Keine Kreditkarte &middot; GoBD-konform
+    </div>
+
+    <!-- 3D Perspective cards -->
+    <div class="hero-cards">
+      <div class="hero-card">
+        <div class="card-icon indigo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        </div>
+        <h3>Blitz-Angebote</h3>
+        <p>KI-Kalkulation in unter 2 Minuten</p>
+        <div class="card-stat" style="color: #818cf8;">< 2 Min</div>
+      </div>
+      <div class="hero-card">
+        <div class="card-icon emerald">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        </div>
+        <h3>Live KPIs</h3>
+        <p>Umsatz und Marge in Echtzeit</p>
+        <div class="card-stat green">+23%</div>
+      </div>
+      <div class="hero-card">
+        <div class="card-icon amber">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        </div>
+        <h3>DATEV Export</h3>
+        <p>Ein Klick f&uuml;r den Steuerberater</p>
+        <div class="card-stat" style="color: #fbbf24;">1-Klick</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PAIN POINTS -->
+<section class="pain-section">
+  <div class="section-inner">
+    <div class="section-badge" style="color: #f87171;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Das Problem
+    </div>
+    <h2 class="section-title">Kommt dir das bekannt vor?</h2>
+    <div class="section-sub">Diese Probleme kosten deutschen Handwerksbetrieben im Schnitt 8 Stunden pro Woche.</div>
+
+    <div class="pain-grid">
+      <div class="pain-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <h3>Zettelwirtschaft</h3>
+        <p>Angebote in Word, Stunden auf Papier, Rechnungen in Excel. Nichts passt zusammen, alles dauert ewig.</p>
+      </div>
+      <div class="pain-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        </div>
+        <h3>Marge verschwindet</h3>
+        <p>Ohne Nachkalkulation wei&szlig;t du erst am Jahresende, ob sich ein Projekt gelohnt hat.</p>
+      </div>
+      <div class="pain-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <h3>B&uuml;ro frisst Zeit</h3>
+        <p>Statt auf der Baustelle zu sein, sitzt du abends am Schreibtisch und tippst Angebote.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES BENTO -->
+<section class="features-section">
+  <div class="section-inner">
+    <div class="section-badge" style="color: #818cf8;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Alles drin
+    </div>
+    <h2 class="section-title">Eine Plattform. Alles abgedeckt.</h2>
+    <div class="section-sub">Vom ersten Kundenkontakt bis zur DATEV-&Uuml;bergabe.</div>
+
+    <div class="bento">
+      <!-- Revenue (big) -->
+      <div class="bento-card span-2 accent">
+        <div class="card-icon" style="background: rgba(34,197,94,0.1); color: #34d399;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        </div>
+        <h3>Echtzeit-Dashboard</h3>
+        <p>Umsatz, Auslastung, offene Posten — immer im Blick</p>
+        <div class="mini-stat" style="color: #22c55e;">&euro;142.800</div>
+        <div style="font-size: 12px; color: #475569; margin-top: 2px;">Umsatz Q1 2026</div>
+        <div class="mini-chart">
+          <div class="mini-bar" style="height:30%;background:rgba(34,197,94,0.2);"></div>
+          <div class="mini-bar" style="height:45%;background:rgba(34,197,94,0.25);"></div>
+          <div class="mini-bar" style="height:38%;background:rgba(34,197,94,0.25);"></div>
+          <div class="mini-bar" style="height:60%;background:rgba(34,197,94,0.3);"></div>
+          <div class="mini-bar" style="height:52%;background:rgba(34,197,94,0.35);"></div>
+          <div class="mini-bar" style="height:72%;background:rgba(34,197,94,0.4);"></div>
+          <div class="mini-bar" style="height:58%;background:rgba(34,197,94,0.45);"></div>
+          <div class="mini-bar" style="height:80%;background:rgba(34,197,94,0.5);"></div>
+          <div class="mini-bar" style="height:68%;background:rgba(34,197,94,0.6);"></div>
+          <div class="mini-bar" style="height:88%;background:rgba(34,197,94,0.7);"></div>
+          <div class="mini-bar" style="height:78%;background:rgba(34,197,94,0.8);"></div>
+          <div class="mini-bar" style="height:100%;background:#22c55e;"></div>
+        </div>
+      </div>
+
+      <!-- KI -->
+      <div class="bento-card accent">
+        <div class="card-icon" style="background: rgba(168,85,247,0.1); color: #c084fc;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 014 4c0 1.95-1.4 3.58-3.25 3.93L12 22l-.75-12.07A4.001 4.001 0 0112 2z"/></svg>
+        </div>
+        <h3>KI-Kalkulation</h3>
+        <p>Automatische Kostensch&auml;tzung basierend auf deinen Erfahrungswerten</p>
+        <div class="mini-stat" style="color: #c084fc;">2 Min</div>
+        <div style="font-size: 12px; color: #475569;">pro Angebot</div>
+      </div>
+
+      <!-- Projekte (big) -->
+      <div class="bento-card row-2">
+        <div class="card-icon" style="background: rgba(99,102,241,0.1); color: #818cf8;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+        </div>
+        <h3>Projektverwaltung</h3>
+        <p>Vom Angebot bis zur Schlussrechnung</p>
+        <div class="mini-list">
+          <div class="mini-list-item"><span style="color:#cbd5e1;">EFH M&uuml;ller</span><span class="mini-status" style="background:rgba(34,197,94,0.12);color:#4ade80;">Aktiv</span></div>
+          <div class="mini-list-item"><span style="color:#cbd5e1;">Altbau Hauptstr.</span><span class="mini-status" style="background:rgba(234,179,8,0.12);color:#facc15;">Material</span></div>
+          <div class="mini-list-item"><span style="color:#cbd5e1;">PV-Anlage Schmidt</span><span class="mini-status" style="background:rgba(99,102,241,0.12);color:#a5b4fc;">Angebot</span></div>
+          <div class="mini-list-item"><span style="color:#cbd5e1;">Ladestation TG</span><span class="mini-status" style="background:rgba(34,197,94,0.12);color:#4ade80;">Aktiv</span></div>
+        </div>
+      </div>
+
+      <!-- E-Rechnung -->
+      <div class="bento-card">
+        <div class="card-icon" style="background: rgba(245,158,11,0.1); color: #fbbf24;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <h3>E-Rechnung</h3>
+        <p>ZUGFeRD &amp; XRechnung, GoBD-konform</p>
+      </div>
+
+      <!-- Mobile -->
+      <div class="bento-card">
+        <div class="card-icon" style="background: rgba(14,165,233,0.1); color: #38bdf8;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        </div>
+        <h3>Mobile App</h3>
+        <p>Fotos, Zeiten, Aufma&szlig;e &mdash; direkt von der Baustelle</p>
+      </div>
+
+      <!-- Team -->
+      <div class="bento-card">
+        <div class="card-icon" style="background: rgba(16,185,129,0.1); color: #34d399;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <h3>Team-Planung</h3>
+        <p>Auslastung, Urlaub, Kapazit&auml;ten</p>
+        <div class="mini-stat" style="color: #34d399;">87%</div>
+        <div style="font-size: 12px; color: #475569;">Auslastung</div>
+      </div>
+
+      <!-- DATEV -->
+      <div class="bento-card">
+        <div class="card-icon" style="background: rgba(245,158,11,0.1); color: #fbbf24;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </div>
+        <h3>DATEV Export</h3>
+        <p>Ein Klick und der Steuerberater hat alles</p>
+      </div>
+
+      <!-- Zeiterfassung -->
+      <div class="bento-card">
+        <div class="card-icon" style="background: rgba(236,72,153,0.1); color: #f472b6;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <h3>Zeiterfassung</h3>
+        <p>Stempeln per App, automatisch zum Projekt zugeordnet</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- APP PREVIEW -->
+<section class="preview-section">
+  <div class="section-inner">
+    <div class="section-badge" style="color: #c084fc;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      Live Preview
+    </div>
+    <h2 class="section-title">Dein neues Cockpit</h2>
+    <div class="section-sub">So sieht dein Arbeitsalltag mit HandwerkOS aus.</div>
+
+    <div class="app-frame">
+      <div class="app-titlebar">
+        <div class="app-dot" style="background:#ef4444;"></div>
+        <div class="app-dot" style="background:#eab308;"></div>
+        <div class="app-dot" style="background:#22c55e;"></div>
+        <span style="margin-left:12px;font-size:12px;color:#475569;">HandwerkOS &mdash; Dashboard</span>
+      </div>
+      <div class="app-content">
+        <div class="app-tabs">
+          <div class="app-tab active">Dashboard</div>
+          <div class="app-tab">Projekte</div>
+          <div class="app-tab">Angebote</div>
+          <div class="app-tab">Rechnungen</div>
+          <div class="app-tab">Team</div>
+        </div>
+        <div class="dash-grid">
+          <div class="dash-card"><div class="label">Umsatz MTD</div><div class="value" style="color:#22c55e;">&euro;48.320</div></div>
+          <div class="dash-card"><div class="label">Offene Angebote</div><div class="value" style="color:#eab308;">8</div></div>
+          <div class="dash-card"><div class="label">Laufende Projekte</div><div class="value" style="color:#818cf8;">12</div></div>
+          <div class="dash-card"><div class="label">Auslastung</div><div class="value">87%</div></div>
+        </div>
+        <table class="app-table">
+          <thead><tr><th>Projekt</th><th>Kunde</th><th>Status</th><th>Wert</th></tr></thead>
+          <tbody>
+            <tr><td>Elektroinstallation EFH M&uuml;ller</td><td>Fam. M&uuml;ller</td><td><span class="status s-green">Aktiv</span></td><td>&euro;12.450</td></tr>
+            <tr><td>Sanierung Altbau Hauptstr.</td><td>Hausverwaltung GmbH</td><td><span class="status s-yellow">Material</span></td><td>&euro;34.800</td></tr>
+            <tr><td>Photovoltaik Dachanlage</td><td>Hr. Schmidt</td><td><span class="status s-blue">Angebot</span></td><td>&euro;18.900</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing-section">
+  <div class="section-inner">
+    <div class="section-badge" style="color: #22c55e;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      Preise
+    </div>
+    <h2 class="section-title">Einfach. Transparent. Fair.</h2>
+    <div class="section-sub">Starte kostenlos, upgrade wenn du w&auml;chst.</div>
+
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="price-name">Starter</div>
+        <div class="price-desc">F&uuml;r Einzelunternehmer</div>
+        <div class="price-amount">&euro;29</div>
+        <div class="price-period">pro Monat</div>
+        <ul class="price-features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Bis 3 Mitarbeiter</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>10 Projekte</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Angebote &amp; Kunden</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Zeiterfassung</li>
+        </ul>
+        <a class="price-btn">14 Tage kostenlos</a>
+      </div>
+      <div class="price-card featured">
+        <div class="popular">Beliebt</div>
+        <div class="price-name">Handwerker</div>
+        <div class="price-desc">F&uuml;r wachsende Betriebe</div>
+        <div class="price-amount">&euro;59</div>
+        <div class="price-period">pro Monat</div>
+        <ul class="price-features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Bis 10 Mitarbeiter</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unbegrenzte Projekte</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>KI-Kalkulation</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>E-Rechnung &amp; OCR</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Mitarbeiterverwaltung</li>
+        </ul>
+        <a class="price-btn featured-btn">14 Tage kostenlos</a>
+      </div>
+      <div class="price-card">
+        <div class="price-name">Meisterbetrieb</div>
+        <div class="price-desc">F&uuml;r etablierte Teams</div>
+        <div class="price-amount">&euro;99</div>
+        <div class="price-period">pro Monat</div>
+        <ul class="price-features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unbegrenzt Mitarbeiter</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>VDE-Protokolle</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>DATEV Export</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>API-Zugriff</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Priorit&auml;tssupport</li>
+        </ul>
+        <a class="price-btn">14 Tage kostenlos</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials-section">
+  <div class="section-inner">
+    <div class="section-badge" style="color: #fbbf24;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      Stimmen
+    </div>
+    <h2 class="section-title">Was Handwerker sagen</h2>
+    <div class="section-sub">Von Elektrikern bis Malern &mdash; HandwerkOS funktioniert f&uuml;r jedes Gewerk.</div>
+
+    <div class="t-grid">
+      <div class="t-card">
+        <div class="t-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <div class="t-text">"Seitdem ich HandwerkOS nutze, spare ich jeden Tag mindestens eine Stunde B&uuml;roarbeit. Angebote gehen jetzt in Minuten raus."</div>
+        <div class="t-author">
+          <div class="t-avatar">MK</div>
+          <div><div class="t-name">Markus K.</div><div class="t-role">Elektromeister, M&ouml;nchengladbach</div></div>
+        </div>
+      </div>
+      <div class="t-card">
+        <div class="t-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <div class="t-text">"Die Nachkalkulation zeigt mir sofort, wo ich nachbessern muss. Endlich habe ich den &Uuml;berblick &uuml;ber alle Projekte."</div>
+        <div class="t-author">
+          <div class="t-avatar">SW</div>
+          <div><div class="t-name">Sandra W.</div><div class="t-role">SHK-Betrieb, D&uuml;sseldorf</div></div>
+        </div>
+      </div>
+      <div class="t-card">
+        <div class="t-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <div class="t-text">"Der DATEV-Export allein spart mir jeden Monat einen halben Tag. Mein Steuerberater ist begeistert."</div>
+        <div class="t-author">
+          <div class="t-avatar">TH</div>
+          <div><div class="t-name">Thomas H.</div><div class="t-role">Malerbetrieb, K&ouml;ln</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq-section">
+  <div class="section-inner">
+    <div class="section-badge" style="color: #38bdf8;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      FAQ
+    </div>
+    <h2 class="section-title">H&auml;ufige Fragen</h2>
+    <div style="height: 48px;"></div>
+
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-q">Brauche ich technische Vorkenntnisse? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="faq-a">Nein. HandwerkOS ist so einfach wie WhatsApp. Wenn du ein Smartphone bedienen kannst, kannst du HandwerkOS nutzen.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Kann ich meine bestehenden Daten importieren? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="faq-a">Ja. Wir unterst&uuml;tzen Import aus Excel, CSV und g&auml;ngigen Handwerkerprogrammen. Unser Team hilft dir beim Umzug.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Ist HandwerkOS GoBD-konform? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="faq-a">Ja. Alle Dokumente revisionssicher, Rechnungen fortlaufend nummeriert, vollst&auml;ndiges Audit-Log.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Kann ich jederzeit k&uuml;ndigen? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="faq-a">Ja, monatlich k&uuml;ndbar. Keine Mindestlaufzeit, keine versteckten Kosten. Daten jederzeit exportierbar.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER CTA -->
+<section class="footer-cta-section">
+  <div class="section-inner">
+    <div class="cta-glow"></div>
+    <div class="footer-cta-inner">
+      <h2>Bereit durchzustarten?</h2>
+      <p>14 Tage kostenlos. Keine Kreditkarte n&ouml;tig.</p>
+      <a class="btn-primary" style="display: inline-block;">Jetzt kostenlos starten</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>&copy; 2026 HandwerkOS. Alle Rechte vorbehalten.</div>
+  <div style="display: flex; gap: 24px;">
+    <a>Datenschutz</a>
+    <a>Impressum</a>
+    <a>AGB</a>
+  </div>
+</footer>
+
+</body>
+</html>

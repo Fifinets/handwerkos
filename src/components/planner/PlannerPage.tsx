@@ -15,7 +15,7 @@ import {
 import {
   Calendar as CalendarIcon, Users, Briefcase, Plus, ChevronLeft, ChevronRight,
   Search, Palmtree, X, AlertTriangle, Eye, Zap, Undo2, BarChart3,
-  ArrowRight, CalendarClock, Settings, Truck, Gauge, Wrench,
+  ArrowRight, CalendarClock,
 } from "lucide-react";
 import {
   addDays, addMonths, format, startOfWeek, startOfMonth, endOfMonth,
@@ -26,13 +26,22 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 // Extracted modules
-import type { PlannerProject, PlannerEmployee, Assignment, DragPayload, ViewMode, UtilizationFilter } from './types';
+import type { PlannerProject, PlannerEmployee, Assignment, DragPayload, EntryType, ViewMode, UtilizationFilter } from './types';
 import { PROJECT_COLORS, VACATION_COLOR, SICK_COLOR } from './constants';
 import { getGermanHolidays } from './holidays';
 import { usePlannerData } from './hooks/usePlannerData';
 import { useUndoStack } from './hooks/useUndoStack';
 import { useConflicts } from './hooks/useConflicts';
-import { calculateUtilization, getEmployeeDayAssignments, getAbsence, getCalendarEventsForDay } from './utils/capacityUtils';
+import { calculateUtilization, getEmployeeDayAssignments, getAbsence } from './utils/capacityUtils';
+import {
+  calculateShiftMinutes,
+  formatMinutesAsHours,
+  getNonShiftCalendarEventsForDay,
+  getProjectShiftEventsForDay,
+  getShiftBreakMinutes,
+  isProjectShiftEvent,
+  normalizeTime,
+} from './utils/shiftUtils';
 import { PlannerKPICards } from './PlannerKPICards';
 import { PlannerBanners } from './PlannerBanners';
 import { SingleAssignDialog } from './dialogs/SingleAssignDialog';
@@ -47,7 +56,7 @@ export function PlannerPage() {
   // ── Data from React Query ──────────────────────────────────
   const {
     employees, projects, vacations, calendarEvents,
-    devices, equipmentAssignments,
+    equipmentAssignments,
     isLoading, invalidateAll, companyId,
   } = usePlannerData();
 
@@ -66,6 +75,7 @@ export function PlannerPage() {
   const [assignEmployeeId, setAssignEmployeeId] = useState('');
   const [assignProjectId, setAssignProjectId] = useState('');
   const [assignStartDate, setAssignStartDate] = useState('');
+  const [assignLockedEntryType, setAssignLockedEntryType] = useState<EntryType | undefined>(undefined);
 
   // ── Dialog state (NEW) ────────────────────────────────────
   const [showBulkAssign, setShowBulkAssign] = useState(false);
@@ -107,7 +117,7 @@ export function PlannerPage() {
 
   // ── Conflicts (from extracted hook) ────────────────────────
   const { conflicts: employeeConflicts, totalCount: totalConflictCount } = useConflicts(
-    employees, projects, vacations, displayDays
+    employees, projects, vacations, displayDays, calendarEvents
   );
 
   // ── Color map ──────────────────────────────────────────────
@@ -121,10 +131,10 @@ export function PlannerPage() {
   const employeeUtilization = useMemo(() => {
     const result = new Map<string, number>();
     for (const emp of employees) {
-      result.set(emp.id, calculateUtilization(projects, vacations, emp.id, displayDays, holidays));
+      result.set(emp.id, calculateUtilization(projects, vacations, emp.id, displayDays, holidays, calendarEvents));
     }
     return result;
-  }, [employees, projects, vacations, displayDays, holidays]);
+  }, [employees, projects, vacations, displayDays, holidays, calendarEvents]);
 
   // ── KPI data ───────────────────────────────────────────────
   const assignedEmployeeIds = useMemo(() => {
@@ -190,9 +200,16 @@ export function PlannerPage() {
       if (p.status !== 'in_bearbeitung' && p.status !== 'beauftragt') return false;
       const team = p.project_team_assignments?.filter(a => a.is_active) || [];
       if (team.length === 0) return false;
-      return team.some(a => !a.start_date);
+      return team.some(a => {
+        if (a.start_date) return false;
+        return !calendarEvents.some(ev =>
+          isProjectShiftEvent(ev) &&
+          ev.project_id === p.id &&
+          ev.assigned_employees?.includes(a.employee_id)
+        );
+      });
     });
-  }, [projects]);
+  }, [projects, calendarEvents]);
 
   const unstaffedProjects = useMemo(() => {
     return projects.filter(p => {
@@ -206,6 +223,12 @@ export function PlannerPage() {
     const ws = startOfWeek(currentDate, { weekStartsOn: 1 });
     const weekEnd = addDays(ws, 6);
     return filteredEmployees.filter(emp => {
+      const hasShift = calendarEvents.some(ev =>
+        isProjectShiftEvent(ev) &&
+        ev.assigned_employees?.includes(emp.id) &&
+        ev.start_date <= format(weekEnd, 'yyyy-MM-dd') &&
+        ev.end_date >= format(ws, 'yyyy-MM-dd')
+      );
       const hasAssignment = projects.some(p =>
         p.project_team_assignments?.some(a =>
           a.employee_id === emp.id && a.is_active && a.start_date &&
@@ -213,9 +236,9 @@ export function PlannerPage() {
           (!a.end_date || new Date(a.end_date) >= ws)
         )
       );
-      return !hasAssignment;
+      return !hasAssignment && !hasShift;
     });
-  }, [filteredEmployees, projects, currentDate]);
+  }, [filteredEmployees, projects, currentDate, calendarEvents]);
 
   // ── Sick employees on active projects ─────────────────────
   const sickOnActiveProject = useMemo(() => {
@@ -264,6 +287,7 @@ export function PlannerPage() {
     setAssignEmployeeId(prefillEmployeeId || '');
     setAssignStartDate(prefillDate ? format(prefillDate, 'yyyy-MM-dd') : '');
     setAssignProjectId('');
+    setAssignLockedEntryType(undefined);
     setShowAssignDialog(true);
   };
 
@@ -271,6 +295,7 @@ export function PlannerPage() {
     setAssignProjectId(projectId);
     setAssignEmployeeId('');
     setAssignStartDate('');
+    setAssignLockedEntryType('project');
     setShowAssignDialog(true);
   };
 
@@ -435,28 +460,28 @@ export function PlannerPage() {
 
   // ── Render ─────────────────────────────────────────────────
   return (
-    <div className="p-6 space-y-6 max-w-[1600px] mx-auto">
+    <div className="w-full min-w-0 max-w-[1600px] mx-auto space-y-5 p-3 sm:p-6">
       {/* Header — NEW: Added "Team zuweisen" and "Kapazität prüfen" buttons */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Ressourcenplanung</h1>
-          <p className="text-sm text-slate-500 mt-1">Verwalten Sie Personal, Fahrzeuge und Geräte für Ihre Projekte.</p>
+          <p className="text-sm text-slate-500 mt-1">Verwalten Sie Personal und Projekteinsätze.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
           {undoCount > 0 && (
             <Button variant="outline" size="sm" onClick={handleUndo} className="text-slate-600">
               <Undo2 className="h-4 w-4 mr-1" /> Rückgängig
               <kbd className="ml-1.5 text-[10px] bg-slate-100 px-1 py-0.5 rounded text-slate-400">Ctrl+Z</kbd>
             </Button>
           )}
-          <Button variant="outline" onClick={() => setShowCapacityCheck(true)}>
+          <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => setShowCapacityCheck(true)}>
             <BarChart3 className="h-4 w-4 mr-2" /> Kapazität prüfen
           </Button>
-          <Button variant="outline" className="text-blue-600 border-blue-200 hover:bg-blue-50"
+          <Button variant="outline" className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50 sm:flex-none"
             onClick={() => { setBulkAssignProjectId(''); setShowBulkAssign(true); }}>
             <Users className="h-4 w-4 mr-2" /> Team zuweisen
           </Button>
-          <Button className="bg-slate-900 hover:bg-slate-800 text-white" onClick={() => openAssignDialog()}>
+          <Button className="flex-1 bg-slate-900 text-white hover:bg-slate-800 sm:flex-none" onClick={() => openAssignDialog()}>
             <Plus className="h-4 w-4 mr-2" /> Neuer Eintrag
           </Button>
         </div>
@@ -510,9 +535,9 @@ export function PlannerPage() {
         </div>
       )}
 
-      <div className="flex flex-col xl:flex-row gap-6">
+      <div className="flex min-w-0 flex-col gap-6 xl:flex-row">
         {/* Left Sidebar */}
-        <div className="xl:w-64 space-y-6 flex-shrink-0">
+        <div className="order-2 min-w-0 space-y-6 xl:order-1 xl:w-64 xl:flex-shrink-0">
           <Card className="bg-white border-slate-200 shadow-sm">
             <CardHeader className="p-4 border-b border-slate-100">
               <CardTitle className="text-sm font-semibold text-slate-800">Filter</CardTitle>
@@ -672,14 +697,14 @@ export function PlannerPage() {
         </div>
 
         {/* Main Calendar */}
-        <div className="flex-1 space-y-4 min-w-0">
-          <Card className="bg-white border-slate-200 shadow-sm">
+        <div className="order-1 min-w-0 flex-1 space-y-4 xl:order-2">
+          <Card className="min-w-0 bg-white border-slate-200 shadow-sm">
             <CardHeader className="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <Button variant="outline" size="sm" onClick={navigatePrevious} className="h-8 w-8 p-0 bg-white"><ChevronLeft className="h-4 w-4" /></Button>
                 <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())} className="h-8 bg-white font-medium text-slate-700">Heute</Button>
                 <Button variant="outline" size="sm" onClick={navigateNext} className="h-8 w-8 p-0 bg-white"><ChevronRight className="h-4 w-4" /></Button>
-                <span className="ml-2 font-medium text-slate-800 text-sm sm:text-base">{formattedDateRange()}</span>
+                <span className="min-w-0 flex-1 truncate font-medium text-slate-800 text-sm sm:ml-2 sm:text-base">{formattedDateRange()}</span>
               </div>
               <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)} className="w-full sm:w-auto">
                 <TabsList className="bg-slate-100/50 p-1 border border-slate-200 h-9 w-full sm:w-auto">
@@ -690,11 +715,11 @@ export function PlannerPage() {
               </Tabs>
             </CardHeader>
 
-            <CardContent className="p-0 min-h-[600px] overflow-x-auto">
-              <div className="flex flex-col bg-slate-50/50" style={{ minWidth: isMonth ? `${displayDays.length * 36}px` : undefined }}>
+            <CardContent className="p-0 min-h-[320px] overflow-x-auto overscroll-x-contain lg:min-h-[380px]">
+              <div className="flex flex-col bg-slate-50/50" style={{ minWidth: isMonth ? `${displayDays.length * 36 + 160}px` : undefined }}>
                 {/* Day Header Row */}
                 <div className="flex border-b border-slate-200 bg-white sticky top-0 z-10">
-                  <div className="w-48 flex-shrink-0 border-r border-slate-200 p-3 font-medium text-sm text-slate-500 bg-slate-50/50">
+                  <div className="sticky left-0 z-20 w-40 flex-shrink-0 border-r border-slate-200 bg-slate-50 p-3 font-medium text-sm text-slate-500 shadow-[1px_0_0_rgba(148,163,184,0.25)] sm:w-48">
                     Mitarbeiter
                   </div>
                   <div className={`flex-1 ${gridClass} divide-x divide-slate-100 bg-white`} style={gridStyle}>
@@ -752,7 +777,7 @@ export function PlannerPage() {
                 {isLoading ? (
                   Array.from({ length: 4 }).map((_, idx) => (
                     <div key={idx} className="flex border-b border-slate-100 bg-white">
-                      <div className="w-48 flex-shrink-0 border-r border-slate-200 p-3 flex flex-col justify-center gap-1.5">
+                      <div className="sticky left-0 z-10 w-40 flex-shrink-0 border-r border-slate-200 bg-white p-3 flex flex-col justify-center gap-1.5 sm:w-48">
                         <Skeleton className="h-4 w-28" /><Skeleton className="h-3 w-20" />
                       </div>
                       <div className={`flex-1 ${gridClass} divide-x divide-slate-100 min-h-[64px]`} style={gridStyle}>
@@ -797,67 +822,6 @@ export function PlannerPage() {
                   ))
                 )}
 
-                {/* Equipment Section */}
-                {devices.length > 0 && (
-                  <>
-                    <div className="flex border-b-2 border-slate-300 bg-slate-100 sticky top-0 z-10">
-                      <div className="w-48 flex-shrink-0 border-r border-slate-200 p-3 font-semibold text-sm text-slate-700 bg-slate-100 flex items-center gap-2">
-                        <Settings className="h-4 w-4" /> Geräte &amp; Fahrzeuge
-                      </div>
-                      <div className="flex-1" />
-                    </div>
-                    {devices.map(device => {
-                      const assignments = equipmentAssignments.filter(a => a.device_id === device.id);
-                      const Icon = device.category === 'fahrzeug' ? Truck : device.category === 'messgeraet' ? Gauge : Wrench;
-                      return (
-                        <div key={device.id} className="flex border-b border-slate-100 bg-white group/row hover:bg-slate-50/50">
-                          <div className="w-48 flex-shrink-0 border-r border-slate-200 p-2.5 flex items-center gap-2.5 bg-white">
-                            <div className="h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs bg-slate-100 text-slate-600">
-                              <Icon className="h-4 w-4" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <span className="text-sm font-medium text-slate-800 truncate block">{device.device_name}</span>
-                              <span className="text-xs text-slate-500 truncate block">{device.current_location || '—'}</span>
-                            </div>
-                          </div>
-                          <div className="flex-1 relative" style={{ minHeight: 48 }}>
-                            <div className="absolute inset-0" style={{ display: 'grid', gridTemplateColumns: `repeat(${displayDays.length}, 1fr)` }}>
-                              {displayDays.map((day, i) => {
-                                const ds = format(day, 'yyyy-MM-dd');
-                                const isWeekend = day.getDay() === 0 || day.getDay() === 6;
-                                const isToday = ds === format(new Date(), 'yyyy-MM-dd');
-                                return (
-                                  <div key={i} className={`h-full ${isToday ? 'bg-blue-50/60' : isWeekend ? 'bg-slate-200/50' : ''} ${i > 0 ? 'border-l border-slate-100' : ''}`} />
-                                );
-                              })}
-                            </div>
-                            {assignments.map(a => {
-                              const project = projects.find(p => p.id === a.project_id);
-                              if (!project) return null;
-                              const color = projectColorMap.get(a.project_id) || PROJECT_COLORS[0];
-                              const startStr = a.start_date || (displayDays[0] && format(displayDays[0], 'yyyy-MM-dd'));
-                              const endStr = a.end_date || (displayDays[displayDays.length - 1] && format(displayDays[displayDays.length - 1], 'yyyy-MM-dd'));
-                              const startIdx = displayDays.findIndex(d => format(d, 'yyyy-MM-dd') >= (startStr || ''));
-                              const endIdx = displayDays.findIndex(d => format(d, 'yyyy-MM-dd') > (endStr || ''));
-                              const effectiveStart = Math.max(0, startIdx === -1 ? 0 : startIdx);
-                              const effectiveEnd = endIdx === -1 ? displayDays.length - 1 : endIdx - 1;
-                              if (effectiveEnd < effectiveStart) return null;
-                              const left = (effectiveStart / displayDays.length) * 100;
-                              const width = ((effectiveEnd - effectiveStart + 1) / displayDays.length) * 100;
-                              return (
-                                <div key={a.project_id}
-                                  className={`absolute ${color.bg} ${color.text} border-l-[3px] ${color.border} rounded-r-md pl-1.5 pr-2 py-0.5 text-xs font-semibold truncate shadow-sm z-10 flex items-center`}
-                                  style={{ left: `${left}%`, width: `${width}%`, top: 4, height: 26 }}>
-                                  {project.name}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </>
-                )}
               </div>
             </CardContent>
           </Card>
@@ -871,10 +835,12 @@ export function PlannerPage() {
         employees={employees}
         projects={projects}
         vacations={vacations}
+        calendarEvents={calendarEvents}
         companyId={companyId}
         prefillEmployeeId={assignEmployeeId}
         prefillProjectId={assignProjectId}
         prefillDate={assignStartDate}
+        lockedEntryType={assignLockedEntryType}
         onSuccess={invalidateAll}
       />
 
@@ -884,6 +850,8 @@ export function PlannerPage() {
         employees={employees}
         projects={projects}
         vacations={vacations}
+        calendarEvents={calendarEvents}
+        companyId={companyId}
         onSuccess={invalidateAll}
         prefillProjectId={bulkAssignProjectId}
       />
@@ -918,6 +886,7 @@ export function PlannerPage() {
           setShowBulkAssign(true);
         }}
       />
+
     </div>
   );
 }
@@ -977,10 +946,14 @@ const EmployeeRow = React.memo(function EmployeeRow({
     for (let i = 0; i < displayDays.length; i++) {
       for (const { project, assignment } of getEmployeeDayAssignments(projects, employee.id, displayDays[i])) {
         if (seen.has(project.id)) continue;
+        const hasVisibleShift = displayDays.some(day =>
+          getProjectShiftEventsForDay(calendarEvents, employee.id, day).some(ev => ev.project_id === project.id)
+        );
+        if (hasVisibleShift) continue;
         seen.add(project.id);
 
-        const sDate = assignment.start_date || project.start_date || null;
-        const eDate = assignment.end_date || project.end_date || null;
+        const sDate = assignment.start_date || null;
+        const eDate = assignment.end_date || null;
         const clipL = !sDate || sDate < dayStrings[0];
         const clipR = !eDate || eDate > dayStrings[numDays - 1];
         const effectiveStart = !sDate || sDate < dayStrings[0] ? dayStrings[0] : sDate;
@@ -993,7 +966,7 @@ const EmployeeRow = React.memo(function EmployeeRow({
     }
     bars.sort((a, b) => a.startCol - b.startCol || a.project.id.localeCompare(b.project.id));
     return bars;
-  }, [displayDays, projects, employee.id, dayStrings, dayIndexMap, numDays]);
+  }, [displayDays, projects, employee.id, dayStrings, dayIndexMap, numDays, calendarEvents]);
 
   // ── Collect absence bars ──
   const absenceBars = useMemo(() => {
@@ -1011,24 +984,48 @@ const EmployeeRow = React.memo(function EmployeeRow({
     return bars;
   }, [displayDays, vacations, employee.id]);
 
-  // ── Collect calendar event bars ──
-  const calEventBars = useMemo(() => {
+  // ── Collect project shift and calendar event bars ──
+  const eventBars = useMemo(() => {
     const seen = new Set<string>();
-    const bars: { event: import('./types').CalendarEvent; startCol: number; endCol: number }[] = [];
+    const bars: {
+      event: import('./types').CalendarEvent;
+      project: PlannerProject | null;
+      startCol: number;
+      endCol: number;
+      isShift: boolean;
+      plannedMinutes: number;
+    }[] = [];
     for (let i = 0; i < displayDays.length; i++) {
-      for (const ev of getCalendarEventsForDay(calendarEvents, employee.id, displayDays[i])) {
+      const dayEvents = [
+        ...getProjectShiftEventsForDay(calendarEvents, employee.id, displayDays[i]),
+        ...getNonShiftCalendarEventsForDay(calendarEvents, employee.id, displayDays[i]),
+      ];
+      for (const ev of dayEvents) {
         if (seen.has(ev.id)) continue;
         seen.add(ev.id);
+        const isShift = isProjectShiftEvent(ev);
         const effectiveStart = ev.start_date < dayStrings[0] ? dayStrings[0] : ev.start_date;
         const effectiveEnd = ev.end_date > dayStrings[numDays - 1] ? dayStrings[numDays - 1] : ev.end_date;
-        bars.push({ event: ev, startCol: dayIndexMap.get(effectiveStart) ?? i, endCol: dayIndexMap.get(effectiveEnd) ?? i });
+        bars.push({
+          event: ev,
+          project: ev.project_id ? projects.find(p => p.id === ev.project_id) || null : null,
+          startCol: dayIndexMap.get(effectiveStart) ?? i,
+          endCol: dayIndexMap.get(effectiveEnd) ?? i,
+          isShift,
+          plannedMinutes: isShift ? calculateShiftMinutes(ev.start_time, ev.end_time, getShiftBreakMinutes(ev)) : 0,
+        });
       }
     }
+    bars.sort((a, b) =>
+      a.startCol - b.startCol ||
+      normalizeTime(a.event.start_time).localeCompare(normalizeTime(b.event.start_time)) ||
+      a.event.title.localeCompare(b.event.title)
+    );
     return bars;
-  }, [displayDays, calendarEvents, employee.id, dayStrings, dayIndexMap, numDays]);
+  }, [displayDays, calendarEvents, employee.id, dayStrings, dayIndexMap, numDays, projects]);
 
   // ── Lane assignment ──
-  const { projectLanes, totalLanes } = useMemo(() => {
+  const { projectLanes, eventLanes, absenceLane, totalLanes } = useMemo(() => {
     const laneEnds: number[] = [];
     const pLanes: number[] = [];
     for (const bar of projectBars) {
@@ -1038,17 +1035,23 @@ const EmployeeRow = React.memo(function EmployeeRow({
       pLanes.push(lane);
     }
     const numProjLanes = laneEnds.length || 0;
-    const extra = (absenceBars.length > 0 ? 1 : 0) + (calEventBars.length > 0 ? 1 : 0);
-    return { projectLanes: pLanes, totalLanes: numProjLanes + extra };
-  }, [projectBars, absenceBars, calEventBars]);
+    const absLane = absenceBars.length > 0 ? numProjLanes : -1;
+    const eventBaseLane = numProjLanes + (absenceBars.length > 0 ? 1 : 0);
+    const eventLaneEnds: number[] = [];
+    const eLanes = eventBars.map((bar) => {
+      let lane = eventLaneEnds.findIndex(end => end < bar.startCol);
+      if (lane === -1) { lane = eventLaneEnds.length; eventLaneEnds.push(bar.endCol); }
+      else { eventLaneEnds[lane] = bar.endCol; }
+      return eventBaseLane + lane;
+    });
+    return { projectLanes: pLanes, eventLanes: eLanes, absenceLane: absLane, totalLanes: eventBaseLane + eventLaneEnds.length };
+  }, [projectBars, absenceBars, eventBars]);
 
-  const absenceLane = projectBars.length > 0 ? Math.max(...projectLanes) + 1 : 0;
-  const calLane = absenceLane + (absenceBars.length > 0 ? 1 : 0);
-  const contentH = Math.max(totalLanes * (barH + barGap) + barGap, 48);
+  const contentH = Math.max(Math.max(totalLanes, 1) * (barH + barGap) + barGap, 48);
 
   return (
     <div className="flex border-b border-slate-100 bg-white group/row hover:bg-slate-50/50">
-      <div className="w-48 flex-shrink-0 border-r border-slate-200 p-2.5 flex items-center gap-2.5 bg-white group-hover/row:bg-slate-50/50 transition-colors">
+      <div className="sticky left-0 z-10 w-40 flex-shrink-0 border-r border-slate-200 p-2.5 flex items-center gap-2.5 bg-white shadow-[1px_0_0_rgba(148,163,184,0.2)] transition-colors group-hover/row:bg-slate-50 sm:w-48">
         <div className="h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold bg-slate-100 text-slate-600">
           {employee.first_name[0]}{employee.last_name[0]}
         </div>
@@ -1206,27 +1209,43 @@ const EmployeeRow = React.memo(function EmployeeRow({
           );
         })}
 
-        {/* Calendar event bars */}
-        {calEventBars.map(bar => {
+        {/* Project shift and calendar event bars */}
+        {eventBars.map((bar, idx) => {
           const left = (bar.startCol / numDays) * 100;
           const width = ((bar.endCol - bar.startCol + 1) / numDays) * 100;
-          const top = calLane * (barH + barGap) + barGap;
+          const top = eventLanes[idx] * (barH + barGap) + barGap;
+          const color = bar.project ? projectColorMap.get(bar.project.id) || PROJECT_COLORS[0] : PROJECT_COLORS[0];
+          const label = bar.isShift
+            ? isMonth
+              ? formatMinutesAsHours(bar.plannedMinutes)
+              : `${normalizeTime(bar.event.start_time)}-${normalizeTime(bar.event.end_time)} · ${formatMinutesAsHours(bar.plannedMinutes)} · ${bar.event.title}`
+            : bar.event.title;
 
           return (
             <TooltipProvider key={bar.event.id} delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div
-                    className="absolute bg-sky-100 border border-dashed border-sky-400 text-sky-700 rounded-sm px-2 py-0.5 text-[10px] font-medium truncate flex items-center gap-1 z-10"
+                    className={`absolute ${
+                      bar.isShift
+                        ? `${color.bg} ${color.text} border-l-[3px] ${color.border} rounded-r-md`
+                        : 'bg-sky-100 border border-dashed border-sky-400 text-sky-700 rounded-sm'
+                    } px-2 py-0.5 text-[10px] font-semibold truncate flex items-center gap-1 z-10 shadow-sm`}
                     style={{ left: `${left}%`, width: `${width}%`, top, height: barH, pointerEvents: isDragging ? 'none' : 'auto' }}
                   >
-                    <Eye className="h-2.5 w-2.5 flex-shrink-0" />
-                    {!isMonth && bar.event.title}
+                    {bar.isShift ? <CalendarClock className="h-2.5 w-2.5 flex-shrink-0" /> : <Eye className="h-2.5 w-2.5 flex-shrink-0" />}
+                    <span className="truncate">{label}</span>
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="text-xs">
                   <p className="font-semibold">{bar.event.title}</p>
-                  {bar.event.start_time && <p className="text-slate-400">{bar.event.start_time}{bar.event.end_time ? ` – ${bar.event.end_time}` : ''}</p>}
+                  {bar.event.start_time && (
+                    <p className="text-slate-400">
+                      {normalizeTime(bar.event.start_time)}{bar.event.end_time ? ` - ${normalizeTime(bar.event.end_time)}` : ''}
+                      {bar.isShift ? ` · ${formatMinutesAsHours(bar.plannedMinutes)} geplant` : ''}
+                    </p>
+                  )}
+                  {bar.project?.location && <p className="text-slate-400">{bar.project.location}</p>}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

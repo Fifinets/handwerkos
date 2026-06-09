@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HandwerkOS — Cinematic Hero Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #000; color: #f8fafc; overflow-x: hidden; }
+
+  /* ===== NAV ===== */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 48px;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .nav-logo { font-weight: 800; font-size: 18px; letter-spacing: -0.5px; }
+  .nav-logo span { color: #818cf8; }
+  .nav-links { display: flex; gap: 32px; align-items: center; }
+  .nav-links a { color: #94a3b8; text-decoration: none; font-size: 14px; transition: color 0.2s; }
+  .nav-links a:hover { color: #f8fafc; }
+  .nav-cta { background: #6366f1; color: white !important; padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 13px !important; }
+
+  /* ===== HERO ===== */
+  .hero {
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    position: relative; padding: 120px 24px 80px;
+  }
+  .orb { position: absolute; border-radius: 50%; filter: blur(80px); }
+  .orb-1 { width: 500px; height: 500px; background: rgba(99,102,241,0.25); top: 10%; left: 10%; animation: float1 8s ease-in-out infinite; }
+  .orb-2 { width: 600px; height: 600px; background: rgba(168,85,247,0.15); bottom: 10%; right: 5%; animation: float2 10s ease-in-out infinite; }
+  .orb-3 { width: 400px; height: 400px; background: rgba(14,165,233,0.15); top: 40%; left: 55%; animation: float3 9s ease-in-out infinite; }
+
+  @keyframes float1 { 0%, 100% { transform: translate(0,0) scale(1); } 50% { transform: translate(40px,30px) scale(1.1); } }
+  @keyframes float2 { 0%, 100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-30px,-40px) scale(1.15); } }
+  @keyframes float3 { 0%, 100% { transform: translate(0,0) scale(1); } 50% { transform: translate(20px,-20px) scale(0.9); } }
+
+  .hero-badge {
+    background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.25);
+    padding: 8px 20px; border-radius: 50px; font-size: 13px; color: #a5b4fc;
+    margin-bottom: 32px; letter-spacing: 0.5px; position: relative; z-index: 2;
+    animation: fadeUp 0.8s ease-out;
+  }
+  .hero h1 {
+    font-size: clamp(48px, 8vw, 80px); font-weight: 900; line-height: 1.05;
+    letter-spacing: -2px; margin-bottom: 24px; position: relative; z-index: 2;
+    animation: fadeUp 0.8s ease-out 0.1s both;
+  }
+  .hero h1 .gradient {
+    background: linear-gradient(135deg, #6366f1, #a855f7, #06b6d4);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero-sub {
+    font-size: 18px; color: #64748b; max-width: 520px; line-height: 1.7;
+    margin-bottom: 40px; position: relative; z-index: 2;
+    animation: fadeUp 0.8s ease-out 0.2s both;
+  }
+  .hero-ctas {
+    display: flex; gap: 16px; align-items: center; position: relative; z-index: 2;
+    animation: fadeUp 0.8s ease-out 0.3s both;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white;
+    padding: 16px 36px; border-radius: 12px; font-size: 16px; font-weight: 700;
+    box-shadow: 0 0 40px rgba(99,102,241,0.4); text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 60px rgba(99,102,241,0.5); }
+  .btn-secondary {
+    color: #cbd5e1; padding: 16px 36px; border-radius: 12px; font-size: 16px;
+    border: 1px solid rgba(255,255,255,0.1); text-decoration: none;
+    transition: border-color 0.2s;
+  }
+  .btn-secondary:hover { border-color: rgba(255,255,255,0.25); }
+
+  .hero-stats {
+    display: flex; gap: 48px; margin-top: 64px;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(20px); padding: 20px 48px; border-radius: 16px;
+    position: relative; z-index: 2;
+    animation: fadeUp 0.8s ease-out 0.4s both;
+  }
+  .stat { text-align: center; }
+  .stat-num { font-size: 28px; font-weight: 800; color: #f8fafc; }
+  .stat-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 4px; }
+  .stat-divider { width: 1px; background: rgba(255,255,255,0.08); }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ===== PAIN POINTS ===== */
+  .pain-section {
+    padding: 120px 48px; text-align: center;
+    background: linear-gradient(180deg, #000 0%, #0a0a1a 100%);
+  }
+  .section-badge {
+    font-size: 12px; color: #ef4444; text-transform: uppercase; letter-spacing: 2px;
+    font-weight: 700; margin-bottom: 16px;
+  }
+  .section-title {
+    font-size: clamp(32px, 5vw, 48px); font-weight: 800; letter-spacing: -1px;
+    margin-bottom: 64px; line-height: 1.1;
+  }
+  .pain-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 1000px; margin: 0 auto;
+  }
+  .pain-card {
+    background: rgba(239,68,68,0.04); border: 1px solid rgba(239,68,68,0.1);
+    border-radius: 16px; padding: 32px; text-align: left;
+    transition: border-color 0.3s;
+  }
+  .pain-card:hover { border-color: rgba(239,68,68,0.25); }
+  .pain-icon { font-size: 32px; margin-bottom: 16px; }
+  .pain-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .pain-card p { font-size: 14px; color: #64748b; line-height: 1.6; }
+
+  /* ===== FEATURES ===== */
+  .features-section {
+    padding: 120px 48px; text-align: center;
+    background: #0a0a1a;
+  }
+  .features-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+    max-width: 1000px; margin: 0 auto;
+  }
+  .feature-card {
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px; padding: 28px; text-align: left;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+  .feature-card:hover { border-color: rgba(99,102,241,0.3); transform: translateY(-4px); }
+  .feature-icon { font-size: 28px; margin-bottom: 12px; }
+  .feature-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .feature-card p { font-size: 13px; color: #64748b; line-height: 1.5; }
+
+  /* ===== APP PREVIEW ===== */
+  .preview-section {
+    padding: 120px 48px; text-align: center;
+    background: linear-gradient(180deg, #0a0a1a 0%, #0c0a20 100%);
+  }
+  .app-frame {
+    max-width: 900px; margin: 0 auto;
+    background: #111827; border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px; overflow: hidden;
+    box-shadow: 0 40px 100px rgba(99,102,241,0.15), 0 0 0 1px rgba(255,255,255,0.05);
+  }
+  .app-titlebar {
+    display: flex; align-items: center; gap: 8px; padding: 12px 16px;
+    background: #0f172a; border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .app-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .app-content { padding: 24px; }
+  .app-tabs { display: flex; gap: 4px; margin-bottom: 20px; }
+  .app-tab {
+    padding: 8px 16px; border-radius: 8px; font-size: 13px; color: #64748b;
+  }
+  .app-tab.active { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+  .app-dashboard {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;
+  }
+  .dash-stat {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px; padding: 16px;
+  }
+  .dash-stat .label { font-size: 11px; color: #64748b; margin-bottom: 4px; }
+  .dash-stat .value { font-size: 22px; font-weight: 800; }
+  .app-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+  }
+  .app-table th { text-align: left; color: #64748b; font-weight: 600; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+  .app-table td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.03); color: #cbd5e1; }
+  .status-badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+  .status-green { background: rgba(34,197,94,0.15); color: #4ade80; }
+  .status-yellow { background: rgba(234,179,8,0.15); color: #facc15; }
+  .status-blue { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+
+  /* ===== PRICING ===== */
+  .pricing-section {
+    padding: 120px 48px; text-align: center;
+    background: #0c0a20;
+  }
+  .pricing-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+    max-width: 900px; margin: 0 auto;
+  }
+  .price-card {
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px; padding: 36px 28px; text-align: left;
+    transition: transform 0.3s;
+  }
+  .price-card:hover { transform: translateY(-4px); }
+  .price-card.featured {
+    background: linear-gradient(160deg, rgba(99,102,241,0.1), rgba(168,85,247,0.05));
+    border-color: rgba(99,102,241,0.3);
+    box-shadow: 0 0 60px rgba(99,102,241,0.1);
+  }
+  .price-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .price-desc { font-size: 13px; color: #64748b; margin-bottom: 20px; }
+  .price-amount { font-size: 42px; font-weight: 900; letter-spacing: -2px; margin-bottom: 4px; }
+  .price-period { font-size: 13px; color: #64748b; margin-bottom: 24px; }
+  .price-features { list-style: none; padding: 0; margin-bottom: 28px; }
+  .price-features li { font-size: 13px; color: #94a3b8; padding: 6px 0; display: flex; align-items: center; gap: 8px; }
+  .price-features li::before { content: "✓"; color: #6366f1; font-weight: 700; }
+  .price-btn {
+    display: block; text-align: center; padding: 12px; border-radius: 10px;
+    font-size: 14px; font-weight: 600; text-decoration: none;
+    border: 1px solid rgba(255,255,255,0.1); color: #cbd5e1;
+    transition: all 0.2s;
+  }
+  .price-btn:hover { border-color: rgba(99,102,241,0.5); color: #fff; }
+  .price-btn.featured-btn {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white;
+    border: none; box-shadow: 0 0 30px rgba(99,102,241,0.3);
+  }
+  .popular-badge {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white;
+    font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px;
+    display: inline-block; margin-bottom: 16px;
+  }
+
+  /* ===== TESTIMONIALS ===== */
+  .testimonials-section {
+    padding: 120px 48px; text-align: center;
+    background: linear-gradient(180deg, #0c0a20 0%, #000 100%);
+  }
+  .testimonials-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+    max-width: 1000px; margin: 0 auto;
+  }
+  .testimonial-card {
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px; padding: 28px; text-align: left;
+  }
+  .testimonial-text { font-size: 14px; color: #94a3b8; line-height: 1.7; margin-bottom: 20px; font-style: italic; }
+  .testimonial-author { display: flex; align-items: center; gap: 12px; }
+  .testimonial-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #a855f7); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+  .testimonial-name { font-size: 14px; font-weight: 600; }
+  .testimonial-role { font-size: 12px; color: #64748b; }
+
+  /* ===== FAQ ===== */
+  .faq-section {
+    padding: 120px 48px; text-align: center; background: #000;
+  }
+  .faq-list { max-width: 680px; margin: 0 auto; text-align: left; }
+  .faq-item {
+    border-bottom: 1px solid rgba(255,255,255,0.06); padding: 20px 0;
+  }
+  .faq-q { font-size: 16px; font-weight: 600; margin-bottom: 8px; cursor: pointer; }
+  .faq-a { font-size: 14px; color: #64748b; line-height: 1.6; }
+
+  /* ===== FOOTER CTA ===== */
+  .footer-cta {
+    padding: 120px 48px; text-align: center; position: relative; overflow: hidden;
+    background: linear-gradient(180deg, #000 0%, #0c0a20 100%);
+  }
+  .footer-cta .orb { filter: blur(100px); }
+  .footer-cta h2 { font-size: clamp(36px, 5vw, 56px); font-weight: 900; letter-spacing: -1.5px; margin-bottom: 16px; position: relative; z-index: 2; }
+  .footer-cta p { font-size: 16px; color: #64748b; margin-bottom: 32px; position: relative; z-index: 2; }
+
+  /* ===== FOOTER ===== */
+  footer {
+    padding: 48px; border-top: 1px solid rgba(255,255,255,0.05);
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px; color: #475569;
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Handwerk<span>OS</span></div>
+  <div class="nav-links">
+    <a href="#">Features</a>
+    <a href="#">Preise</a>
+    <a href="#">Demo</a>
+    <a href="#">FAQ</a>
+    <a href="#" class="nav-cta">Kostenlos testen</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <div class="hero-badge">&#x2728; KI-powered Handwerkersoftware</div>
+  <h1>Dein Betrieb.<br/><span class="gradient">Neu gedacht.</span></h1>
+  <p class="hero-sub">Angebote in 2 Minuten. Rechnungen per Klick. DATEV auf Knopfdruck. Die Zukunft des Handwerks beginnt hier.</p>
+
+  <div class="hero-ctas">
+    <a href="#" class="btn-primary">Jetzt kostenlos starten &rarr;</a>
+    <a href="#" class="btn-secondary">Live Demo ansehen</a>
+  </div>
+
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num">500+</div><div class="stat-label">Betriebe</div></div>
+    <div class="stat-divider"></div>
+    <div class="stat"><div class="stat-num">&lt; 2 Min</div><div class="stat-label">pro Angebot</div></div>
+    <div class="stat-divider"></div>
+    <div class="stat"><div class="stat-num">100%</div><div class="stat-label">GoBD konform</div></div>
+  </div>
+</section>
+
+<!-- PAIN POINTS -->
+<section class="pain-section">
+  <div class="section-badge">Das Problem</div>
+  <h2 class="section-title">Kommt dir das bekannt vor?</h2>
+  <div class="pain-grid">
+    <div class="pain-card">
+      <div class="pain-icon">&#x1F4DD;</div>
+      <h3>Zettelwirtschaft</h3>
+      <p>Angebote in Word, Stunden auf Papier, Rechnungen in Excel. Nichts passt zusammen, alles dauert ewig.</p>
+    </div>
+    <div class="pain-card">
+      <div class="pain-icon">&#x1F4B8;</div>
+      <h3>Marge verschwindet</h3>
+      <p>Ohne saubere Nachkalkulation wei&szlig;t du erst am Jahresende, ob sich ein Projekt gelohnt hat.</p>
+    </div>
+    <div class="pain-card">
+      <div class="pain-icon">&#x23F0;</div>
+      <h3>B&uuml;ro frisst Zeit</h3>
+      <p>Statt auf der Baustelle zu sein, sitzt du abends am Schreibtisch und tippst Angebote.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features-section">
+  <div class="section-badge" style="color: #6366f1;">Die L&ouml;sung</div>
+  <h2 class="section-title">Alles in einer Plattform</h2>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">&#x26A1;</div>
+      <h3>Blitz-Angebote</h3>
+      <p>KI-gest&uuml;tzte Kalkulation. Angebot erstellen in unter 2 Minuten.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F4C4;</div>
+      <h3>E-Rechnung</h3>
+      <p>ZUGFeRD & XRechnung. GoBD-konform mit automatischer Nummernvergabe.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F4CA;</div>
+      <h3>Live Dashboard</h3>
+      <p>Umsatz, Auslastung, offene Posten — alles in Echtzeit.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F464;</div>
+      <h3>Team-Verwaltung</h3>
+      <p>Zeiterfassung, Urlaubsplanung, Kapazit&auml;ts&uuml;bersicht f&uuml;r dein Team.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F4F1;</div>
+      <h3>Mobile App</h3>
+      <p>Fotos, Zeiten, Aufma&szlig;e — direkt von der Baustelle erfassen.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F4E4;</div>
+      <h3>DATEV Export</h3>
+      <p>Ein Klick und dein Steuerberater hat alles. Keine doppelte Erfassung.</p>
+    </div>
+  </div>
+</section>
+
+<!-- APP PREVIEW -->
+<section class="preview-section">
+  <div class="section-badge" style="color: #a855f7;">So sieht's aus</div>
+  <h2 class="section-title">Dein neues Cockpit</h2>
+  <div class="app-frame">
+    <div class="app-titlebar">
+      <div class="app-dot" style="background: #ef4444;"></div>
+      <div class="app-dot" style="background: #eab308;"></div>
+      <div class="app-dot" style="background: #22c55e;"></div>
+      <span style="margin-left: 12px; font-size: 12px; color: #64748b;">HandwerkOS Dashboard</span>
+    </div>
+    <div class="app-content">
+      <div class="app-tabs">
+        <div class="app-tab active">Dashboard</div>
+        <div class="app-tab">Projekte</div>
+        <div class="app-tab">Angebote</div>
+        <div class="app-tab">Rechnungen</div>
+        <div class="app-tab">Team</div>
+      </div>
+      <div class="app-dashboard">
+        <div class="dash-stat"><div class="label">Umsatz MTD</div><div class="value" style="color: #22c55e;">&euro;48.320</div></div>
+        <div class="dash-stat"><div class="label">Offene Angebote</div><div class="value" style="color: #eab308;">8</div></div>
+        <div class="dash-stat"><div class="label">Laufende Projekte</div><div class="value" style="color: #6366f1;">12</div></div>
+        <div class="dash-stat"><div class="label">Auslastung</div><div class="value" style="color: #f8fafc;">87%</div></div>
+      </div>
+      <table class="app-table">
+        <thead><tr><th>Projekt</th><th>Kunde</th><th>Status</th><th>Wert</th></tr></thead>
+        <tbody>
+          <tr><td>Elektroinstallation EFH M&uuml;ller</td><td>Fam. M&uuml;ller</td><td><span class="status-badge status-green">Aktiv</span></td><td>&euro;12.450</td></tr>
+          <tr><td>Sanierung Altbau Hauptstr.</td><td>Hausverwaltung GmbH</td><td><span class="status-badge status-yellow">Warte auf Material</span></td><td>&euro;34.800</td></tr>
+          <tr><td>Photovoltaik Dachanlage</td><td>Hr. Schmidt</td><td><span class="status-badge status-blue">Angebot</span></td><td>&euro;18.900</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing-section">
+  <div class="section-badge" style="color: #22c55e;">Preise</div>
+  <h2 class="section-title">Einfach. Transparent. Fair.</h2>
+  <div class="pricing-grid">
+    <div class="price-card">
+      <div class="price-name">Starter</div>
+      <div class="price-desc">F&uuml;r Einzelunternehmer</div>
+      <div class="price-amount">&euro;29</div>
+      <div class="price-period">pro Monat</div>
+      <ul class="price-features">
+        <li>Bis 3 Mitarbeiter</li>
+        <li>10 Projekte</li>
+        <li>Angebote & Kunden</li>
+        <li>Zeiterfassung</li>
+      </ul>
+      <a href="#" class="price-btn">14 Tage kostenlos</a>
+    </div>
+    <div class="price-card featured">
+      <div class="popular-badge">Beliebt</div>
+      <div class="price-name">Handwerker</div>
+      <div class="price-desc">F&uuml;r wachsende Betriebe</div>
+      <div class="price-amount">&euro;59</div>
+      <div class="price-period">pro Monat</div>
+      <ul class="price-features">
+        <li>Bis 10 Mitarbeiter</li>
+        <li>Unbegrenzte Projekte</li>
+        <li>KI-Kalkulation</li>
+        <li>E-Rechnung & OCR</li>
+        <li>Mitarbeiterverwaltung</li>
+      </ul>
+      <a href="#" class="price-btn featured-btn">14 Tage kostenlos</a>
+    </div>
+    <div class="price-card">
+      <div class="price-name">Meisterbetrieb</div>
+      <div class="price-desc">F&uuml;r etablierte Teams</div>
+      <div class="price-amount">&euro;99</div>
+      <div class="price-period">pro Monat</div>
+      <ul class="price-features">
+        <li>Unbegrenzt Mitarbeiter</li>
+        <li>VDE-Protokolle</li>
+        <li>DATEV Export</li>
+        <li>API-Zugriff</li>
+        <li>Priorit&auml;tssupport</li>
+      </ul>
+      <a href="#" class="price-btn">14 Tage kostenlos</a>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials-section">
+  <div class="section-badge" style="color: #f59e0b;">Stimmen</div>
+  <h2 class="section-title">Was Handwerker sagen</h2>
+  <div class="testimonials-grid">
+    <div class="testimonial-card">
+      <div class="testimonial-text">"Seitdem ich HandwerkOS nutze, spare ich jeden Tag mindestens eine Stunde B&uuml;roarbeit. Angebote gehen jetzt in Minuten raus."</div>
+      <div class="testimonial-author">
+        <div class="testimonial-avatar">MK</div>
+        <div><div class="testimonial-name">Markus K.</div><div class="testimonial-role">Elektromeister, M&ouml;nchengladbach</div></div>
+      </div>
+    </div>
+    <div class="testimonial-card">
+      <div class="testimonial-text">"Endlich habe ich den &Uuml;berblick &uuml;ber alle Projekte. Die Nachkalkulation zeigt mir sofort, wo ich nachbessern muss."</div>
+      <div class="testimonial-author">
+        <div class="testimonial-avatar">SW</div>
+        <div><div class="testimonial-name">Sandra W.</div><div class="testimonial-role">SHK-Betrieb, D&uuml;sseldorf</div></div>
+      </div>
+    </div>
+    <div class="testimonial-card">
+      <div class="testimonial-text">"Der DATEV-Export allein spart mir jeden Monat einen halben Tag. Mein Steuerberater ist begeistert."</div>
+      <div class="testimonial-author">
+        <div class="testimonial-avatar">TH</div>
+        <div><div class="testimonial-name">Thomas H.</div><div class="testimonial-role">Malerbetrieb, K&ouml;ln</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq-section">
+  <div class="section-badge" style="color: #06b6d4;">FAQ</div>
+  <h2 class="section-title">H&auml;ufige Fragen</h2>
+  <div class="faq-list">
+    <div class="faq-item">
+      <div class="faq-q">Brauche ich technische Vorkenntnisse?</div>
+      <div class="faq-a">Nein. HandwerkOS ist so einfach wie WhatsApp. Wenn du ein Smartphone bedienen kannst, kannst du HandwerkOS nutzen.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Kann ich meine bestehenden Daten importieren?</div>
+      <div class="faq-a">Ja. Wir unterst&uuml;tzen Import aus Excel, CSV und g&auml;ngigen Handwerkerprogrammen. Unser Team hilft dir beim Umzug.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Ist HandwerkOS GoBD-konform?</div>
+      <div class="faq-a">Ja. Alle Dokumente sind revisionssicher gespeichert, Rechnungen fortlaufend nummeriert und ein vollst&auml;ndiges Audit-Log wird gef&uuml;hrt.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Kann ich jederzeit k&uuml;ndigen?</div>
+      <div class="faq-a">Ja, monatlich k&uuml;ndbar. Keine Mindestlaufzeit, keine versteckten Kosten. Deine Daten kannst du jederzeit exportieren.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER CTA -->
+<section class="footer-cta">
+  <div class="orb" style="width: 400px; height: 400px; background: rgba(99,102,241,0.2); top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute;"></div>
+  <h2 style="position: relative; z-index: 2;">Bereit durchzustarten?</h2>
+  <p style="position: relative; z-index: 2;">14 Tage kostenlos. Keine Kreditkarte n&ouml;tig.</p>
+  <a href="#" class="btn-primary" style="position: relative; z-index: 2; display: inline-block;">Jetzt kostenlos starten &rarr;</a>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div>&copy; 2026 HandwerkOS. Alle Rechte vorbehalten.</div>
+  <div style="display: flex; gap: 24px;">
+    <a href="#" style="color: #475569; text-decoration: none;">Datenschutz</a>
+    <a href="#" style="color: #475569; text-decoration: none;">Impressum</a>
+    <a href="#" style="color: #475569; text-decoration: none;">AGB</a>
+  </div>
+</footer>
+
+</body>
+</html>

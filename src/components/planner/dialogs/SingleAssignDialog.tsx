@@ -9,10 +9,20 @@ import { Calendar as CalendarIcon, AlertTriangle } from "lucide-react";
 import { format, addDays } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import type { PlannerProject, PlannerEmployee, EntryType } from '../types';
+import type { CalendarEvent, PlannerProject, PlannerEmployee, EntryType } from '../types';
 import { ENTRY_TYPE_STYLES } from '../constants';
 import { getEmployeeDayAssignments, getAbsence } from '../utils/capacityUtils';
 import type { VacationRequest } from '../types';
+import {
+  buildProjectShiftEventRows,
+  calculateShiftMinutes,
+  DEFAULT_SHIFT_BREAK_MINUTES,
+  DEFAULT_SHIFT_END,
+  DEFAULT_SHIFT_START,
+  formatMinutesAsHours,
+  getShiftConflictsForRange,
+  getWorkDates,
+} from '../utils/shiftUtils';
 
 interface SingleAssignDialogProps {
   open: boolean;
@@ -20,10 +30,12 @@ interface SingleAssignDialogProps {
   employees: PlannerEmployee[];
   projects: PlannerProject[];
   vacations: VacationRequest[];
+  calendarEvents?: CalendarEvent[];
   companyId: string | null;
   prefillEmployeeId?: string;
   prefillProjectId?: string;
   prefillDate?: string;
+  lockedEntryType?: EntryType;
   onSuccess: () => void;
 }
 
@@ -33,10 +45,12 @@ export function SingleAssignDialog({
   employees,
   projects,
   vacations,
+  calendarEvents = [],
   companyId,
   prefillEmployeeId = '',
   prefillProjectId = '',
   prefillDate = '',
+  lockedEntryType,
   onSuccess,
 }: SingleAssignDialogProps) {
   const { toast } = useToast();
@@ -45,27 +59,40 @@ export function SingleAssignDialog({
   const [projectId, setProjectId] = useState(prefillProjectId);
   const [startDate, setStartDate] = useState(prefillDate || format(new Date(), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState('');
+  const [startTime, setStartTime] = useState(DEFAULT_SHIFT_START);
+  const [endTime, setEndTime] = useState(DEFAULT_SHIFT_END);
+  const [breakMinutes, setBreakMinutes] = useState(DEFAULT_SHIFT_BREAK_MINUTES);
   const [saving, setSaving] = useState(false);
+  const entryTypeLocked = !!lockedEntryType;
+  const plannedMinutes = entryType === 'project'
+    ? calculateShiftMinutes(startTime, endTime, breakMinutes)
+    : 0;
 
   // Sync prefill when dialog opens with new props
   useEffect(() => {
     if (open) {
-      setEntryType('project');
+      setEntryType(lockedEntryType || 'project');
       setEmployeeId(prefillEmployeeId);
       setProjectId(prefillProjectId);
       setStartDate(prefillDate || format(new Date(), 'yyyy-MM-dd'));
       setEndDate('');
+      setStartTime(DEFAULT_SHIFT_START);
+      setEndTime(DEFAULT_SHIFT_END);
+      setBreakMinutes(DEFAULT_SHIFT_BREAK_MINUTES);
     }
-  }, [open, prefillEmployeeId, prefillProjectId, prefillDate]);
+  }, [open, prefillEmployeeId, prefillProjectId, prefillDate, lockedEntryType]);
 
   // Reset form state when dialog opens with new prefill values
   const handleOpenChange = (open: boolean) => {
     if (open) {
-      setEntryType('project');
+      setEntryType(lockedEntryType || 'project');
       setEmployeeId(prefillEmployeeId);
       setProjectId(prefillProjectId);
       setStartDate(prefillDate || format(new Date(), 'yyyy-MM-dd'));
       setEndDate('');
+      setStartTime(DEFAULT_SHIFT_START);
+      setEndTime(DEFAULT_SHIFT_END);
+      setBreakMinutes(DEFAULT_SHIFT_BREAK_MINUTES);
     }
     onOpenChange(open);
   };
@@ -85,6 +112,14 @@ export function SingleAssignDialog({
     }
     if (entryType === 'project' && !projectId) {
       toast({ title: 'Fehler', description: 'Bitte ein Projekt auswählen.', variant: 'destructive' });
+      return;
+    }
+    if (entryType === 'project' && !startDate) {
+      toast({ title: 'Fehler', description: 'Bitte ein Datum angeben.', variant: 'destructive' });
+      return;
+    }
+    if (entryType === 'project' && plannedMinutes <= 0) {
+      toast({ title: 'Fehler', description: 'Bitte gültige Arbeitszeiten angeben.', variant: 'destructive' });
       return;
     }
 
@@ -111,6 +146,9 @@ export function SingleAssignDialog({
             conflicts.push(`${format(d, 'dd.MM.')}: ${existing.map(a => a.project.name).join(', ')}`);
           }
         }
+      }
+      if (entryType === 'project') {
+        conflicts.push(...getShiftConflictsForRange(calendarEvents, employeeId, startDate, endDate || startDate, startTime, endTime, projectId));
       }
       if (conflicts.length > 0) {
         const msg = conflicts.length <= 3
@@ -140,6 +178,27 @@ export function SingleAssignDialog({
         if (error) throw error;
         toast({ title: entryType === 'sick' ? 'Krankheitstage eingetragen' : 'Urlaub eingetragen' });
       } else {
+        const selectedProject = projects.find(p => p.id === projectId);
+        if (!selectedProject) {
+          throw new Error('Projekt nicht gefunden.');
+        }
+
+        const shiftRows = buildProjectShiftEventRows({
+          companyId,
+          employeeId,
+          project: selectedProject,
+          startDate,
+          endDate: endDate || startDate,
+          startTime,
+          endTime,
+          breakMinutes,
+        });
+
+        if (shiftRows.length === 0) {
+          toast({ title: 'Fehler', description: 'Im gewählten Zeitraum liegt kein Werktag.', variant: 'destructive' });
+          return;
+        }
+
         const { data: existing } = await supabase
           .from('project_team_assignments')
           .select('id')
@@ -150,16 +209,37 @@ export function SingleAssignDialog({
         const effectiveEndDate = endDate || startDate || null;
         if (existing) {
           const { error } = await supabase.from('project_team_assignments')
-            .update({ start_date: startDate || null, end_date: effectiveEndDate, is_active: true, updated_at: new Date().toISOString() })
+            .update({ start_date: null, end_date: null, is_active: true, updated_at: new Date().toISOString() })
             .eq('id', existing.id);
           if (error) throw error;
-          toast({ title: 'Zuweisung aktualisiert' });
         } else {
           const { error } = await supabase.from('project_team_assignments')
-            .insert({ project_id: projectId, employee_id: employeeId, start_date: startDate || null, end_date: effectiveEndDate, is_active: true, role: 'team_member' });
+            .insert({ project_id: projectId, employee_id: employeeId, start_date: null, end_date: null, is_active: true, role: 'team_member' });
           if (error) throw error;
-          toast({ title: 'Mitarbeiter zugewiesen' });
         }
+
+        const workDates = new Set(getWorkDates(startDate, effectiveEndDate));
+        const replaceIds = calendarEvents
+          .filter(event =>
+            event.type === 'project_shift' &&
+            event.project_id === projectId &&
+            event.assigned_employees?.includes(employeeId) &&
+            workDates.has(event.start_date)
+          )
+          .map(event => event.id);
+
+        if (replaceIds.length > 0) {
+          const { error } = await supabase.from('calendar_events').delete().in('id', replaceIds);
+          if (error) throw error;
+        }
+
+        const { error: shiftError } = await supabase.from('calendar_events').insert(shiftRows);
+        if (shiftError) throw shiftError;
+
+        toast({
+          title: 'Schicht geplant',
+          description: `${shiftRows.length} Tag${shiftRows.length === 1 ? '' : 'e'} mit ${formatMinutesAsHours(plannedMinutes)} Arbeitszeit geplant.`,
+        });
       }
       onOpenChange(false);
       onSuccess();
@@ -187,16 +267,18 @@ export function SingleAssignDialog({
           </div>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          <div className="grid grid-cols-3 gap-2">
-            {(['project', 'vacation', 'sick'] as EntryType[]).map(type => (
-              <button key={type} onClick={() => setEntryType(type)}
-                className={`px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
-                  entryType === type ? ENTRY_TYPE_STYLES[type].active : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
-                }`}>
-                {ENTRY_TYPE_STYLES[type].label}
-              </button>
-            ))}
-          </div>
+          {!entryTypeLocked && (
+            <div className="grid grid-cols-3 gap-2">
+              {(['project', 'vacation', 'sick'] as EntryType[]).map(type => (
+                <button key={type} onClick={() => setEntryType(type)}
+                  className={`px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                    entryType === type ? ENTRY_TYPE_STYLES[type].active : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+                  }`}>
+                  {ENTRY_TYPE_STYLES[type].label}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Mitarbeiter *</Label>
@@ -226,18 +308,40 @@ export function SingleAssignDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Von {entryType !== 'project' ? '*' : ''}</Label>
+              <Label>{entryType === 'project' ? 'Datum von *' : 'Von *'}</Label>
               <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Bis</Label>
+              <Label>{entryType === 'project' ? 'Datum bis' : 'Bis'}</Label>
               <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
             </div>
           </div>
 
-          {entryType === 'project' && !startDate && (
-            <div className="rounded-lg p-3 text-sm bg-blue-50 border border-blue-200 text-blue-700">
-              Ohne Datum wird der Mitarbeiter dem Team zugewiesen, aber noch nicht im Kalender eingeplant.
+          {entryType === 'project' && (
+            <div className="space-y-3 rounded-lg border border-blue-100 bg-blue-50/60 p-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label>Von (Uhrzeit)</Label>
+                  <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Bis (Uhrzeit)</Label>
+                  <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Pause (Min.)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={5}
+                    value={breakMinutes}
+                    onChange={e => setBreakMinutes(Math.max(0, Number(e.target.value) || 0))}
+                  />
+                </div>
+              </div>
+              <div className="text-xs font-medium text-blue-700">
+                Geplant: {formatMinutesAsHours(plannedMinutes)} pro Tag
+              </div>
             </div>
           )}
 

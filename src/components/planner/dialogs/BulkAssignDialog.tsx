@@ -10,9 +10,19 @@ import { Badge } from "@/components/ui/badge";
 import { Users, AlertTriangle } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import type { PlannerProject, PlannerEmployee, VacationRequest } from '../types';
+import type { CalendarEvent, PlannerProject, PlannerEmployee, VacationRequest } from '../types';
 import { getAvailableEmployees, getEmployeeConflictsForRange } from '../utils/capacityUtils';
 import { getGermanHolidays } from '../holidays';
+import {
+  buildProjectShiftEventRows,
+  calculateShiftMinutes,
+  DEFAULT_SHIFT_BREAK_MINUTES,
+  DEFAULT_SHIFT_END,
+  DEFAULT_SHIFT_START,
+  formatMinutesAsHours,
+  getWorkDates,
+  PROJECT_SHIFT_EVENT_TYPE,
+} from '../utils/shiftUtils';
 
 interface BulkAssignDialogProps {
   open: boolean;
@@ -20,6 +30,8 @@ interface BulkAssignDialogProps {
   employees: PlannerEmployee[];
   projects: PlannerProject[];
   vacations: VacationRequest[];
+  calendarEvents?: CalendarEvent[];
+  companyId: string | null;
   onSuccess: () => void;
   prefillProjectId?: string;
 }
@@ -30,6 +42,8 @@ export function BulkAssignDialog({
   employees,
   projects,
   vacations,
+  calendarEvents = [],
+  companyId,
   onSuccess,
   prefillProjectId = '',
 }: BulkAssignDialogProps) {
@@ -37,6 +51,9 @@ export function BulkAssignDialog({
   const [projectId, setProjectId] = useState(prefillProjectId);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [startTime, setStartTime] = useState(DEFAULT_SHIFT_START);
+  const [endTime, setEndTime] = useState(DEFAULT_SHIFT_END);
+  const [breakMinutes, setBreakMinutes] = useState(DEFAULT_SHIFT_BREAK_MINUTES);
   const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(new Set());
   const [positionFilter, setPositionFilter] = useState('all');
   const [saving, setSaving] = useState(false);
@@ -48,6 +65,9 @@ export function BulkAssignDialog({
       setProjectId(prefillProjectId);
       setStartDate('');
       setEndDate('');
+      setStartTime(DEFAULT_SHIFT_START);
+      setEndTime(DEFAULT_SHIFT_END);
+      setBreakMinutes(DEFAULT_SHIFT_BREAK_MINUTES);
       setSelectedEmployees(new Set());
       setPositionFilter('all');
       setExpandedConflicts(new Set());
@@ -65,7 +85,8 @@ export function BulkAssignDialog({
   // Auto-fill dates from selected project
   const selectedProject = projects.find(p => p.id === projectId);
   const effectiveStart = startDate || selectedProject?.work_start_date || selectedProject?.start_date || '';
-  const effectiveEnd = endDate || selectedProject?.work_end_date || selectedProject?.end_date || '';
+  const effectiveEnd = endDate || selectedProject?.work_end_date || selectedProject?.end_date || effectiveStart;
+  const plannedMinutes = calculateShiftMinutes(startTime, endTime, breakMinutes);
 
   // Update dates when project changes
   const handleProjectChange = (id: string) => {
@@ -94,8 +115,8 @@ export function BulkAssignDialog({
   // Calculate availability for each employee
   const availabilityData = useMemo(() => {
     if (!effectiveStart || !effectiveEnd) return [];
-    return getAvailableEmployees(employees, projects, vacations, effectiveStart, effectiveEnd, holidays);
-  }, [employees, projects, vacations, effectiveStart, effectiveEnd, holidays]);
+    return getAvailableEmployees(employees, projects, vacations, effectiveStart, effectiveEnd, holidays, calendarEvents);
+  }, [employees, projects, vacations, effectiveStart, effectiveEnd, holidays, calendarEvents]);
 
   // Unique positions for filter
   const positions = useMemo(() => {
@@ -131,9 +152,24 @@ export function BulkAssignDialog({
       toast({ title: 'Fehler', description: 'Bitte Projekt und mindestens einen Mitarbeiter wählen.', variant: 'destructive' });
       return;
     }
+    if (!companyId) {
+      toast({ title: 'Fehler', description: 'Keine Firma zugeordnet.', variant: 'destructive' });
+      return;
+    }
+    if (!effectiveStart || plannedMinutes <= 0) {
+      toast({ title: 'Fehler', description: 'Bitte Datum und gültige Arbeitszeit angeben.', variant: 'destructive' });
+      return;
+    }
 
     setSaving(true);
     try {
+      if (!selectedProject) throw new Error('Projekt nicht gefunden.');
+      const workDates = new Set(getWorkDates(effectiveStart, effectiveEnd || effectiveStart));
+      if (workDates.size === 0) {
+        toast({ title: 'Fehler', description: 'Im gewählten Zeitraum liegt kein Werktag.', variant: 'destructive' });
+        return;
+      }
+
       const promises = Array.from(selectedEmployees).map(async (empId) => {
         const { data: existing } = await supabase
           .from('project_team_assignments')
@@ -144,20 +180,50 @@ export function BulkAssignDialog({
 
         if (existing) {
           return supabase.from('project_team_assignments')
-            .update({ start_date: effectiveStart || null, end_date: effectiveEnd || null, is_active: true, updated_at: new Date().toISOString() })
+            .update({ start_date: null, end_date: null, is_active: true, updated_at: new Date().toISOString() })
             .eq('id', existing.id);
         } else {
           return supabase.from('project_team_assignments')
-            .insert({ project_id: projectId, employee_id: empId, start_date: effectiveStart || null, end_date: effectiveEnd || null, is_active: true, role: 'team_member' });
+            .insert({ project_id: projectId, employee_id: empId, start_date: null, end_date: null, is_active: true, role: 'team_member' });
         }
       });
 
       const results = await Promise.all(promises);
       const errors = results.filter(r => r.error);
+      const replaceIds = calendarEvents
+        .filter(event =>
+          event.type === PROJECT_SHIFT_EVENT_TYPE &&
+          event.project_id === projectId &&
+          event.assigned_employees?.some(empId => selectedEmployees.has(empId)) &&
+          workDates.has(event.start_date)
+        )
+        .map(event => event.id);
+
+      if (replaceIds.length > 0) {
+        const { error } = await supabase.from('calendar_events').delete().in('id', replaceIds);
+        if (error) throw error;
+      }
+
+      const shiftRows = Array.from(selectedEmployees).flatMap(empId =>
+        buildProjectShiftEventRows({
+          companyId,
+          employeeId: empId,
+          project: selectedProject,
+          startDate: effectiveStart,
+          endDate: effectiveEnd || effectiveStart,
+          startTime,
+          endTime,
+          breakMinutes,
+        })
+      );
+
+      const { error: shiftError } = await supabase.from('calendar_events').insert(shiftRows);
+      if (shiftError) throw shiftError;
+
       if (errors.length > 0) {
         toast({ title: 'Teilweise Fehler', description: `${errors.length} von ${results.length} Zuweisungen fehlgeschlagen.`, variant: 'destructive' });
       } else {
-        toast({ title: 'Team zugewiesen', description: `${selectedEmployees.size} Mitarbeiter zugewiesen.` });
+        toast({ title: 'Team geplant', description: `${selectedEmployees.size} Mitarbeiter mit ${formatMinutesAsHours(plannedMinutes)} pro Tag geplant.` });
       }
 
       onOpenChange(false);
@@ -201,12 +267,38 @@ export function BulkAssignDialog({
           {/* Date range */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Von</Label>
+              <Label>Datum von</Label>
               <Input type="date" value={effectiveStart} onChange={e => setStartDate(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Bis</Label>
+              <Label>Datum bis</Label>
               <Input type="date" value={effectiveEnd} onChange={e => setEndDate(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-blue-100 bg-blue-50/60 p-3 space-y-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label>Von (Uhrzeit)</Label>
+                <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Bis (Uhrzeit)</Label>
+                <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Pause (Min.)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step={5}
+                  value={breakMinutes}
+                  onChange={e => setBreakMinutes(Math.max(0, Number(e.target.value) || 0))}
+                />
+              </div>
+            </div>
+            <div className="text-xs font-medium text-blue-700">
+              Geplant: {formatMinutesAsHours(plannedMinutes)} pro Tag
             </div>
           </div>
 

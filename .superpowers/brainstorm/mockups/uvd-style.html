@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HandwerkOS — UVD-Inspired</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'DM Sans',sans-serif;background:#fff;color:#0a0a0a;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,.nav-logo,.stat-num,.price-amount{font-family:'Space Grotesk',sans-serif}
+  :root{--accent:#06b6d4;--accent-warm:#ff6b00;--bg:#ffffff;--bg-soft:#f8f8f8;--text:#0a0a0a;--text-muted:rgba(0,0,0,0.5);--border:rgba(0,0,0,0.08)}
+
+  /* ===== NAV ===== */
+  nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;justify-content:space-between;align-items:center;padding:20px 48px;background:rgba(255,255,255,0.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+  .nav-logo{font-weight:700;font-size:20px;letter-spacing:-1px;color:var(--text)}
+  .nav-logo span{color:var(--accent)}
+  .nav-links{display:flex;gap:36px;align-items:center}
+  .nav-links a{color:var(--text-muted);text-decoration:none;font-size:14px;font-weight:500;cursor:pointer;transition:color .2s}
+  .nav-links a:hover{color:var(--text)}
+  .nav-cta{background:var(--text);color:#fff;padding:10px 24px;border-radius:999px;font-weight:600;font-size:14px;cursor:pointer;transition:opacity .2s}
+  .nav-cta:hover{opacity:0.8}
+
+  /* ===== DOT MATRIX CANVAS ===== */
+  #dot-canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:999;pointer-events:none}
+
+  /* ===== HERO ===== */
+  .hero{
+    min-height:100vh;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;
+    padding:160px 48px 100px;position:relative;overflow:hidden;
+  }
+
+  /* Shimmer glow behind headline */
+  .hero-glow{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-55%);
+    width:700px;height:700px;border-radius:50%;
+    background:conic-gradient(from 0deg,rgba(6,182,212,0.08),rgba(168,85,247,0.05),rgba(6,182,212,0.08),rgba(99,102,241,0.05),rgba(6,182,212,0.08));
+    animation:glowRotate 10s linear infinite;
+    filter:blur(60px);
+    pointer-events:none;
+  }
+  @keyframes glowRotate{from{transform:translate(-50%,-55%) rotate(0deg)}to{transform:translate(-50%,-55%) rotate(360deg)}}
+
+  /* Orbital dots */
+  .orbital{position:absolute;top:50%;left:50%;width:400px;height:400px;transform:translate(-50%,-55%);pointer-events:none}
+  .orbital-dot{
+    position:absolute;width:6px;height:6px;border-radius:50%;
+    background:var(--accent);opacity:0.2;
+  }
+  .orbital-dot:nth-child(1){animation:orbit 12s linear infinite;top:0;left:50%}
+  .orbital-dot:nth-child(2){animation:orbit 12s linear infinite 3s;top:0;left:50%;width:4px;height:4px;opacity:0.15}
+  .orbital-dot:nth-child(3){animation:orbit 12s linear infinite 6s;top:0;left:50%;width:8px;height:8px;opacity:0.1}
+  .orbital-dot:nth-child(4){animation:orbit 12s linear infinite 9s;top:0;left:50%;width:3px;height:3px;opacity:0.25}
+  @keyframes orbit{from{transform:rotate(0deg) translateX(200px) rotate(0deg)}to{transform:rotate(360deg) translateX(200px) rotate(-360deg)}}
+
+  .hero-content{position:relative;z-index:2}
+
+  .hero-eyebrow{
+    font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:3px;
+    color:var(--text-muted);margin-bottom:28px;
+    animation:fadeUp .6s ease-out;
+  }
+
+  .hero h1{
+    font-size:clamp(56px,10vw,120px);font-weight:700;
+    line-height:0.92;letter-spacing:-0.04em;
+    margin-bottom:32px;
+    animation:fadeUp .7s ease-out .1s both;
+  }
+  .hero h1 .shimmer{
+    background:linear-gradient(90deg,var(--accent),#818cf8,var(--accent),#a855f7,var(--accent));
+    background-size:300% 100%;
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    animation:shimmer 6s ease-in-out infinite;
+  }
+  @keyframes shimmer{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+
+  .hero-sub{
+    font-size:clamp(16px,2vw,20px);color:var(--text-muted);
+    max-width:500px;line-height:1.7;margin:0 auto 48px;
+    animation:fadeUp .7s ease-out .2s both;
+  }
+
+  .hero-ctas{
+    display:flex;gap:16px;align-items:center;justify-content:center;
+    animation:fadeUp .7s ease-out .3s both;
+  }
+  .btn-dark{
+    background:var(--text);color:#fff;padding:18px 40px;border-radius:999px;
+    font-size:16px;font-weight:600;cursor:pointer;text-decoration:none;
+    transition:transform .2s,box-shadow .2s;
+  }
+  .btn-dark:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,0,0,0.15)}
+  .btn-outline{
+    color:var(--text);padding:18px 40px;border-radius:999px;font-size:16px;
+    cursor:pointer;text-decoration:none;border:1.5px solid rgba(0,0,0,0.12);
+    font-weight:500;transition:border-color .2s;display:flex;align-items:center;gap:10px;
+  }
+  .btn-outline:hover{border-color:rgba(0,0,0,0.3)}
+  .btn-outline svg{width:18px;height:18px}
+
+  .hero-trust{
+    margin-top:32px;display:flex;gap:32px;justify-content:center;
+    font-size:13px;color:var(--text-muted);
+    animation:fadeUp .7s ease-out .4s both;
+  }
+  .hero-trust span{display:flex;align-items:center;gap:6px}
+  .hero-trust svg{width:14px;height:14px;color:var(--accent)}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+  /* ===== DIVIDER ===== */
+  .divider{border:none;border-top:1px solid var(--border);margin:0}
+
+  /* ===== SECTIONS ===== */
+  .section{padding:clamp(80px,12vw,160px) 48px;max-width:1100px;margin:0 auto}
+  .section.full{max-width:100%;background:var(--bg-soft)}
+  .section.full .section-inner{max-width:1100px;margin:0 auto}
+  .section-eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:3px;font-weight:600;color:var(--text-muted);margin-bottom:16px;text-align:center}
+  .section-title{
+    font-size:clamp(36px,6vw,64px);font-weight:700;
+    letter-spacing:-0.03em;line-height:0.95;
+    margin-bottom:20px;text-align:center;
+  }
+  .section-sub{font-size:17px;color:var(--text-muted);max-width:460px;margin:0 auto 72px;line-height:1.7;text-align:center}
+
+  /* ===== PAIN POINTS ===== */
+  .pain-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+  .pain-card{background:#fff;padding:48px 32px;transition:background .2s;cursor:pointer}
+  .pain-card:hover{background:var(--bg-soft)}
+  .pain-card .num{font-family:'Space Grotesk',sans-serif;font-size:48px;font-weight:700;color:var(--accent);opacity:0.3;margin-bottom:12px}
+  .pain-card h3{font-size:18px;font-weight:700;margin-bottom:10px;letter-spacing:-0.02em}
+  .pain-card p{font-size:14px;color:var(--text-muted);line-height:1.6}
+
+  /* ===== FEATURES ===== */
+  .feature-row{display:flex;gap:64px;align-items:center;margin-bottom:clamp(80px,10vw,140px)}
+  .feature-row.reverse{flex-direction:row-reverse}
+  .feature-text{flex:1}
+  .feature-text .tag{font-size:11px;text-transform:uppercase;letter-spacing:3px;color:var(--accent);font-weight:600;margin-bottom:12px}
+  .feature-text h3{font-size:clamp(28px,4vw,40px);font-weight:700;letter-spacing:-0.03em;line-height:1.05;margin-bottom:16px}
+  .feature-text p{font-size:16px;color:var(--text-muted);line-height:1.7}
+  .feature-visual{
+    flex:1;background:var(--bg-soft);border:1px solid var(--border);
+    border-radius:20px;padding:32px;min-height:280px;
+    position:relative;overflow:hidden;
+  }
+  .feature-visual .big-num{font-family:'Space Grotesk',sans-serif;font-size:72px;font-weight:700;letter-spacing:-3px;color:var(--text);opacity:0.08;position:absolute;right:20px;top:12px}
+  .fv-stat{font-family:'Space Grotesk',sans-serif;font-size:40px;font-weight:700;color:var(--text);margin-bottom:4px}
+  .fv-stat.green{color:#16a34a}
+  .fv-label{font-size:13px;color:var(--text-muted)}
+  .fv-chart{display:flex;gap:4px;align-items:flex-end;height:100px;margin-top:20px}
+  .fv-bar{flex:1;border-radius:4px 4px 0 0;transition:height .5s}
+
+  .fv-list-item{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border);font-size:14px}
+  .fv-list-item:last-child{border:none}
+  .fv-tag{padding:4px 12px;border-radius:999px;font-size:11px;font-weight:600}
+
+  /* ===== APP PREVIEW ===== */
+  .app-frame{
+    max-width:950px;margin:0 auto;background:#fff;
+    border:1px solid var(--border);border-radius:20px;overflow:hidden;
+    box-shadow:0 40px 100px rgba(0,0,0,0.06);
+  }
+  .app-bar{display:flex;align-items:center;gap:8px;padding:16px 20px;border-bottom:1px solid var(--border)}
+  .dot{width:12px;height:12px;border-radius:50%}
+  .app-body{padding:28px}
+  .app-tabs{display:flex;gap:4px;margin-bottom:24px}
+  .tab{padding:10px 20px;border-radius:999px;font-size:13px;font-weight:500;color:var(--text-muted);cursor:pointer;transition:all .2s}
+  .tab.active{background:var(--text);color:#fff}
+  .dg{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+  .dc{border:1px solid var(--border);border-radius:14px;padding:20px}
+  .dc .l{font-size:12px;color:var(--text-muted);margin-bottom:6px}
+  .dc .v{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;letter-spacing:-1px}
+  .at{width:100%;border-collapse:collapse;font-size:14px}
+  .at th{text-align:left;color:var(--text-muted);font-weight:500;padding:12px 14px;border-bottom:1px solid var(--border);font-size:12px;text-transform:uppercase;letter-spacing:1px}
+  .at td{padding:14px;border-bottom:1px solid rgba(0,0,0,0.04);color:var(--text)}
+  .st{padding:4px 12px;border-radius:999px;font-size:11px;font-weight:600}
+
+  /* ===== METRICS ===== */
+  .metrics-strip{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+    background:var(--border);border:1px solid var(--border);border-radius:20px;overflow:hidden;
+  }
+  .metric{background:#fff;padding:48px 24px;text-align:center;cursor:pointer;transition:background .2s}
+  .metric:hover{background:var(--bg-soft)}
+  .metric-num{font-family:'Space Grotesk',sans-serif;font-size:clamp(36px,5vw,56px);font-weight:700;letter-spacing:-2px;color:var(--text)}
+  .metric-label{font-size:14px;color:var(--text-muted);margin-top:4px}
+  .metric-before{font-size:12px;color:var(--accent);margin-top:8px}
+
+  /* ===== PRICING ===== */
+  .pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+  .pc{background:#fff;padding:44px 32px;transition:background .2s;cursor:pointer}
+  .pc:hover{background:var(--bg-soft)}
+  .pc.feat{background:var(--bg-soft)}
+  .pop{background:var(--text);color:#fff;font-size:11px;font-weight:700;padding:5px 14px;border-radius:999px;display:inline-block;margin-bottom:16px}
+  .pn{font-size:18px;font-weight:700;letter-spacing:-0.02em;margin-bottom:4px}
+  .pd{font-size:13px;color:var(--text-muted);margin-bottom:24px}
+  .pa{font-family:'Space Grotesk',sans-serif;font-size:52px;font-weight:700;letter-spacing:-3px}
+  .pp{font-size:14px;color:var(--text-muted);margin-bottom:28px}
+  .pf{list-style:none;padding:0;margin-bottom:32px}
+  .pf li{font-size:14px;color:var(--text-muted);padding:8px 0;display:flex;align-items:center;gap:10px}
+  .pf li svg{width:16px;height:16px;color:var(--accent);flex-shrink:0}
+  .pb{display:block;text-align:center;padding:14px;border-radius:999px;font-size:15px;font-weight:600;text-decoration:none;border:1.5px solid var(--border);color:var(--text);cursor:pointer;transition:all .2s}
+  .pb:hover{border-color:var(--text)}
+  .pb.pfeat{background:var(--text);color:#fff;border-color:var(--text)}
+  .pb.pfeat:hover{opacity:0.85}
+
+  /* ===== TESTIMONIALS ===== */
+  .tg{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+  .tc{background:#fff;padding:36px 28px;cursor:pointer;transition:background .2s}
+  .tc:hover{background:var(--bg-soft)}
+  .tc-text{font-size:15px;color:var(--text);line-height:1.7;margin-bottom:24px}
+  .tc-author{display:flex;align-items:center;gap:12px}
+  .tc-av{width:40px;height:40px;border-radius:50%;background:var(--bg-soft);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--text)}
+  .tc-name{font-size:14px;font-weight:600}
+  .tc-role{font-size:12px;color:var(--text-muted)}
+
+  /* ===== FAQ ===== */
+  .faq-list{max-width:680px;margin:0 auto}
+  .fi{border-bottom:1px solid var(--border);padding:28px 0;cursor:pointer}
+  .fq{font-size:17px;font-weight:600;letter-spacing:-0.02em;display:flex;justify-content:space-between;align-items:center;transition:color .2s}
+  .fi:hover .fq{color:var(--accent)}
+  .fq svg{width:20px;height:20px;color:var(--text-muted);flex-shrink:0;transition:transform .2s}
+  .fi:hover .fq svg{transform:rotate(180deg)}
+  .fa{font-size:15px;color:var(--text-muted);line-height:1.7;margin-top:12px;padding-right:40px}
+
+  /* ===== FOOTER CTA ===== */
+  .footer-cta{padding:clamp(100px,14vw,180px) 48px;text-align:center;position:relative;overflow:hidden}
+  .footer-cta .glow{position:absolute;top:50%;left:50%;width:500px;height:500px;background:conic-gradient(from 0deg,rgba(6,182,212,0.06),rgba(168,85,247,0.04),rgba(6,182,212,0.06));border-radius:50%;filter:blur(80px);transform:translate(-50%,-50%);animation:glowRotate 12s linear infinite;pointer-events:none}
+  .footer-cta h2{font-size:clamp(40px,7vw,80px);font-weight:700;letter-spacing:-0.04em;line-height:0.92;margin-bottom:24px;position:relative;z-index:2}
+  .footer-cta p{font-size:18px;color:var(--text-muted);margin-bottom:40px;position:relative;z-index:2}
+
+  footer{padding:48px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:13px;color:var(--text-muted)}
+  footer a{color:var(--text-muted);text-decoration:none;cursor:pointer;transition:color .2s}
+  footer a:hover{color:var(--text)}
+
+  @media(prefers-reduced-motion:reduce){.hero-glow,.orbital-dot,.hero h1 .shimmer{animation:none!important}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Handwerk<span>OS</span></div>
+  <div class="nav-links"><a>Features</a><a>Preise</a><a>Demo</a><a>FAQ</a><a class="nav-cta">Kostenlos testen</a></div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="orbital">
+    <div class="orbital-dot"></div>
+    <div class="orbital-dot"></div>
+    <div class="orbital-dot"></div>
+    <div class="orbital-dot"></div>
+  </div>
+
+  <div class="hero-content">
+    <div class="hero-eyebrow">Handwerkersoftware</div>
+    <h1>Weniger<br/>Papierkrieg.<br/><span class="shimmer">Mehr Marge.</span></h1>
+    <p class="hero-sub">Angebote, Projekte, Rechnungen und DATEV &mdash; alles in einer Plattform. KI-powered.</p>
+    <div class="hero-ctas">
+      <a class="btn-dark">Kostenlos starten &rarr;</a>
+      <a class="btn-outline"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"/></svg>Demo</a>
+    </div>
+    <div class="hero-trust">
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>14 Tage kostenlos</span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>GoBD-konform</span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>DSGVO</span>
+    </div>
+  </div>
+</section>
+
+<hr class="divider"/>
+
+<!-- PAIN -->
+<div class="section">
+  <div class="section-eyebrow">Das Problem</div>
+  <h2 class="section-title">Kommt dir das<br/>bekannt vor?</h2>
+  <div class="section-sub">Diese Probleme kosten deutsche Handwerksbetriebe im Schnitt 8 Stunden pro Woche.</div>
+  <div class="pain-grid">
+    <div class="pain-card"><div class="num">01</div><h3>Zettelwirtschaft</h3><p>Word, Papier, Excel. Nichts passt zusammen, alles dauert ewig.</p></div>
+    <div class="pain-card"><div class="num">02</div><h3>Marge verschwindet</h3><p>Ohne Nachkalkulation keine Kontrolle &uuml;ber den Gewinn.</p></div>
+    <div class="pain-card"><div class="num">03</div><h3>B&uuml;ro frisst Zeit</h3><p>Abends Angebote tippen statt auf der Baustelle sein.</p></div>
+  </div>
+</div>
+
+<hr class="divider"/>
+
+<!-- FEATURES -->
+<div class="section">
+  <div class="section-eyebrow">Die L&ouml;sung</div>
+  <h2 class="section-title">Alles an<br/>einem Ort.</h2>
+  <div class="section-sub">Vom ersten Kundenkontakt bis zur DATEV-&Uuml;bergabe.</div>
+
+  <div class="feature-row">
+    <div class="feature-text">
+      <div class="tag">Dashboard</div>
+      <h3>Echtzeit-&Uuml;berblick &uuml;ber deinen Betrieb</h3>
+      <p>Umsatz, Auslastung, offene Posten. Alles auf einen Blick, keine Exceltabellen mehr.</p>
+    </div>
+    <div class="feature-visual">
+      <div class="big-num">&euro;</div>
+      <div class="fv-stat green">&euro;142.800</div>
+      <div class="fv-label">Umsatz Q1 2026</div>
+      <div class="fv-chart">
+        <div class="fv-bar" style="height:25%;background:rgba(6,182,212,0.12)"></div>
+        <div class="fv-bar" style="height:40%;background:rgba(6,182,212,0.16)"></div>
+        <div class="fv-bar" style="height:35%;background:rgba(6,182,212,0.2)"></div>
+        <div class="fv-bar" style="height:55%;background:rgba(6,182,212,0.25)"></div>
+        <div class="fv-bar" style="height:48%;background:rgba(6,182,212,0.3)"></div>
+        <div class="fv-bar" style="height:65%;background:rgba(6,182,212,0.38)"></div>
+        <div class="fv-bar" style="height:58%;background:rgba(6,182,212,0.45)"></div>
+        <div class="fv-bar" style="height:78%;background:rgba(6,182,212,0.55)"></div>
+        <div class="fv-bar" style="height:70%;background:rgba(6,182,212,0.65)"></div>
+        <div class="fv-bar" style="height:85%;background:rgba(6,182,212,0.78)"></div>
+        <div class="fv-bar" style="height:80%;background:rgba(6,182,212,0.88)"></div>
+        <div class="fv-bar" style="height:100%;background:var(--accent)"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="feature-row reverse">
+    <div class="feature-text">
+      <div class="tag">Projekte</div>
+      <h3>Vom Angebot zur Schlussrechnung</h3>
+      <p>Status, Budget, Nachkalkulation &mdash; f&uuml;r jedes Projekt automatisch verkn&uuml;pft.</p>
+    </div>
+    <div class="feature-visual">
+      <div class="big-num">#</div>
+      <div class="fv-list-item"><span>Elektroinstallation EFH M&uuml;ller</span><span class="fv-tag" style="background:rgba(22,163,74,0.08);color:#16a34a">Aktiv</span></div>
+      <div class="fv-list-item"><span>Sanierung Altbau Hauptstr.</span><span class="fv-tag" style="background:rgba(202,138,4,0.08);color:#b45309">Material</span></div>
+      <div class="fv-list-item"><span>PV-Anlage Schmidt</span><span class="fv-tag" style="background:rgba(6,182,212,0.08);color:var(--accent)">Angebot</span></div>
+      <div class="fv-list-item"><span>Ladestation Tiefgarage</span><span class="fv-tag" style="background:rgba(22,163,74,0.08);color:#16a34a">Aktiv</span></div>
+    </div>
+  </div>
+
+  <div class="feature-row">
+    <div class="feature-text">
+      <div class="tag">KI-Kalkulation</div>
+      <h3>Angebote in unter zwei Minuten</h3>
+      <p>Die KI lernt aus deinen bisherigen Projekten und schl&auml;gt passende Preise und Materialien vor.</p>
+    </div>
+    <div class="feature-visual" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+      <div class="fv-stat" style="font-size:64px;letter-spacing:-3px">&lt; 2 Min</div>
+      <div class="fv-label">pro Angebot &middot; vorher 45 Min</div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider"/>
+
+<!-- APP PREVIEW -->
+<div class="section">
+  <div class="section-eyebrow">Live Preview</div>
+  <h2 class="section-title">Dein neues<br/>Cockpit.</h2>
+  <div class="section-sub"></div>
+  <div class="app-frame">
+    <div class="app-bar"><div class="dot" style="background:#ef4444"></div><div class="dot" style="background:#eab308"></div><div class="dot" style="background:#22c55e"></div><span style="margin-left:12px;font-size:12px;color:var(--text-muted)">HandwerkOS</span></div>
+    <div class="app-body">
+      <div class="app-tabs"><div class="tab active">Dashboard</div><div class="tab">Projekte</div><div class="tab">Angebote</div><div class="tab">Rechnungen</div><div class="tab">Team</div></div>
+      <div class="dg"><div class="dc"><div class="l">Umsatz MTD</div><div class="v" style="color:#16a34a">&euro;48.320</div></div><div class="dc"><div class="l">Offene Angebote</div><div class="v" style="color:#b45309">8</div></div><div class="dc"><div class="l">Projekte</div><div class="v" style="color:var(--accent)">12</div></div><div class="dc"><div class="l">Auslastung</div><div class="v">87%</div></div></div>
+      <table class="at"><thead><tr><th>Projekt</th><th>Kunde</th><th>Status</th><th>Wert</th></tr></thead><tbody><tr><td>Elektroinstallation EFH</td><td>Fam. M&uuml;ller</td><td><span class="st" style="background:rgba(22,163,74,0.08);color:#16a34a">Aktiv</span></td><td>&euro;12.450</td></tr><tr><td>Sanierung Altbau</td><td>Hausverwaltung</td><td><span class="st" style="background:rgba(202,138,4,0.08);color:#b45309">Material</span></td><td>&euro;34.800</td></tr><tr><td>PV Dachanlage</td><td>Hr. Schmidt</td><td><span class="st" style="background:rgba(6,182,212,0.08);color:var(--accent)">Angebot</span></td><td>&euro;18.900</td></tr></tbody></table>
+    </div>
+  </div>
+</div>
+
+<hr class="divider"/>
+
+<!-- METRICS -->
+<section class="section full">
+  <div class="section-inner">
+    <div class="section-eyebrow">Ergebnisse</div>
+    <h2 class="section-title">Vorher vs.<br/>Nachher.</h2>
+    <div class="section-sub"></div>
+    <div class="metrics-strip">
+      <div class="metric"><div class="metric-num">2 Min</div><div class="metric-label">pro Angebot</div><div class="metric-before">vorher 45 Min</div></div>
+      <div class="metric"><div class="metric-num">1 Klick</div><div class="metric-label">DATEV Export</div><div class="metric-before">vorher 2 Std</div></div>
+      <div class="metric"><div class="metric-num">+23%</div><div class="metric-label">mehr Marge</div><div class="metric-before">durch Nachkalkulation</div></div>
+      <div class="metric"><div class="metric-num">8 Std</div><div class="metric-label">gespart / Woche</div><div class="metric-before">weniger B&uuml;ro</div></div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider"/>
+
+<!-- PRICING -->
+<div class="section">
+  <div class="section-eyebrow">Preise</div>
+  <h2 class="section-title">Transparent.<br/>Fair. Ohne Haken.</h2>
+  <div class="section-sub">Starte kostenlos, upgrade wenn du w&auml;chst.</div>
+  <div class="pricing-grid">
+    <div class="pc"><div class="pn">Starter</div><div class="pd">Einzelunternehmer</div><div class="pa">&euro;29</div><div class="pp">/ Monat</div><ul class="pf"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>3 Mitarbeiter</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>10 Projekte</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Angebote &amp; Kunden</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Zeiterfassung</li></ul><a class="pb">14 Tage kostenlos</a></div>
+    <div class="pc feat"><div class="pop">Beliebt</div><div class="pn">Handwerker</div><div class="pd">Wachsende Betriebe</div><div class="pa">&euro;59</div><div class="pp">/ Monat</div><ul class="pf"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>10 Mitarbeiter</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unbegrenzte Projekte</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>KI-Kalkulation</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>E-Rechnung &amp; OCR</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Mitarbeiterverwaltung</li></ul><a class="pb pfeat">14 Tage kostenlos</a></div>
+    <div class="pc"><div class="pn">Meisterbetrieb</div><div class="pd">Etablierte Teams</div><div class="pa">&euro;99</div><div class="pp">/ Monat</div><ul class="pf"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unbegrenzt</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>VDE-Protokolle</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>DATEV Export</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>API &amp; Priorit&auml;t</li></ul><a class="pb">14 Tage kostenlos</a></div>
+  </div>
+</div>
+
+<hr class="divider"/>
+
+<!-- TESTIMONIALS -->
+<div class="section">
+  <div class="section-eyebrow">Stimmen</div>
+  <h2 class="section-title">Was Handwerker<br/>sagen.</h2>
+  <div class="section-sub"></div>
+  <div class="tg">
+    <div class="tc"><div class="tc-text">"Spare jeden Tag mindestens eine Stunde B&uuml;roarbeit. Angebote gehen in Minuten raus."</div><div class="tc-author"><div class="tc-av">MK</div><div><div class="tc-name">Markus K.</div><div class="tc-role">Elektromeister, M&ouml;nchengladbach</div></div></div></div>
+    <div class="tc"><div class="tc-text">"Nachkalkulation zeigt sofort wo ich nachbessern muss. Endlich der &Uuml;berblick."</div><div class="tc-author"><div class="tc-av">SW</div><div><div class="tc-name">Sandra W.</div><div class="tc-role">SHK-Betrieb, D&uuml;sseldorf</div></div></div></div>
+    <div class="tc"><div class="tc-text">"DATEV-Export spart mir monatlich einen halben Tag. Steuerberater ist begeistert."</div><div class="tc-author"><div class="tc-av">TH</div><div><div class="tc-name">Thomas H.</div><div class="tc-role">Malerbetrieb, K&ouml;ln</div></div></div></div>
+  </div>
+</div>
+
+<hr class="divider"/>
+
+<!-- FAQ -->
+<div class="section">
+  <div class="section-eyebrow">FAQ</div>
+  <h2 class="section-title">H&auml;ufige<br/>Fragen.</h2>
+  <div style="height:48px"></div>
+  <div class="faq-list">
+    <div class="fi"><div class="fq">Brauche ich technische Vorkenntnisse?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div><div class="fa">Nein. HandwerkOS ist so einfach wie WhatsApp.</div></div>
+    <div class="fi"><div class="fq">Kann ich bestehende Daten importieren?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div><div class="fa">Ja. Excel, CSV und g&auml;ngige Handwerkerprogramme. Wir helfen beim Umzug.</div></div>
+    <div class="fi"><div class="fq">Ist HandwerkOS GoBD-konform?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div><div class="fa">Ja. Revisionssicher, fortlaufend nummeriert, vollst&auml;ndiges Audit-Log.</div></div>
+    <div class="fi"><div class="fq">Kann ich jederzeit k&uuml;ndigen?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div><div class="fa">Monatlich k&uuml;ndbar. Keine Mindestlaufzeit. Daten jederzeit exportierbar.</div></div>
+  </div>
+</div>
+
+<!-- FOOTER CTA -->
+<section class="footer-cta">
+  <div class="glow"></div>
+  <h2>Bereit<br/>durchzustarten?</h2>
+  <p>14 Tage kostenlos. Keine Kreditkarte n&ouml;tig.</p>
+  <a class="btn-dark" style="display:inline-block;position:relative;z-index:2;font-size:18px;padding:20px 48px">Kostenlos starten &rarr;</a>
+</section>
+
+<footer><div>&copy; 2026 HandwerkOS</div><div style="display:flex;gap:24px"><a>Datenschutz</a><a>Impressum</a><a>AGB</a></div></footer>
+
+<!-- Dot field: scattered left, clustered right, like uvd.xyz -->
+<canvas id="dot-canvas"></canvas>
+<script>
+var canvas = document.getElementById('dot-canvas');
+var ctx = canvas.getContext('2d');
+var W, H;
+function resize(){
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  initDots();
+}
+window.addEventListener('resize', resize);
+
+var dots = [];
+function initDots(){
+  dots = [];
+  // LEFT side: scattered, sparse, random sizes, lots of movement
+  for(var i = 0; i < 90; i++){
+    var x = Math.random() * W * 0.25;
+    var fade = 1 - x / (W * 0.25);
+    dots.push({
+      bx: x, by: Math.random() * H,
+      r: 0.8 + Math.random() * 2.5,
+      op: (0.05 + Math.random() * 0.12) * fade,
+      phase: Math.random() * Math.PI * 2,
+      sx: 0.3 + Math.random() * 0.8,
+      sy: 0.2 + Math.random() * 0.6,
+      ax: 4 + Math.random() * 14,
+      ay: 3 + Math.random() * 10
+    });
+  }
+
+  // RIGHT side: scattered dots, smaller, less movement
+  for(var i = 0; i < 80; i++){
+    var x = W * 0.76 + Math.random() * W * 0.24;
+    var fade = (x - W * 0.76) / (W * 0.24);
+    dots.push({
+      bx: x, by: Math.random() * H,
+      r: 0.6 + Math.random() * 1.8,
+      op: (0.04 + Math.random() * 0.1) * fade,
+      phase: Math.random() * Math.PI * 2,
+      sx: 0.1 + Math.random() * 0.25,
+      sy: 0.08 + Math.random() * 0.2,
+      ax: 1 + Math.random() * 4,
+      ay: 0.8 + Math.random() * 3
+    });
+  }
+
+  // RIGHT side: small cluster groups (like binary blocks)
+  var clusters = 6 + Math.floor(Math.random() * 6);
+  for(var ci = 0; ci < clusters; ci++){
+    var cx = W * 0.8 + Math.random() * W * 0.18;
+    var cy = Math.random() * H;
+    var cw = 15 + Math.random() * 50;
+    var ch = 8 + Math.random() * 25;
+    var count = 3 + Math.floor(Math.random() * 8);
+    var fade = (cx - W * 0.76) / (W * 0.24);
+    for(var d = 0; d < count; d++){
+      dots.push({
+        bx: cx + Math.random() * cw,
+        by: cy + Math.random() * ch,
+        r: 0.6 + Math.random() * 1,
+        op: (0.06 + Math.random() * 0.08) * fade,
+        phase: Math.random() * Math.PI * 2,
+        sx: 0.04 + Math.random() * 0.1,
+        sy: 0.03 + Math.random() * 0.08,
+        ax: 0.5 + Math.random() * 1.5,
+        ay: 0.3 + Math.random() * 1
+      });
+    }
+  }
+}
+
+var t = 0;
+function draw(){
+  ctx.clearRect(0, 0, W, H);
+  t += 0.016;
+  for(var i = 0; i < dots.length; i++){
+    var d = dots[i];
+    var x = d.bx + Math.sin(t * d.sx + d.phase) * d.ax;
+    var y = d.by + Math.cos(t * d.sy + d.phase * 0.7) * d.ay;
+    var pulse = 0.4 + Math.sin(t * 0.3 + d.phase) * 0.6;
+    var a = d.op * pulse;
+    ctx.beginPath();
+    ctx.arc(x, y, d.r, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,' + a + ')';
+    ctx.fill();
+  }
+  requestAnimationFrame(draw);
+}
+
+resize();
+draw();
+</script>
+
+</body>
+</html>

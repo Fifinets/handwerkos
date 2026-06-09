@@ -1,0 +1,85 @@
+<h2>Hero Section — Welches Layout?</h2>
+<p class="subtitle">Der erste Eindruck entscheidet. Welches Hero-Layout passt zu HandwerkOS?</p>
+
+<div class="cards">
+  <!-- Option A: Split Hero -->
+  <div class="card" data-choice="split-hero" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 8px; padding: 24px; min-height: 280px; display: flex; gap: 24px;">
+        <!-- Left: Text -->
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+          <div style="font-size: 10px; color: #6366f1; font-weight: 600; letter-spacing: 2px; margin-bottom: 8px;">HANDWERKOS</div>
+          <div style="font-size: 22px; font-weight: 800; color: #f8fafc; line-height: 1.2; margin-bottom: 12px;">Weniger Papierkrieg.<br/>Mehr Marge.</div>
+          <div style="font-size: 11px; color: #94a3b8; margin-bottom: 16px; line-height: 1.5;">Die All-in-One Plattform f&uuml;r deinen Handwerksbetrieb. Angebote, Projekte, Rechnungen &mdash; alles an einem Ort.</div>
+          <div style="display: flex; gap: 8px;">
+            <div style="background: #6366f1; color: white; padding: 8px 16px; border-radius: 6px; font-size: 11px; font-weight: 600;">Kostenlos testen</div>
+            <div style="border: 1px solid #475569; color: #cbd5e1; padding: 8px 16px; border-radius: 6px; font-size: 11px;">Demo ansehen</div>
+          </div>
+        </div>
+        <!-- Right: App Preview -->
+        <div style="flex: 1; background: #1e293b; border-radius: 8px; border: 1px solid #334155; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; gap: 6px; margin-bottom: 4px;">
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444;"></div>
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: #eab308;"></div>
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: #22c55e;"></div>
+          </div>
+          <div style="background: #0f172a; border-radius: 4px; padding: 8px; flex: 1;">
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <div style="background: #6366f1; border-radius: 4px; padding: 4px 8px; font-size: 9px; color: white;">Dashboard</div>
+              <div style="color: #64748b; font-size: 9px; padding: 4px;">Projekte</div>
+              <div style="color: #64748b; font-size: 9px; padding: 4px;">Rechnungen</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              <div style="background: #1e293b; border-radius: 4px; padding: 8px;">
+                <div style="font-size: 8px; color: #64748b;">Umsatz</div>
+                <div style="font-size: 14px; color: #22c55e; font-weight: 700;">&euro;48.320</div>
+              </div>
+              <div style="background: #1e293b; border-radius: 4px; padding: 8px;">
+                <div style="font-size: 8px; color: #64748b;">Projekte</div>
+                <div style="font-size: 14px; color: #6366f1; font-weight: 700;">12</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A: Split Hero</h3>
+      <p>Text links, App-Preview rechts. Klassisch, bew&auml;hrt, wie Vercel/Linear. Zeigt sofort das Produkt.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Centered Hero -->
+  <div class="card" data-choice="centered-hero" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 8px; padding: 24px; min-height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+        <div style="font-size: 10px; color: #6366f1; font-weight: 600; letter-spacing: 2px; margin-bottom: 8px; background: rgba(99,102,241,0.1); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(99,102,241,0.3);">NEU: KI-gest&uuml;tzte Kalkulation</div>
+        <div style="font-size: 26px; font-weight: 800; color: #f8fafc; line-height: 1.2; margin-bottom: 12px; max-width: 400px;">Dein Handwerksbetrieb.<br/><span style="background: linear-gradient(90deg, #6366f1, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Digitalisiert.</span></div>
+        <div style="font-size: 11px; color: #94a3b8; margin-bottom: 20px; max-width: 350px; line-height: 1.5;">Von Angebot bis Rechnung, von Zeiterfassung bis DATEV-Export. Alles in einer Plattform.</div>
+        <div style="display: flex; gap: 8px; margin-bottom: 24px;">
+          <div style="background: #6366f1; color: white; padding: 10px 20px; border-radius: 8px; font-size: 12px; font-weight: 600;">14 Tage kostenlos testen</div>
+          <div style="border: 1px solid #475569; color: #cbd5e1; padding: 10px 20px; border-radius: 8px; font-size: 12px;">Demo ansehen &rarr;</div>
+        </div>
+        <!-- Floating app screenshot below -->
+        <div style="background: #1e293b; border-radius: 8px; border: 1px solid #334155; padding: 8px; width: 90%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
+          <div style="display: flex; gap: 4px; margin-bottom: 6px;">
+            <div style="width: 6px; height: 6px; border-radius: 50%; background: #ef4444;"></div>
+            <div style="width: 6px; height: 6px; border-radius: 50%; background: #eab308;"></div>
+            <div style="width: 6px; height: 6px; border-radius: 50%; background: #22c55e;"></div>
+          </div>
+          <div style="background: #0f172a; border-radius: 4px; height: 60px; display: flex; align-items: center; justify-content: center;">
+            <div style="display: flex; gap: 16px;">
+              <div style="text-align: center;"><div style="font-size: 7px; color: #64748b;">Offene Angebote</div><div style="font-size: 12px; color: #f8fafc; font-weight: 700;">8</div></div>
+              <div style="text-align: center;"><div style="font-size: 7px; color: #64748b;">Laufende Projekte</div><div style="font-size: 12px; color: #f8fafc; font-weight: 700;">12</div></div>
+              <div style="text-align: center;"><div style="font-size: 7px; color: #64748b;">Umsatz MTD</div><div style="font-size: 12px; color: #22c55e; font-weight: 700;">&euro;48k</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B: Centered Hero + Floating Screenshot</h3>
+      <p>Zentrierter Text, App-Screenshot schwebt darunter mit Shadow. Moderner, wie Stripe/Supabase. Mehr Fokus auf die Headline.</p>
+    </div>
+  </div>
+</div>
