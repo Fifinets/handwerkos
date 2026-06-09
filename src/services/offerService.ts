@@ -25,6 +25,7 @@ import {
   PaginationResponse
 } from '@/types';
 import { eventBus } from './eventBus';
+import { buildPublicOfferUrl } from '@/lib/publicUrl';
 
 export class OfferService {
 
@@ -38,17 +39,21 @@ export class OfferService {
     filters?: OfferFilter
   ): Promise<PaginationResponse<Offer>> {
     return apiCall(async () => {
+      const companyId = await this.getCompanyId();
+
       let query = supabase
         .from('offers')
         .select(`
           *,
-          customers (
+          customer:customers (
             id,
             company_name,
             contact_person,
             email
           )
         `, { count: 'exact' });
+
+      query = query.eq('company_id', companyId);
 
       // Apply filters
       if (filters?.status) {
@@ -111,7 +116,7 @@ export class OfferService {
         .from('offers')
         .select(`
           *,
-          customers (
+          customer:customers (
             id,
             company_name,
             contact_person,
@@ -528,7 +533,7 @@ export class OfferService {
 
       // Attach share link for UI
       const shareLink = sentOffer.share_token
-        ? `${window.location.origin}/public/offer/${sentOffer.share_token}`
+        ? buildPublicOfferUrl(sentOffer.share_token)
         : null;
       return { ...sentOffer, shareLink } as Offer & { shareLink: string | null };
     }, `Send offer ${id}`);

@@ -133,27 +133,6 @@ const ProjectModuleV2 = () => {
     const { data: projectsResponse, isLoading: projectsLoading, error: projectsError, refetch: refetchProjects } = useProjects();
     const { data: customersResponse, isLoading: customersLoading } = useCustomers();
 
-    // Debug: Direct database query
-    const [debugProjects, setDebugProjects] = useState<ProjectWithCustomers[]>([]);
-    const [debugError, setDebugError] = useState<any>(null);
-
-    const fetchDebugProjects = useCallback(async () => {
-        try {
-            const { data, error } = await supabase
-                .from('projects')
-                .select('*');
-
-            setDebugProjects((data ?? []) as ProjectWithCustomers[]);
-            setDebugError(error);
-        } catch (err) {
-            setDebugError(err);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchDebugProjects();
-    }, [fetchDebugProjects]);
-
     // Local state for employees
     const [teamMembers, setTeamMembers] = useState<any[]>([]);
     const [teamLoading, setTeamLoading] = useState(true);
@@ -291,7 +270,7 @@ const ProjectModuleV2 = () => {
     const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] = useState(false);
     const [createInvoiceProject, setCreateInvoiceProject] = useState<any | null>(null);
 
-    const projects = (projectsResponse?.items || debugProjects || []) as ProjectWithCustomers[];
+    const projects = (projectsResponse?.items || []) as ProjectWithCustomers[];
     const customers = customersResponse?.items || [];
 
     // Fetch Kleinaufträge
@@ -770,7 +749,6 @@ const ProjectModuleV2 = () => {
                         setSelectedProjectId(null);
                         // Refresh list so status changes are reflected immediately
                         refetchProjects();
-                        fetchDebugProjects();
                     }}
                     projectId={selectedProjectId}
                 />

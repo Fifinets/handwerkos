@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { Search, History, MessageSquare, GripVertical, Type, Heading, List, Image as ImageIcon, Scissors, Package, ChevronDown, ChevronUp, Clock, Truck, Box, Wrench, HardHat, Zap, FileText } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React from 'react';
+import { Search, History, MessageSquare, Type, Heading, List, Image as ImageIcon, Scissors, Package, Wrench, HardHat, FileText, BadgePercent, SplitSquareHorizontal, MessageSquareText } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,45 +18,55 @@ interface OfferSidebarProps {
 
 const POSITION_TYPES = [
     {
-        label: 'Arbeitsstunden', desc: 'Lohnarbeiten / Montage',
+        label: 'Leistung', desc: 'Arbeitszeit oder Montageleistung',
         unit: 'Std', price: 75, type: 'labor', icon: HardHat,
         color: 'text-blue-700 bg-blue-50 border-blue-200 hover:bg-blue-100',
     },
     {
-        label: 'Pauschalposition', desc: 'Komplettleistung (psch)',
+        label: 'Pauschale', desc: 'Festpreis für eine Leistung',
         unit: 'psch', price: 0, type: 'lump_sum', icon: Wrench,
-        color: 'text-violet-700 bg-violet-50 border-violet-200 hover:bg-violet-100',
+        color: 'text-slate-700 bg-slate-50 border-slate-200 hover:bg-slate-100',
     },
     {
-        label: 'Material', desc: 'Einzelnes Bauteil / Produkt',
-        unit: 'Stk', price: 0, type: 'material', icon: Box,
-        color: 'text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100',
-    },
-    {
-        label: 'Materialpauschale', desc: 'Material nach Aufwand',
-        unit: 'psch', price: 0, type: 'material_lump_sum', icon: Package,
-        color: 'text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100',
-    },
-    {
-        label: 'Fahrtkosten', desc: 'An- und Abfahrt',
-        unit: 'km', price: 0.42, type: 'travel', icon: Truck,
+        label: 'Optionalposition', desc: 'Zusatzleistung, nicht in Summe',
+        unit: 'psch', price: 0, type: 'lump_sum', icon: BadgePercent, optional: true,
         color: 'text-amber-700 bg-amber-50 border-amber-200 hover:bg-amber-100',
     },
     {
-        label: 'Kleinmaterial', desc: 'Schrauben, Dübel, Kleber etc.',
-        unit: 'psch', price: 0, type: 'small_material', icon: Zap,
-        color: 'text-orange-700 bg-orange-50 border-orange-200 hover:bg-orange-100',
+        label: 'Alternative', desc: 'Variante zur Auswahl anbieten',
+        unit: 'psch', price: 0, type: 'lump_sum', icon: SplitSquareHorizontal, optional: true,
+        color: 'text-violet-700 bg-violet-50 border-violet-200 hover:bg-violet-100',
+    },
+];
+
+const QUICK_ELEMENTS = [
+    {
+        label: 'Text',
+        desc: 'Freier Text im Angebot',
+        icon: Type,
+        onAdd: (onAddItem: OfferSidebarProps['onAddItem']) => onAddItem('text'),
     },
     {
-        label: 'Sonstige Leistung', desc: 'Freie Position',
-        unit: 'Stk', price: 0, type: 'other', icon: FileText,
-        color: 'text-gray-700 bg-gray-50 border-gray-200 hover:bg-gray-100',
+        label: 'Abschnitt',
+        desc: 'Überschrift für Angebotsbereiche',
+        icon: Heading,
+        onAdd: (onAddItem: OfferSidebarProps['onAddItem']) => onAddItem('title'),
+    },
+    {
+        label: 'Hinweistext',
+        desc: 'Nicht enthalten, bauseitige Leistungen',
+        icon: MessageSquareText,
+        onAdd: (onAddItem: OfferSidebarProps['onAddItem']) => onAddItem('position', {
+            description: 'Hinweis: ',
+            unit: 'psch',
+            unit_price_net: 0,
+            item_type: 'text',
+            quantity: 1,
+        }),
     },
 ];
 
 export function OfferSidebar({ onAddItem, isOpen, projectName, customerName, onAcceptAIPositions }: OfferSidebarProps) {
-    const [positionOpen, setPositionOpen] = useState(false);
-
     if (!isOpen) return null;
 
     return (
@@ -101,54 +110,33 @@ export function OfferSidebar({ onAddItem, isOpen, projectName, customerName, onA
                             <div className="space-y-2">
                                 <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Grundelemente</h3>
 
-                                <SidebarItem icon={Type} label="Text" onClick={() => onAddItem('text')} />
-                                <SidebarItem icon={Heading} label="Titel" onClick={() => onAddItem('title')} />
+                                {QUICK_ELEMENTS.map((element) => (
+                                    <SidebarItem
+                                        key={element.label}
+                                        icon={element.icon}
+                                        label={element.label}
+                                        description={element.desc}
+                                        onClick={() => element.onAdd(onAddItem)}
+                                    />
+                                ))}
 
-                                {/* Position with expandable dropdown */}
-                                <div>
-                                    <button
-                                        onClick={() => setPositionOpen((v) => !v)}
-                                        className="flex items-center justify-between w-full p-3 bg-white border rounded-lg hover:border-primary hover:shadow-sm transition-all group"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-1.5 bg-gray-100 rounded group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                                                <GripVertical className="h-4 w-4" />
-                                            </div>
-                                            <span className="font-medium text-gray-700 group-hover:text-gray-900">Position</span>
-                                        </div>
-                                        {positionOpen
-                                            ? <ChevronUp className="h-4 w-4 text-gray-400" />
-                                            : <ChevronDown className="h-4 w-4 text-gray-400" />
-                                        }
-                                    </button>
-
-                                    {positionOpen && (
-                                        <div className="mt-1.5 ml-2 space-y-1 border-l-2 border-gray-100 pl-3">
-                                            {POSITION_TYPES.map((t) => (
-                                                <button
-                                                    key={t.label}
-                                                    onClick={() => {
-                                                        onAddItem('position', {
-                                                            description: t.desc,
-                                                            unit: t.unit,
-                                                            unit_price_net: t.price,
-                                                            item_type: t.type,
-                                                            quantity: 1,
-                                                        });
-                                                        setPositionOpen(false);
-                                                    }}
-                                                    className={`flex items-center gap-2.5 w-full px-2.5 py-2 rounded-md border text-left transition-all ${t.color}`}
-                                                >
-                                                    <t.icon className="h-3.5 w-3.5 flex-shrink-0" />
-                                                    <div className="min-w-0">
-                                                        <p className="text-xs font-semibold leading-tight">{t.label}</p>
-                                                        <p className="text-[10px] opacity-70 truncate">{t.desc} · {t.unit}</p>
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
+                                {POSITION_TYPES.map((t) => (
+                                    <SidebarItem
+                                        key={t.label}
+                                        icon={t.icon}
+                                        label={t.label}
+                                        description={t.desc}
+                                        className={t.color}
+                                        onClick={() => onAddItem('position', {
+                                            description: t.desc,
+                                            unit: t.unit,
+                                            unit_price_net: t.price,
+                                            item_type: t.type,
+                                            quantity: 1,
+                                            is_optional: t.optional ?? false,
+                                        })}
+                                    />
+                                ))}
 
                                 <SidebarItem icon={ImageIcon} label="Bild" onClick={() => onAddItem('image')} />
                                 <div className="pt-1"></div>
@@ -156,9 +144,10 @@ export function OfferSidebar({ onAddItem, isOpen, projectName, customerName, onA
                             </div>
 
                             <div className="space-y-2 pt-4">
-                                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Vorlagen</h3>
-                                <div className="p-8 text-center border-2 border-dashed rounded-lg text-gray-400 text-sm">
-                                    Keine Vorlagen gefunden
+                                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Eigene Bausteine</h3>
+                                <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-4 text-sm text-slate-500">
+                                    <p className="font-medium text-slate-700">Noch keine eigenen Bausteine</p>
+                                    <p className="mt-1 text-xs">Gespeicherte Firmen-Bausteine erscheinen hier, sobald sie angelegt sind.</p>
                                 </div>
                             </div>
                         </div>
@@ -208,17 +197,33 @@ export function OfferSidebar({ onAddItem, isOpen, projectName, customerName, onA
     );
 }
 
-function SidebarItem({ icon: Icon, label, onClick }: { icon: any, label: string, onClick: () => void }) {
+function SidebarItem({
+    icon: Icon,
+    label,
+    description,
+    className,
+    onClick,
+}: {
+    icon: any;
+    label: string;
+    description?: string;
+    className?: string;
+    onClick: () => void;
+}) {
     return (
         <button
             onClick={onClick}
-            className="flex items-center justify-between w-full p-3 bg-white border rounded-lg hover:border-primary hover:shadow-sm transition-all group"
+            aria-label={label}
+            className={`flex items-center justify-between w-full p-3 bg-white border rounded-lg hover:border-primary hover:shadow-sm transition-all group ${className || ''}`}
         >
             <div className="flex items-center gap-3">
                 <div className="p-1.5 bg-gray-100 rounded group-hover:bg-primary/10 group-hover:text-primary transition-colors">
                     <Icon className="h-4 w-4" />
                 </div>
-                <span className="font-medium text-gray-700 group-hover:text-gray-900">{label}</span>
+                <div className="min-w-0 text-left">
+                    <span className="block font-medium text-gray-700 group-hover:text-gray-900">{label}</span>
+                    {description && <span className="block truncate text-xs text-gray-500">{description}</span>}
+                </div>
             </div>
             <div className="text-gray-400 group-hover:text-primary">+</div>
         </button>

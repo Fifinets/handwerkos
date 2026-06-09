@@ -10,21 +10,18 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Send } from 'lucide-react';
-import { Offer } from '@/types/offer';
+import { OfferWithRelations } from '@/types/offer';
 import { useToast } from '@/hooks/use-toast';
-// Assuming useSendOfferEmail or similar exists, or we use a generic api call
-// For now, I'll assume we use the existing useSendOffer which just marks it as sent, 
-// BUT the plan implies sending an ACTUAL email. 
-// "Implement `OfferEmailDialog`" -> usually implies backend integration.
-// Since I don't see a "sendEmail" service in the frontend code I reviewed, 
-// I will create a placeholder implementation that mimics the behavior and calls the `sendOffer` mutation (which marks it as sent).
-// Ideally, we would have `OfferService.sendOfferEmail`.
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { QUERY_KEYS } from '@/hooks/useApi';
+import { getPublicBaseUrl } from '@/lib/publicUrl';
 
 interface OfferEmailDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    offer: Offer;
-    onSend: () => Promise<void>; // Callback when "Send" is clicked (calls useSendOffer)
+    offer: OfferWithRelations;
+    onSent?: () => Promise<void> | void;
 }
 
 const emailSchema = z.object({
@@ -37,28 +34,44 @@ const emailSchema = z.object({
 
 type EmailFormValues = z.infer<typeof emailSchema>;
 
-export function OfferEmailDialog({ open, onOpenChange, offer, onSend }: OfferEmailDialogProps) {
+export function OfferEmailDialog({ open, onOpenChange, offer, onSent }: OfferEmailDialogProps) {
     const { toast } = useToast();
+    const queryClient = useQueryClient();
     const [isSending, setIsSending] = useState(false);
 
     const form = useForm<EmailFormValues>({
         resolver: zodResolver(emailSchema),
+        mode: 'onChange',
         defaultValues: {
-            recipient: offer.customer_email || '', // Assuming customer_email exists on offer view? It might be on customer relation
+            recipient: offer.customer?.email || '',
             subject: `Angebot ${offer.offer_number}: ${offer.project_name}`,
             message: `Sehr geehrte Damen und Herren,\n\nanbei erhalten Sie unser Angebot für das Projekt "${offer.project_name}".\n\nBei Fragen stehen wir Ihnen gerne zur Verfügung.\n\nMit freundlichen Grüßen\nIhr HandwerkOS Team`,
             attachPdf: true,
         },
     });
+    const recipient = form.watch('recipient');
+    const canSend = Boolean(recipient?.trim()) && !isSending;
 
     const onSubmit = async (data: EmailFormValues) => {
         setIsSending(true);
         try {
-            // Simulation of email sending
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
+            const { error } = await supabase.functions.invoke('send-offer-email', {
+                body: {
+                    offerId: offer.id,
+                    recipientEmail: data.recipient,
+                    cc: data.cc || undefined,
+                    subject: data.subject,
+                    message: data.message,
+                    attachPdf: data.attachPdf,
+                    publicBaseUrl: getPublicBaseUrl(),
+                },
+            });
 
-            // Call the actual status update
-            await onSend();
+            if (error) throw error;
+
+            await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.offers });
+            await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.offer(offer.id) });
+            await onSent?.();
 
             toast({
                 title: 'E-Mail gesendet',
@@ -93,6 +106,9 @@ export function OfferEmailDialog({ open, onOpenChange, offer, onSend }: OfferEma
                         <div className="col-span-3">
                             <Input id="recipient" {...form.register('recipient')} />
                             {form.formState.errors.recipient && <p className="text-sm text-red-500">{form.formState.errors.recipient.message}</p>}
+                            {!recipient?.trim() && (
+                                <p className="text-sm text-amber-600">Bitte tragen Sie eine Empfängeradresse ein.</p>
+                            )}
                         </div>
                     </div>
 
@@ -126,13 +142,13 @@ export function OfferEmailDialog({ open, onOpenChange, offer, onSend }: OfferEma
                                 checked={form.watch('attachPdf')}
                                 onCheckedChange={(checked) => form.setValue('attachPdf', checked)}
                             />
-                            <span className="text-sm text-muted-foreground">Angebot als PDF anhängen</span>
+                            <span className="text-sm text-muted-foreground">Kundenlink zum Angebot mitsenden</span>
                         </div>
                     </div>
 
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Abbrechen</Button>
-                        <Button type="submit" disabled={isSending}>
+                        <Button type="submit" disabled={!canSend}>
                             {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                             Senden
                         </Button>
