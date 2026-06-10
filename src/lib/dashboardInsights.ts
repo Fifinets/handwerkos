@@ -1,3 +1,5 @@
+import { isOpenAddendum, type ProjectAddendumStatus } from './projectAddendums';
+
 export type DashboardProject = {
   id: string;
   name: string;
@@ -54,6 +56,12 @@ export type DashboardMaterialUsage = {
   unit_price: number | null;
 };
 
+export type DashboardProjectAddendum = {
+  id: string;
+  project_id: string | null;
+  status: ProjectAddendumStatus;
+};
+
 export type DashboardRiskLevel = 'critical' | 'warning' | 'info';
 
 export type DashboardProjectRisk = {
@@ -84,6 +92,7 @@ type DashboardInsightsInput = {
   invoices: DashboardInvoice[];
   acceptedOffers?: DashboardAcceptedOffer[];
   materialUsage?: DashboardMaterialUsage[];
+  projectAddendums?: DashboardProjectAddendum[];
 };
 
 const ADDENDUM_WORDS = [
@@ -188,8 +197,11 @@ export const createDashboardInsights = ({
   invoices,
   acceptedOffers = [],
   materialUsage = [],
+  projectAddendums = [],
 }: DashboardInsightsInput): DashboardInsights => {
-  let openAddendumCount = 0;
+  const openAddendums = projectAddendums.filter((addendum) => isOpenAddendum(addendum));
+  const projectsWithOpenAddendums = new Set(openAddendums.map((addendum) => addendum.project_id).filter(Boolean));
+  let detectedAddendumProjectCount = 0;
   let missingCalculationCount = 0;
 
   const invoiceReadyCount = projects.filter((project) => {
@@ -220,6 +232,7 @@ export const createDashboardInsights = ({
       const hasAddendumSignal =
         projectWorkHours.some((hour) => includesAddendumSignal(hour.work_description)) ||
         projectTimeEntries.some((entry) => includesAddendumSignal(entry.description));
+      const hasPersistedOpenAddendum = projectsWithOpenAddendums.has(project.id);
       const signals: string[] = [];
 
       if (budget !== null && actualCost > budget) {
@@ -234,9 +247,15 @@ export const createDashboardInsights = ({
         signals.push('Termin ueberfaellig');
       }
 
+      if (hasPersistedOpenAddendum) {
+        signals.push('Nachtrag offen');
+      }
+
       if (hasAddendumSignal) {
-        signals.push('Moeglicher Nachtrag');
-        openAddendumCount += 1;
+        if (!hasPersistedOpenAddendum) {
+          detectedAddendumProjectCount += 1;
+        }
+        signals.push(hasPersistedOpenAddendum ? 'Zusatzarbeit dokumentiert' : 'Moeglicher Nachtrag');
       }
 
       if (budget === null || plannedHours === null) {
@@ -248,8 +267,9 @@ export const createDashboardInsights = ({
         isOverdue ||
         (budget !== null && actualCost > budget) ||
         (plannedHours !== null && actualHours > plannedHours);
-      const riskLevel: DashboardRiskLevel = isCritical ? 'critical' : hasAddendumSignal ? 'warning' : 'info';
-      const recommendedAction = hasAddendumSignal
+      const hasAddendumWork = hasPersistedOpenAddendum || hasAddendumSignal;
+      const riskLevel: DashboardRiskLevel = isCritical ? 'critical' : hasAddendumWork ? 'warning' : 'info';
+      const recommendedAction = hasAddendumWork
         ? 'Nachtrag pruefen'
         : isCritical
           ? 'Projekt pruefen'
@@ -276,7 +296,7 @@ export const createDashboardInsights = ({
   return {
     riskyProjects,
     criticalCount: riskyProjects.filter((project) => project.riskLevel === 'critical').length,
-    openAddendumCount,
+    openAddendumCount: openAddendums.length + detectedAddendumProjectCount,
     invoiceReadyCount,
     missingCalculationCount,
   };

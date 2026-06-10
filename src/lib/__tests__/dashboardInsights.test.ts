@@ -195,4 +195,48 @@ describe('createDashboardInsights', () => {
     expect(insights.riskyProjects[0].actualCost).toBe(1055);
     expect(insights.riskyProjects[0].signals).toContain('55 EUR ueber Budget');
   });
+
+  it('counts persisted open addendums without double-counting field note signals for the same project', () => {
+    const insights = createDashboardInsights({
+      today: new Date('2026-06-10T12:00:00Z'),
+      projects: [
+        {
+          id: 'p7',
+          name: 'Kueche Lang',
+          status: 'in_bearbeitung',
+          start_date: '2026-06-01',
+          end_date: '2026-06-20',
+          work_end_date: null,
+          completed_at: null,
+          description: 'planned_hours: 16',
+          budget: 2500,
+          labor_costs: 700,
+          material_costs: 500,
+        },
+        {
+          id: 'p8',
+          name: 'Garage Altmann',
+          status: 'active',
+          start_date: '2026-06-02',
+          end_date: '2026-06-21',
+          work_end_date: null,
+          completed_at: null,
+          description: 'planned_hours: 10',
+          budget: 1500,
+          labor_costs: 300,
+          material_costs: 400,
+        },
+      ],
+      projectAddendums: [
+        { id: 'a7', project_id: 'p7', status: 'approved' },
+        { id: 'a8', project_id: 'p8', status: 'invoiced' },
+      ],
+      workHours: [{ project_id: 'p7', hours_worked: 4, work_description: 'Nachtrag: Leitung versetzen' }],
+      timeEntries: [],
+      invoices: [],
+    });
+
+    expect(insights.openAddendumCount).toBe(1);
+    expect(insights.riskyProjects[0].signals).toContain('Nachtrag offen');
+  });
 });

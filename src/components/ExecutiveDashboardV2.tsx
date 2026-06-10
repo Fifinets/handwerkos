@@ -44,6 +44,7 @@ import {
     createDashboardInsights,
     type DashboardInsights,
     type DashboardOfferTarget,
+    type DashboardProjectAddendum,
     type DashboardProjectRisk
 } from '@/lib/dashboardInsights';
 
@@ -140,6 +141,7 @@ const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate 
                 workHoursRes,
                 projectTimeEntriesRes,
                 materialUsageRes,
+                projectAddendumsRes,
             ] = await Promise.all([
                 supabase.from('invoices').select('id, invoice_date, gross_amount, net_amount, status, due_date, project_id').eq('company_id', companyId),
                 supabase.from('expenses').select('id, expense_date, amount').eq('company_id', companyId),
@@ -178,6 +180,10 @@ const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate 
                     .select('project_id, quantity_used, materials(unit_price), projects!inner(company_id)')
                     .eq('projects.company_id', companyId)
                     .not('project_id', 'is', null),
+                (supabase as any)
+                    .from('project_addendums')
+                    .select('id, project_id, status')
+                    .eq('company_id', companyId),
             ]);
 
             const invoices = invoicesRes.data || [];
@@ -196,6 +202,7 @@ const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate 
                 quantity_used: number | null;
                 materials?: { unit_price: number | null } | Array<{ unit_price: number | null }> | null;
             }>;
+            const projectAddendumRows = (projectAddendumsRes.data || []) as DashboardProjectAddendum[];
 
             // Financial KPIs
             const now = new Date();
@@ -225,6 +232,7 @@ const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate 
                         unit_price: material?.unit_price ?? null,
                     };
                 }),
+                projectAddendums: projectAddendumRows,
             });
 
             const thisMonthStr = format(now, 'yyyy-MM');
