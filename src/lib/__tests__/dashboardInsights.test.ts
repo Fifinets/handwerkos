@@ -118,4 +118,81 @@ describe('createDashboardInsights', () => {
     expect(insights.missingCalculationCount).toBe(1);
     expect(insights.riskyProjects[0].signals).toContain('Kalkulation fehlt');
   });
+
+  it('uses accepted offer targets as the project baseline', () => {
+    const insights = createDashboardInsights({
+      today: new Date('2026-06-10T12:00:00Z'),
+      projects: [
+        {
+          id: 'p5',
+          name: 'Bad Sanierung Schmitt',
+          status: 'in_bearbeitung',
+          start_date: '2026-06-01',
+          end_date: '2026-06-30',
+          work_end_date: null,
+          completed_at: null,
+          description: null,
+          budget: null,
+          labor_costs: 2600,
+          material_costs: 900,
+        },
+      ],
+      acceptedOffers: [
+        {
+          id: 'o5',
+          project_id: 'p5',
+          snapshot_net_total: 4200,
+          targets: {
+            planned_hours_total: 30,
+            planned_material_cost_total: 850,
+            planned_other_cost: 120,
+            snapshot_target_cost: 2800,
+            snapshot_target_margin: 33,
+            snapshot_target_revenue: 4200,
+          },
+        },
+      ],
+      workHours: [{ project_id: 'p5', hours_worked: 34, work_description: 'Fliesenarbeiten fertig' }],
+      timeEntries: [],
+      invoices: [],
+    });
+
+    expect(insights.missingCalculationCount).toBe(0);
+    expect(insights.criticalCount).toBe(1);
+    expect(insights.riskyProjects[0].plannedHours).toBe(30);
+    expect(insights.riskyProjects[0].budget).toBe(4200);
+    expect(insights.riskyProjects[0].signals).toContain('4 h ueber Plan');
+  });
+
+  it('adds recorded material usage to actual project costs', () => {
+    const insights = createDashboardInsights({
+      today: new Date('2026-06-10T12:00:00Z'),
+      projects: [
+        {
+          id: 'p6',
+          name: 'Wallbox Hoffmann',
+          status: 'active',
+          start_date: '2026-06-09',
+          end_date: '2026-06-12',
+          work_end_date: null,
+          completed_at: null,
+          description: 'planned_hours: 8',
+          budget: 1000,
+          labor_costs: 450,
+          material_costs: 300,
+        },
+      ],
+      materialUsage: [
+        { project_id: 'p6', quantity_used: 3, unit_price: 95 },
+        { project_id: 'p6', quantity_used: 1, unit_price: 20 },
+      ],
+      workHours: [],
+      timeEntries: [],
+      invoices: [],
+    });
+
+    expect(insights.criticalCount).toBe(1);
+    expect(insights.riskyProjects[0].actualCost).toBe(1055);
+    expect(insights.riskyProjects[0].signals).toContain('55 EUR ueber Budget');
+  });
 });

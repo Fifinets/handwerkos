@@ -32,6 +32,28 @@ export type DashboardInvoice = {
   status: string;
 };
 
+export type DashboardOfferTarget = {
+  planned_hours_total: number | null;
+  planned_material_cost_total: number | null;
+  planned_other_cost: number | null;
+  snapshot_target_cost: number | null;
+  snapshot_target_margin: number | null;
+  snapshot_target_revenue: number | null;
+};
+
+export type DashboardAcceptedOffer = {
+  id: string;
+  project_id: string | null;
+  snapshot_net_total: number | null;
+  targets?: DashboardOfferTarget | DashboardOfferTarget[] | null;
+};
+
+export type DashboardMaterialUsage = {
+  project_id: string | null;
+  quantity_used: number | null;
+  unit_price: number | null;
+};
+
 export type DashboardRiskLevel = 'critical' | 'warning' | 'info';
 
 export type DashboardProjectRisk = {
@@ -60,6 +82,8 @@ type DashboardInsightsInput = {
   workHours: DashboardWorkHour[];
   timeEntries: DashboardTimeEntry[];
   invoices: DashboardInvoice[];
+  acceptedOffers?: DashboardAcceptedOffer[];
+  materialUsage?: DashboardMaterialUsage[];
 };
 
 const ADDENDUM_WORDS = [
@@ -93,6 +117,38 @@ const parsePlannedHours = (description: string | null) => {
   if (!match) return null;
 
   return Number(match[1].replace(',', '.'));
+};
+
+const firstTarget = (targets: DashboardAcceptedOffer['targets']) => {
+  if (!targets) return null;
+  return Array.isArray(targets) ? targets[0] || null : targets;
+};
+
+const getOfferBaseline = (projectId: string, acceptedOffers: DashboardAcceptedOffer[]) => {
+  const offer = acceptedOffers.find((item) => item.project_id === projectId);
+  if (!offer) {
+    return {
+      plannedHours: null,
+      budget: null,
+    };
+  }
+
+  const target = firstTarget(offer.targets);
+
+  return {
+    plannedHours: target?.planned_hours_total ?? null,
+    budget: offer.snapshot_net_total ?? target?.snapshot_target_revenue ?? null,
+  };
+};
+
+const getProjectMaterialUsageCost = (projectId: string, materialUsage: DashboardMaterialUsage[]) => {
+  return materialUsage
+    .filter((usage) => usage.project_id === projectId)
+    .reduce((sum, usage) => {
+      const quantity = Number(usage.quantity_used || 0);
+      const unitPrice = Number(usage.unit_price || 0);
+      return sum + quantity * unitPrice;
+    }, 0);
 };
 
 const getTimeEntryHours = (entry: DashboardTimeEntry) => {
@@ -130,6 +186,8 @@ export const createDashboardInsights = ({
   workHours,
   timeEntries,
   invoices,
+  acceptedOffers = [],
+  materialUsage = [],
 }: DashboardInsightsInput): DashboardInsights => {
   let openAddendumCount = 0;
   let missingCalculationCount = 0;
@@ -147,12 +205,16 @@ export const createDashboardInsights = ({
     .map((project) => {
       const projectWorkHours = workHours.filter((hour) => hour.project_id === project.id);
       const projectTimeEntries = timeEntries.filter((entry) => entry.project_id === project.id);
-      const plannedHours = parsePlannedHours(project.description);
+      const offerBaseline = getOfferBaseline(project.id, acceptedOffers);
+      const plannedHours = offerBaseline.plannedHours ?? parsePlannedHours(project.description);
       const actualHours =
         projectWorkHours.reduce((sum, hour) => sum + Number(hour.hours_worked || 0), 0) +
         projectTimeEntries.reduce((sum, entry) => sum + getTimeEntryHours(entry), 0);
-      const budget = project.budget;
-      const actualCost = Number(project.labor_costs || 0) + Number(project.material_costs || 0);
+      const budget = offerBaseline.budget ?? project.budget;
+      const actualCost =
+        Number(project.labor_costs || 0) +
+        Number(project.material_costs || 0) +
+        getProjectMaterialUsageCost(project.id, materialUsage);
       const deadline = getProjectDeadline(project);
       const isOverdue = deadline ? new Date(deadline) < today : false;
       const hasAddendumSignal =

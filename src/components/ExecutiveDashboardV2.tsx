@@ -43,6 +43,7 @@ import { de } from 'date-fns/locale';
 import {
     createDashboardInsights,
     type DashboardInsights,
+    type DashboardOfferTarget,
     type DashboardProjectRisk
 } from '@/lib/dashboardInsights';
 
@@ -129,7 +130,17 @@ const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate 
             setLoading(true);
 
             // Parallel queries
-            const [invoicesRes, expensesRes, projectsRes, employeesRes, offersRes, workHoursRes, projectTimeEntriesRes] = await Promise.all([
+            const [
+                invoicesRes,
+                expensesRes,
+                projectsRes,
+                employeesRes,
+                offersRes,
+                acceptedOffersRes,
+                workHoursRes,
+                projectTimeEntriesRes,
+                materialUsageRes,
+            ] = await Promise.all([
                 supabase.from('invoices').select('id, invoice_date, gross_amount, net_amount, status, due_date, project_id').eq('company_id', companyId),
                 supabase.from('expenses').select('id, expense_date, amount').eq('company_id', companyId),
                 supabase
@@ -138,11 +149,34 @@ const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate 
                     .eq('company_id', companyId),
                 supabase.from('employees').select('id, status').eq('company_id', companyId).eq('status', 'Aktiv'),
                 supabase.from('offers').select('id, status').eq('company_id', companyId).in('status', ['sent', 'pending', 'versendet']),
+                supabase
+                    .from('offers')
+                    .select(`
+                        id,
+                        project_id,
+                        snapshot_net_total,
+                        offer_targets(
+                            planned_hours_total,
+                            planned_material_cost_total,
+                            planned_other_cost,
+                            snapshot_target_cost,
+                            snapshot_target_margin,
+                            snapshot_target_revenue
+                        )
+                    `)
+                    .eq('company_id', companyId)
+                    .eq('status', 'accepted')
+                    .not('project_id', 'is', null),
                 supabase.from('project_work_hours').select('project_id, hours_worked, work_description'),
                 supabase
                     .from('time_entries')
                     .select('project_id, description, start_time, end_time, break_duration')
                     .eq('company_id', companyId)
+                    .not('project_id', 'is', null),
+                supabase
+                    .from('employee_material_usage')
+                    .select('project_id, quantity_used, materials(unit_price), projects!inner(company_id)')
+                    .eq('projects.company_id', companyId)
                     .not('project_id', 'is', null),
             ]);
 
@@ -151,6 +185,17 @@ const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate 
             const projects = projectsRes.data || [];
             const employees = employeesRes.data || [];
             const offers = offersRes.data || [];
+            const acceptedOfferRows = (acceptedOffersRes.data || []) as Array<{
+                id: string;
+                project_id: string | null;
+                snapshot_net_total: number | null;
+                offer_targets?: unknown;
+            }>;
+            const materialUsageRows = (materialUsageRes.data || []) as Array<{
+                project_id: string | null;
+                quantity_used: number | null;
+                materials?: { unit_price: number | null } | Array<{ unit_price: number | null }> | null;
+            }>;
 
             // Financial KPIs
             const now = new Date();
@@ -164,6 +209,22 @@ const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate 
                     project_id: invoice.project_id,
                     status: invoice.status,
                 })),
+                acceptedOffers: acceptedOfferRows.map((offer) => ({
+                    id: offer.id,
+                    project_id: offer.project_id,
+                    snapshot_net_total: offer.snapshot_net_total,
+                    targets: Array.isArray(offer.offer_targets)
+                        ? offer.offer_targets[0] || null
+                        : offer.offer_targets as DashboardOfferTarget | null,
+                })),
+                materialUsage: materialUsageRows.map((usage) => {
+                    const material = Array.isArray(usage.materials) ? usage.materials[0] : usage.materials;
+                    return {
+                        project_id: usage.project_id,
+                        quantity_used: usage.quantity_used,
+                        unit_price: material?.unit_price ?? null,
+                    };
+                }),
             });
 
             const thisMonthStr = format(now, 'yyyy-MM');
