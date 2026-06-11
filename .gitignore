@@ -67,6 +67,7 @@ supabase/migrations_backup/
 Thumbs.db
 
 # Tooling / AI / Temp
+supabase/.temp/
 git_archaeology/
 .claude/
 lhr.txt
