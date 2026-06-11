@@ -28,6 +28,7 @@ import EditTimeEntryDialog from './EditTimeEntryDialog';
 interface TimeEntryRow {
   id: string;
   employee_id: string;
+  company_id: string | null;
   employee_name: string;
   project_id: string | null;
   project_name: string | null;
@@ -37,6 +38,7 @@ interface TimeEntryRow {
   description: string | null;
   status: string;
   net_hours: number;
+  has_correction: boolean;
 }
 
 interface KPIs {
@@ -127,7 +129,7 @@ const TimeTrackingModuleV2 = () => {
       // Fetch time entries for date range
       let query = supabase
         .from('time_entries')
-        .select('id, employee_id, project_id, start_time, end_time, break_duration, description, status')
+        .select('id, employee_id, company_id, project_id, start_time, end_time, break_duration, description, status')
         .eq('company_id', companyId)
         .gte('start_time', rangeStart.toISOString())
         .lte('start_time', rangeEnd.toISOString())
@@ -142,6 +144,17 @@ const TimeTrackingModuleV2 = () => {
       if (timeError) {
         setLoading(false);
         return;
+      }
+
+      const entryIds = (timeData || []).map(entry => entry.id);
+      let correctedEntryIds = new Set<string>();
+      if (entryIds.length > 0) {
+        const { data: corrections } = await supabase
+          .from('time_entry_corrections')
+          .select('time_entry_id')
+          .in('time_entry_id', entryIds)
+          .eq('status', 'approved');
+        correctedEntryIds = new Set((corrections || []).map(correction => correction.time_entry_id));
       }
 
       // Get employee names
@@ -180,6 +193,7 @@ const TimeTrackingModuleV2 = () => {
         return {
           id: entry.id,
           employee_id: entry.employee_id,
+          company_id: entry.company_id,
           employee_name: empMap[entry.employee_id] || 'Unbekannt',
           project_id: entry.project_id,
           project_name: entry.project_id ? (projMap[entry.project_id] || 'Unbekannt') : null,
@@ -189,6 +203,7 @@ const TimeTrackingModuleV2 = () => {
           description: entry.description,
           status: entry.status,
           net_hours: netHours,
+          has_correction: correctedEntryIds.has(entry.id),
         };
       });
 
@@ -268,6 +283,8 @@ const TimeTrackingModuleV2 = () => {
   const handleEdit = (entry: TimeEntryRow) => {
     setEditEntry({
       id: entry.id,
+      employee_id: entry.employee_id,
+      company_id: entry.company_id,
       start_time: entry.start_time,
       end_time: entry.end_time,
       break_duration: entry.break_duration,
@@ -450,6 +467,11 @@ const TimeTrackingModuleV2 = () => {
                         <td className="px-5 py-4 text-slate-600">{entry.project_name || '–'}</td>
                         <td className="px-5 py-4 text-right">
                           <div className="text-slate-900">{formatTime(entry.start_time)} – {formatTime(entry.end_time)}</div>
+                          {entry.has_correction && (
+                            <Badge variant="outline" className="mt-1 border-amber-200 bg-amber-50 text-amber-700">
+                              Korrigiert
+                            </Badge>
+                          )}
                         </td>
                         <td className="px-5 py-4 text-right text-slate-500">
                           {entry.break_duration > 0 ? (

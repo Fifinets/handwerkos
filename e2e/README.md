@@ -1,7 +1,7 @@
 # E2E-Tests (Playwright)
 
 Kompletter Workflow-Test: Kunde -> Angebot -> Annahme/Projekt -> Zeiterfassung +
-Lieferschein (Mitarbeiter) -> Baustellendoku -> Rechnung. Spec:
+nachtraegliche Zeitkorrektur -> Lieferschein (Mitarbeiter) -> Baustellendoku -> Rechnung. Spec:
 `docs/superpowers/specs/2026-06-10-e2e-workflow-test-design.md`.
 
 ## Voraussetzungen
@@ -22,7 +22,8 @@ Lieferschein (Mitarbeiter) -> Baustellendoku -> Rechnung. Spec:
   mit Manager und Monteur. Keys kommen zur Laufzeit aus `npx supabase status`.
 - `auth.setup.ts` loggt beide Rollen einmal per UI ein. Storage-State liegt in `e2e/.auth/`.
 - `workflow.spec.ts` laeuft seriell mit zwei Browser-Contexts: Manager und Mitarbeiter.
-- End-Assertions pruefen die Datenkette per service_role direkt in der lokalen DB.
+- End-Assertions pruefen die Datenkette per service_role direkt in der lokalen DB,
+  inklusive Audit-Eintrag in `time_entry_corrections`.
 
 ## Nicht abgedeckt (v1)
 
