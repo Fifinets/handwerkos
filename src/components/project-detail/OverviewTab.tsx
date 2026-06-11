@@ -12,7 +12,7 @@ import {
   Link2
 } from "lucide-react";
 import { ProjectDashboardData, ProjectPermissions } from "@/types/project";
-import { formatCurrency, formatDateTime } from './utils';
+import { formatCurrency, formatDateTime, formatHours } from './utils';
 
 export interface OverviewTabProps {
   project: ProjectDashboardData;
@@ -90,7 +90,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           <CardContent className="p-5">
             <div className="text-center">
               <p className="text-3xl font-bold text-slate-900">
-                {totalHours.toFixed(1)}{plannedHours > 0 && <span className="text-lg font-normal text-slate-400"> / {plannedHours.toFixed(1)}</span>}
+                {formatHours(totalHours)}{plannedHours > 0 && <span className="text-lg font-normal text-slate-400"> / {formatHours(plannedHours)}</span>}
               </p>
               <p className="text-xs text-slate-400 mt-1">
                 {deliveryNotes.length > 0
@@ -151,7 +151,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
               )}
               <div className="text-center mb-3">
                 <p className="text-3xl font-bold text-slate-900">{formatCurrency(projectOffers.reduce((sum, o) => sum + (o.snapshot_gross_total || 0), 0))}</p>
-                <p className="text-xs text-slate-400 mt-1">von {projectOffers.length} Angeboten</p>
+                <p className="text-xs text-slate-400 mt-1">von {projectOffers.length} {projectOffers.length === 1 ? 'Angebot' : 'Angeboten'}</p>
               </div>
               {projectOffers.length > 0 && (
                 <div className="space-y-1.5 border-t border-slate-100 pt-3">
@@ -239,10 +239,10 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           </CardContent>
         </Card>
 
-        {/* Checkliste (Milestones) */}
+        {/* Meilensteine */}
         <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
           <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-3">
-            <CardTitle className="text-sm font-semibold text-slate-700">Checkliste</CardTitle>
+            <CardTitle className="text-sm font-semibold text-slate-700">Meilensteine</CardTitle>
           </CardHeader>
           <CardContent className="p-5">
             <div className="space-y-2 mb-4">
