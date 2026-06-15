@@ -68,6 +68,7 @@ Thumbs.db
 
 # Tooling / AI / Temp
 supabase/.temp/
+.superpowers/**/state/
 git_archaeology/
 .claude/
 lhr.txt
