@@ -12,6 +12,7 @@ import { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateProject } from "@/hooks/useApi";
 import type { ProjectCreate } from "@/types/core";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Customer {
   id: string;
@@ -74,7 +75,6 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
         return;
       }
       try {
-        const { supabase } = await import('@/integrations/supabase/client');
         const { data, error } = await supabase
           .from('project_sites')
           .select('id, name, address, city')
@@ -212,9 +212,6 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
 
       // Add team members to the project if any were selected
       if (teamMemberIds.length > 0 && newProject) {
-
-        // Import supabase here to add team members
-        const { supabase } = await import('@/integrations/supabase/client');
 
         const teamMemberInserts = teamMemberIds.map(employeeId => ({
           project_id: newProject.id,

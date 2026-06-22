@@ -3,6 +3,8 @@
  * Verwaltet Push-Benachrichtigungen und Background-Sync
  */
 
+import { supabase } from '@/integrations/supabase/client';
+
 export interface PushNotificationPayload {
   title: string;
   body: string;
@@ -239,8 +241,6 @@ class PushNotificationService {
   }
 
   async saveSubscriptionToDb(subscription: PushSubscription): Promise<void> {
-    const { supabase } = await import('@/integrations/supabase/client');
-
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
