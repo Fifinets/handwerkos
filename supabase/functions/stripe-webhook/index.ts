@@ -27,12 +27,11 @@ serve(async (req) => {
 
   try {
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
-    if (webhookSecret) {
-      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
-    } else {
-      // In development without webhook secret, parse directly
-      event = JSON.parse(body) as Stripe.Event;
+    if (!webhookSecret) {
+      console.error("STRIPE_WEBHOOK_SECRET is not set — refusing to process unverified webhooks");
+      return new Response("Webhook secret not configured", { status: 500 });
     }
+    event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
   } catch (err) {
     console.error("Webhook signature verification failed:", err.message);
     return new Response(`Webhook Error: ${err.message}`, { status: 400 });
@@ -99,12 +98,61 @@ serve(async (req) => {
         break;
       }
 
+      case "invoice.paid": {
+        const invoice = event.data.object as Stripe.Invoice;
+        if (invoice.subscription) {
+          // Subscription renewal succeeded — ensure status stays active
+          await supabase
+            .from("subscriptions")
+            .update({ status: "active", updated_at: new Date().toISOString() })
+            .eq("stripe_customer_id", invoice.customer as string);
+        }
+        break;
+      }
+
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
         await supabase
           .from("subscriptions")
           .update({ status: "past_due", updated_at: new Date().toISOString() })
           .eq("stripe_customer_id", invoice.customer as string);
+        break;
+      }
+
+      case "invoice.payment_action_required": {
+        // SCA/3D-Secure: payment needs additional authentication
+        const invoice = event.data.object as Stripe.Invoice;
+        console.log(`Payment action required for customer ${invoice.customer}, invoice ${invoice.id}`);
+        // Keep subscription active but flag for attention
+        await supabase
+          .from("subscriptions")
+          .update({
+            metadata: { payment_action_required: true, invoice_id: invoice.id },
+            updated_at: new Date().toISOString(),
+          })
+          .eq("stripe_customer_id", invoice.customer as string);
+        break;
+      }
+
+      case "customer.subscription.trial_will_end": {
+        // Fired 3 days before trial ends — notify user
+        const subscription = event.data.object as Stripe.Subscription;
+        const { data: sub } = await supabase
+          .from("subscriptions")
+          .select("company_id")
+          .eq("stripe_subscription_id", subscription.id)
+          .single();
+        if (sub) {
+          console.log(`Trial ending soon for company ${sub.company_id}, subscription ${subscription.id}`);
+          // TODO: Send email notification to company admin
+          await supabase
+            .from("subscriptions")
+            .update({
+              metadata: { trial_ending_notified: true, trial_end: new Date(subscription.trial_end! * 1000).toISOString() },
+              updated_at: new Date().toISOString(),
+            })
+            .eq("stripe_subscription_id", subscription.id);
+        }
         break;
       }
 
