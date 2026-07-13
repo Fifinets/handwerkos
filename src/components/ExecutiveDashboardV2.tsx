@@ -9,15 +9,9 @@ import { UrgencyCard } from '@/components/ui/urgency-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-    TrendingUp,
     TrendingDown,
-    Euro,
-    Clock,
     CheckCircle,
-    FileText,
-    Users,
     Calendar,
-    Building2,
     ArrowRight,
     Eye,
     Zap,
