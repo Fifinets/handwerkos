@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { StatCard } from '@/components/ui/stat-card';
+import { UrgencyCard } from '@/components/ui/urgency-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -93,9 +95,9 @@ const emptyMarginProtection: DashboardInsights = {
 };
 
 const getRiskBadgeClass = (riskLevel: DashboardProjectRisk['riskLevel']) => {
-    if (riskLevel === 'critical') return 'bg-rose-100 text-rose-800 border-rose-200';
-    if (riskLevel === 'warning') return 'bg-amber-100 text-amber-800 border-amber-200';
-    return 'bg-slate-100 text-slate-700 border-slate-200';
+    if (riskLevel === 'critical') return 'bg-rose-100 text-rose-800 border-transparent dark:bg-rose-950/40 dark:text-rose-300';
+    if (riskLevel === 'warning') return 'bg-amber-100 text-amber-800 border-transparent dark:bg-amber-950/40 dark:text-amber-300';
+    return 'bg-slate-100 text-slate-700 border-transparent dark:bg-slate-800 dark:text-slate-300';
 };
 
 const getRiskLabel = (riskLevel: DashboardProjectRisk['riskLevel']) => {
@@ -373,62 +375,26 @@ const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate 
                 </div>
             </div>
 
-            {/* Top Level KPIs - Clean, high information density */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="border-slate-200 shadow-sm">
-                    <CardContent className="p-5 flex flex-col justify-between h-full">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="text-sm font-medium text-slate-500">Umsatz</div>
-                            <div className="p-2 bg-blue-50 text-blue-600 rounded-md"><Euro className="w-4 h-4" /></div>
-                        </div>
-                        <div>
-                            <div className="text-2xl font-bold text-slate-900">{formatCurrency(dashboardData.financialKPIs.monthlyRevenue)}</div>
-                            <div className="flex items-center text-sm font-medium text-teal-600 mt-1">
-                                <TrendingUp className="w-3 h-3 mr-1" />
-                                <span>+12.5% ggü. Vorzeitraum</span>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="border-slate-200 shadow-sm">
-                    <CardContent className="p-5 flex flex-col justify-between h-full">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="text-sm font-medium text-slate-500">Aktive Projekte</div>
-                            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-md"><Building2 className="w-4 h-4" /></div>
-                        </div>
-                        <div>
-                            <div className="text-2xl font-bold text-slate-900">{dashboardData.projectStatus.active}</div>
-                            <div className="text-sm text-slate-500 mt-1">von {dashboardData.projectStatus.active + dashboardData.projectStatus.planning} total</div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="border-slate-200 shadow-sm">
-                    <CardContent className="p-5 flex flex-col justify-between h-full">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="text-sm font-medium text-slate-500">Offene Angebote</div>
-                            <div className="p-2 bg-amber-50 text-amber-600 rounded-md"><FileText className="w-4 h-4" /></div>
-                        </div>
-                        <div>
-                            <div className="text-2xl font-bold text-slate-900">{dashboardData.criticalAlerts.pendingQuotes}</div>
-                            <div className="text-sm text-amber-600 font-medium mt-1">Warten auf Rückmeldung</div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="border-slate-200 shadow-sm">
-                    <CardContent className="p-5 flex flex-col justify-between h-full">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="text-sm font-medium text-slate-500">Team Auslastung</div>
-                            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-md"><Users className="w-4 h-4" /></div>
-                        </div>
-                        <div>
-                            <div className="text-2xl font-bold text-slate-900">{dashboardData.teamOverview.utilizationRate}%</div>
-                            <Progress value={dashboardData.teamOverview.utilizationRate} className="h-1.5 mt-2" indicatorClassName="bg-emerald-500" />
-                        </div>
-                    </CardContent>
-                </Card>
+            {/* Top Level KPIs - Umsatz als Hero */}
+            <div className="flex flex-col sm:flex-row gap-3">
+                <StatCard
+                    label="Umsatz"
+                    emphasis="hero"
+                    value={formatCurrency(dashboardData.financialKPIs.monthlyRevenue)}
+                    trend={{ text: '+12.5% ggü. Vorzeitraum', positive: true }}
+                />
+                <StatCard
+                    label="Aktive Projekte"
+                    value={dashboardData.projectStatus.active}
+                    hint={`von ${dashboardData.projectStatus.active + dashboardData.projectStatus.planning} total`}
+                />
+                <StatCard
+                    label="Offene Angebote"
+                    value={dashboardData.criticalAlerts.pendingQuotes}
+                    tone={dashboardData.criticalAlerts.pendingQuotes > 0 ? 'warning' : 'default'}
+                    hint="Warten auf Rückmeldung"
+                />
+                <StatCard label="Team Auslastung" value={`${dashboardData.teamOverview.utilizationRate}%`} />
             </div>
 
             {/* Margin Protection - first focused HandwerkOS operating cockpit */}
@@ -452,37 +418,37 @@ const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate 
                 </CardHeader>
                 <CardContent className="space-y-5">
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-                        <div className="rounded-lg border border-rose-100 bg-rose-50 p-3">
+                        <div className="rounded-lg bg-rose-50 dark:bg-rose-950/40 p-3">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-rose-900">Heute kritisch</span>
-                                <AlertTriangle className="w-4 h-4 text-rose-600" />
+                                <span className="text-sm font-medium text-rose-900 dark:text-rose-200">Heute kritisch</span>
+                                <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                             </div>
-                            <div className="text-2xl font-bold text-rose-900 mt-2">{dashboardData.marginProtection.criticalCount}</div>
-                            <p className="text-xs text-rose-700 mt-1">Budget, Stunden oder Termin prüfen</p>
+                            <div className="text-2xl font-bold tabular-nums text-rose-900 dark:text-rose-200 mt-2">{dashboardData.marginProtection.criticalCount}</div>
+                            <p className="text-xs text-rose-700 dark:text-rose-300 mt-1">Budget, Stunden oder Termin prüfen</p>
                         </div>
-                        <div className="rounded-lg border border-amber-100 bg-amber-50 p-3">
+                        <div className="rounded-lg bg-amber-50 dark:bg-amber-950/40 p-3">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-amber-900">Nachträge offen</span>
-                                <FileWarning className="w-4 h-4 text-amber-600" />
+                                <span className="text-sm font-medium text-amber-900 dark:text-amber-200">Nachträge offen</span>
+                                <FileWarning className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                             </div>
-                            <div className="text-2xl font-bold text-amber-900 mt-2">{dashboardData.marginProtection.openAddendumCount}</div>
-                            <p className="text-xs text-amber-700 mt-1">Zusatzarbeit in Notizen erkannt</p>
+                            <div className="text-2xl font-bold tabular-nums text-amber-900 dark:text-amber-200 mt-2">{dashboardData.marginProtection.openAddendumCount}</div>
+                            <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">Zusatzarbeit in Notizen erkannt</p>
                         </div>
-                        <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3">
+                        <div className="rounded-lg bg-teal-50 dark:bg-teal-950/40 p-3">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-emerald-900">Rechnung bereit</span>
-                                <ReceiptText className="w-4 h-4 text-emerald-600" />
+                                <span className="text-sm font-medium text-teal-900 dark:text-teal-200">Rechnung bereit</span>
+                                <ReceiptText className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                             </div>
-                            <div className="text-2xl font-bold text-emerald-900 mt-2">{dashboardData.marginProtection.invoiceReadyCount}</div>
-                            <p className="text-xs text-emerald-700 mt-1">Abgeschlossen, aber ohne Rechnung</p>
+                            <div className="text-2xl font-bold tabular-nums text-teal-900 dark:text-teal-200 mt-2">{dashboardData.marginProtection.invoiceReadyCount}</div>
+                            <p className="text-xs text-teal-700 dark:text-teal-300 mt-1">Abgeschlossen, aber ohne Rechnung</p>
                         </div>
-                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                        <div className="rounded-lg bg-slate-100 dark:bg-slate-800 p-3">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-slate-900">Kalkulation fehlt</span>
-                                <Calculator className="w-4 h-4 text-slate-600" />
+                                <span className="text-sm font-medium text-slate-900 dark:text-slate-100">Kalkulation fehlt</span>
+                                <Calculator className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                             </div>
-                            <div className="text-2xl font-bold text-slate-900 mt-2">{dashboardData.marginProtection.missingCalculationCount}</div>
-                            <p className="text-xs text-slate-600 mt-1">Budget oder Planstunden fehlen</p>
+                            <div className="text-2xl font-bold tabular-nums text-slate-900 dark:text-slate-100 mt-2">{dashboardData.marginProtection.missingCalculationCount}</div>
+                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Budget oder Planstunden fehlen</p>
                         </div>
                     </div>
 
@@ -623,33 +589,39 @@ const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate 
                     <CardContent>
                         <div className="space-y-4">
                             {dashboardData.criticalAlerts.overdueInvoices > 0 && (
-                                <div className="flex items-center justify-between p-3 bg-rose-50 rounded-lg border border-rose-100">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-rose-100 text-rose-600 rounded-md"><Euro className="w-4 h-4" /></div>
-                                        <div>
-                                            <p className="text-sm font-semibold text-rose-900">{dashboardData.criticalAlerts.overdueInvoices} Überfällige Rechnungen</p>
-                                            <p className="text-xs text-rose-700">{formatCurrency(dashboardData.financialKPIs.outstandingAmount)} ausstehend</p>
-                                        </div>
-                                    </div>
-                                    <Button size="sm" variant="outline" className="text-rose-700 border-rose-200 hover:bg-rose-100 bg-white shadow-sm" onClick={() => onNavigate?.('finance')}>
-                                        Prüfen
-                                    </Button>
-                                </div>
+                                <UrgencyCard
+                                    urgency="critical"
+                                    action={
+                                        <Button size="sm" variant="outline" className="bg-white dark:bg-transparent" onClick={() => onNavigate?.('finance')}>
+                                            Mahnen
+                                        </Button>
+                                    }
+                                >
+                                    <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                                        {dashboardData.criticalAlerts.overdueInvoices} überfällige Rechnungen
+                                    </p>
+                                    <p className="text-xs text-rose-700 dark:text-rose-300">
+                                        {formatCurrency(dashboardData.financialKPIs.outstandingAmount)} ausstehend
+                                    </p>
+                                </UrgencyCard>
                             )}
 
                             {dashboardData.criticalAlerts.overdueProjects > 0 && (
-                                <div className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-100">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-amber-100 text-amber-600 rounded-md"><Clock className="w-4 h-4" /></div>
-                                        <div>
-                                            <p className="text-sm font-semibold text-amber-900">{dashboardData.criticalAlerts.overdueProjects} Projekte in Verzug</p>
-                                            <p className="text-xs text-amber-700">Zeitplan überprüfen</p>
-                                        </div>
-                                    </div>
-                                    <Button size="sm" variant="outline" className="bg-white border-amber-200 text-amber-700 hover:bg-amber-100 shadow-sm" onClick={() => onNavigate?.('projects')}>
-                                        Details
-                                    </Button>
-                                </div>
+                                <UrgencyCard
+                                    urgency="warning"
+                                    action={
+                                        <Button size="sm" variant="outline" className="bg-white dark:bg-transparent" onClick={() => onNavigate?.('projects')}>
+                                            Prüfen
+                                        </Button>
+                                    }
+                                >
+                                    <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                                        {dashboardData.criticalAlerts.overdueProjects} Projekte in Verzug
+                                    </p>
+                                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                                        Zeitplan überprüfen
+                                    </p>
+                                </UrgencyCard>
                             )}
 
                             {/* Just a filler to show how it looks without warnings */}
