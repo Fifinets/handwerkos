@@ -11,24 +11,17 @@ import {
     Search,
     FileText,
     Euro,
-    Clock,
     CheckCircle,
     XCircle,
     Send,
     Calendar,
-    Building2,
     MoreHorizontal,
     Eye,
     Edit,
     Trash2,
-    User,
     Filter,
     Copy,
-    AlertTriangle,
-    TrendingUp,
-    TrendingDown,
     Bell,
-    Link2,
     RotateCcw,
     CreditCard,
     Loader2 as Loader2Icon,
@@ -74,15 +67,16 @@ import {
     useDuplicateOffer,
 } from "@/hooks/useApi";
 import { cn } from "@/lib/utils";
-import { OfferStatusBadge } from "./offers";
 import { OfferWorkflowDots } from "./offers/OfferWorkflowDots";
+import { StatCard } from "@/components/ui/stat-card";
+import { StatusChip } from "@/components/ui/status-chip";
+import { UrgencyCard } from "@/components/ui/urgency-card";
 import AddOfferDialog from "./AddOfferDialog";
 import OfferDetailView from "./OfferDetailView";
 import { ShareLinkDialog } from "./offers/ShareLinkDialog";
 import { useCreatePaymentLink } from "@/hooks/useSubscription";
 import {
     filterOffersForOverview,
-    getNachfassInfo,
     getOfferStatusCounts,
     hasActiveAdvancedFilters,
     type OfferAdvancedFilters,
@@ -92,6 +86,18 @@ import {
 interface OfferModuleProps {
     customerId?: string;
 }
+
+const OFFER_FOLLOWUP_DAYS = 7;
+
+// Eine Quelle für Dringlichkeit + Tage-seit-Versand pro Angebot (pure, injizierbares now für Tests).
+const offerUrgencyInfo = (
+    offer: Offer,
+    now: number = Date.now()
+): { urgency: 'warning' | 'none'; daysSinceSent: number | null } => {
+    if (offer.status !== 'sent' || !offer.sent_at) return { urgency: 'none', daysSinceSent: null };
+    const daysSinceSent = Math.floor((now - new Date(offer.sent_at).getTime()) / (1000 * 60 * 60 * 24));
+    return { urgency: daysSinceSent >= OFFER_FOLLOWUP_DAYS ? 'warning' : 'none', daysSinceSent };
+};
 
 const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
     const navigate = useNavigate();
@@ -154,22 +160,6 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
         advancedFilters.minAmount,
         advancedFilters.maxAmount,
     ].filter(Boolean).length;
-
-    const getDaysUntilExpiry = (validUntil?: string): number | null => {
-        if (!validUntil) return null;
-        const diff = new Date(validUntil).getTime() - Date.now();
-        return Math.ceil(diff / (1000 * 60 * 60 * 24));
-    };
-
-    const getFälligkeitBadge = (offer: Offer) => {
-        if (offer.status !== 'draft' && offer.status !== 'sent') return null;
-        const days = getDaysUntilExpiry(offer.valid_until);
-        if (days === null) return null;
-        if (days < 0) return <span className="inline-flex items-center gap-1 text-xs font-medium text-rose-600 bg-rose-50 border border-rose-200 rounded px-1.5 py-0.5"><AlertTriangle className="h-3 w-3" />Abgelaufen</span>;
-        if (days <= 7) return <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5"><Clock className="h-3 w-3" />{days}d</span>;
-        if (days <= 14) return <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-1.5 py-0.5"><Clock className="h-3 w-3" />{days}d</span>;
-        return <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5"><Clock className="h-3 w-3" />{days}d</span>;
-    };
 
     const handleCopyNumber = (e: React.MouseEvent, offerNumber?: string) => {
         e.stopPropagation();
@@ -344,69 +334,25 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                 </div>
             </div>
 
-            {/* KPI Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="bg-white border-slate-200 shadow-sm">
-                    <CardContent className="p-5 flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-slate-500">Offen (Volumen)</p>
-                            <h3 className="text-xl font-bold text-amber-600 mt-1">{formatCurrency(openVolume)}</h3>
-                            <p className="text-xs text-slate-400 mt-0.5">{statusCounts.draft + statusCounts.sent} Angebote</p>
-                        </div>
-                        <div className="h-12 w-12 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
-                            <Clock className="h-6 w-6 text-amber-600" />
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="bg-white border-slate-200 shadow-sm">
-                    <CardContent className="p-5 flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-slate-500">Angenommen</p>
-                            <h3 className="text-xl font-bold text-emerald-600 mt-1">{formatCurrency(acceptedVolume)}</h3>
-                            <p className="text-xs text-slate-400 mt-0.5">{statusCounts.accepted} Angebote</p>
-                        </div>
-                        <div className="h-12 w-12 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                            <TrendingUp className="h-6 w-6 text-emerald-600" />
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="bg-white border-slate-200 shadow-sm">
-                    <CardContent className="p-5 flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-slate-500">Verloren</p>
-                            <h3 className="text-xl font-bold text-rose-600 mt-1">{formatCurrency(lostVolume)}</h3>
-                            <p className="text-xs text-slate-400 mt-0.5">{statusCounts.rejected + statusCounts.expired} Angebote</p>
-                        </div>
-                        <div className="h-12 w-12 rounded-full bg-rose-50 flex items-center justify-center flex-shrink-0">
-                            <TrendingDown className="h-6 w-6 text-rose-600" />
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="bg-white border-slate-200 shadow-sm">
-                    <CardContent className="p-5 flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-slate-500">Konversionsrate</p>
-                            {(() => {
-                                const sentTotal = statusCounts.sent + statusCounts.accepted + statusCounts.rejected;
-                                const rate = sentTotal > 0 ? Math.round((statusCounts.accepted / sentTotal) * 100) : null;
-                                return (
-                                    <>
-                                        <h3 className={`text-xl font-bold mt-1 ${rate === null ? 'text-slate-400' :
-                                                rate >= 60 ? 'text-emerald-600' :
-                                                    rate >= 30 ? 'text-amber-600' : 'text-rose-600'
-                                            }`}>{rate !== null ? `${rate}%` : '–'}</h3>
-                                        <p className="text-xs text-slate-400 mt-0.5">
-                                            {rate !== null ? `${statusCounts.accepted} von ${sentTotal} angenommen` : 'Noch keine Daten'}
-                                        </p>
-                                    </>
-                                );
-                            })()}
-                        </div>
-                        <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center flex-shrink-0">
-                            <CheckCircle className="h-6 w-6 text-slate-600" />
-                        </div>
-                    </CardContent>
-                </Card>
+            {/* Volumen-Kopf */}
+            <div className="flex flex-col sm:flex-row gap-3">
+                <StatCard
+                    label="Im Umlauf"
+                    emphasis="hero"
+                    value={formatCurrency(openVolume)}
+                    hint="Entwürfe + gesendet"
+                />
+                <StatCard
+                    label="Angenommen"
+                    value={formatCurrency(acceptedVolume)}
+                    tone="positive"
+                    hint={`${statusCounts.accepted} Angebote`}
+                />
+                <StatCard
+                    label="Verloren"
+                    value={formatCurrency(lostVolume)}
+                    hint="Abgelehnt + abgelaufen"
+                />
             </div>
 
             <Tabs
@@ -515,186 +461,167 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                     )}
                                 </div>
                             ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm text-left">
-                                        <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
-                                            <tr>
-                                                <th className="px-5 py-3 font-medium">Angebots-Nr.</th>
-                                                <th className="px-5 py-3 font-medium">Datum</th>
-                                                <th className="px-5 py-3 font-medium">Kunde / Projekt</th>
-                                                <th className="px-5 py-3 font-medium text-right">Betrag (Brutto)</th>
-                                                <th className="px-5 py-3 font-medium text-center">Status</th>
-                                                <th className="px-5 py-3 font-medium text-right">Aktionen</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100">
-                                            {filteredOffers.map((offer) => (
-                                                <tr key={offer.id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => openDetailView(offer)}>
-                                                    <td className="px-5 py-4">
-                                                        <div className="flex items-center gap-1.5 group">
-                                                            <span className="font-medium text-slate-900">{offer.offer_number}</span>
-                                                            <button
-                                                                onClick={(e) => handleCopyNumber(e, offer.offer_number)}
-                                                                className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-slate-700"
+                                <div className="p-4 space-y-2">
+                                    {filteredOffers.map((offer) => {
+                                        const { urgency, daysSinceSent } = offerUrgencyInfo(offer);
+                                        const done = offer.status === 'draft' || offer.status === 'rejected' || offer.status === 'expired';
+
+                                        return (
+                                            <UrgencyCard
+                                                key={offer.id}
+                                                urgency={urgency}
+                                                done={done}
+                                                className="group cursor-pointer hover:shadow-md transition-shadow"
+                                                onClick={() => openDetailView(offer)}
+                                                action={
+                                                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                                        <div className="text-right">
+                                                            <div className={cn(
+                                                                'text-base font-bold tabular-nums',
+                                                                offer.status === 'accepted' ? 'text-teal-700 dark:text-teal-400' : 'text-slate-900 dark:text-slate-100'
+                                                            )}>
+                                                                {formatCurrency(offer.snapshot_gross_total || 0)}
+                                                            </div>
+                                                            <div className="mt-1 flex justify-end">
+                                                                <StatusChip
+                                                                    status={offer.status}
+                                                                    label={urgency === 'warning' ? 'Wartet auf Antwort' : undefined}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        {offer.status === 'draft' && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-8 px-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                                                                onClick={() => handleSendOffer(offer)}
+                                                                title="Versenden"
                                                             >
-                                                                <Copy className="h-3.5 w-3.5" />
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-5 py-4 text-slate-500">
-                                                        <div className="flex flex-col gap-1">
-                                                            <span>{formatDate(offer.offer_date)}</span>
-                                                            {offer.valid_until && (
-                                                                <span className="text-xs text-slate-400">bis {formatDate(offer.valid_until)}</span>
-                                                            )}
-                                                            {getFälligkeitBadge(offer)}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-5 py-4">
-                                                        <div className="font-semibold text-slate-900 flex items-center gap-1.5">
-                                                            <User className="h-3.5 w-3.5 text-slate-400" />
-                                                            <span className="truncate max-w-[200px]">{offer.customer_name}</span>
-                                                            {(() => {
-                                                                const nachfass = getNachfassInfo(offer);
-                                                                if (!nachfass) return null;
-                                                                return (
-                                                                    <Badge
-                                                                        variant="outline"
-                                                                        className={cn(
-                                                                            'ml-2 text-[10px] font-medium',
-                                                                            nachfass.severity === 'high'
-                                                                                ? 'bg-orange-100 text-orange-700 border-orange-200'
-                                                                                : 'bg-yellow-100 text-yellow-700 border-yellow-200'
-                                                                        )}
-                                                                    >
-                                                                        Nachfassen · {nachfass.days}d
-                                                                    </Badge>
-                                                                );
-                                                            })()}
-                                                        </div>
-                                                        <div className="text-slate-500 flex items-center gap-1.5 mt-1">
-                                                            <Building2 className="h-3.5 w-3.5 text-slate-400" />
-                                                            <span className="truncate max-w-[200px]">{offer.project_name}</span>
-                                                            {offer.project_id && (
-                                                                <Link2 className="h-3.5 w-3.5 text-emerald-500" title="Mit Projekt verknüpft" />
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-5 py-4 text-right font-semibold text-slate-900">
-                                                        {formatCurrency(offer.snapshot_gross_total || 0)}
-                                                    </td>
-                                                    <td className="px-5 py-4 text-center">
-                                                        <OfferStatusBadge status={offer.status} />
-                                                        {offer.status === 'sent' && offer.sent_at && (
-                                                            <p className="text-[10px] text-slate-400 mt-0.5">
-                                                                vor {Math.max(0, Math.floor((Date.now() - new Date(offer.sent_at).getTime()) / (1000 * 60 * 60 * 24)))}d
-                                                            </p>
+                                                                <Send className="h-3.5 w-3.5 mr-1" />
+                                                                <span className="text-xs">Senden</span>
+                                                            </Button>
                                                         )}
-                                                    </td>
-                                                    <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                                                        <div className="flex items-center justify-end gap-1">
-                                                            {offer.status === 'draft' && (
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    className="h-8 px-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
-                                                                    onClick={(e) => { e.stopPropagation(); handleSendOffer(offer); }}
-                                                                    title="Versenden"
-                                                                >
-                                                                    <Send className="h-3.5 w-3.5 mr-1" />
-                                                                    <span className="text-xs">Senden</span>
+                                                        {offer.status === 'rejected' && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-8 px-2 text-amber-600 hover:text-amber-800 hover:bg-amber-50"
+                                                                onClick={() => reviseOfferMutation.mutate(offer.id)}
+                                                                title="Überarbeiten"
+                                                            >
+                                                                <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                                                                <span className="text-xs">Überarbeiten</span>
+                                                            </Button>
+                                                        )}
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                    <MoreHorizontal className="h-4 w-4" />
                                                                 </Button>
-                                                            )}
-                                                            {offer.status === 'rejected' && (
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    className="h-8 px-2 text-amber-600 hover:text-amber-800 hover:bg-amber-50"
-                                                                    onClick={(e) => { e.stopPropagation(); reviseOfferMutation.mutate(offer.id); }}
-                                                                    title="Überarbeiten"
-                                                                >
-                                                                    <RotateCcw className="h-3.5 w-3.5 mr-1" />
-                                                                    <span className="text-xs">Überarbeiten</span>
-                                                                </Button>
-                                                            )}
-                                                            <DropdownMenu>
-                                                                <DropdownMenuTrigger asChild>
-                                                                    <Button variant="ghost" className="h-8 w-8 p-0">
-                                                                        <MoreHorizontal className="h-4 w-4" />
-                                                                    </Button>
-                                                                </DropdownMenuTrigger>
-                                                                <DropdownMenuContent align="end">
-                                                                    <DropdownMenuItem onClick={() => openDetailView(offer)}>
-                                                                        <Eye className="h-4 w-4 mr-2" />
-                                                                        Details anzeigen
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end">
+                                                                <DropdownMenuItem onClick={() => openDetailView(offer)}>
+                                                                    <Eye className="h-4 w-4 mr-2" />
+                                                                    Details anzeigen
+                                                                </DropdownMenuItem>
+                                                                {offer.status === 'draft' && (
+                                                                    <>
+                                                                        <DropdownMenuItem onClick={() => navigate(`/offers/${offer.id}/edit`)}>
+                                                                            <Edit className="h-4 w-4 mr-2" />
+                                                                            Bearbeiten
+                                                                        </DropdownMenuItem>
+                                                                        <DropdownMenuItem onClick={() => handleSendOffer(offer)}>
+                                                                            <Send className="h-4 w-4 mr-2" />
+                                                                            Versenden
+                                                                        </DropdownMenuItem>
+                                                                    </>
+                                                                )}
+                                                                {offer.status === 'sent' && (
+                                                                    <>
+                                                                        <DropdownMenuSeparator />
+                                                                        <DropdownMenuItem onClick={() => openAcceptDialog(offer)}>
+                                                                            <CheckCircle className="h-4 w-4 mr-2 text-emerald-600" />
+                                                                            Angenommen
+                                                                        </DropdownMenuItem>
+                                                                        <DropdownMenuItem onClick={() => openRejectDialog(offer)}>
+                                                                            <XCircle className="h-4 w-4 mr-2 text-rose-600" />
+                                                                            Abgelehnt
+                                                                        </DropdownMenuItem>
+                                                                    </>
+                                                                )}
+                                                                {(offer.status === 'rejected' || offer.status === 'sent') && (
+                                                                    <DropdownMenuItem onClick={() => reviseOfferMutation.mutate(offer.id)}>
+                                                                        <RotateCcw className="h-4 w-4 mr-2 text-amber-600" />
+                                                                        Überarbeiten
                                                                     </DropdownMenuItem>
-                                                                    {offer.status === 'draft' && (
-                                                                        <>
-                                                                            <DropdownMenuItem onClick={() => navigate(`/offers/${offer.id}/edit`)}>
-                                                                                <Edit className="h-4 w-4 mr-2" />
-                                                                                Bearbeiten
-                                                                            </DropdownMenuItem>
-                                                                            <DropdownMenuItem onClick={() => handleSendOffer(offer)}>
-                                                                                <Send className="h-4 w-4 mr-2" />
-                                                                                Versenden
-                                                                            </DropdownMenuItem>
-                                                                        </>
-                                                                    )}
-                                                                    {offer.status === 'sent' && (
-                                                                        <>
-                                                                            <DropdownMenuSeparator />
-                                                                            <DropdownMenuItem onClick={() => openAcceptDialog(offer)}>
-                                                                                <CheckCircle className="h-4 w-4 mr-2 text-emerald-600" />
-                                                                                Angenommen
-                                                                            </DropdownMenuItem>
-                                                                            <DropdownMenuItem onClick={() => openRejectDialog(offer)}>
-                                                                                <XCircle className="h-4 w-4 mr-2 text-rose-600" />
-                                                                                Abgelehnt
-                                                                            </DropdownMenuItem>
-                                                                        </>
-                                                                    )}
-                                                                    {(offer.status === 'rejected' || offer.status === 'sent') && (
-                                                                        <DropdownMenuItem onClick={() => reviseOfferMutation.mutate(offer.id)}>
-                                                                            <RotateCcw className="h-4 w-4 mr-2 text-amber-600" />
-                                                                            Überarbeiten
-                                                                        </DropdownMenuItem>
-                                                                    )}
-                                                                    {offer.status === 'accepted' && (
+                                                                )}
+                                                                {offer.status === 'accepted' && (
+                                                                    <DropdownMenuItem
+                                                                        onClick={() => createPaymentLink.mutate(offer.id)}
+                                                                        disabled={createPaymentLink.isPending}
+                                                                    >
+                                                                        <CreditCard className="h-4 w-4 mr-2 text-blue-600" />
+                                                                        Zahlungslink erstellen
+                                                                    </DropdownMenuItem>
+                                                                )}
+                                                                <DropdownMenuSeparator />
+                                                                {offer.status !== 'rejected' && (
+                                                                    <DropdownMenuItem onClick={() => handleDuplicateOffer(offer)}>
+                                                                        <Copy className="h-4 w-4 mr-2" />
+                                                                        Duplizieren
+                                                                    </DropdownMenuItem>
+                                                                )}
+                                                                {offer.status === 'draft' && (
+                                                                    <>
+                                                                        <DropdownMenuSeparator />
                                                                         <DropdownMenuItem
-                                                                            onClick={() => createPaymentLink.mutate(offer.id)}
-                                                                            disabled={createPaymentLink.isPending}
+                                                                            onClick={() => openDeleteDialog(offer)}
+                                                                            className="text-rose-600"
                                                                         >
-                                                                            <CreditCard className="h-4 w-4 mr-2 text-blue-600" />
-                                                                            Zahlungslink erstellen
+                                                                            <Trash2 className="h-4 w-4 mr-2" />
+                                                                            Löschen
                                                                         </DropdownMenuItem>
-                                                                    )}
-                                                                    <DropdownMenuSeparator />
-                                                                    {offer.status !== 'rejected' && (
-                                                                        <DropdownMenuItem onClick={() => handleDuplicateOffer(offer)}>
-                                                                            <Copy className="h-4 w-4 mr-2" />
-                                                                            Duplizieren
-                                                                        </DropdownMenuItem>
-                                                                    )}
-                                                                    {offer.status === 'draft' && (
-                                                                        <>
-                                                                            <DropdownMenuSeparator />
-                                                                            <DropdownMenuItem
-                                                                                onClick={() => openDeleteDialog(offer)}
-                                                                                className="text-rose-600"
-                                                                            >
-                                                                                <Trash2 className="h-4 w-4 mr-2" />
-                                                                                Löschen
-                                                                            </DropdownMenuItem>
-                                                                        </>
-                                                                    )}
-                                                                </DropdownMenuContent>
-                                                            </DropdownMenu>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                                                    </>
+                                                                )}
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </div>
+                                                }
+                                            >
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="min-w-0 text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                                                        {offer.offer_number} · {offer.customer_name}
+                                                    </span>
+                                                    <button
+                                                        onClick={(e) => handleCopyNumber(e, offer.offer_number)}
+                                                        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-slate-700"
+                                                        title="Nummer kopieren"
+                                                    >
+                                                        <Copy className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </div>
+                                                {urgency === 'warning' ? (
+                                                    <p className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                                                        Seit {daysSinceSent} Tagen keine Antwort — nachfassen?
+                                                    </p>
+                                                ) : offer.status === 'accepted' ? (
+                                                    <button
+                                                        type="button"
+                                                        className="text-xs font-medium text-teal-700 dark:text-teal-400 hover:underline"
+                                                        onClick={(e) => { e.stopPropagation(); openDetailView(offer); }}
+                                                    >
+                                                        Angenommen — Projekt ansehen →
+                                                    </button>
+                                                ) : (
+                                                    <p className="text-xs text-slate-400 truncate">
+                                                        {offer.project_name}
+                                                        {` · ${formatDate(offer.offer_date)}`}
+                                                        {offer.valid_until ? ` · bis ${formatDate(offer.valid_until)}` : ''}
+                                                    </p>
+                                                )}
+                                            </UrgencyCard>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </CardContent>
