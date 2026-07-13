@@ -10,7 +10,12 @@ vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
-vi.mock('./hooks/usePlannerData', () => ({
+// Datum dynamisch, damit die Schicht in der aktuell gerenderten Woche liegt —
+// ein festes Datum lässt den Test verrotten, sobald die Woche vorbei ist.
+vi.mock('./hooks/usePlannerData', async () => {
+  const { format } = await import('date-fns');
+  const today = format(new Date(), 'yyyy-MM-dd');
+  return {
   usePlannerData: () => ({
     employees: [
       { id: 'emp-1', first_name: 'Florian', last_name: 'Schommer', status: 'active', position: 'Consultant' },
@@ -36,8 +41,8 @@ vi.mock('./hooks/usePlannerData', () => ({
         id: 'shift-1',
         title: 'Testprojekt Dachsanierung',
         description: 'planner_shift_break_minutes=0',
-        start_date: '2026-06-08',
-        end_date: '2026-06-08',
+        start_date: today,
+        end_date: today,
         start_time: '08:00',
         end_time: '12:00',
         type: 'project_shift',
@@ -60,7 +65,8 @@ vi.mock('./hooks/usePlannerData', () => ({
     invalidateAll: vi.fn(),
     companyId: 'company-1',
   }),
-}));
+  };
+});
 
 describe('PlannerPage', () => {
   it('does not render devices or vehicles as calendar rows', () => {
