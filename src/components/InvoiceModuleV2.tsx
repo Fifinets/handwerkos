@@ -11,22 +11,13 @@ import {
   Search,
   Filter,
   Receipt,
-  CheckCircle,
-  Clock,
   AlertTriangle,
   Send,
   Euro,
-  Building2,
-  Calendar,
-  FileText,
   MoreHorizontal,
   Eye,
   Mail,
   CreditCard,
-  XCircle,
-  TrendingUp,
-  ArrowUpRight,
-  ArrowDownRight,
   Pencil
 } from "lucide-react";
 import {
@@ -41,6 +32,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { AddInvoiceDialog } from "./AddInvoiceDialog";
 import InvoiceDetailDialog from "./InvoiceDetailDialog";
+import { cn } from "@/lib/utils";
+import { StatCard } from "@/components/ui/stat-card";
+import { StatusChip } from "@/components/ui/status-chip";
+import { UrgencyCard } from "@/components/ui/urgency-card";
 
 interface Invoice {
   id: string;
@@ -67,45 +62,6 @@ interface Invoice {
     project_number: string | null;
   } | null;
 }
-
-const STATUS_CONFIG = {
-  draft: {
-    label: 'Entwurf',
-    color: 'bg-slate-100 text-slate-700 border-slate-200',
-    icon: FileText,
-    iconColor: 'text-slate-500'
-  },
-  sent: {
-    label: 'Versendet',
-    color: 'bg-blue-50 text-blue-700 border-blue-200',
-    icon: Send,
-    iconColor: 'text-blue-500'
-  },
-  paid: {
-    label: 'Bezahlt',
-    color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    icon: CheckCircle,
-    iconColor: 'text-emerald-500'
-  },
-  overdue: {
-    label: 'Überfällig',
-    color: 'bg-red-50 text-red-700 border-red-200',
-    icon: AlertTriangle,
-    iconColor: 'text-red-500'
-  },
-  void: {
-    label: 'Storniert',
-    color: 'bg-slate-100 text-slate-500 border-slate-200',
-    icon: XCircle,
-    iconColor: 'text-slate-400'
-  },
-  cancelled: {
-    label: 'Abgebrochen',
-    color: 'bg-slate-100 text-slate-500 border-slate-200',
-    icon: XCircle,
-    iconColor: 'text-slate-400'
-  }
-};
 
 const TYPE_LABELS: Record<string, string> = {
   final: 'Schlussrechnung',
@@ -221,17 +177,20 @@ const InvoiceModuleV2 = () => {
     .filter(i => i.status === 'overdue')
     .reduce((sum, i) => sum + (i.gross_amount || 0), 0);
 
-  const paidThisMonth = invoices
-    .filter(i => {
-      if (i.status !== 'paid' || !i.paid_at) return false;
-      const paidDate = new Date(i.paid_at);
-      const now = new Date();
-      return paidDate.getMonth() === now.getMonth() && paidDate.getFullYear() === now.getFullYear();
-    })
-    .reduce((sum, i) => sum + (i.gross_amount || 0), 0);
-
   const formatCurrency = (amount: number) => {
     return amount.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+  };
+
+  // Dringlichkeit pro Rechnung: überfällig = kritisch, Fälligkeit in <= 3 Tagen = warnend.
+  const invoiceUrgency = (inv: Invoice): 'critical' | 'warning' | 'none' => {
+    if (inv.status === 'overdue') return 'critical';
+    if (inv.status === 'sent' && inv.due_date) {
+      const daysUntilDue = Math.ceil(
+        (new Date(inv.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+      );
+      if (daysUntilDue <= 3) return 'warning';
+    }
+    return 'none';
   };
 
   const handleOpenInvoice = (invoice: Invoice) => {
@@ -355,59 +314,15 @@ const InvoiceModuleV2 = () => {
         })}
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-white border-slate-200 shadow-sm">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500">Offene Rechnungen</p>
-              <h3 className="text-2xl font-bold text-slate-900 mt-1">{formatCurrency(openAmount)}</h3>
-              <p className="text-xs text-slate-400 mt-1">{statusCounts.sent + statusCounts.overdue} Rechnungen</p>
-            </div>
-            <div className="h-12 w-12 rounded-full bg-blue-50 flex items-center justify-center">
-              <Clock className="h-6 w-6 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white border-slate-200 shadow-sm">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500">Überfällig</p>
-              <h3 className="text-2xl font-bold text-red-600 mt-1">{formatCurrency(overdueAmount)}</h3>
-              <p className="text-xs text-slate-400 mt-1">{statusCounts.overdue} Rechnungen</p>
-            </div>
-            <div className="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center">
-              <AlertTriangle className="h-6 w-6 text-red-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white border-slate-200 shadow-sm">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500">Bezahlt (Monat)</p>
-              <h3 className="text-2xl font-bold text-emerald-600 mt-1">{formatCurrency(paidThisMonth)}</h3>
-              <p className="text-xs text-slate-400 mt-1">Diesen Monat</p>
-            </div>
-            <div className="h-12 w-12 rounded-full bg-emerald-50 flex items-center justify-center">
-              <TrendingUp className="h-6 w-6 text-emerald-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white border-slate-200 shadow-sm">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500">Entwürfe</p>
-              <h3 className="text-2xl font-bold text-slate-600 mt-1">{statusCounts.draft}</h3>
-              <p className="text-xs text-slate-400 mt-1">Noch nicht versendet</p>
-            </div>
-            <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center">
-              <FileText className="h-6 w-6 text-slate-600" />
-            </div>
-          </CardContent>
-        </Card>
+      {/* Summen-Kopf */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <StatCard label="Offen gesamt" emphasis="hero" value={formatCurrency(openAmount)} hint={`${statusCounts.sent + statusCounts.overdue} Rechnungen`} />
+        <StatCard
+          label="Davon überfällig"
+          value={formatCurrency(overdueAmount)}
+          tone={overdueAmount > 0 ? 'critical' : 'default'}
+          hint={overdueAmount > 0 ? `${statusCounts.overdue} Rechnungen` : 'Nichts überfällig'}
+        />
       </div>
 
       {/* Main Content */}
@@ -443,117 +358,108 @@ const InvoiceModuleV2 = () => {
                   )}
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100">
+                <div className="p-4 space-y-2">
                   {filteredInvoices.map((invoice) => {
-                    const statusConfig = STATUS_CONFIG[invoice.status] || STATUS_CONFIG.draft;
-                    const StatusIcon = statusConfig.icon;
+                    const urgency = invoiceUrgency(invoice);
+                    const done = invoice.status === 'paid' || invoice.status === 'cancelled' || invoice.status === 'void';
+                    const daysOverdue = invoice.due_date
+                      ? Math.floor((Date.now() - new Date(invoice.due_date).getTime()) / (1000 * 60 * 60 * 24))
+                      : 0;
+                    const daysUntilDue = invoice.due_date
+                      ? Math.ceil((new Date(invoice.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                      : null;
+
+                    let dueLine: string | null = null;
+                    if (invoice.status === 'overdue') {
+                      dueLine = `${daysOverdue} Tage überfällig`;
+                    } else if (urgency === 'warning' && daysUntilDue !== null) {
+                      dueLine = daysUntilDue <= 0 ? 'Heute fällig' : `Fällig in ${daysUntilDue} ${daysUntilDue === 1 ? 'Tag' : 'Tagen'}`;
+                    } else if (invoice.due_date && invoice.status !== 'paid') {
+                      dueLine = `Fällig: ${new Date(invoice.due_date).toLocaleDateString('de-DE')}`;
+                    } else if (invoice.invoice_date) {
+                      dueLine = new Date(invoice.invoice_date).toLocaleDateString('de-DE');
+                    }
 
                     return (
-                      <div
+                      <UrgencyCard
                         key={invoice.id}
-                        className="p-4 hover:bg-slate-50 transition-colors cursor-pointer group"
+                        urgency={urgency}
+                        done={done}
+                        className="cursor-pointer"
                         onClick={() => handleOpenInvoice(invoice)}
-                      >
-                        <div className="flex items-center gap-4">
-                          {/* Status Icon */}
-                          <div className={`flex-shrink-0 p-2.5 rounded-lg ${
-                            invoice.status === 'paid' ? 'bg-emerald-50' :
-                            invoice.status === 'overdue' ? 'bg-red-50' :
-                            invoice.status === 'sent' ? 'bg-blue-50' :
-                            'bg-slate-100'
-                          }`}>
-                            <StatusIcon className={`h-5 w-5 ${statusConfig.iconColor}`} />
-                          </div>
-
-                          {/* Main Info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-semibold text-slate-800">
-                                {invoice.invoice_number || 'Entwurf'}
-                              </span>
-                              <Badge variant="outline" className={`text-[10px] ${statusConfig.color}`}>
-                                {statusConfig.label}
-                              </Badge>
-                              {invoice.invoice_type && invoice.invoice_type !== 'final' && (
-                                <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-600">
-                                  {TYPE_LABELS[invoice.invoice_type]}
-                                </Badge>
-                              )}
+                        action={
+                          <>
+                            <div className="text-right">
+                              <div className={cn(
+                                'text-base font-bold tabular-nums',
+                                invoice.status === 'overdue' ? 'text-rose-600 dark:text-rose-400' :
+                                invoice.status === 'paid' ? 'text-slate-500' :
+                                'text-slate-900 dark:text-slate-100'
+                              )}>
+                                {formatCurrency(invoice.gross_amount || 0)}
+                              </div>
+                              <div className="mt-1 flex justify-end">
+                                <StatusChip status={invoice.status} />
+                              </div>
                             </div>
-                            <div className="flex items-center gap-3 text-xs text-slate-500">
-                              {invoice.customers?.company_name && (
-                                <span className="flex items-center gap-1">
-                                  <Building2 className="h-3 w-3" />
-                                  {invoice.customers.company_name}
-                                </span>
-                              )}
-                              {invoice.projects?.name && (
-                                <span className="flex items-center gap-1 text-slate-400">
-                                  {invoice.projects.name}
-                                </span>
-                              )}
-                              {invoice.invoice_date && (
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  {new Date(invoice.invoice_date).toLocaleDateString('de-DE')}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Amount */}
-                          <div className="flex-shrink-0 text-right">
-                            <span className="text-base font-bold text-slate-800">
-                              {formatCurrency(invoice.gross_amount || 0)}
-                            </span>
-                            {invoice.due_date && invoice.status !== 'paid' && (
-                              <p className={`text-xs mt-0.5 ${
-                                invoice.status === 'overdue' ? 'text-red-500 font-medium' : 'text-slate-400'
-                              }`}>
-                                Fällig: {new Date(invoice.due_date).toLocaleDateString('de-DE')}
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Actions */}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenInvoice(invoice); }}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                Anzeigen
-                              </DropdownMenuItem>
-                              {invoice.status === 'draft' && (
-                                <>
-                                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEditInvoice(invoice); }}>
-                                    <Pencil className="h-4 w-4 mr-2" />
-                                    Bearbeiten
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleSendInvoice(invoice); }}>
-                                    <Send className="h-4 w-4 mr-2" />
-                                    Als versendet markieren
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                              {(invoice.status === 'sent' || invoice.status === 'overdue') && (
-                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleMarkAsPaid(invoice); }}>
-                                  <CreditCard className="h-4 w-4 mr-2" />
-                                  Als bezahlt markieren
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenInvoice(invoice); }}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  Anzeigen
                                 </DropdownMenuItem>
-                              )}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem>
-                                <Mail className="h-4 w-4 mr-2" />
-                                Per E-Mail senden
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                                {invoice.status === 'draft' && (
+                                  <>
+                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEditInvoice(invoice); }}>
+                                      <Pencil className="h-4 w-4 mr-2" />
+                                      Bearbeiten
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleSendInvoice(invoice); }}>
+                                      <Send className="h-4 w-4 mr-2" />
+                                      Als versendet markieren
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                {(invoice.status === 'sent' || invoice.status === 'overdue') && (
+                                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleMarkAsPaid(invoice); }}>
+                                    <CreditCard className="h-4 w-4 mr-2" />
+                                    Als bezahlt markieren
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem>
+                                  <Mail className="h-4 w-4 mr-2" />
+                                  Per E-Mail senden
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </>
+                        }
+                      >
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                            {invoice.invoice_number || 'Entwurf'} · {invoice.customers?.company_name || '—'}
+                          </span>
+                          {invoice.invoice_type && invoice.invoice_type !== 'final' && (
+                            <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-600 shrink-0">
+                              {TYPE_LABELS[invoice.invoice_type]}
+                            </Badge>
+                          )}
                         </div>
-                      </div>
+                        {dueLine && (
+                          <p className={cn(
+                            'text-xs',
+                            invoice.status === 'overdue' ? 'text-rose-700 dark:text-rose-300 font-medium' : 'text-slate-400'
+                          )}>
+                            {invoice.projects?.name ? `${invoice.projects.name} · ${dueLine}` : dueLine}
+                          </p>
+                        )}
+                      </UrgencyCard>
                     );
                   })}
                 </div>
@@ -566,10 +472,10 @@ const InvoiceModuleV2 = () => {
         <div className="space-y-6">
           {/* Overdue Invoices */}
           {statusCounts.overdue > 0 && (
-            <Card className="bg-white border-red-200 shadow-sm overflow-hidden">
-              <div className="bg-red-50 border-b border-red-100 px-5 py-3 flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
-                <h3 className="font-semibold text-red-900">Überfällige Rechnungen ({statusCounts.overdue})</h3>
+            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+              <div className="bg-rose-50 dark:bg-rose-950/40 px-5 py-3 flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-rose-600 dark:text-rose-400" />
+                <h3 className="font-semibold text-rose-900 dark:text-rose-300">Überfällige Rechnungen ({statusCounts.overdue})</h3>
               </div>
               <CardContent className="p-0 divide-y divide-slate-100">
                 {invoices
@@ -583,20 +489,20 @@ const InvoiceModuleV2 = () => {
                     return (
                       <div
                         key={invoice.id}
-                        className="p-4 hover:bg-red-50/50 cursor-pointer transition-colors"
+                        className="p-4 hover:bg-rose-50/50 dark:hover:bg-rose-950/30 cursor-pointer transition-colors"
                         onClick={() => handleOpenInvoice(invoice)}
                       >
                         <div className="flex justify-between items-start mb-1">
-                          <span className="font-medium text-slate-800 text-sm truncate pr-2">
+                          <span className="font-medium text-slate-800 dark:text-slate-100 text-sm truncate pr-2">
                             {invoice.invoice_number || 'Entwurf'}
                           </span>
-                          <Badge variant="outline" className="text-[10px] bg-red-100 text-red-800 border-red-200 shrink-0">
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-rose-700 dark:text-rose-300 shrink-0">
                             {daysOverdue} Tage
-                          </Badge>
+                          </span>
                         </div>
                         <div className="flex justify-between items-center text-xs">
                           <span className="text-slate-500">{invoice.customers?.company_name || '—'}</span>
-                          <span className="text-red-600 font-medium">{formatCurrency(invoice.gross_amount || 0)}</span>
+                          <span className="text-rose-600 dark:text-rose-400 font-medium tabular-nums">{formatCurrency(invoice.gross_amount || 0)}</span>
                         </div>
                       </div>
                     );
@@ -618,9 +524,9 @@ const InvoiceModuleV2 = () => {
               <div className="space-y-3">
                 {[
                   { key: 'draft', label: 'Entwürfe', color: 'bg-slate-300', count: statusCounts.draft },
-                  { key: 'sent', label: 'Versendet', color: 'bg-blue-400', count: statusCounts.sent },
-                  { key: 'overdue', label: 'Überfällig', color: 'bg-red-400', count: statusCounts.overdue },
-                  { key: 'paid', label: 'Bezahlt', color: 'bg-emerald-400', count: statusCounts.paid },
+                  { key: 'sent', label: 'Versendet', color: 'bg-amber-400', count: statusCounts.sent },
+                  { key: 'overdue', label: 'Überfällig', color: 'bg-rose-400', count: statusCounts.overdue },
+                  { key: 'paid', label: 'Bezahlt', color: 'bg-teal-400', count: statusCounts.paid },
                 ].map(stat => (
                   <div key={stat.key}>
                     <div className="flex justify-between text-sm mb-1">
@@ -641,13 +547,13 @@ const InvoiceModuleV2 = () => {
               <div className="pt-4 border-t border-slate-100 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Gesamt (alle)</span>
-                  <span className="font-semibold text-slate-800">
+                  <span className="font-semibold text-slate-800 dark:text-slate-100 tabular-nums">
                     {formatCurrency(invoices.reduce((sum, i) => sum + (i.gross_amount || 0), 0))}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Davon bezahlt</span>
-                  <span className="font-semibold text-emerald-600">
+                  <span className="font-semibold text-teal-600 dark:text-teal-400 tabular-nums">
                     {formatCurrency(invoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + (i.gross_amount || 0), 0))}
                   </span>
                 </div>
