@@ -101,11 +101,23 @@ serve(async (req) => {
       case "invoice.paid": {
         const invoice = event.data.object as Stripe.Invoice;
         if (invoice.subscription) {
-          // Subscription renewal succeeded — ensure status stays active
-          await supabase
+          // Status aus Stripe abfragen statt blind "active" zu setzen: Stripe
+          // garantiert keine Event-Reihenfolge (spätes invoice.paid nach
+          // Kündigung), und die 0-€-Rechnung beim Trial-Start würde sonst
+          // "trialing" vorzeitig auf "active" kippen.
+          const { data: sub } = await supabase
             .from("subscriptions")
-            .update({ status: "active", updated_at: new Date().toISOString() })
-            .eq("stripe_customer_id", invoice.customer as string);
+            .select("company_id")
+            .eq("stripe_subscription_id", invoice.subscription as string)
+            .single();
+          if (sub) {
+            const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+            await upsertSubscription(sub.company_id, invoice.customer as string, subscription);
+            await patchSubscriptionMetadata("stripe_subscription_id", invoice.subscription as string, {
+              payment_action_required: false,
+              invoice_id: null,
+            });
+          }
         }
         break;
       }
@@ -124,13 +136,10 @@ serve(async (req) => {
         const invoice = event.data.object as Stripe.Invoice;
         console.log(`Payment action required for customer ${invoice.customer}, invoice ${invoice.id}`);
         // Keep subscription active but flag for attention
-        await supabase
-          .from("subscriptions")
-          .update({
-            metadata: { payment_action_required: true, invoice_id: invoice.id },
-            updated_at: new Date().toISOString(),
-          })
-          .eq("stripe_customer_id", invoice.customer as string);
+        await patchSubscriptionMetadata("stripe_customer_id", invoice.customer as string, {
+          payment_action_required: true,
+          invoice_id: invoice.id,
+        });
         break;
       }
 
@@ -145,13 +154,10 @@ serve(async (req) => {
         if (sub) {
           console.log(`Trial ending soon for company ${sub.company_id}, subscription ${subscription.id}`);
           // TODO: Send email notification to company admin
-          await supabase
-            .from("subscriptions")
-            .update({
-              metadata: { trial_ending_notified: true, trial_end: new Date(subscription.trial_end! * 1000).toISOString() },
-              updated_at: new Date().toISOString(),
-            })
-            .eq("stripe_subscription_id", subscription.id);
+          await patchSubscriptionMetadata("stripe_subscription_id", subscription.id, {
+            trial_ending_notified: true,
+            trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
+          });
         }
         break;
       }
@@ -222,6 +228,30 @@ async function upsertSubscription(companyId: string, stripeCustomerId: string, s
     },
     { onConflict: "company_id" }
   );
+}
+
+// Merged das metadata-JSONB statt es zu überschreiben — ein plain update
+// würde Flags anderer Handler (payment_action_required, trial_ending_notified)
+// löschen.
+async function patchSubscriptionMetadata(
+  column: "stripe_customer_id" | "stripe_subscription_id",
+  value: string,
+  patch: Record<string, unknown>
+) {
+  const { data: sub } = await supabase
+    .from("subscriptions")
+    .select("metadata")
+    .eq(column, value)
+    .single();
+  if (!sub) return;
+
+  await supabase
+    .from("subscriptions")
+    .update({
+      metadata: { ...(sub.metadata ?? {}), ...patch },
+      updated_at: new Date().toISOString(),
+    })
+    .eq(column, value);
 }
 
 async function handleOfferPayment(session: Stripe.Checkout.Session) {
