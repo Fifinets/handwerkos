@@ -70,6 +70,28 @@ const TYPE_LABELS: Record<string, string> = {
   credit: 'Gutschrift'
 };
 
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+// Eine Quelle für Dringlichkeit + Fälligkeits-Kennzahlen pro Rechnung (pure):
+// überfällig = kritisch, gesendet mit Fälligkeit in <= 3 Tagen = warnend.
+const invoiceUrgencyInfo = (
+  inv: Invoice,
+  now: number = Date.now()
+): { urgency: 'critical' | 'warning' | 'none'; daysUntilDue: number | null; daysOverdue: number | null } => {
+  const dueTime = inv.due_date ? new Date(inv.due_date).getTime() : null;
+  const daysUntilDue = dueTime !== null ? Math.ceil((dueTime - now) / MS_PER_DAY) : null;
+  const daysOverdue = dueTime !== null ? Math.floor((now - dueTime) / MS_PER_DAY) : null;
+
+  let urgency: 'critical' | 'warning' | 'none' = 'none';
+  if (inv.status === 'overdue') {
+    urgency = 'critical';
+  } else if (inv.status === 'sent' && daysUntilDue !== null && daysUntilDue <= 3) {
+    urgency = 'warning';
+  }
+
+  return { urgency, daysUntilDue, daysOverdue };
+};
+
 const InvoiceModuleV2 = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -179,18 +201,6 @@ const InvoiceModuleV2 = () => {
 
   const formatCurrency = (amount: number) => {
     return amount.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
-  };
-
-  // Dringlichkeit pro Rechnung: überfällig = kritisch, Fälligkeit in <= 3 Tagen = warnend.
-  const invoiceUrgency = (inv: Invoice): 'critical' | 'warning' | 'none' => {
-    if (inv.status === 'overdue') return 'critical';
-    if (inv.status === 'sent' && inv.due_date) {
-      const daysUntilDue = Math.ceil(
-        (new Date(inv.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-      );
-      if (daysUntilDue <= 3) return 'warning';
-    }
-    return 'none';
   };
 
   const handleOpenInvoice = (invoice: Invoice) => {
@@ -360,18 +370,12 @@ const InvoiceModuleV2 = () => {
               ) : (
                 <div className="p-4 space-y-2">
                   {filteredInvoices.map((invoice) => {
-                    const urgency = invoiceUrgency(invoice);
+                    const { urgency, daysUntilDue, daysOverdue } = invoiceUrgencyInfo(invoice);
                     const done = invoice.status === 'paid' || invoice.status === 'cancelled' || invoice.status === 'void';
-                    const daysOverdue = invoice.due_date
-                      ? Math.floor((Date.now() - new Date(invoice.due_date).getTime()) / (1000 * 60 * 60 * 24))
-                      : 0;
-                    const daysUntilDue = invoice.due_date
-                      ? Math.ceil((new Date(invoice.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-                      : null;
 
                     let dueLine: string | null = null;
                     if (invoice.status === 'overdue') {
-                      dueLine = `${daysOverdue} Tage überfällig`;
+                      dueLine = `${daysOverdue ?? 0} Tage überfällig`;
                     } else if (urgency === 'warning' && daysUntilDue !== null) {
                       dueLine = daysUntilDue <= 0 ? 'Heute fällig' : `Fällig in ${daysUntilDue} ${daysUntilDue === 1 ? 'Tag' : 'Tagen'}`;
                     } else if (invoice.due_date && invoice.status !== 'paid') {
@@ -385,7 +389,7 @@ const InvoiceModuleV2 = () => {
                         key={invoice.id}
                         urgency={urgency}
                         done={done}
-                        className="cursor-pointer"
+                        className="cursor-pointer hover:shadow-md transition-shadow"
                         onClick={() => handleOpenInvoice(invoice)}
                         action={
                           <>
@@ -442,7 +446,7 @@ const InvoiceModuleV2 = () => {
                         }
                       >
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                          <span className="min-w-0 text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
                             {invoice.invoice_number || 'Entwurf'} · {invoice.customers?.company_name || '—'}
                           </span>
                           {invoice.invoice_type && invoice.invoice_type !== 'final' && (
@@ -482,9 +486,7 @@ const InvoiceModuleV2 = () => {
                   .filter(i => i.status === 'overdue')
                   .slice(0, 5)
                   .map((invoice) => {
-                    const daysOverdue = invoice.due_date
-                      ? Math.floor((new Date().getTime() - new Date(invoice.due_date).getTime()) / (1000 * 60 * 60 * 24))
-                      : 0;
+                    const daysOverdue = invoiceUrgencyInfo(invoice).daysOverdue ?? 0;
 
                     return (
                       <div
