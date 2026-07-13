@@ -26,7 +26,7 @@ import InvoiceDetailDialog from "./InvoiceDetailDialog";
 import CreateInvoiceFromProjectDialog from "./CreateInvoiceFromProjectDialog";
 import { WorkflowStatusDialog } from './WorkflowStatusDialog';
 import { SiteDocModule } from '@/components/site-docs/SiteDocModule';
-import { OverviewTab, DetailsTab, TimeTab, MaterialsTab, DocumentsTab, CommentsTab } from './project-detail';
+import { OverviewTab, DetailsTab, TimeTab, MaterialsTab, DocumentsTab, CommentsTab, ProfitabilitySummary } from './project-detail';
 import { formatCurrency, getStatusConfig, generateShortId } from './project-detail/utils';
 
 interface ProjectDetailViewProps {
@@ -1055,15 +1055,14 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                 </DialogDescription>
               </div>
 
-              {/* Budget chip - only for Projektauftraege */}
+              {/* Wirtschaftlichkeit - only for Projektauftraege */}
               {project.project_type !== 'kleinauftrag' && (
-                <div className="flex-shrink-0 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-right">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">Projektkosten</p>
-                  <p className="text-xl font-bold text-slate-900">{formatCurrency(project.stats.total_project_cost)}</p>
-                  {project.budget_planned > 0 && (
-                    <p className="text-[10px] text-slate-400 mt-0.5">von {formatCurrency(project.budget_planned)}</p>
-                  )}
-                </div>
+                <ProfitabilitySummary
+                  offers={projectOffers}
+                  internalCost={project.stats.total_project_cost}
+                  materialCost={project.stats.total_material_cost}
+                  budgetPlanned={project.budget_planned}
+                />
               )}
             </div>
 

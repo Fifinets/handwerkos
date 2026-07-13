@@ -20,6 +20,7 @@ import {
   OFFER_ITEM_TYPE_LABELS,
   OFFER_ITEM_UNITS,
 } from '@/types/offer';
+import { getOfferItemDisplayNumber } from './offerItemNumbering';
 
 // Lightweight hook to fetch company employees for the labor-row picker
 function useEmployees() {
@@ -540,33 +541,6 @@ export function OfferItemsEditor({
     setActiveDragId(null);
   };
 
-  // Helper to get numbering
-  const getItemDisplayNumber = (index: number) => {
-    const item = items[index];
-    if (!item || item.item_type === 'page_break') return '';
-
-    const titleCount = items.slice(0, index + 1).filter(i => i.item_type === 'title').length;
-
-    if (titleCount >= 1) {
-      let major = 0; let minor = 0;
-      for (let i = 0; i <= index; i++) {
-        const type = items[i].item_type;
-        if (type === 'page_break') continue;
-        if (type === 'title') { major++; minor = 0; }
-        else { if (major === 0) major = 1; minor++; }
-      }
-      if (item.item_type !== 'title') return `${major}.${minor}`;
-      return `${major}`; // Return major number for titles
-    } else {
-      let count = 0;
-      for (let i = 0; i <= index; i++) {
-        if (items[i].item_type !== 'title' && items[i].item_type !== 'page_break') count++;
-      }
-      if (item.item_type !== 'title') return count;
-    }
-    return '';
-  };
-
   // Calculate totals grouped by VAT rate
   const totals = useMemo(() => {
     const netTotal = items
@@ -738,7 +712,7 @@ export function OfferItemsEditor({
                             <ItemRender
                               item={item}
                               index={index}
-                              displayNumber={getItemDisplayNumber(index)}
+                              displayNumber={getOfferItemDisplayNumber(items, index)}
                               updateItem={updateItem}
                               onBatchUpdate={(idx, fields) => {
                                 const updatedItems = [...items];
@@ -885,7 +859,7 @@ export function OfferItemsEditor({
           const index = items.findIndex(i => (i.id || i.temp_id) === activeDragId);
           const item = items[index];
           if (!item) return null;
-          const displayNum = getItemDisplayNumber(index);
+          const displayNum = getOfferItemDisplayNumber(items, index);
           return (
             <div className="bg-white shadow-2xl rounded-lg opacity-95 scale-105 pointer-events-none ring-2 ring-blue-500 p-3">
               <div className="flex items-center gap-3">

@@ -17,6 +17,7 @@ export function ShareLinkDialog({
   open, onOpenChange, shareLink, offerNumber, customerName, projectName, customerEmail
 }: ShareLinkDialogProps) {
   const [copied, setCopied] = useState(false);
+  const [missingEmailNotice, setMissingEmailNotice] = useState(false);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(shareLink);
@@ -31,8 +32,19 @@ export function ShareLinkDialog({
   const emailSubject = encodeURIComponent(`Angebot ${offerNumber} — ${projectName}`);
   const emailBodyText = `Guten Tag ${customerName},\n\nhiermit erhalten Sie unser Angebot ${offerNumber} für "${projectName}".\n\nSie können das Angebot hier einsehen und direkt annehmen oder ablehnen:\n${shareLink}\n\nBei Fragen stehen wir Ihnen gerne zur Verfügung.\n\nMit freundlichen Grüßen`;
   const emailBody = encodeURIComponent(emailBodyText);
-  const gmailTo = customerEmail ? encodeURIComponent(customerEmail) : '';
+  const normalizedCustomerEmail = customerEmail?.trim();
+  const gmailTo = normalizedCustomerEmail ? encodeURIComponent(normalizedCustomerEmail) : '';
   const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${gmailTo}&su=${emailSubject}&body=${emailBody}`;
+
+  const handleOpenGmail = () => {
+    if (!normalizedCustomerEmail) {
+      setMissingEmailNotice(true);
+      return;
+    }
+
+    setMissingEmailNotice(false);
+    window.open(gmailUrl, '_blank');
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -73,13 +85,18 @@ export function ShareLinkDialog({
             WhatsApp
           </button>
           <button
-            onClick={() => window.open(gmailUrl, '_blank')}
+            onClick={handleOpenGmail}
             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
           >
             <Mail className="h-4 w-4" />
             Gmail
           </button>
         </div>
+        {missingEmailNotice && (
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+            Beim Kunden ist keine E-Mail-Adresse hinterlegt.
+          </p>
+        )}
 
         <Button variant="ghost" onClick={() => onOpenChange(false)} className="mt-2 w-full text-slate-500">
           Schließen

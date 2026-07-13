@@ -67,7 +67,7 @@ const TemplatePreviewModal: React.FC<TemplatePreviewModalProps> = ({ isOpen, onC
                             <img
                                 src={template.image}
                                 alt={template.name}
-                                className="w-full h-full object-cover object-top hover:object-bottom transition-[object-position] duration-[3000ms] ease-in-out cursor-ns-resize"
+                                className="w-full h-full object-cover object-top hover:object-bottom transition-[object-position] [transition-duration:3000ms] ease-in-out cursor-ns-resize"
                             />
 
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

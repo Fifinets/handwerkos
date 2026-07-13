@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HandwerkOS — Craft & Trust Design (Skill-Empfehlung)</title>
+<link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@400;700&family=Cabin:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Cabin', -apple-system, sans-serif; background: #FEF2F2; color: #450A0A; overflow-x: hidden; }
+  h1, h2, .hero-stat-num, .step-num-text { font-family: 'Amatic SC', cursive; }
+
+  /* COLORS from skill */
+  :root {
+    --primary: #7C2D12;
+    --secondary: #B91C1C;
+    --cta: #CA8A04;
+    --bg: #FEF2F2;
+    --bg-warm: #FDF6F0;
+    --bg-cream: #FFFBF5;
+    --text: #450A0A;
+    --text-muted: #78534B;
+    --text-light: #A07A72;
+    --border: rgba(124,45,18,0.1);
+    --gold-glow: rgba(202,138,4,0.2);
+  }
+
+  /* ===== NAV ===== */
+  nav {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 100;
+    display: flex; align-items: center; gap: 28px;
+    background: rgba(255,251,245,0.75); backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid rgba(124,45,18,0.08); border-radius: 60px;
+    padding: 10px 14px 10px 28px;
+    box-shadow: 0 4px 24px rgba(124,45,18,0.06);
+  }
+  .nav-logo { font-family: 'Amatic SC', cursive; font-weight: 700; font-size: 26px; color: var(--primary); letter-spacing: 1px; }
+  .nav-links { display: flex; gap: 24px; }
+  .nav-links a { color: var(--text-muted); text-decoration: none; font-size: 14px; font-weight: 500; cursor: pointer; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--primary); }
+  .nav-cta {
+    background: var(--cta); color: white;
+    padding: 9px 22px; border-radius: 50px; font-weight: 700; font-size: 13px;
+    text-decoration: none; cursor: pointer;
+    box-shadow: 0 4px 16px var(--gold-glow);
+    transition: box-shadow 0.3s, transform 0.2s;
+  }
+  .nav-cta:hover { box-shadow: 0 6px 24px rgba(202,138,4,0.35); transform: translateY(-1px); }
+
+  /* ===== HERO ===== */
+  .hero {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 120px 48px 80px; position: relative; overflow: hidden;
+  }
+  /* Warm texture overlay */
+  .hero::before {
+    content: ''; position: absolute; inset: 0; opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%237C2D12' fill-opacity='1'%3E%3Cpath d='M0 0h60v60H0zM30 30h1v1h-1z'/%3E%3C/g%3E%3C/svg%3E");
+  }
+  .hero-inner {
+    display: flex; align-items: center; gap: 64px; max-width: 1100px; width: 100%;
+    position: relative; z-index: 2;
+  }
+  .hero-text { flex: 1; }
+  .hero-visual { flex: 1; }
+
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(124,45,18,0.06); border: 1px solid rgba(124,45,18,0.12);
+    padding: 6px 16px; border-radius: 50px;
+    font-size: 12px; color: var(--primary); font-weight: 600;
+    letter-spacing: 0.5px; margin-bottom: 24px;
+    animation: fadeUp 0.6s ease-out;
+  }
+  .hero-badge svg { width: 14px; height: 14px; }
+
+  .hero h1 {
+    font-size: clamp(56px, 8vw, 96px); font-weight: 700; line-height: 0.95;
+    color: var(--primary); margin-bottom: 20px; letter-spacing: 1px;
+    animation: fadeUp 0.7s ease-out 0.1s both;
+  }
+  .hero h1 .gold { color: var(--cta); }
+  .hero-sub {
+    font-size: 18px; color: var(--text-muted); max-width: 440px;
+    line-height: 1.7; margin-bottom: 32px;
+    animation: fadeUp 0.7s ease-out 0.2s both;
+  }
+  .hero-ctas {
+    display: flex; gap: 14px; align-items: center;
+    animation: fadeUp 0.7s ease-out 0.3s both;
+  }
+  .btn-gold {
+    background: var(--cta); color: white;
+    padding: 16px 36px; border-radius: 14px; font-size: 16px; font-weight: 700;
+    text-decoration: none; cursor: pointer;
+    box-shadow: 0 6px 30px var(--gold-glow);
+    transition: transform 0.2s, box-shadow 0.3s;
+  }
+  .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 8px 40px rgba(202,138,4,0.35); }
+  .btn-outline {
+    display: flex; align-items: center; gap: 8px;
+    color: var(--primary); padding: 16px 28px; border-radius: 14px; font-size: 16px;
+    text-decoration: none; cursor: pointer;
+    border: 2px solid rgba(124,45,18,0.15);
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .btn-outline:hover { border-color: rgba(124,45,18,0.3); background: rgba(124,45,18,0.03); }
+  .btn-outline svg { width: 18px; height: 18px; }
+
+  .trust-bar {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 16px; font-size: 13px; color: var(--text-light);
+    animation: fadeUp 0.7s ease-out 0.35s both;
+  }
+  .trust-bar svg { width: 14px; height: 14px; color: #16a34a; }
+
+  /* Hero visual: Glass app card */
+  .hero-app {
+    background: rgba(255,255,255,0.65); backdrop-filter: blur(20px);
+    border: 1px solid rgba(124,45,18,0.08); border-radius: 20px;
+    padding: 24px; box-shadow: 0 30px 80px rgba(124,45,18,0.08);
+    animation: fadeUp 0.8s ease-out 0.4s both;
+  }
+  .app-header { display: flex; gap: 6px; margin-bottom: 16px; }
+  .app-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .hero-stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+  .hero-stat {
+    background: rgba(255,255,255,0.7); border: 1px solid rgba(124,45,18,0.06);
+    border-radius: 12px; padding: 14px; text-align: center;
+  }
+  .hero-stat-label { font-size: 11px; color: var(--text-light); margin-bottom: 4px; }
+  .hero-stat-num { font-size: 32px; font-weight: 700; color: var(--primary); }
+  .hero-mini-list { }
+  .hero-mini-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 12px; border-bottom: 1px solid rgba(124,45,18,0.05);
+    font-size: 13px; color: var(--text);
+  }
+  .hero-mini-item:last-child { border: none; }
+  .mini-tag { padding: 3px 10px; border-radius: 6px; font-size: 10px; font-weight: 600; }
+  .tag-green { background: rgba(22,163,74,0.1); color: #16a34a; }
+  .tag-amber { background: rgba(202,138,4,0.1); color: #b45309; }
+  .tag-blue { background: rgba(124,45,18,0.08); color: var(--primary); }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ===== SECTIONS ===== */
+  .section-inner { max-width: 1100px; margin: 0 auto; padding: 100px 48px; }
+  .section-badge {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 2px; font-weight: 600;
+    margin-bottom: 12px; display: flex; align-items: center; gap: 8px; justify-content: center;
+    color: var(--cta);
+  }
+  .section-badge svg { width: 16px; height: 16px; }
+  .section-title {
+    font-size: clamp(40px, 5vw, 64px); font-weight: 700; letter-spacing: 1px;
+    margin-bottom: 12px; line-height: 0.95; text-align: center; color: var(--primary);
+  }
+  .section-sub { font-size: 17px; color: var(--text-muted); max-width: 480px; margin: 0 auto 56px; line-height: 1.6; text-align: center; }
+
+  /* ===== TRUST BADGES ===== */
+  .trust-section { background: var(--bg-cream); }
+  .trust-badges {
+    display: flex; justify-content: center; gap: 40px; flex-wrap: wrap;
+  }
+  .trust-badge-item {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 24px 20px; cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .trust-badge-item:hover { transform: translateY(-3px); }
+  .badge-icon {
+    width: 56px; height: 56px; border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(124,45,18,0.06); color: var(--primary);
+  }
+  .badge-icon svg { width: 28px; height: 28px; }
+  .badge-label { font-size: 13px; font-weight: 600; color: var(--text); }
+  .badge-desc { font-size: 11px; color: var(--text-light); text-align: center; max-width: 120px; }
+
+  /* ===== PAIN POINTS ===== */
+  .pain-section { background: var(--bg); }
+  .pain-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .pain-card {
+    background: rgba(255,255,255,0.6); backdrop-filter: blur(12px);
+    border: 1px solid rgba(185,28,28,0.08); border-radius: 18px;
+    padding: 32px 24px; cursor: pointer;
+    transition: border-color 0.3s, transform 0.2s, box-shadow 0.3s;
+  }
+  .pain-card:hover { border-color: rgba(185,28,28,0.2); transform: translateY(-3px); box-shadow: 0 12px 32px rgba(185,28,28,0.06); }
+  .pain-icon {
+    width: 48px; height: 48px; border-radius: 14px;
+    background: rgba(185,28,28,0.06); color: var(--secondary);
+    display: flex; align-items: center; justify-content: center; margin-bottom: 16px;
+  }
+  .pain-icon svg { width: 24px; height: 24px; }
+  .pain-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+  .pain-card p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+
+  /* ===== FEATURES ===== */
+  .features-section { background: var(--bg-cream); }
+  .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .feature-card {
+    background: rgba(255,255,255,0.7); backdrop-filter: blur(12px);
+    border: 1px solid rgba(124,45,18,0.06); border-radius: 18px;
+    padding: 28px 22px; cursor: pointer;
+    transition: border-color 0.3s, transform 0.2s, box-shadow 0.3s;
+  }
+  .feature-card:hover { border-color: rgba(202,138,4,0.2); transform: translateY(-3px); box-shadow: 0 12px 32px rgba(124,45,18,0.06); }
+  .feature-icon {
+    width: 48px; height: 48px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 14px;
+  }
+  .feature-icon svg { width: 24px; height: 24px; }
+  .feature-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+  .feature-card p { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+
+  /* ===== METRICS / BEFORE-AFTER ===== */
+  .metrics-section { background: var(--primary); color: white; }
+  .metrics-section .section-badge { color: rgba(255,255,255,0.6); }
+  .metrics-section .section-title { color: white; }
+  .metrics-section .section-sub { color: rgba(255,255,255,0.6); }
+  .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .metric-card {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 18px; padding: 32px 20px; text-align: center;
+    cursor: pointer; transition: background 0.3s, transform 0.2s;
+  }
+  .metric-card:hover { background: rgba(255,255,255,0.1); transform: translateY(-3px); }
+  .metric-num { font-family: 'Amatic SC', cursive; font-size: 56px; font-weight: 700; color: var(--cta); }
+  .metric-label { font-size: 14px; color: rgba(255,255,255,0.7); margin-top: 4px; }
+  .metric-before { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 8px; }
+  .metric-before span { text-decoration: line-through; }
+
+  /* ===== 3 STEPS ===== */
+  .steps-section { background: var(--bg); }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; position: relative; }
+  .step {
+    background: rgba(255,255,255,0.6); backdrop-filter: blur(12px);
+    border: 1px solid rgba(124,45,18,0.06); border-radius: 20px;
+    padding: 36px 28px; text-align: center; position: relative;
+    cursor: pointer; transition: transform 0.2s, box-shadow 0.3s;
+  }
+  .step:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(124,45,18,0.08); }
+  .step-num {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--cta); color: white;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 18px; box-shadow: 0 6px 20px var(--gold-glow);
+  }
+  .step-num-text { font-size: 28px; font-weight: 700; }
+  .step h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+  .step p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+  .step-arrow {
+    position: absolute; right: -24px; top: 50%; transform: translateY(-50%);
+    font-size: 20px; color: var(--text-light);
+  }
+
+  /* ===== PRICING ===== */
+  .pricing-section { background: var(--bg-cream); }
+  .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .price-card {
+    background: rgba(255,255,255,0.7); backdrop-filter: blur(12px);
+    border: 1px solid rgba(124,45,18,0.06); border-radius: 20px;
+    padding: 36px 28px; cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  .price-card:hover { transform: translateY(-4px); box-shadow: 0 16px 48px rgba(124,45,18,0.08); }
+  .price-card.featured {
+    background: rgba(255,255,255,0.85); border-color: rgba(202,138,4,0.2);
+    box-shadow: 0 8px 40px rgba(202,138,4,0.1);
+  }
+  .popular { background: var(--cta); color: white; font-size: 11px; font-weight: 700; padding: 5px 14px; border-radius: 20px; display: inline-block; margin-bottom: 16px; }
+  .price-name { font-size: 20px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+  .price-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+  .price-amount { font-family: 'Amatic SC', cursive; font-size: 64px; font-weight: 700; color: var(--primary); letter-spacing: -1px; line-height: 1; }
+  .price-period { font-size: 14px; color: var(--text-light); margin-bottom: 24px; }
+  .price-features { list-style: none; padding: 0; margin-bottom: 28px; }
+  .price-features li { font-size: 14px; color: var(--text-muted); padding: 7px 0; display: flex; align-items: center; gap: 10px; }
+  .price-features li svg { width: 16px; height: 16px; color: var(--cta); flex-shrink: 0; }
+  .price-btn {
+    display: block; text-align: center; padding: 14px; border-radius: 12px;
+    font-size: 15px; font-weight: 600; text-decoration: none;
+    border: 2px solid rgba(124,45,18,0.12); color: var(--primary);
+    cursor: pointer; transition: all 0.2s;
+  }
+  .price-btn:hover { border-color: var(--cta); color: var(--cta); }
+  .price-btn.featured-btn { background: var(--cta); color: white; border: none; box-shadow: 0 6px 24px var(--gold-glow); }
+  .price-btn.featured-btn:hover { box-shadow: 0 8px 32px rgba(202,138,4,0.35); }
+
+  /* ===== TESTIMONIALS ===== */
+  .testimonials-section { background: var(--bg); }
+  .t-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .t-card {
+    background: rgba(255,255,255,0.6); backdrop-filter: blur(12px);
+    border: 1px solid rgba(124,45,18,0.06); border-radius: 18px;
+    padding: 28px; cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.3s;
+  }
+  .t-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(124,45,18,0.06); }
+  .t-stars { color: var(--cta); font-size: 16px; margin-bottom: 16px; letter-spacing: 2px; }
+  .t-text { font-size: 14px; color: var(--text-muted); line-height: 1.7; margin-bottom: 20px; }
+  .t-author { display: flex; align-items: center; gap: 12px; }
+  .t-avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+  .t-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .t-role { font-size: 12px; color: var(--text-light); }
+
+  /* ===== FAQ ===== */
+  .faq-section { background: var(--bg-cream); }
+  .faq-list { max-width: 680px; margin: 0 auto; }
+  .faq-item { border-bottom: 1px solid rgba(124,45,18,0.06); padding: 24px 0; cursor: pointer; }
+  .faq-item:hover .faq-q { color: var(--cta); }
+  .faq-q { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 10px; transition: color 0.2s; display: flex; justify-content: space-between; align-items: center; }
+  .faq-q svg { width: 18px; height: 18px; color: var(--text-light); flex-shrink: 0; }
+  .faq-a { font-size: 14px; color: var(--text-muted); line-height: 1.7; padding-right: 32px; }
+
+  /* ===== FOOTER CTA ===== */
+  .footer-cta-section { background: var(--primary); color: white; text-align: center; }
+  .footer-cta-section h2 { color: white; }
+  .footer-cta-section p { color: rgba(255,255,255,0.6); font-size: 17px; margin-bottom: 32px; }
+
+  footer { background: var(--bg); padding: 48px; border-top: 1px solid rgba(124,45,18,0.06); display: flex; justify-content: space-between; font-size: 13px; color: var(--text-light); }
+  footer a { color: var(--text-muted); text-decoration: none; cursor: pointer; }
+  footer a:hover { color: var(--primary); }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">HandwerkOS</div>
+  <div class="nav-links">
+    <a>Features</a>
+    <a>Preise</a>
+    <a>Demo</a>
+    <a>FAQ</a>
+  </div>
+  <a class="nav-cta">Kostenlos testen</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-text">
+      <div class="hero-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        GoBD-zertifiziert &middot; DATEV-kompatibel
+      </div>
+
+      <h1>Weniger Papier.<br/><span class="gold">Mehr Marge.</span></h1>
+
+      <p class="hero-sub">Die All-in-One Plattform f&uuml;r deinen Handwerksbetrieb. Von der Kalkulation bis zum DATEV-Export &mdash; alles an einem Ort.</p>
+
+      <div class="hero-ctas">
+        <a class="btn-gold">14 Tage kostenlos testen</a>
+        <a class="btn-outline">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Demo ansehen
+        </a>
+      </div>
+
+      <div class="trust-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Keine Kreditkarte &middot; Monatlich k&uuml;ndbar
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="hero-app">
+        <div class="app-header">
+          <div class="app-dot" style="background:#ef4444;"></div>
+          <div class="app-dot" style="background:#eab308;"></div>
+          <div class="app-dot" style="background:#22c55e;"></div>
+          <span style="margin-left:8px;font-size:11px;color:var(--text-light);">Dashboard</span>
+        </div>
+        <div class="hero-stats-row">
+          <div class="hero-stat">
+            <div class="hero-stat-label">Umsatz MTD</div>
+            <div class="hero-stat-num" style="color:#16a34a;">&euro;48k</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-label">Projekte</div>
+            <div class="hero-stat-num">12</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-label">Auslastung</div>
+            <div class="hero-stat-num" style="color:var(--cta);">87%</div>
+          </div>
+        </div>
+        <div class="hero-mini-list">
+          <div class="hero-mini-item">
+            <span>Elektroinstallation EFH M&uuml;ller</span>
+            <span class="mini-tag tag-green">Aktiv</span>
+          </div>
+          <div class="hero-mini-item">
+            <span>Sanierung Altbau Hauptstr.</span>
+            <span class="mini-tag tag-amber">Material</span>
+          </div>
+          <div class="hero-mini-item">
+            <span>PV-Anlage Schmidt</span>
+            <span class="mini-tag tag-blue">Angebot</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST BADGES -->
+<section class="trust-section">
+  <div class="section-inner">
+    <div class="trust-badges">
+      <div class="trust-badge-item">
+        <div class="badge-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <div class="badge-label">GoBD konform</div>
+        <div class="badge-desc">Revisionssichere Dokumentation</div>
+      </div>
+      <div class="trust-badge-item">
+        <div class="badge-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+        <div class="badge-label">DATEV Schnittstelle</div>
+        <div class="badge-desc">1-Klick Export zum Steuerberater</div>
+      </div>
+      <div class="trust-badge-item">
+        <div class="badge-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+        <div class="badge-label">ZUGFeRD</div>
+        <div class="badge-desc">E-Rechnung nach EN16931</div>
+      </div>
+      <div class="trust-badge-item">
+        <div class="badge-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
+        <div class="badge-label">DSGVO</div>
+        <div class="badge-desc">Server in Deutschland</div>
+      </div>
+      <div class="trust-badge-item">
+        <div class="badge-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div>
+        <div class="badge-label">Mobile App</div>
+        <div class="badge-desc">iOS &amp; Android</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PAIN POINTS -->
+<section class="pain-section">
+  <div class="section-inner">
+    <div class="section-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:var(--secondary);"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span style="color:var(--secondary);">Das Problem</span></div>
+    <h2 class="section-title">Kommt dir das bekannt vor?</h2>
+    <div class="section-sub">Diese Probleme kosten deinen Betrieb bares Geld.</div>
+    <div class="pain-grid">
+      <div class="pain-card">
+        <div class="pain-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+        <h3>Zettelwirtschaft</h3>
+        <p>Angebote in Word, Stunden auf Papier, Rechnungen in Excel. Nichts passt zusammen.</p>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+        <h3>Marge verschwindet</h3>
+        <p>Ohne Nachkalkulation wei&szlig;t du erst am Jahresende, ob sich Projekte gelohnt haben.</p>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        <h3>B&uuml;ro frisst Zeit</h3>
+        <p>Abends am Schreibtisch statt auf der Baustelle. Angebote tippen statt Auftr&auml;ge abarbeiten.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features-section">
+  <div class="section-inner">
+    <div class="section-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Alles drin</div>
+    <h2 class="section-title">Eine Plattform. Null Chaos.</h2>
+    <div class="section-sub">Vom ersten Kundenkontakt bis zur DATEV-&Uuml;bergabe.</div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(202,138,4,0.08);color:var(--cta);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+        <h3>Blitz-Angebote</h3>
+        <p>KI-gest&uuml;tzte Kalkulation. Angebot in unter 2 Minuten.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(124,45,18,0.06);color:var(--primary);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+        <h3>E-Rechnung</h3>
+        <p>ZUGFeRD &amp; XRechnung. GoBD-konform mit Nummernkreis.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(22,163,74,0.06);color:#16a34a;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></div>
+        <h3>Live Dashboard</h3>
+        <p>Umsatz, Auslastung, offene Posten &mdash; immer im Blick.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(124,45,18,0.06);color:var(--primary);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
+        <h3>Team-Verwaltung</h3>
+        <p>Zeiterfassung, Urlaubsplanung, Kapazit&auml;ten.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(202,138,4,0.08);color:var(--cta);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div>
+        <h3>Mobile App</h3>
+        <p>Fotos, Zeiten, Aufma&szlig;e &mdash; direkt von der Baustelle.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(124,45,18,0.06);color:var(--primary);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+        <h3>DATEV Export</h3>
+        <p>Ein Klick und der Steuerberater hat alles.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- METRICS -->
+<section class="metrics-section">
+  <div class="section-inner">
+    <div class="section-badge">Ergebnisse</div>
+    <h2 class="section-title">Vorher vs. Nachher</h2>
+    <div class="section-sub">Was unsere Nutzer berichten.</div>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-num">2 Min</div>
+        <div class="metric-label">pro Angebot</div>
+        <div class="metric-before">vorher: <span>45 Min</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num">1 Klick</div>
+        <div class="metric-label">DATEV Export</div>
+        <div class="metric-before">vorher: <span>2 Std</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num">+23%</div>
+        <div class="metric-label">mehr Marge</div>
+        <div class="metric-before">durch Nachkalkulation</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num">8 Std</div>
+        <div class="metric-label">gespart pro Woche</div>
+        <div class="metric-before">vorher: <span>B&uuml;roarbeit</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 STEPS -->
+<section class="steps-section">
+  <div class="section-inner">
+    <div class="section-badge">So einfach geht's</div>
+    <h2 class="section-title">In 3 Schritten startklar</h2>
+    <div class="section-sub">Kein IT-Studium n&ouml;tig.</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num"><span class="step-num-text">1</span></div>
+        <h3>Registrieren</h3>
+        <p>Kostenloses Konto in 30 Sekunden. Keine Kreditkarte.</p>
+        <div class="step-arrow">&rarr;</div>
+      </div>
+      <div class="step">
+        <div class="step-num"><span class="step-num-text">2</span></div>
+        <h3>Einrichten</h3>
+        <p>Betriebsdaten &amp; Logo. Oder Daten aus Excel importieren.</p>
+        <div class="step-arrow">&rarr;</div>
+      </div>
+      <div class="step">
+        <div class="step-num"><span class="step-num-text">3</span></div>
+        <h3>Loslegen</h3>
+        <p>Erstes Angebot erstellen, Team einladen, produktiv werden.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing-section">
+  <div class="section-inner">
+    <div class="section-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg> Preise</div>
+    <h2 class="section-title">Transparent. Fair. Ohne Haken.</h2>
+    <div class="section-sub">Starte kostenlos, upgrade wenn du w&auml;chst.</div>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="price-name">Starter</div>
+        <div class="price-desc">F&uuml;r Einzelunternehmer</div>
+        <div class="price-amount">&euro;29</div>
+        <div class="price-period">pro Monat</div>
+        <ul class="price-features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Bis 3 Mitarbeiter</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>10 Projekte</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Angebote &amp; Kunden</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Zeiterfassung</li>
+        </ul>
+        <a class="price-btn">14 Tage kostenlos</a>
+      </div>
+      <div class="price-card featured">
+        <div class="popular">Beliebt</div>
+        <div class="price-name">Handwerker</div>
+        <div class="price-desc">F&uuml;r wachsende Betriebe</div>
+        <div class="price-amount">&euro;59</div>
+        <div class="price-period">pro Monat</div>
+        <ul class="price-features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Bis 10 Mitarbeiter</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unbegrenzte Projekte</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>KI-Kalkulation</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>E-Rechnung &amp; OCR</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Mitarbeiterverwaltung</li>
+        </ul>
+        <a class="price-btn featured-btn">14 Tage kostenlos</a>
+      </div>
+      <div class="price-card">
+        <div class="price-name">Meisterbetrieb</div>
+        <div class="price-desc">F&uuml;r etablierte Teams</div>
+        <div class="price-amount">&euro;99</div>
+        <div class="price-period">pro Monat</div>
+        <ul class="price-features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unbegrenzt Mitarbeiter</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>VDE-Protokolle</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>DATEV Export</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>API-Zugriff</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Priorit&auml;tssupport</li>
+        </ul>
+        <a class="price-btn">14 Tage kostenlos</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials-section">
+  <div class="section-inner">
+    <div class="section-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Stimmen</div>
+    <h2 class="section-title">Was Handwerker sagen</h2>
+    <div class="section-sub">Von Elektrikern bis Malern.</div>
+    <div class="t-grid">
+      <div class="t-card">
+        <div class="t-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <div class="t-text">"Seitdem ich HandwerkOS nutze, spare ich jeden Tag mindestens eine Stunde B&uuml;roarbeit. Angebote gehen jetzt in Minuten raus."</div>
+        <div class="t-author"><div class="t-avatar">MK</div><div><div class="t-name">Markus K.</div><div class="t-role">Elektromeister, M&ouml;nchengladbach</div></div></div>
+      </div>
+      <div class="t-card">
+        <div class="t-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <div class="t-text">"Die Nachkalkulation zeigt mir sofort, wo ich nachbessern muss. Endlich habe ich den &Uuml;berblick."</div>
+        <div class="t-author"><div class="t-avatar">SW</div><div><div class="t-name">Sandra W.</div><div class="t-role">SHK-Betrieb, D&uuml;sseldorf</div></div></div>
+      </div>
+      <div class="t-card">
+        <div class="t-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <div class="t-text">"Der DATEV-Export spart mir jeden Monat einen halben Tag. Mein Steuerberater ist begeistert."</div>
+        <div class="t-author"><div class="t-avatar">TH</div><div><div class="t-name">Thomas H.</div><div class="t-role">Malerbetrieb, K&ouml;ln</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq-section">
+  <div class="section-inner">
+    <div class="section-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> FAQ</div>
+    <h2 class="section-title">H&auml;ufige Fragen</h2>
+    <div style="height:40px;"></div>
+    <div class="faq-list">
+      <div class="faq-item"><div class="faq-q">Brauche ich technische Vorkenntnisse? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div><div class="faq-a">Nein. So einfach wie WhatsApp.</div></div>
+      <div class="faq-item"><div class="faq-q">Kann ich bestehende Daten importieren? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div><div class="faq-a">Ja. Excel, CSV und g&auml;ngige Handwerkerprogramme. Wir helfen beim Umzug.</div></div>
+      <div class="faq-item"><div class="faq-q">Ist HandwerkOS GoBD-konform? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div><div class="faq-a">Ja. Revisionssicher, fortlaufend nummeriert, vollst&auml;ndiges Audit-Log.</div></div>
+      <div class="faq-item"><div class="faq-q">Kann ich jederzeit k&uuml;ndigen? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div><div class="faq-a">Monatlich k&uuml;ndbar. Keine Mindestlaufzeit. Daten jederzeit exportierbar.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER CTA -->
+<section class="footer-cta-section">
+  <div class="section-inner">
+    <h2>Bereit durchzustarten?</h2>
+    <p>14 Tage kostenlos. Keine Kreditkarte n&ouml;tig.</p>
+    <a class="btn-gold" style="display:inline-block; font-size: 18px; padding: 18px 44px;">Jetzt kostenlos starten</a>
+  </div>
+</section>
+
+<footer>
+  <div>&copy; 2026 HandwerkOS. Alle Rechte vorbehalten.</div>
+  <div style="display:flex;gap:24px;"><a>Datenschutz</a><a>Impressum</a><a>AGB</a></div>
+</footer>
+
+</body>
+</html>

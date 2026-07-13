@@ -1,5 +1,23 @@
 // Event Bus for HandwerkOS
-// Handles system-wide events for workflow automation, notifications, and audit trails
+//
+// In-process pub/sub for two concerns ONLY:
+//   1. UI cache invalidation — subscribers call queryClient.invalidateQueries()
+//      so the React UI refetches after a write. See App.tsx / hooks/useApi.ts.
+//   2. Audit trail logging — business-critical events get persisted to the
+//      audit_logs table via logToAuditTrail() below.
+//
+// THIS IS NOT A WORKFLOW ORCHESTRATOR. Cross-cutting automation (mahnungen,
+// OCR, AI indexing, etc.) MUST live in Supabase Edge Functions triggered by
+// pg_cron, because the eventBus only runs while a browser tab is open. If
+// the user logs out, the eventBus is gone — but the business still needs
+// mahnungen to be sent. See:
+//   - supabase/functions/notification-cron/       (mahnungen, deadlines, etc.)
+//   - supabase/functions/time-tracking-cron/      (auto-stop, weekly reports)
+//   - supabase/functions/process-ai-queue/        (embeddings, RAG indexing)
+//
+// Do not add a workflow-trigger method to this file. If you find yourself
+// writing "when X happens, also do Y on the server", that belongs in a
+// database trigger or an edge function — not here.
 
 import { supabase } from '@/integrations/supabase/client';
 
@@ -193,9 +211,6 @@ class EventBus {
     });
 
     await Promise.all(promises);
-
-    // Trigger workflow automations
-    await this.triggerWorkflowAutomations(event, eventData);
   }
 
   // Get event history
@@ -355,72 +370,6 @@ class EventBus {
     return 'unknown';
   }
 
-  private async triggerWorkflowAutomations(event: EventType, data: EventData): Promise<void> {
-    // Implement workflow automations based on events
-    try {
-      switch (event) {
-        case 'ORDER_COMPLETED':
-          // Auto-create invoice workflow
-          await this.autoCreateInvoice(data);
-          break;
-
-        case 'INVOICE_SENT':
-          // Schedule payment reminders
-          await this.schedulePaymentReminders(data);
-          break;
-
-        case 'MATERIAL_LOW_STOCK':
-          // Send low stock alerts
-          await this.sendLowStockAlert(data);
-          break;
-
-        case 'PROJECT_STATUS_CHANGED':
-          // Update team notifications
-          await this.notifyProjectTeam(data);
-          break;
-
-        default:
-          // No automation for this event
-          break;
-      }
-    } catch (error) {
-      console.error(`Workflow automation error for ${event}:`, error);
-      // Don't throw - workflow automations should not break business operations
-    }
-  }
-
-  // Workflow automation methods
-  private async sendNotification(type: string, data: EventData): Promise<void> {
-    // Implementation would integrate with notification service
-  }
-
-  private async autoCreateInvoice(data: EventData): Promise<void> {
-    // Implementation would auto-create invoice from completed order
-    if (data.order) {
-      // This would call financeService.createInvoiceFromOrder(data.order)
-    }
-  }
-
-  private async schedulePaymentReminders(data: EventData): Promise<void> {
-    // Implementation would schedule payment reminder emails
-    if (data.invoice) {
-      // intentional
-    }
-  }
-
-  private async sendLowStockAlert(data: EventData): Promise<void> {
-    // Implementation would send low stock notifications
-    if (data.material) {
-      // intentional
-    }
-  }
-
-  private async notifyProjectTeam(data: EventData): Promise<void> {
-    // Implementation would notify project team members
-    if (data.project) {
-      // intentional
-    }
-  }
 }
 
 // Create singleton instance

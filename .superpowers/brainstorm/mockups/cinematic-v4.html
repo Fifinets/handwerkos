@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HandwerkOS — Cinematic V4: Maximum Drama</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'DM Sans',sans-serif;background:#000;color:#f8fafc;overflow-x:hidden}
+  h1,h2,h3,.nav-logo,.pa{font-family:'Space Grotesk',sans-serif}
+  :root{--accent:#06b6d4;--glow:rgba(6,182,212,0.3)}
+
+  /* ========== CANVAS BACKGROUND ========== */
+  #bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+  /* ========== NAV ========== */
+  nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;justify-content:space-between;align-items:center;padding:16px 48px;background:rgba(0,0,0,0.5);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.04)}
+  .nav-logo{font-weight:700;font-size:18px}.nav-logo span{color:var(--accent)}
+  .nav-links{display:flex;gap:32px;align-items:center}
+  .nav-links a{color:#64748b;text-decoration:none;font-size:14px;cursor:pointer;transition:color .2s}
+  .nav-links a:hover{color:#f8fafc}
+  .nav-cta{background:var(--accent);color:#000;padding:8px 20px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer}
+
+  /* ========== HERO ========== */
+  .hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 80px;position:relative;z-index:1}
+
+  /* Animated aurora ribbons */
+  .aurora{position:absolute;inset:0;overflow:hidden;z-index:0}
+  .aurora-ribbon{
+    position:absolute;width:200%;height:300px;
+    filter:blur(80px);opacity:0.4;
+    border-radius:50%;
+  }
+  .aurora-ribbon:nth-child(1){
+    background:linear-gradient(90deg,transparent,rgba(6,182,212,0.5),rgba(99,102,241,0.3),transparent);
+    top:15%;left:-50%;
+    animation:aurora1 8s ease-in-out infinite;
+  }
+  .aurora-ribbon:nth-child(2){
+    background:linear-gradient(90deg,transparent,rgba(168,85,247,0.3),rgba(6,182,212,0.4),transparent);
+    top:40%;left:-30%;
+    animation:aurora2 12s ease-in-out infinite;
+  }
+  .aurora-ribbon:nth-child(3){
+    background:linear-gradient(90deg,transparent,rgba(34,197,94,0.2),rgba(6,182,212,0.3),transparent);
+    top:65%;left:-40%;
+    animation:aurora3 10s ease-in-out infinite;
+  }
+
+  @keyframes aurora1{
+    0%,100%{transform:translateX(0) skewY(-2deg) scaleY(1)}
+    33%{transform:translateX(15%) skewY(1deg) scaleY(1.3)}
+    66%{transform:translateX(-10%) skewY(-1deg) scaleY(0.8)}
+  }
+  @keyframes aurora2{
+    0%,100%{transform:translateX(0) skewY(1deg) scaleY(1)}
+    33%{transform:translateX(-20%) skewY(-2deg) scaleY(1.5)}
+    66%{transform:translateX(10%) skewY(2deg) scaleY(0.7)}
+  }
+  @keyframes aurora3{
+    0%,100%{transform:translateX(0) skewY(0deg) scaleY(1)}
+    50%{transform:translateX(20%) skewY(-1deg) scaleY(1.4)}
+  }
+
+  /* Shooting stars */
+  .shooting-star{
+    position:absolute;width:100px;height:1px;
+    background:linear-gradient(90deg,rgba(6,182,212,0.8),transparent);
+    opacity:0;z-index:1;
+  }
+  .shooting-star:nth-child(1){top:20%;left:10%;animation:shoot 4s ease-out infinite 0s;transform:rotate(-15deg)}
+  .shooting-star:nth-child(2){top:35%;left:60%;animation:shoot 6s ease-out infinite 2s;transform:rotate(-20deg);width:80px}
+  .shooting-star:nth-child(3){top:55%;left:30%;animation:shoot 5s ease-out infinite 3.5s;transform:rotate(-10deg);width:60px}
+
+  @keyframes shoot{
+    0%{transform:translateX(0) rotate(-15deg);opacity:0}
+    5%{opacity:0.8}
+    30%{transform:translateX(400px) rotate(-15deg);opacity:0}
+    100%{opacity:0}
+  }
+
+  /* Pulsing glow ring behind headline */
+  .glow-ring{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:500px;height:500px;border-radius:50%;
+    border:1px solid rgba(6,182,212,0.1);
+    box-shadow:0 0 80px rgba(6,182,212,0.05),inset 0 0 80px rgba(6,182,212,0.03);
+    animation:ringPulse 4s ease-in-out infinite;
+    z-index:0;
+  }
+  .glow-ring::after{
+    content:'';position:absolute;inset:40px;border-radius:50%;
+    border:1px solid rgba(6,182,212,0.06);
+    animation:ringPulse 4s ease-in-out infinite 0.5s;
+  }
+  @keyframes ringPulse{
+    0%,100%{transform:translate(-50%,-50%) scale(1);opacity:0.5}
+    50%{transform:translate(-50%,-50%) scale(1.08);opacity:0.8}
+  }
+
+  .hero-content{position:relative;z-index:2}
+  .hero-badge{
+    display:inline-flex;align-items:center;gap:8px;
+    background:rgba(6,182,212,0.08);border:1px solid rgba(6,182,212,0.15);
+    backdrop-filter:blur(12px);padding:8px 20px;border-radius:50px;
+    font-size:13px;color:var(--accent);margin-bottom:32px;
+    animation:fadeUp .6s ease-out;
+  }
+  .hero-badge svg{width:16px;height:16px}
+
+  .hero h1{
+    font-size:clamp(52px,9vw,100px);font-weight:700;line-height:0.98;
+    letter-spacing:-4px;margin-bottom:28px;
+    animation:fadeUp .7s ease-out .1s both;
+  }
+  .hero h1 .accent{
+    color:var(--accent);
+    text-shadow:0 0 60px rgba(6,182,212,0.4),0 0 120px rgba(6,182,212,0.15);
+    animation:textGlow 3s ease-in-out infinite;
+  }
+  @keyframes textGlow{
+    0%,100%{text-shadow:0 0 40px rgba(6,182,212,0.3),0 0 80px rgba(6,182,212,0.1)}
+    50%{text-shadow:0 0 60px rgba(6,182,212,0.5),0 0 120px rgba(6,182,212,0.2)}
+  }
+
+  .hero-sub{font-size:19px;color:#64748b;max-width:520px;line-height:1.7;margin-bottom:44px;animation:fadeUp .7s ease-out .2s both}
+
+  .hero-ctas{display:flex;gap:16px;align-items:center;animation:fadeUp .7s ease-out .3s both}
+  .btn-accent{
+    background:var(--accent);color:#000;padding:18px 40px;border-radius:14px;
+    font-size:17px;font-weight:700;cursor:pointer;text-decoration:none;
+    box-shadow:0 0 50px var(--glow),0 4px 20px rgba(0,0,0,0.3);
+    transition:transform .2s,box-shadow .3s;
+    animation:btnPulse 3s ease-in-out infinite;
+  }
+  @keyframes btnPulse{
+    0%,100%{box-shadow:0 0 40px rgba(6,182,212,0.3),0 4px 20px rgba(0,0,0,0.3)}
+    50%{box-shadow:0 0 70px rgba(6,182,212,0.5),0 4px 20px rgba(0,0,0,0.3)}
+  }
+  .btn-accent:hover{transform:translateY(-3px);box-shadow:0 0 80px rgba(6,182,212,0.5)}
+  .btn-ghost{color:#94a3b8;padding:18px 32px;border-radius:14px;font-size:17px;cursor:pointer;text-decoration:none;border:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:10px;transition:border-color .2s}
+  .btn-ghost:hover{border-color:rgba(255,255,255,0.2);color:#e2e8f0}
+  .btn-ghost svg{width:20px;height:20px}
+
+  .trust-line{margin-top:24px;font-size:13px;color:#334155;animation:fadeUp .7s ease-out .35s both}
+  .trust-line span{color:#22c55e}
+
+  /* Animated counter stats */
+  .hero-stats{
+    display:flex;gap:48px;margin-top:72px;
+    animation:fadeUp .8s ease-out .5s both;
+  }
+  .hero-stat{text-align:center}
+  .hero-stat-num{
+    font-family:'Space Grotesk',sans-serif;font-size:40px;font-weight:700;
+    color:var(--accent);
+    text-shadow:0 0 30px rgba(6,182,212,0.3);
+  }
+  .hero-stat-label{font-size:12px;color:#475569;text-transform:uppercase;letter-spacing:1.5px;margin-top:4px}
+  .hero-stat-divider{width:1px;background:rgba(255,255,255,0.06);align-self:stretch}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+  /* ========== REST OF PAGE ========== */
+  .section{padding:120px 48px;max-width:1100px;margin:0 auto;position:relative;z-index:1}
+  .section-badge{font-size:12px;text-transform:uppercase;letter-spacing:2px;font-weight:600;margin-bottom:16px;color:var(--accent);text-align:center;display:flex;align-items:center;gap:8px;justify-content:center}
+  .section-badge svg{width:16px;height:16px}
+  .section-title{font-size:clamp(32px,5vw,52px);font-weight:700;letter-spacing:-1.5px;margin-bottom:16px;text-align:center;line-height:1.08}
+  .section-sub{font-size:17px;color:#64748b;max-width:480px;margin:0 auto 64px;line-height:1.6;text-align:center}
+
+  .pain-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .pain-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:16px;padding:32px 24px;transition:border-color .3s,transform .2s;cursor:pointer}
+  .pain-card:hover{border-color:rgba(239,68,68,0.2);transform:translateY(-3px)}
+  .pain-card .icon{width:44px;height:44px;border-radius:12px;background:rgba(239,68,68,0.08);color:#f87171;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+  .pain-card .icon svg{width:22px;height:22px}
+  .pain-card h3{font-size:17px;font-weight:600;margin-bottom:8px}
+  .pain-card p{font-size:14px;color:#64748b;line-height:1.6}
+
+  .feature-row{display:flex;gap:32px;align-items:center;margin-bottom:80px}
+  .feature-row.reverse{flex-direction:row-reverse}
+  .feature-text{flex:1}
+  .feature-text .tag{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--accent);font-weight:600;margin-bottom:8px}
+  .feature-text h3{font-size:28px;font-weight:700;letter-spacing:-0.5px;margin-bottom:12px}
+  .feature-text p{font-size:15px;color:#64748b;line-height:1.7}
+  .feature-visual{flex:1;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:16px;padding:24px;min-height:240px}
+  .feature-visual .mini-stat{font-size:36px;font-weight:700;margin-bottom:4px}
+  .feature-visual .label{font-size:12px;color:#64748b}
+  .mini-chart{display:flex;gap:3px;align-items:flex-end;height:80px;margin-top:16px}
+  .mini-bar{flex:1;border-radius:3px 3px 0 0}
+  .mli{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13px;color:#cbd5e1}
+  .mli:last-child{border:none}
+  .ms{padding:3px 10px;border-radius:6px;font-size:10px;font-weight:600}
+
+  .app-frame{max-width:900px;margin:0 auto;background:rgba(17,24,39,0.7);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.06);border-radius:20px;overflow:hidden;box-shadow:0 50px 120px rgba(6,182,212,0.08)}
+  .app-bar{display:flex;align-items:center;gap:8px;padding:14px 20px;background:rgba(15,23,42,0.5);border-bottom:1px solid rgba(255,255,255,0.04)}
+  .dot{width:12px;height:12px;border-radius:50%}
+  .app-body{padding:24px}
+  .app-tabs{display:flex;gap:4px;margin-bottom:20px}
+  .tab{padding:8px 16px;border-radius:8px;font-size:13px;color:#64748b;cursor:pointer}
+  .tab.active{background:rgba(6,182,212,0.08);color:var(--accent)}
+  .dg{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  .dc{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:10px;padding:16px}
+  .dc .l{font-size:11px;color:#64748b;margin-bottom:4px}
+  .dc .v{font-size:22px;font-weight:700}
+  .tt{width:100%;border-collapse:collapse;font-size:13px}
+  .tt th{text-align:left;color:#475569;font-weight:600;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:11px;text-transform:uppercase;letter-spacing:1px}
+  .tt td{padding:12px;border-bottom:1px solid rgba(255,255,255,0.03);color:#cbd5e1}
+  .st{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600}
+
+  .pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .pc{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:20px;padding:36px 28px;transition:transform .3s;cursor:pointer}
+  .pc:hover{transform:translateY(-4px)}
+  .pc.feat{border-color:rgba(6,182,212,0.2);box-shadow:0 0 60px rgba(6,182,212,0.06)}
+  .pop{background:var(--accent);color:#000;font-size:11px;font-weight:700;padding:5px 14px;border-radius:20px;display:inline-block;margin-bottom:16px}
+  .pn{font-size:20px;font-weight:600;margin-bottom:4px}.pd{font-size:13px;color:#64748b;margin-bottom:20px}
+  .pa{font-size:48px;font-weight:700;letter-spacing:-2px}.pp{font-size:14px;color:#64748b;margin-bottom:24px}
+  .pf{list-style:none;padding:0;margin-bottom:28px}.pf li{font-size:14px;color:#94a3b8;padding:7px 0;display:flex;align-items:center;gap:10px}
+  .pf li svg{width:16px;height:16px;color:var(--accent);flex-shrink:0}
+  .pb{display:block;text-align:center;padding:14px;border-radius:12px;font-size:15px;font-weight:600;text-decoration:none;border:1px solid rgba(255,255,255,0.08);color:#cbd5e1;cursor:pointer;transition:all .2s}
+  .pb:hover{border-color:rgba(6,182,212,0.4);color:#fff}
+  .pb.pfeat{background:var(--accent);color:#000;border:none;box-shadow:0 0 30px var(--glow)}
+
+  .tg{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .tc{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:16px;padding:28px;cursor:pointer;transition:border-color .3s}
+  .tc:hover{border-color:rgba(255,255,255,0.1)}
+  .tcs{color:var(--accent);font-size:14px;margin-bottom:16px;letter-spacing:2px}
+  .tct{font-size:14px;color:#94a3b8;line-height:1.7;margin-bottom:20px}
+  .tca{display:flex;align-items:center;gap:12px}
+  .tcav{width:40px;height:40px;border-radius:50%;background:var(--accent);color:#000;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+
+  .faq-list{max-width:680px;margin:0 auto}
+  .fi{border-bottom:1px solid rgba(255,255,255,0.05);padding:24px 0;cursor:pointer}
+  .fq{font-size:16px;font-weight:600;margin-bottom:10px;display:flex;justify-content:space-between;transition:color .2s}
+  .fi:hover .fq{color:var(--accent)}
+  .fq svg{width:18px;height:18px;color:#475569;flex-shrink:0}
+  .fa{font-size:14px;color:#64748b;line-height:1.7;padding-right:32px}
+
+  .footer-cta{padding:120px 48px;text-align:center;position:relative;z-index:1}
+  .footer-cta::before{content:'';position:absolute;top:50%;left:50%;width:600px;height:300px;background:radial-gradient(ellipse,rgba(6,182,212,0.12) 0%,transparent 70%);transform:translate(-50%,-50%);pointer-events:none}
+  .footer-cta h2{font-size:clamp(36px,5vw,56px);font-weight:700;letter-spacing:-1.5px;margin-bottom:16px;position:relative;z-index:2}
+  .footer-cta p{font-size:17px;color:#64748b;margin-bottom:36px;position:relative;z-index:2}
+
+  footer{padding:48px;border-top:1px solid rgba(255,255,255,0.04);display:flex;justify-content:space-between;font-size:13px;color:#334155;position:relative;z-index:1}
+  footer a{color:#475569;text-decoration:none;cursor:pointer}
+
+  @media(prefers-reduced-motion:reduce){.aurora-ribbon,.shooting-star,.glow-ring,.glow-ring::after,.btn-accent,.hero h1 .accent{animation:none!important;text-shadow:none!important;box-shadow:0 0 30px var(--glow)!important}}
+</style>
+</head>
+<body>
+
+<!-- Interactive particle canvas -->
+<canvas id="bg-canvas"></canvas>
+<script>
+const canvas=document.getElementById('bg-canvas');
+const ctx=canvas.getContext('2d');
+let w,h,particles=[];
+function resize(){w=canvas.width=window.innerWidth;h=canvas.height=window.innerHeight}
+window.addEventListener('resize',resize);resize();
+
+class Particle{
+  constructor(){this.reset()}
+  reset(){
+    this.x=Math.random()*w;this.y=Math.random()*h;
+    this.size=Math.random()*2+0.5;
+    this.speedX=(Math.random()-0.5)*0.3;
+    this.speedY=(Math.random()-0.5)*0.3;
+    this.opacity=Math.random()*0.3+0.05;
+    this.pulse=Math.random()*Math.PI*2;
+    this.pulseSpeed=Math.random()*0.02+0.005;
+  }
+  update(){
+    this.x+=this.speedX;this.y+=this.speedY;
+    this.pulse+=this.pulseSpeed;
+    if(this.x<0||this.x>w||this.y<0||this.y>h)this.reset();
+  }
+  draw(){
+    const o=this.opacity*(0.5+Math.sin(this.pulse)*0.5);
+    ctx.beginPath();
+    ctx.arc(this.x,this.y,this.size,0,Math.PI*2);
+    ctx.fillStyle=`rgba(6,182,212,${o})`;
+    ctx.fill();
+    // glow
+    ctx.beginPath();
+    ctx.arc(this.x,this.y,this.size*3,0,Math.PI*2);
+    ctx.fillStyle=`rgba(6,182,212,${o*0.15})`;
+    ctx.fill();
+  }
+}
+for(let i=0;i<60;i++)particles.push(new Particle());
+
+// Draw connections between nearby particles
+function drawConnections(){
+  for(let i=0;i<particles.length;i++){
+    for(let j=i+1;j<particles.length;j++){
+      const dx=particles[i].x-particles[j].x;
+      const dy=particles[i].y-particles[j].y;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<120){
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x,particles[i].y);
+        ctx.lineTo(particles[j].x,particles[j].y);
+        ctx.strokeStyle=`rgba(6,182,212,${0.03*(1-dist/120)})`;
+        ctx.lineWidth=0.5;
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+function animate(){
+  ctx.clearRect(0,0,w,h);
+  particles.forEach(p=>{p.update();p.draw()});
+  drawConnections();
+  requestAnimationFrame(animate);
+}
+animate();
+
+// Mouse interaction: particles flee from cursor
+let mouseX=-1000,mouseY=-1000;
+window.addEventListener('mousemove',e=>{mouseX=e.clientX;mouseY=e.clientY});
+setInterval(()=>{
+  particles.forEach(p=>{
+    const dx=p.x-mouseX;const dy=p.y-mouseY;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    if(dist<150){
+      p.speedX+=dx/dist*0.05;
+      p.speedY+=dy/dist*0.05;
+    }
+    // dampen
+    p.speedX*=0.99;p.speedY*=0.99;
+  });
+},16);
+</script>
+
+<nav>
+  <div class="nav-logo">Handwerk<span>OS</span></div>
+  <div class="nav-links"><a>Features</a><a>Preise</a><a>Demo</a><a>FAQ</a><a class="nav-cta">Kostenlos testen</a></div>
+</nav>
+
+<section class="hero">
+  <!-- Aurora ribbons -->
+  <div class="aurora">
+    <div class="aurora-ribbon"></div>
+    <div class="aurora-ribbon"></div>
+    <div class="aurora-ribbon"></div>
+    <div class="shooting-star"></div>
+    <div class="shooting-star"></div>
+    <div class="shooting-star"></div>
+  </div>
+  <div class="glow-ring"></div>
+
+  <div class="hero-content">
+    <div class="hero-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>KI-powered Handwerkersoftware</div>
+    <h1>Dein Betrieb.<br/><span class="accent">Neu gedacht.</span></h1>
+    <p class="hero-sub">Angebote in 2 Minuten. Rechnungen per Klick. DATEV auf Knopfdruck. Die Zukunft des Handwerks beginnt hier.</p>
+    <div class="hero-ctas">
+      <a class="btn-accent">Jetzt kostenlos starten</a>
+      <a class="btn-ghost"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"/></svg>Demo ansehen</a>
+    </div>
+    <div class="trust-line"><span>&#9679;</span> 14 Tage kostenlos &middot; Keine Kreditkarte &middot; GoBD-konform</div>
+
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="hero-stat-num">500+</div><div class="hero-stat-label">Betriebe</div></div>
+      <div class="hero-stat-divider"></div>
+      <div class="hero-stat"><div class="hero-stat-num">&lt; 2 Min</div><div class="hero-stat-label">pro Angebot</div></div>
+      <div class="hero-stat-divider"></div>
+      <div class="hero-stat"><div class="hero-stat-num">100%</div><div class="hero-stat-label">GoBD konform</div></div>
+      <div class="hero-stat-divider"></div>
+      <div class="hero-stat"><div class="hero-stat-num">+23%</div><div class="hero-stat-label">mehr Marge</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- Pain -->
+<div class="section">
+  <div class="section-badge" style="color:#f87171"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Das Problem</div>
+  <h2 class="section-title">Kommt dir das bekannt vor?</h2>
+  <div class="section-sub">8 Stunden pro Woche verloren an B&uuml;rokram.</div>
+  <div class="pain-grid">
+    <div class="pain-card"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><h3>Zettelwirtschaft</h3><p>Word, Papier, Excel. Nichts passt zusammen, alles dauert.</p></div>
+    <div class="pain-card"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><h3>Marge verschwindet</h3><p>Ohne Nachkalkulation keine Kontrolle.</p></div>
+    <div class="pain-card"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><h3>B&uuml;ro frisst Zeit</h3><p>Abends Angebote tippen statt Baustelle.</p></div>
+  </div>
+</div>
+
+<!-- Features -->
+<div class="section">
+  <div class="section-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Die L&ouml;sung</div>
+  <h2 class="section-title">Alles in einer Plattform</h2>
+  <div class="section-sub">Vom Kundenkontakt bis zum DATEV-Export.</div>
+  <div class="feature-row"><div class="feature-text"><div class="tag">Dashboard</div><h3>Echtzeit-&Uuml;berblick</h3><p>Umsatz, Auslastung, offene Posten &mdash; alles auf einen Blick.</p></div><div class="feature-visual"><div class="mini-stat" style="color:#22c55e">&euro;142.800</div><div class="label">Umsatz Q1</div><div class="mini-chart"><div class="mini-bar" style="height:30%;background:rgba(6,182,212,0.15)"></div><div class="mini-bar" style="height:45%;background:rgba(6,182,212,0.2)"></div><div class="mini-bar" style="height:60%;background:rgba(6,182,212,0.3)"></div><div class="mini-bar" style="height:52%;background:rgba(6,182,212,0.35)"></div><div class="mini-bar" style="height:72%;background:rgba(6,182,212,0.45)"></div><div class="mini-bar" style="height:80%;background:rgba(6,182,212,0.55)"></div><div class="mini-bar" style="height:88%;background:rgba(6,182,212,0.7)"></div><div class="mini-bar" style="height:100%;background:var(--accent)"></div></div></div></div>
+  <div class="feature-row reverse"><div class="feature-text"><div class="tag">Projekte</div><h3>Vom Angebot zur Rechnung</h3><p>Jedes Projekt im Blick. Status, Budget, Nachkalkulation.</p></div><div class="feature-visual"><div class="mli"><span>EFH M&uuml;ller</span><span class="ms" style="background:rgba(34,197,94,0.12);color:#4ade80">Aktiv</span></div><div class="mli"><span>Altbau Hauptstr.</span><span class="ms" style="background:rgba(234,179,8,0.12);color:#facc15">Material</span></div><div class="mli"><span>PV-Anlage Schmidt</span><span class="ms" style="background:rgba(6,182,212,0.12);color:var(--accent)">Angebot</span></div><div class="mli"><span>Ladestation TG</span><span class="ms" style="background:rgba(34,197,94,0.12);color:#4ade80">Aktiv</span></div></div></div>
+  <div class="feature-row"><div class="feature-text"><div class="tag">KI-Kalkulation</div><h3>Angebote in 2 Minuten</h3><p>KI lernt aus deinen Projekten und schl&auml;gt Preise vor.</p></div><div class="feature-visual" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center"><div class="mini-stat" style="color:var(--accent);font-size:56px">&lt; 2 Min</div><div class="label">statt 45 Min</div></div></div>
+</div>
+
+<!-- App Preview -->
+<div class="section">
+  <div class="section-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Live Preview</div>
+  <h2 class="section-title">Dein neues Cockpit</h2><div class="section-sub"></div>
+  <div class="app-frame"><div class="app-bar"><div class="dot" style="background:#ef4444"></div><div class="dot" style="background:#eab308"></div><div class="dot" style="background:#22c55e"></div><span style="margin-left:12px;font-size:12px;color:#475569">HandwerkOS</span></div><div class="app-body"><div class="app-tabs"><div class="tab active">Dashboard</div><div class="tab">Projekte</div><div class="tab">Angebote</div><div class="tab">Rechnungen</div><div class="tab">Team</div></div><div class="dg"><div class="dc"><div class="l">Umsatz MTD</div><div class="v" style="color:#22c55e">&euro;48.320</div></div><div class="dc"><div class="l">Angebote</div><div class="v" style="color:#eab308">8</div></div><div class="dc"><div class="l">Projekte</div><div class="v" style="color:var(--accent)">12</div></div><div class="dc"><div class="l">Auslastung</div><div class="v">87%</div></div></div><table class="tt"><thead><tr><th>Projekt</th><th>Kunde</th><th>Status</th><th>Wert</th></tr></thead><tbody><tr><td>Elektroinstallation EFH</td><td>Fam. M&uuml;ller</td><td><span class="st" style="background:rgba(34,197,94,0.12);color:#4ade80">Aktiv</span></td><td>&euro;12.450</td></tr><tr><td>Sanierung Altbau</td><td>Hausverwaltung</td><td><span class="st" style="background:rgba(234,179,8,0.12);color:#facc15">Material</span></td><td>&euro;34.800</td></tr><tr><td>PV Dachanlage</td><td>Hr. Schmidt</td><td><span class="st" style="background:rgba(6,182,212,0.12);color:var(--accent)">Angebot</span></td><td>&euro;18.900</td></tr></tbody></table></div></div>
+</div>
+
+<!-- Pricing -->
+<div class="section">
+  <div class="section-badge" style="color:#22c55e"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Preise</div>
+  <h2 class="section-title">Einfach. Transparent. Fair.</h2><div class="section-sub">Starte kostenlos, upgrade wenn du w&auml;chst.</div>
+  <div class="pricing-grid">
+    <div class="pc"><div class="pn">Starter</div><div class="pd">Einzelunternehmer</div><div class="pa">&euro;29</div><div class="pp">/ Monat</div><ul class="pf"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>3 Mitarbeiter</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>10 Projekte</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Angebote &amp; Kunden</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Zeiterfassung</li></ul><a class="pb">14 Tage kostenlos</a></div>
+    <div class="pc feat"><div class="pop">Beliebt</div><div class="pn">Handwerker</div><div class="pd">Wachsende Betriebe</div><div class="pa">&euro;59</div><div class="pp">/ Monat</div><ul class="pf"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>10 Mitarbeiter</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unbegrenzte Projekte</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>KI-Kalkulation</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>E-Rechnung &amp; OCR</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Mitarbeiterverwaltung</li></ul><a class="pb pfeat">14 Tage kostenlos</a></div>
+    <div class="pc"><div class="pn">Meisterbetrieb</div><div class="pd">Etablierte Teams</div><div class="pa">&euro;99</div><div class="pp">/ Monat</div><ul class="pf"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unbegrenzt</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>VDE-Protokolle</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>DATEV Export</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>API &amp; Priorit&auml;t</li></ul><a class="pb">14 Tage kostenlos</a></div>
+  </div>
+</div>
+
+<!-- Testimonials -->
+<div class="section">
+  <div class="section-badge" style="color:#fbbf24"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Stimmen</div>
+  <h2 class="section-title">Was Handwerker sagen</h2><div style="height:56px"></div>
+  <div class="tg">
+    <div class="tc"><div class="tcs">&#9733;&#9733;&#9733;&#9733;&#9733;</div><div class="tct">"Spare jeden Tag eine Stunde. Angebote in Minuten."</div><div class="tca"><div class="tcav">MK</div><div><div style="font-size:14px;font-weight:600">Markus K.</div><div style="font-size:12px;color:#64748b">Elektromeister, MG</div></div></div></div>
+    <div class="tc"><div class="tcs">&#9733;&#9733;&#9733;&#9733;&#9733;</div><div class="tct">"Nachkalkulation zeigt sofort wo ich nachbessern muss."</div><div class="tca"><div class="tcav">SW</div><div><div style="font-size:14px;font-weight:600">Sandra W.</div><div style="font-size:12px;color:#64748b">SHK, D&uuml;sseldorf</div></div></div></div>
+    <div class="tc"><div class="tcs">&#9733;&#9733;&#9733;&#9733;&#9733;</div><div class="tct">"DATEV-Export spart monatlich einen halben Tag."</div><div class="tca"><div class="tcav">TH</div><div><div style="font-size:14px;font-weight:600">Thomas H.</div><div style="font-size:12px;color:#64748b">Maler, K&ouml;ln</div></div></div></div>
+  </div>
+</div>
+
+<!-- FAQ -->
+<div class="section">
+  <div class="section-badge" style="color:#38bdf8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>FAQ</div>
+  <h2 class="section-title">H&auml;ufige Fragen</h2><div style="height:48px"></div>
+  <div class="faq-list">
+    <div class="fi"><div class="fq">Brauche ich technische Vorkenntnisse?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div><div class="fa">Nein. So einfach wie WhatsApp.</div></div>
+    <div class="fi"><div class="fq">Kann ich Daten importieren?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div><div class="fa">Ja. Excel, CSV und g&auml;ngige Programme.</div></div>
+    <div class="fi"><div class="fq">GoBD-konform?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div><div class="fa">Ja. Revisionssicher mit Audit-Log.</div></div>
+    <div class="fi"><div class="fq">Jederzeit k&uuml;ndbar?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div><div class="fa">Monatlich. Keine Laufzeit.</div></div>
+  </div>
+</div>
+
+<section class="footer-cta">
+  <h2>Bereit durchzustarten?</h2>
+  <p>14 Tage kostenlos. Keine Kreditkarte.</p>
+  <a class="btn-accent" style="display:inline-block;position:relative;z-index:2">Jetzt kostenlos starten</a>
+</section>
+
+<footer><div>&copy; 2026 HandwerkOS</div><div style="display:flex;gap:24px"><a>Datenschutz</a><a>Impressum</a><a>AGB</a></div></footer>
+
+</body>
+</html>

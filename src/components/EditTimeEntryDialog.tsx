@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface TimeEntry {
   id: string;
   employee_id: string;
+  company_id?: string | null;
   project_id?: string;
   start_time: string;
   end_time?: string;
@@ -59,6 +60,7 @@ const EditTimeEntryDialog: React.FC<EditTimeEntryDialogProps> = ({
   const [selectedProject, setSelectedProject] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState('');
+  const [correctionReason, setCorrectionReason] = useState('');
   const [saving, setSaving] = useState(false);
   
   const { toast } = useToast();
@@ -82,19 +84,54 @@ const EditTimeEntryDialog: React.FC<EditTimeEntryDialogProps> = ({
       setSelectedProject(timeEntry.project_id || '');
       setDescription(timeEntry.description || '');
       setStatus(timeEntry.status);
+      setCorrectionReason('');
     }
   }, [timeEntry]);
+
+  const buildDateTime = (date: string, time: string) => {
+    if (!date || !time) return null;
+    return new Date(`${date}T${time}`).toISOString();
+  };
+
+  const changedTimeFields = () => {
+    if (!timeEntry) return false;
+
+    const nextStart = buildDateTime(startDate, startTime);
+    const nextEnd = buildDateTime(endDate, endTime);
+    const originalStart = new Date(timeEntry.start_time).getTime();
+    const originalEnd = timeEntry.end_time ? new Date(timeEntry.end_time).getTime() : null;
+    const startChanged = nextStart ? new Date(nextStart).getTime() !== originalStart : true;
+    const endChanged = nextEnd ? new Date(nextEnd).getTime() !== originalEnd : originalEnd !== null;
+    const breakChanged = Number(breakDuration || 0) !== Number(timeEntry.break_duration || 0);
+
+    return startChanged || endChanged || breakChanged;
+  };
 
   const handleSave = async () => {
     if (!timeEntry) return;
 
     setSaving(true);
     try {
-      const startDateTime = new Date(`${startDate}T${startTime}`).toISOString();
-      let endDateTime = null;
-      
-      if (endDate && endTime) {
-        endDateTime = new Date(`${endDate}T${endTime}`).toISOString();
+      const startDateTime = buildDateTime(startDate, startTime);
+      const endDateTime = buildDateTime(endDate, endTime);
+      const requiresCorrectionReason = changedTimeFields();
+
+      if (!startDateTime) {
+        toast({
+          title: "Startzeit fehlt",
+          description: "Bitte Startdatum und Startzeit vollständig angeben.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (requiresCorrectionReason && correctionReason.trim().length < 5) {
+        toast({
+          title: "Korrekturgrund fehlt",
+          description: "Bitte kurz begründen, warum die Zeit nachträglich geändert wird.",
+          variant: "destructive"
+        });
+        return;
       }
 
       const updateData = {
@@ -112,6 +149,38 @@ const EditTimeEntryDialog: React.FC<EditTimeEntryDialogProps> = ({
         .eq('id', timeEntry.id);
 
       if (error) throw error;
+
+      if (requiresCorrectionReason) {
+        const { data: currentUser } = await supabase.auth.getUser();
+        let approvedBy: string | null = null;
+
+        if (currentUser.user && timeEntry.company_id) {
+          const { data: managerEmployee } = await supabase
+            .from('employees')
+            .select('id')
+            .eq('user_id', currentUser.user.id)
+            .eq('company_id', timeEntry.company_id)
+            .maybeSingle();
+          approvedBy = managerEmployee?.id ?? null;
+        }
+
+        const { error: correctionError } = await supabase.from('time_entry_corrections').insert({
+          time_entry_id: timeEntry.id,
+          company_id: timeEntry.company_id ?? null,
+          requested_by: timeEntry.employee_id,
+          approved_by: approvedBy,
+          original_start_time: timeEntry.start_time,
+          original_end_time: timeEntry.end_time || null,
+          corrected_start_time: startDateTime,
+          corrected_end_time: endDateTime,
+          original_description: timeEntry.description || null,
+          corrected_description: description || null,
+          correction_reason: correctionReason.trim(),
+          status: 'approved',
+        });
+
+        if (correctionError) throw correctionError;
+      }
 
       toast({
         title: "Zeiteintrag aktualisiert",
@@ -133,6 +202,7 @@ const EditTimeEntryDialog: React.FC<EditTimeEntryDialogProps> = ({
   };
 
   if (!timeEntry) return null;
+  const needsCorrectionReason = changedTimeFields();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -238,6 +308,18 @@ const EditTimeEntryDialog: React.FC<EditTimeEntryDialogProps> = ({
               onChange={(e) => setDescription(e.target.value)}
             />
           </div>
+
+          {needsCorrectionReason && (
+            <div className="space-y-2 rounded-md border border-amber-200 bg-amber-50 p-3">
+              <Label htmlFor="correction-reason">Grund der nachträglichen Zeitänderung</Label>
+              <Textarea
+                id="correction-reason"
+                placeholder="z. B. früherer Baustellenbeginn, vergessene Pause, nachgetragene Endzeit..."
+                value={correctionReason}
+                onChange={(e) => setCorrectionReason(e.target.value)}
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-2">

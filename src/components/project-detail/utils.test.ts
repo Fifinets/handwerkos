@@ -6,6 +6,8 @@ import {
   getStatusConfig,
   generateShortId,
   formatFileSize,
+  formatHours,
+  calculateProfitability,
 } from './utils';
 
 describe('formatCurrency', () => {
@@ -245,5 +247,65 @@ describe('formatFileSize', () => {
     // The source code only goes up to MB, so GB values will show as large MB
     const oneGB = 1024 * 1024 * 1024;
     expect(formatFileSize(oneGB)).toBe('1024.0 MB');
+  });
+});
+
+describe('formatHours', () => {
+  it('formats whole hours with one decimal and German comma', () => {
+    expect(formatHours(17)).toBe('17,0');
+  });
+
+  it('keeps one decimal place for fractional hours', () => {
+    expect(formatHours(1.5)).toBe('1,5');
+  });
+
+  it('rounds to one decimal place', () => {
+    expect(formatHours(12.25)).toBe('12,3');
+  });
+
+  it('formats zero', () => {
+    expect(formatHours(0)).toBe('0,0');
+  });
+});
+
+describe('calculateProfitability', () => {
+  it('zählt nur akzeptierte Angebote als Erlös', () => {
+    const result = calculateProfitability(
+      [
+        { status: 'accepted', snapshot_net_total: 100 },
+        { status: 'sent', snapshot_net_total: 500 },
+        { status: 'rejected', snapshot_net_total: 300 },
+      ],
+      50
+    );
+
+    expect(result.acceptedCount).toBe(1);
+    expect(result.revenueNet).toBe(100);
+  });
+
+  it('berechnet den Deckungsbeitrag als Netto-Erlös minus interne Kosten', () => {
+    const result = calculateProfitability(
+      [{ status: 'accepted', snapshot_net_total: 124.52 }],
+      1057.4
+    );
+
+    expect(result.margin).toBeCloseTo(-932.88, 2);
+  });
+
+  it('fällt ohne snapshot_net_total näherungsweise auf Brutto durch 1,19 zurück', () => {
+    const result = calculateProfitability(
+      [{ status: 'accepted', snapshot_net_total: null, snapshot_gross_total: 119 }],
+      0
+    );
+
+    expect(result.revenueNet).toBeCloseTo(100, 2);
+  });
+
+  it('liefert ohne Angebote null Erlös und negative Marge in Kostenhöhe', () => {
+    const result = calculateProfitability([], 200);
+
+    expect(result.acceptedCount).toBe(0);
+    expect(result.revenueNet).toBe(0);
+    expect(result.margin).toBe(-200);
   });
 });

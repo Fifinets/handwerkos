@@ -50,12 +50,19 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
     Offer,
     OfferWithRelations,
-    OfferStatus,
-    OFFER_STATUS_LABELS,
 } from "@/types/offer";
 import {
     useOffers,
@@ -73,25 +80,14 @@ import AddOfferDialog from "./AddOfferDialog";
 import OfferDetailView from "./OfferDetailView";
 import { ShareLinkDialog } from "./offers/ShareLinkDialog";
 import { useCreatePaymentLink } from "@/hooks/useSubscription";
-
-function getNachfassBadge(offer: { status: string; sent_at?: string | null; valid_until?: string | null }) {
-    if (offer.status !== 'sent') return null;
-    if (!offer.sent_at) return null;
-
-    // Check if expired
-    if (offer.valid_until && new Date(offer.valid_until) < new Date()) return null;
-
-    const daysSinceSent = Math.floor(
-        (Date.now() - new Date(offer.sent_at).getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    if (daysSinceSent < 7) return null;
-
-    return {
-        days: daysSinceSent,
-        severity: daysSinceSent >= 14 ? 'high' as const : 'medium' as const,
-    };
-}
+import {
+    filterOffersForOverview,
+    getNachfassInfo,
+    getOfferStatusCounts,
+    hasActiveAdvancedFilters,
+    type OfferAdvancedFilters,
+    type OfferStatusFilter,
+} from "./offers/offerModuleUtils";
 
 interface OfferModuleProps {
     customerId?: string;
@@ -105,7 +101,9 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
     const [nachfassenFilter, setNachfassenFilter] = useState(
         searchParams.get('filter') === 'nachfassen'
     );
-    const [statusFilter, setStatusFilter] = useState<OfferStatus | 'all'>('all');
+    const [statusFilter, setStatusFilter] = useState<OfferStatusFilter>('all');
+    const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
+    const [advancedFilters, setAdvancedFilters] = useState<OfferAdvancedFilters>({});
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
     const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
@@ -117,12 +115,6 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
     const [shareLinkData, setShareLinkData] = useState<{ link: string; offerNumber: string; customerName: string; projectName: string; customerEmail: string } | null>(null);
 
     const filters: Record<string, any> = {};
-    if (searchTerm.length >= 2) {
-        filters.search = searchTerm;
-    }
-    if (statusFilter !== 'all') {
-        filters.status = statusFilter;
-    }
     if (customerId) {
         filters.customer_id = customerId;
     }
@@ -142,31 +134,26 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
 
     const offers = offersResponse?.items || [];
 
+    const statusCounts = useMemo(() => getOfferStatusCounts(offers), [offers]);
+
     const nachfassenCount = useMemo(() =>
-        offers.filter(o => getNachfassBadge(o) !== null).length,
+        filterOffersForOverview(offers, { nachfassenOnly: true }).length,
         [offers]
     );
 
-    // Apply Nachfassen filter first, then existing search filter
-    const nachfassenFilteredOffers = useMemo(() => {
-        if (!nachfassenFilter) return offers;
-        return offers.filter(offer => getNachfassBadge(offer) !== null);
-    }, [offers, nachfassenFilter]);
+    const filteredOffers = useMemo(() => filterOffersForOverview(offers, {
+        statusFilter,
+        searchTerm,
+        nachfassenOnly: nachfassenFilter,
+        advancedFilters,
+    }), [advancedFilters, nachfassenFilter, offers, searchTerm, statusFilter]);
 
-    const filteredOffers = searchTerm.length >= 2 ? nachfassenFilteredOffers : nachfassenFilteredOffers.filter(offer =>
-        (offer.offer_number && offer.offer_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (offer.project_name && offer.project_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (offer.customer_name && offer.customer_name.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-
-    const statusCounts = {
-        draft: offers.filter(o => o.status === 'draft').length,
-        sent: offers.filter(o => o.status === 'sent').length,
-        accepted: offers.filter(o => o.status === 'accepted').length,
-        rejected: offers.filter(o => o.status === 'rejected').length,
-        expired: offers.filter(o => o.status === 'expired').length,
-        cancelled: offers.filter(o => o.status === 'cancelled').length,
-    };
+    const activeAdvancedFilterCount = [
+        advancedFilters.fromDate,
+        advancedFilters.toDate,
+        advancedFilters.minAmount,
+        advancedFilters.maxAmount,
+    ].filter(Boolean).length;
 
     const getDaysUntilExpiry = (validUntil?: string): number | null => {
         if (!validUntil) return null;
@@ -425,11 +412,11 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
             <Tabs
                 defaultValue="all"
                 value={statusFilter}
-                onValueChange={(value) => setStatusFilter(value as OfferStatus | 'all')}
+                onValueChange={(value) => setStatusFilter(value as OfferStatusFilter)}
                 className="space-y-6"
             >
                 <TabsList className="bg-slate-100/50 p-1 border border-slate-200">
-                    <TabsTrigger value="all" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Alle ({offers.length})</TabsTrigger>
+                    <TabsTrigger value="all" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Alle ({statusCounts.all})</TabsTrigger>
                     <TabsTrigger value="draft" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Entwürfe ({statusCounts.draft})</TabsTrigger>
                     <TabsTrigger value="sent" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Versendet ({statusCounts.sent})</TabsTrigger>
                     <TabsTrigger value="accepted" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Angenommen ({statusCounts.accepted})</TabsTrigger>
@@ -449,9 +436,21 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                             className="pl-9 bg-white border-slate-200"
                         />
                     </div>
-                    <Button variant="outline" className="bg-white border-slate-200">
+                    <Button
+                        variant={hasActiveAdvancedFilters(advancedFilters) ? 'default' : 'outline'}
+                        className={cn(
+                            "border-slate-200",
+                            hasActiveAdvancedFilters(advancedFilters) ? "bg-slate-900 text-white" : "bg-white"
+                        )}
+                        onClick={() => setIsFilterDialogOpen(true)}
+                    >
                         <Filter className="h-4 w-4 mr-2" />
                         Filter
+                        {activeAdvancedFilterCount > 0 && (
+                            <Badge variant="secondary" className="ml-2 text-[10px] px-1.5 py-0">
+                                {activeAdvancedFilterCount}
+                            </Badge>
+                        )}
                     </Button>
                     <Button
                         variant={nachfassenFilter ? 'default' : 'outline'}
@@ -556,7 +555,7 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                             <User className="h-3.5 w-3.5 text-slate-400" />
                                                             <span className="truncate max-w-[200px]">{offer.customer_name}</span>
                                                             {(() => {
-                                                                const nachfass = getNachfassBadge(offer);
+                                                                const nachfass = getNachfassInfo(offer);
                                                                 if (!nachfass) return null;
                                                                 return (
                                                                     <Badge
@@ -704,7 +703,88 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                 </TabsContent>
             </Tabs>
 
-
+            <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
+                <DialogContent className="sm:max-w-[480px]">
+                    <DialogHeader>
+                        <DialogTitle>Angebote filtern</DialogTitle>
+                        <DialogDescription>
+                            Grenzen Sie die Liste nach Angebotsdatum und Bruttobetrag ein.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="space-y-2">
+                                <Label htmlFor="offer-filter-from">Von Datum</Label>
+                                <Input
+                                    id="offer-filter-from"
+                                    type="date"
+                                    value={advancedFilters.fromDate || ''}
+                                    onChange={(event) => setAdvancedFilters((current) => ({
+                                        ...current,
+                                        fromDate: event.target.value,
+                                    }))}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="offer-filter-to">Bis Datum</Label>
+                                <Input
+                                    id="offer-filter-to"
+                                    type="date"
+                                    value={advancedFilters.toDate || ''}
+                                    onChange={(event) => setAdvancedFilters((current) => ({
+                                        ...current,
+                                        toDate: event.target.value,
+                                    }))}
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="space-y-2">
+                                <Label htmlFor="offer-filter-min">Mindestbetrag</Label>
+                                <Input
+                                    id="offer-filter-min"
+                                    type="number"
+                                    min="0"
+                                    inputMode="decimal"
+                                    placeholder="0"
+                                    value={advancedFilters.minAmount || ''}
+                                    onChange={(event) => setAdvancedFilters((current) => ({
+                                        ...current,
+                                        minAmount: event.target.value,
+                                    }))}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="offer-filter-max">Höchstbetrag</Label>
+                                <Input
+                                    id="offer-filter-max"
+                                    type="number"
+                                    min="0"
+                                    inputMode="decimal"
+                                    placeholder="Keine Grenze"
+                                    value={advancedFilters.maxAmount || ''}
+                                    onChange={(event) => setAdvancedFilters((current) => ({
+                                        ...current,
+                                        maxAmount: event.target.value,
+                                    }))}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button
+                            variant="outline"
+                            onClick={() => setAdvancedFilters({})}
+                            disabled={!hasActiveAdvancedFilters(advancedFilters)}
+                        >
+                            Zurücksetzen
+                        </Button>
+                        <Button onClick={() => setIsFilterDialogOpen(false)}>
+                            Anwenden
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <AddOfferDialog
                 isOpen={isAddDialogOpen}

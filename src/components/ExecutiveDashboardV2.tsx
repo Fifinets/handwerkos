@@ -24,7 +24,11 @@ import {
     Mail,
     Wrench,
     ShieldCheck,
-    Crown
+    Crown,
+    Calculator,
+    FileWarning,
+    ReceiptText,
+    AlertTriangle
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -36,6 +40,13 @@ import { useToast } from '@/hooks/use-toast';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { format, subMonths } from 'date-fns';
 import { de } from 'date-fns/locale';
+import {
+    createDashboardInsights,
+    type DashboardInsights,
+    type DashboardOfferTarget,
+    type DashboardProjectAddendum,
+    type DashboardProjectRisk
+} from '@/lib/dashboardInsights';
 
 // --- Types ---
 interface DashboardData {
@@ -64,6 +75,7 @@ interface DashboardData {
         todayHours: number;
         utilizationRate: number;
     };
+    marginProtection: DashboardInsights;
 }
 
 interface ExecutiveDashboardV2Props {
@@ -71,6 +83,26 @@ interface ExecutiveDashboardV2Props {
 }
 
 const COLORS = ['#0ea5e9', '#10b981', '#f59e0b', '#f43f5e'];
+
+const emptyMarginProtection: DashboardInsights = {
+    riskyProjects: [],
+    criticalCount: 0,
+    openAddendumCount: 0,
+    invoiceReadyCount: 0,
+    missingCalculationCount: 0,
+};
+
+const getRiskBadgeClass = (riskLevel: DashboardProjectRisk['riskLevel']) => {
+    if (riskLevel === 'critical') return 'bg-rose-100 text-rose-800 border-rose-200';
+    if (riskLevel === 'warning') return 'bg-amber-100 text-amber-800 border-amber-200';
+    return 'bg-slate-100 text-slate-700 border-slate-200';
+};
+
+const getRiskLabel = (riskLevel: DashboardProjectRisk['riskLevel']) => {
+    if (riskLevel === 'critical') return 'Kritisch';
+    if (riskLevel === 'warning') return 'Prüfen';
+    return 'Info';
+};
 
 const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate }) => {
     const [timeframe, setTimeframe] = useState('this-month');
@@ -84,6 +116,7 @@ const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate 
         financialKPIs: { monthlyRevenue: 0, monthlyExpenses: 0, profit: 0, profitMargin: 0, outstandingAmount: 0, revenuetrend: 0 },
         projectStatus: { active: 0, planning: 0, completed: 0, delayed: 0 },
         teamOverview: { activeEmployees: 0, todayHours: 0, utilizationRate: 0 },
+        marginProtection: emptyMarginProtection,
     });
 
     useEffect(() => {
@@ -98,12 +131,59 @@ const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate 
             setLoading(true);
 
             // Parallel queries
-            const [invoicesRes, expensesRes, projectsRes, employeesRes, offersRes] = await Promise.all([
-                supabase.from('invoices').select('id, invoice_date, gross_amount, net_amount, status, due_date').eq('company_id', companyId),
+            const [
+                invoicesRes,
+                expensesRes,
+                projectsRes,
+                employeesRes,
+                offersRes,
+                acceptedOffersRes,
+                workHoursRes,
+                projectTimeEntriesRes,
+                materialUsageRes,
+                projectAddendumsRes,
+            ] = await Promise.all([
+                supabase.from('invoices').select('id, invoice_date, gross_amount, net_amount, status, due_date, project_id').eq('company_id', companyId),
                 supabase.from('expenses').select('id, expense_date, amount').eq('company_id', companyId),
-                supabase.from('projects').select('id, status').eq('company_id', companyId),
+                supabase
+                    .from('projects')
+                    .select('id, name, status, start_date, end_date, work_end_date, completed_at, description, budget, labor_costs, material_costs')
+                    .eq('company_id', companyId),
                 supabase.from('employees').select('id, status').eq('company_id', companyId).eq('status', 'Aktiv'),
                 supabase.from('offers').select('id, status').eq('company_id', companyId).in('status', ['sent', 'pending', 'versendet']),
+                supabase
+                    .from('offers')
+                    .select(`
+                        id,
+                        project_id,
+                        snapshot_net_total,
+                        offer_targets(
+                            planned_hours_total,
+                            planned_material_cost_total,
+                            planned_other_cost,
+                            snapshot_target_cost,
+                            snapshot_target_margin,
+                            snapshot_target_revenue
+                        )
+                    `)
+                    .eq('company_id', companyId)
+                    .eq('status', 'accepted')
+                    .not('project_id', 'is', null),
+                supabase.from('project_work_hours').select('project_id, hours_worked, work_description'),
+                supabase
+                    .from('time_entries')
+                    .select('project_id, description, start_time, end_time, break_duration')
+                    .eq('company_id', companyId)
+                    .not('project_id', 'is', null),
+                supabase
+                    .from('employee_material_usage')
+                    .select('project_id, quantity_used, materials(unit_price), projects!inner(company_id)')
+                    .eq('projects.company_id', companyId)
+                    .not('project_id', 'is', null),
+                (supabase as any)
+                    .from('project_addendums')
+                    .select('id, project_id, status')
+                    .eq('company_id', companyId),
             ]);
 
             const invoices = invoicesRes.data || [];
@@ -111,9 +191,50 @@ const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate 
             const projects = projectsRes.data || [];
             const employees = employeesRes.data || [];
             const offers = offersRes.data || [];
+            const acceptedOfferRows = (acceptedOffersRes.data || []) as Array<{
+                id: string;
+                project_id: string | null;
+                snapshot_net_total: number | null;
+                offer_targets?: unknown;
+            }>;
+            const materialUsageRows = (materialUsageRes.data || []) as Array<{
+                project_id: string | null;
+                quantity_used: number | null;
+                materials?: { unit_price: number | null } | Array<{ unit_price: number | null }> | null;
+            }>;
+            const projectAddendumRows = (projectAddendumsRes.data || []) as DashboardProjectAddendum[];
 
             // Financial KPIs
             const now = new Date();
+            const marginProtection = createDashboardInsights({
+                today: now,
+                projects,
+                workHours: workHoursRes.data || [],
+                timeEntries: projectTimeEntriesRes.data || [],
+                invoices: invoices.map((invoice) => ({
+                    id: invoice.id,
+                    project_id: invoice.project_id,
+                    status: invoice.status,
+                })),
+                acceptedOffers: acceptedOfferRows.map((offer) => ({
+                    id: offer.id,
+                    project_id: offer.project_id,
+                    snapshot_net_total: offer.snapshot_net_total,
+                    targets: Array.isArray(offer.offer_targets)
+                        ? offer.offer_targets[0] || null
+                        : offer.offer_targets as DashboardOfferTarget | null,
+                })),
+                materialUsage: materialUsageRows.map((usage) => {
+                    const material = Array.isArray(usage.materials) ? usage.materials[0] : usage.materials;
+                    return {
+                        project_id: usage.project_id,
+                        quantity_used: usage.quantity_used,
+                        unit_price: material?.unit_price ?? null,
+                    };
+                }),
+                projectAddendums: projectAddendumRows,
+            });
+
             const thisMonthStr = format(now, 'yyyy-MM');
 
             const thisMonthInvoices = invoices.filter(i => (i.invoice_date || '').startsWith(thisMonthStr));
@@ -164,8 +285,8 @@ const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate 
 
             setDashboardData({
                 criticalAlerts: {
-                    budgetWarnings: 0,
-                    overdueProjects: 0,
+                    budgetWarnings: marginProtection.criticalCount,
+                    overdueProjects: marginProtection.criticalCount,
                     overdueInvoices: overdueInvoices.length,
                     pendingQuotes: offers.length,
                 },
@@ -188,6 +309,7 @@ const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate 
                     todayHours: 0,
                     utilizationRate: 0,
                 },
+                marginProtection,
             });
         } catch (error) {
             toast({ title: 'Fehler', description: 'Daten konnten nicht geladen werden.', variant: 'destructive' });
@@ -308,6 +430,102 @@ const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate 
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Margin Protection - first focused HandwerkOS operating cockpit */}
+            <Card className="border-slate-200 shadow-sm">
+                <CardHeader className="pb-3">
+                    <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                        <div>
+                            <CardTitle className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                                <AlertTriangle className="w-5 h-5 text-amber-500" />
+                                Margenschutz & Nachträge
+                            </CardTitle>
+                            <CardDescription>
+                                Zeigt Projekte, bei denen Stunden, Kosten oder Zusatzarbeiten gerade Geld kosten können.
+                            </CardDescription>
+                        </div>
+                        <Button size="sm" variant="outline" className="w-fit bg-white" onClick={() => onNavigate?.('projects')}>
+                            Projekte prüfen
+                            <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                        <div className="rounded-lg border border-rose-100 bg-rose-50 p-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-rose-900">Heute kritisch</span>
+                                <AlertTriangle className="w-4 h-4 text-rose-600" />
+                            </div>
+                            <div className="text-2xl font-bold text-rose-900 mt-2">{dashboardData.marginProtection.criticalCount}</div>
+                            <p className="text-xs text-rose-700 mt-1">Budget, Stunden oder Termin prüfen</p>
+                        </div>
+                        <div className="rounded-lg border border-amber-100 bg-amber-50 p-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-amber-900">Nachträge offen</span>
+                                <FileWarning className="w-4 h-4 text-amber-600" />
+                            </div>
+                            <div className="text-2xl font-bold text-amber-900 mt-2">{dashboardData.marginProtection.openAddendumCount}</div>
+                            <p className="text-xs text-amber-700 mt-1">Zusatzarbeit in Notizen erkannt</p>
+                        </div>
+                        <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-emerald-900">Rechnung bereit</span>
+                                <ReceiptText className="w-4 h-4 text-emerald-600" />
+                            </div>
+                            <div className="text-2xl font-bold text-emerald-900 mt-2">{dashboardData.marginProtection.invoiceReadyCount}</div>
+                            <p className="text-xs text-emerald-700 mt-1">Abgeschlossen, aber ohne Rechnung</p>
+                        </div>
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-slate-900">Kalkulation fehlt</span>
+                                <Calculator className="w-4 h-4 text-slate-600" />
+                            </div>
+                            <div className="text-2xl font-bold text-slate-900 mt-2">{dashboardData.marginProtection.missingCalculationCount}</div>
+                            <p className="text-xs text-slate-600 mt-1">Budget oder Planstunden fehlen</p>
+                        </div>
+                    </div>
+
+                    {dashboardData.marginProtection.riskyProjects.length === 0 ? (
+                        <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">
+                            Keine auffälligen Projekte gefunden. Sobald Budget, Planstunden oder Tagesberichte vorliegen,
+                            bewertet HandwerkOS hier Margenrisiken.
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {dashboardData.marginProtection.riskyProjects.map((project) => (
+                                <button
+                                    type="button"
+                                    key={project.projectId}
+                                    className="w-full rounded-lg border border-slate-200 bg-white p-4 text-left transition-colors hover:border-slate-300 hover:bg-slate-50"
+                                    onClick={() => onNavigate?.('projects')}
+                                >
+                                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                        <div className="min-w-0 space-y-2">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <h3 className="font-semibold text-slate-900">{project.projectName}</h3>
+                                                <Badge variant="outline" className={getRiskBadgeClass(project.riskLevel)}>
+                                                    {getRiskLabel(project.riskLevel)}
+                                                </Badge>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {project.signals.map((signal) => (
+                                                    <span key={signal} className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
+                                                        {signal}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="shrink-0 text-sm font-medium text-slate-700">
+                                            {project.recommendedAction}
+                                        </div>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
             {/* Main Content Area - Charts & Complex Data */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

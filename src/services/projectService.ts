@@ -34,6 +34,23 @@ export class ProjectService {
     return apiCall(async () => {
       // Get current user to filter by company
       const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        throw new Error('User not authenticated');
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', userData.user.id)
+        .single();
+
+      if (profileError) {
+        throw new Error(profileError.message);
+      }
+
+      if (!profile?.company_id) {
+        throw new Error('User company not found');
+      }
 
       let query = supabase
         .from('projects')
@@ -45,6 +62,8 @@ export class ProjectService {
             email
           )
         `, { count: 'exact' });
+
+      query = query.eq('company_id', profile.company_id);
 
       // Exclude Kleinaufträge from project list
       query = query.neq('project_type', 'kleinauftrag');

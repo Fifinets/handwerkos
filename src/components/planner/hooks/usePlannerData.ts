@@ -59,7 +59,7 @@ export function usePlannerData() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('calendar_events')
-        .select('id, title, start_date, end_date, start_time, end_time, type, project_id, assigned_employees')
+        .select('id, title, description, start_date, end_date, start_time, end_time, type, project_id, assigned_employees')
         .eq('company_id', companyId!);
       if (error) throw error;
       return (data || []) as CalendarEvent[];

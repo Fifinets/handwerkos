@@ -1,0 +1,7 @@
+# Supabase anon JWT in pg_cron migration.
+# This is the public anon key (role:"anon" decoded from the JWT) used
+# by a scheduled cron job to invoke an internal Edge Function. The key
+# is by design public (it ships in the frontend bundle, protected by
+# RLS policies). TODO: migrate to vault.read_secret() so secrets don't
+# travel through migrations even if cosmetically.
+2c0101900a31c61df1d731b802c05c1d89497afd:supabase/migrations/20260511163000_schedule_process_ai_queue.sql:jwt:32

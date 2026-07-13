@@ -1,5 +1,10 @@
 import { format, addDays } from 'date-fns';
 import type { PlannerProject, PlannerEmployee, VacationRequest, CalendarEvent, Assignment } from '../types';
+import {
+  DEFAULT_WORKDAY_MINUTES,
+  getProjectShiftEventsForDay,
+  getProjectShiftMinutesForDay,
+} from './shiftUtils';
 
 export function getEmployeeDayAssignments(
   projects: PlannerProject[],
@@ -18,8 +23,9 @@ export function getEmployeeDayAssignments(
     ) || [];
 
     for (const assignment of assignments) {
-      const sDate = assignment.start_date || project.start_date;
-      const eDate = assignment.end_date || project.end_date;
+      const sDate = assignment.start_date;
+      const eDate = assignment.end_date;
+      if (!sDate) continue;
       if (sDate && dayStr < sDate) continue;
       if (eDate && dayStr > eDate) continue;
       result.push({ project, assignment });
@@ -47,17 +53,30 @@ export function calculateUtilization(
   employeeId: string,
   displayDays: Date[],
   holidays: Map<string, string>,
+  calendarEvents: CalendarEvent[] = [],
+  defaultWorkdayMinutes = DEFAULT_WORKDAY_MINUTES,
 ): number {
-  let workDays = 0;
-  let assignedDays = 0;
+  let availableMinutes = 0;
+  let plannedMinutes = 0;
   for (const day of displayDays) {
     if (day.getDay() === 0 || day.getDay() === 6) continue;
     const ds = format(day, 'yyyy-MM-dd');
     if (holidays.has(ds)) continue;
-    workDays++;
-    if (getEmployeeDayAssignments(projects, employeeId, day).length > 0) assignedDays++;
+    if (getAbsence(vacations, employeeId, day)) continue;
+
+    availableMinutes += defaultWorkdayMinutes;
+
+    const shiftMinutes = getProjectShiftMinutesForDay(calendarEvents, employeeId, day);
+    if (shiftMinutes > 0) {
+      plannedMinutes += shiftMinutes;
+      continue;
+    }
+
+    if (getEmployeeDayAssignments(projects, employeeId, day).length > 0) {
+      plannedMinutes += defaultWorkdayMinutes;
+    }
   }
-  return workDays > 0 ? Math.round((assignedDays / workDays) * 100) : 0;
+  return availableMinutes > 0 ? Math.round((plannedMinutes / availableMinutes) * 100) : 0;
 }
 
 export function getAvailableEmployees(
@@ -67,14 +86,15 @@ export function getAvailableEmployees(
   startDate: string,
   endDate: string,
   holidays: Map<string, string>,
+  calendarEvents: CalendarEvent[] = [],
 ): { employee: PlannerEmployee; availablePercent: number; currentProject: string | null }[] {
   const start = new Date(startDate);
   const end = new Date(endDate);
   const results: { employee: PlannerEmployee; availablePercent: number; currentProject: string | null }[] = [];
 
   for (const emp of employees) {
-    let workDays = 0;
-    let freeDays = 0;
+    let availableMinutes = 0;
+    let freeMinutes = 0;
     let currentProject: string | null = null;
 
     let current = new Date(start);
@@ -82,13 +102,23 @@ export function getAvailableEmployees(
       if (current.getDay() !== 0 && current.getDay() !== 6) {
         const ds = format(current, 'yyyy-MM-dd');
         if (!holidays.has(ds)) {
-          workDays++;
           const assignments = getEmployeeDayAssignments(projects, emp.id, current);
           const absence = getAbsence(vacations, emp.id, current);
-          if (assignments.length === 0 && !absence) {
-            freeDays++;
-          } else if (assignments.length > 0 && !currentProject) {
-            currentProject = assignments[0].project.name;
+          if (!absence) {
+            availableMinutes += DEFAULT_WORKDAY_MINUTES;
+            const shifts = getProjectShiftEventsForDay(calendarEvents, emp.id, current);
+            const shiftMinutes = getProjectShiftMinutesForDay(calendarEvents, emp.id, current);
+            const plannedMinutes = shiftMinutes > 0
+              ? shiftMinutes
+              : assignments.length > 0
+                ? DEFAULT_WORKDAY_MINUTES
+                : 0;
+            freeMinutes += Math.max(0, DEFAULT_WORKDAY_MINUTES - plannedMinutes);
+            if (shifts.length > 0 && !currentProject) {
+              currentProject = shifts[0].title;
+            } else if (assignments.length > 0 && !currentProject) {
+              currentProject = assignments[0].project.name;
+            }
           }
         }
       }
@@ -97,7 +127,7 @@ export function getAvailableEmployees(
 
     results.push({
       employee: emp,
-      availablePercent: workDays > 0 ? Math.round((freeDays / workDays) * 100) : 100,
+      availablePercent: availableMinutes > 0 ? Math.round((freeMinutes / availableMinutes) * 100) : 100,
       currentProject,
     });
   }

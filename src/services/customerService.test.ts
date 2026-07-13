@@ -71,7 +71,7 @@ vi.mock('@/utils/api', () => ({
   },
 }));
 
-import { CustomerService } from './customerService';
+import { customerService } from './customerService';
 
 describe('CustomerService', () => {
   beforeEach(() => {
@@ -113,7 +113,7 @@ describe('CustomerService', () => {
         error: null,
       });
 
-      const result = await CustomerService.createCustomer(customerData as any);
+      const result = await customerService.createCustomer(customerData as any);
 
       expect(result.display_name).toBe('Elektro Müller GmbH');
     });
@@ -137,7 +137,7 @@ describe('CustomerService', () => {
         error: null,
       });
 
-      const result = await CustomerService.createCustomer(customerData as any);
+      const result = await customerService.createCustomer(customerData as any);
 
       expect(result.display_name).toBe('Maria Schmidt');
     });
@@ -160,7 +160,7 @@ describe('CustomerService', () => {
         error: null,
       });
 
-      const result = await CustomerService.createCustomer(customerData as any);
+      const result = await customerService.createCustomer(customerData as any);
 
       expect(result.display_name).toBe('Unbekannter Kunde');
     });
@@ -192,7 +192,7 @@ describe('CustomerService', () => {
         error: null,
       });
 
-      const result = await CustomerService.createCustomer(customerData as any);
+      const result = await customerService.createCustomer(customerData as any);
 
       expect(result.customer_number).toMatch(/^KD-/);
     });
@@ -222,7 +222,7 @@ describe('CustomerService', () => {
         error: null,
       });
 
-      const result = await CustomerService.createCustomer(customerData as any);
+      const result = await customerService.createCustomer(customerData as any);
 
       expect(result.id).toBe('cust-5');
     });
@@ -252,7 +252,7 @@ describe('CustomerService', () => {
           display_name: 'Neu GmbH',
         });
 
-      const result = await CustomerService.updateCustomer('cust-1', {
+      const result = await customerService.updateCustomer('cust-1', {
         company_name: 'Neu GmbH',
       } as any);
 
@@ -276,7 +276,7 @@ describe('CustomerService', () => {
           display_name: 'Neuer Name',
         });
 
-      const result = await CustomerService.updateCustomer('cust-2', {
+      const result = await customerService.updateCustomer('cust-2', {
         contact_person: 'Neuer Name',
       } as any);
 
@@ -295,7 +295,7 @@ describe('CustomerService', () => {
         Promise.resolve({ data: [{ id: 'proj-1' }] })
       );
 
-      await expect(CustomerService.deleteCustomer('cust-1')).rejects.toThrow(
+      await expect(customerService.deleteCustomer('cust-1')).rejects.toThrow(
         'Kunde kann nicht gelöscht werden, da noch Projekte zugeordnet sind.'
       );
     });
@@ -306,7 +306,7 @@ describe('CustomerService', () => {
       // relatedOffers - exists
       mockLimit.mockReturnValueOnce(Promise.resolve({ data: [{ id: 'offer-1' }] }));
 
-      await expect(CustomerService.deleteCustomer('cust-1')).rejects.toThrow(
+      await expect(customerService.deleteCustomer('cust-1')).rejects.toThrow(
         'Kunde kann nicht gelöscht werden, da noch Angebote (Offers) vorhanden sind.'
       );
     });
@@ -316,7 +316,7 @@ describe('CustomerService', () => {
       mockLimit.mockReturnValueOnce(Promise.resolve({ data: [] }));
       mockLimit.mockReturnValueOnce(Promise.resolve({ data: [{ id: 'order-1' }] }));
 
-      await expect(CustomerService.deleteCustomer('cust-1')).rejects.toThrow(
+      await expect(customerService.deleteCustomer('cust-1')).rejects.toThrow(
         'Kunde kann nicht gelöscht werden, da noch Aufträge zugeordnet sind.'
       );
     });
@@ -327,7 +327,7 @@ describe('CustomerService', () => {
       mockLimit.mockReturnValueOnce(Promise.resolve({ data: [] }));
       mockLimit.mockReturnValueOnce(Promise.resolve({ data: [{ id: 'inv-1' }] }));
 
-      await expect(CustomerService.deleteCustomer('cust-1')).rejects.toThrow(
+      await expect(customerService.deleteCustomer('cust-1')).rejects.toThrow(
         'Kunde kann nicht gelöscht werden, da noch Rechnungen vorhanden sind.'
       );
     });
@@ -340,7 +340,7 @@ describe('CustomerService', () => {
         Promise.resolve({ data: [{ id: 'proj-1' }] })
       );
 
-      await expect(CustomerService.deleteCustomer('cust-1')).rejects.toThrow(
+      await expect(customerService.deleteCustomer('cust-1')).rejects.toThrow(
         'Projekte'
       );
 
@@ -377,7 +377,7 @@ describe('CustomerService', () => {
         })
       );
 
-      const stats = await CustomerService.getCustomerStats('cust-1');
+      const stats = await customerService.getCustomerStats('cust-1');
 
       expect(stats.total_projects).toBe(3);
       expect(stats.active_projects).toBe(2);
@@ -391,7 +391,7 @@ describe('CustomerService', () => {
       mockEq.mockReturnValueOnce(Promise.resolve({ data: null }));
       mockEq.mockReturnValueOnce(Promise.resolve({ data: null }));
 
-      const stats = await CustomerService.getCustomerStats('cust-1');
+      const stats = await customerService.getCustomerStats('cust-1');
 
       expect(stats.total_projects).toBe(0);
       expect(stats.total_revenue).toBe(0);
@@ -409,7 +409,7 @@ describe('CustomerService', () => {
         { id: 'cust-1', company_name: 'Elektro Müller', email: 'info@mueller.de' },
       ]);
 
-      const result = await CustomerService.searchCustomers('Müller');
+      const result = await customerService.searchCustomers('Müller');
 
       expect(result).toHaveLength(1);
       expect(mockFrom).toHaveBeenCalledWith('customers');
@@ -418,7 +418,7 @@ describe('CustomerService', () => {
     it('respektiert Limit-Parameter', async () => {
       mockExecute.mockResolvedValueOnce([]);
 
-      await CustomerService.searchCustomers('test', 5);
+      await customerService.searchCustomers('test', 5);
 
       expect(mockLimit).toHaveBeenCalledWith(5);
     });
@@ -426,7 +426,7 @@ describe('CustomerService', () => {
     it('verwendet Standard-Limit 10', async () => {
       mockExecute.mockResolvedValueOnce([]);
 
-      await CustomerService.searchCustomers('test');
+      await customerService.searchCustomers('test');
 
       expect(mockLimit).toHaveBeenCalledWith(10);
     });
@@ -443,7 +443,7 @@ describe('CustomerService', () => {
         count: 100,
       });
 
-      const result = await CustomerService.getCustomers({ page: 3, limit: 20 });
+      const result = await customerService.getCustomers({ page: 3, limit: 20 });
 
       expect(result.pagination.page).toBe(3);
       expect(result.pagination.total_pages).toBe(5);
@@ -457,7 +457,7 @@ describe('CustomerService', () => {
         count: 50,
       });
 
-      const result = await CustomerService.getCustomers({ page: 1, limit: 20 });
+      const result = await customerService.getCustomers({ page: 1, limit: 20 });
 
       expect(result.pagination.has_prev).toBe(false);
       expect(result.pagination.has_next).toBe(true);

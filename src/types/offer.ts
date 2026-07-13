@@ -216,6 +216,9 @@ export const OfferWithRelationsSchema = OfferSchema.extend({
     company_name: z.string(),
     contact_person: z.string().nullable(),
     email: z.string().nullable(),
+    address: z.string().nullable().optional(),
+    city: z.string().nullable().optional(),
+    postal_code: z.string().nullable().optional(),
   }).optional(),
 });
 

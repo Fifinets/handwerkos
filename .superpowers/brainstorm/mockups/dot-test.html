@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body{margin:0;background:#fff;min-height:200vh}
+  canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<h1 style="text-align:center;padding-top:40vh;font-family:sans-serif">Dots should be visible</h1>
+<script>
+  var canvas = document.getElementById('c');
+  var ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  window.addEventListener('resize', function(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  });
+
+  // Simple test: draw 200 black dots
+  var dots = [];
+  for(var i = 0; i < 200; i++){
+    dots.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: 1 + Math.random() * 3,
+      phase: Math.random() * Math.PI * 2,
+      speed: 0.005 + Math.random() * 0.01,
+      amp: 3 + Math.random() * 10
+    });
+  }
+
+  var t = 0;
+  function draw(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    t += 0.016;
+    for(var i = 0; i < dots.length; i++){
+      var d = dots[i];
+      var x = d.x + Math.sin(t * d.speed * 60 + d.phase) * d.amp;
+      var y = d.y + Math.cos(t * d.speed * 40 + d.phase) * d.amp;
+      ctx.beginPath();
+      ctx.arc(x, y, d.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.15)';
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+</script>
+</body>
+</html>

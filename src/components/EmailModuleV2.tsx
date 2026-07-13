@@ -7,6 +7,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
+import { AgentSuggestionBadge } from "./emails/AgentSuggestionBadge";
+import { AgentSuggestionReviewDialog } from "./emails/AgentSuggestionReviewDialog";
+import { useAgentSuggestions } from "@/hooks/useAgentSuggestions";
+import { useLiveEmails } from "@/hooks/useLiveEmails";
+import { ConnectGmailButton } from "./ConnectGmailButton";
+import { EmailBodyFrame } from "./emails/EmailBodyFrame";
 import {
     Mail,
     Inbox,
@@ -33,6 +39,8 @@ interface Email {
     senderEmail: string;
     subject: string;
     preview: string;
+    content?: string;
+    htmlContent?: string;
     date: string;
     isRead: boolean;
     isStarred: boolean;
@@ -75,11 +83,78 @@ const mockEmails: Email[] = [
     }
 ];
 
+interface EmailRowProps {
+    email: Email;
+    isSelected: boolean;
+    onSelect: () => void;
+    getCategoryColor: (category?: string) => string;
+}
+
+const EmailRow = ({ email, isSelected, onSelect, getCategoryColor }: EmailRowProps) => {
+    const [dialogTaskId, setDialogTaskId] = useState<string | null>(null);
+    const { suggestions } = useAgentSuggestions(email.id);
+    const activeSuggestion = suggestions.find((s) => s.id === dialogTaskId);
+
+    return (
+        <div
+            className={`p-4 cursor-pointer transition-colors border-l-2 ${isSelected ? 'bg-slate-50 border-l-slate-900' : 'hover:bg-slate-50/50 border-l-transparent'
+                }`}
+            onClick={onSelect}
+        >
+            <div className="flex justify-between items-start mb-1">
+                <span className={`text-sm truncate pr-2 ${!email.isRead ? 'font-semibold text-slate-900' : 'font-medium text-slate-700'}`}>
+                    {email.sender}
+                </span>
+                <span className={`text-xs whitespace-nowrap ${!email.isRead ? 'font-medium text-slate-900' : 'text-slate-500'}`}>
+                    {email.date}
+                </span>
+            </div>
+            <div className={`text-xs mb-1.5 truncate ${!email.isRead ? 'font-medium text-slate-900' : 'text-slate-600'}`}>
+                {email.subject}
+            </div>
+            <div className="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-2">
+                {email.preview}
+            </div>
+            <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                    {email.category && (
+                        <Badge variant="outline" className={`text-[10px] font-normal px-1.5 py-0 h-4 ${getCategoryColor(email.category)}`}>
+                            {email.category}
+                        </Badge>
+                    )}
+                    <AgentSuggestionBadge
+                        emailId={email.id}
+                        onClick={() => setDialogTaskId(suggestions[0]?.id ?? null)}
+                    />
+                </div>
+                {email.isStarred && <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400 shrink-0" />}
+            </div>
+            {activeSuggestion && (
+                <AgentSuggestionReviewDialog
+                    suggestion={activeSuggestion}
+                    emailId={email.id}
+                    open={!!dialogTaskId}
+                    onClose={() => setDialogTaskId(null)}
+                />
+            )}
+        </div>
+    );
+};
+
 const EmailModuleV2 = () => {
     const [activeFolder, setActiveFolder] = useState('inbox');
-    const [selectedEmail, setSelectedEmail] = useState<Email | null>(mockEmails[0]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isComposing, setIsComposing] = useState(false);
+
+    const { emails: liveEmails, isLoading: emailsLoading } = useLiveEmails();
+    // Fallback to mockEmails only while loading or when DB has zero rows, so
+    // the design view still works in dev. Real users will see live data.
+    const isUsingMockData = liveEmails.length === 0 && !emailsLoading;
+    const displayEmails: Email[] = liveEmails.length > 0 ? liveEmails : mockEmails;
+    const unreadCount = displayEmails.filter((e) => !e.isRead).length;
+    const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
+    const selectedEmail: Email | null =
+        displayEmails.find((e) => e.id === selectedEmailId) ?? displayEmails[0] ?? null;
 
     const getCategoryColor = (category?: string) => {
         switch (category) {
@@ -96,13 +171,21 @@ const EmailModuleV2 = () => {
             {/* Top Header */}
             <div className="flex justify-between items-center shrink-0">
                 <div>
-                    <h1 className="text-2xl font-semibold text-slate-900">Posteingang</h1>
+                    <div className="flex items-center gap-2">
+                        <h1 className="text-2xl font-semibold text-slate-900">Posteingang</h1>
+                        {isUsingMockData && (
+                            <Badge variant="outline" className="text-xs">Demo-Daten</Badge>
+                        )}
+                    </div>
                     <p className="text-sm text-slate-500 mt-1">Verwalten Sie Ihre E-Mails und generieren Sie automatisch Angebote.</p>
                 </div>
-                <Button className="bg-slate-900 hover:bg-slate-800 text-white" onClick={() => setIsComposing(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Neue E-Mail
-                </Button>
+                <div className="flex items-center gap-2">
+                    <ConnectGmailButton />
+                    <Button className="bg-slate-900 hover:bg-slate-800 text-white" onClick={() => setIsComposing(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Neue E-Mail
+                    </Button>
+                </div>
             </div>
 
             <div className="flex flex-1 gap-4 min-h-0">
@@ -123,7 +206,9 @@ const EmailModuleV2 = () => {
                             >
                                 <Inbox className="h-4 w-4 mr-3 text-slate-500" />
                                 Posteingang
-                                <span className="ml-auto bg-slate-900 text-white text-[10px] px-1.5 py-0.5 rounded-full">3</span>
+                                {unreadCount > 0 && (
+                                    <span className="ml-auto bg-slate-900 text-white text-[10px] px-1.5 py-0.5 rounded-full">{unreadCount}</span>
+                                )}
                             </Button>
                             <Button
                                 variant="ghost"
@@ -200,36 +285,20 @@ const EmailModuleV2 = () => {
                     </div>
                     <ScrollArea className="flex-1">
                         <div className="divide-y divide-slate-100">
-                            {mockEmails.map((email) => (
-                                <div
+                            {emailsLoading && (
+                                <div className="p-4 text-xs text-slate-400">E-Mails werden geladen…</div>
+                            )}
+                            {!emailsLoading && displayEmails.length === 0 && (
+                                <div className="p-4 text-xs text-slate-400">Keine E-Mails.</div>
+                            )}
+                            {displayEmails.map((email) => (
+                                <EmailRow
                                     key={email.id}
-                                    className={`p-4 cursor-pointer transition-colors border-l-2 ${selectedEmail?.id === email.id ? 'bg-slate-50 border-l-slate-900' : 'hover:bg-slate-50/50 border-l-transparent'
-                                        }`}
-                                    onClick={() => setSelectedEmail(email)}
-                                >
-                                    <div className="flex justify-between items-start mb-1">
-                                        <span className={`text-sm truncate pr-2 ${!email.isRead ? 'font-semibold text-slate-900' : 'font-medium text-slate-700'}`}>
-                                            {email.sender}
-                                        </span>
-                                        <span className={`text-xs whitespace-nowrap ${!email.isRead ? 'font-medium text-slate-900' : 'text-slate-500'}`}>
-                                            {email.date}
-                                        </span>
-                                    </div>
-                                    <div className={`text-xs mb-1.5 truncate ${!email.isRead ? 'font-medium text-slate-900' : 'text-slate-600'}`}>
-                                        {email.subject}
-                                    </div>
-                                    <div className="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-2">
-                                        {email.preview}
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        {email.category && (
-                                            <Badge variant="outline" className={`text-[10px] font-normal px-1.5 py-0 h-4 ${getCategoryColor(email.category)}`}>
-                                                {email.category}
-                                            </Badge>
-                                        )}
-                                        {email.isStarred && <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />}
-                                    </div>
-                                </div>
+                                    email={email}
+                                    isSelected={selectedEmail?.id === email.id}
+                                    onSelect={() => setSelectedEmailId(email.id)}
+                                    getCategoryColor={getCategoryColor}
+                                />
                             ))}
                         </div>
                     </ScrollArea>
@@ -297,15 +366,13 @@ const EmailModuleV2 = () => {
                                 </div>
                             </div>
 
-                            {/* Email Body */}
-                            <ScrollArea className="flex-1 p-6 pt-0">
-                                <div className="prose prose-sm prose-slate max-w-none">
-                                    <p className="whitespace-pre-line text-slate-700 leading-relaxed">
-                                        {selectedEmail.preview}
-                                        {'\n\n'}
-                                        Das ist eine detailliertere Vorschau des Nachrichtentextes, der hier mit einer ScrollArea versehen ist. In der realen Anwendung würde hier der HTML oder Plain Text Body der E-Mail vollständig angezeigt. Die Abstände sind großzügig bemessen, damit das Lesen sehr leicht fällt.
-                                    </p>
-                                </div>
+                            {/* Email Body — sandboxed iframe so HTML mail renders correctly
+                                without bleeding styles or running scripts. */}
+                            <ScrollArea className="flex-1">
+                                <EmailBodyFrame
+                                    html={selectedEmail.htmlContent ?? ''}
+                                    plainText={selectedEmail.content ?? selectedEmail.preview}
+                                />
                             </ScrollArea>
 
                             {/* Quick Reply Box */}

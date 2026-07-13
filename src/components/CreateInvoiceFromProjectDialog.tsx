@@ -20,6 +20,7 @@ import {
   ClipboardList,
   Clock,
   Package,
+  FileWarning,
   Plus,
   ChevronRight,
   Check,
@@ -32,6 +33,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { summarizeInvoiceDescriptions, isOpenAIConfigured, type SummaryLength } from "@/services/openaiService";
+import {
+  getAddendumTotal,
+  getInvoiceableAddendums,
+  toInvoiceLine,
+  type ProjectAddendum,
+} from "@/lib/projectAddendums";
 
 interface CreateInvoiceFromProjectDialogProps {
   isOpen: boolean;
@@ -115,6 +122,7 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
   const [deliveryNotes, setDeliveryNotes] = useState<DeliveryNoteData[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntryData[]>([]);
   const [projectMaterials, setProjectMaterials] = useState<ProjectMaterialData[]>([]);
+  const [projectAddendums, setProjectAddendums] = useState<ProjectAddendum[]>([]);
   // Aufmaß: map from offer item description to actual_quantity
   const [aufmassMap, setAufmassMap] = useState<Record<string, number>>({});
 
@@ -123,6 +131,7 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
   const [selectedDeliveryNotes, setSelectedDeliveryNotes] = useState<string[]>([]);
   const [selectedTimeEntries, setSelectedTimeEntries] = useState<string[]>([]);
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
+  const [selectedAddendums, setSelectedAddendums] = useState<string[]>([]);
 
   // Invoice config
   const [invoiceType, setInvoiceType] = useState<string>('final');
@@ -138,6 +147,7 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
   const [includeDeliveryNoteMaterials, setIncludeDeliveryNoteMaterials] = useState(true);
   const [includeTimeEntries, setIncludeTimeEntries] = useState(false);
   const [includeProjectMaterials, setIncludeProjectMaterials] = useState(true);
+  const [includeAddendums, setIncludeAddendums] = useState(true);
   const [invoiceFormat, setInvoiceFormat] = useState<'daily' | 'summary'>('daily');
   const [summaryLength, setSummaryLength] = useState<SummaryLength>('mittel');
 
@@ -149,6 +159,7 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
       setSelectedDeliveryNotes([]);
       setSelectedTimeEntries([]);
       setSelectedMaterials([]);
+      setSelectedAddendums([]);
     }
   }, [isOpen, projectId]);
 
@@ -285,6 +296,19 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
       }));
       setProjectMaterials(processedMat);
 
+      // Load approved addendums that have not been invoiced yet
+      const { data: addendumData } = await (supabase as any)
+        .from('project_addendums')
+        .select('id, project_id, description, quantity, unit, unit_price, amount_net, vat_rate, status, invoice_id')
+        .eq('project_id', projectId)
+        .eq('status', 'approved')
+        .is('invoice_id', null)
+        .order('created_at', { ascending: false });
+
+      const invoiceableAddendums = getInvoiceableAddendums((addendumData || []) as ProjectAddendum[]);
+      setProjectAddendums(invoiceableAddendums);
+      setSelectedAddendums(invoiceableAddendums.map((addendum) => addendum.id));
+
       // Load Aufmaß data: delivery_note_items with actual_quantity set
       // These are linked to delivery_notes for this project
       const { data: aufmassData } = await supabase
@@ -380,13 +404,23 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
       });
     }
 
+    // From approved addendums
+    if (includeAddendums) {
+      selectedAddendums.forEach(addendumId => {
+        const addendum = projectAddendums.find(item => item.id === addendumId);
+        if (addendum) {
+          netTotal += getAddendumTotal(addendum);
+        }
+      });
+    }
+
     const taxTotal = netTotal * (taxRate / 100);
     const grossTotal = netTotal + taxTotal;
 
     return { netTotal, taxTotal, grossTotal };
   };
 
-  const handleSelectAll = (type: 'offers' | 'deliveryNotes' | 'timeEntries' | 'materials') => {
+  const handleSelectAll = (type: 'offers' | 'deliveryNotes' | 'timeEntries' | 'materials' | 'addendums') => {
     switch (type) {
       case 'offers':
         setSelectedOffers(selectedOffers.length === offers.length ? [] : offers.map(o => o.id));
@@ -399,6 +433,9 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
         break;
       case 'timeEntries':
         setSelectedTimeEntries(selectedTimeEntries.length === timeEntries.length ? [] : timeEntries.map(t => t.id));
+        break;
+      case 'addendums':
+        setSelectedAddendums(selectedAddendums.length === projectAddendums.length ? [] : projectAddendums.map(a => a.id));
         break;
     }
   };
@@ -710,12 +747,39 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
         });
       }
 
+      // 4. Approved addendums
+      if (includeAddendums) {
+        selectedAddendums.forEach(addendumId => {
+          const addendum = projectAddendums.find(item => item.id === addendumId);
+          if (addendum) {
+            docItems.push(toInvoiceLine(addendum, {
+              invoiceId: invoiceData.id,
+              companyId,
+              position: positionNumber++,
+            }));
+          }
+        });
+      }
+
       // Insert items into document_items table
       if (docItems.length > 0) {
         const { error: itemsError } = await supabase
           .from('document_items')
           .insert(docItems);
         if (itemsError) throw itemsError;
+      }
+
+      if (includeAddendums && selectedAddendums.length > 0) {
+        const { error: addendumUpdateError } = await (supabase as any)
+          .from('project_addendums')
+          .update({
+            status: 'invoiced',
+            invoice_id: invoiceData.id,
+            invoiced_at: new Date().toISOString(),
+          })
+          .in('id', selectedAddendums);
+
+        if (addendumUpdateError) throw addendumUpdateError;
       }
 
       toast({
@@ -739,7 +803,12 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
   };
 
   const totals = calculateTotals();
-  const hasSelections = selectedOffers.length > 0 || selectedDeliveryNotes.length > 0 || selectedTimeEntries.length > 0;
+  const hasSelections =
+    selectedOffers.length > 0 ||
+    selectedDeliveryNotes.length > 0 ||
+    selectedTimeEntries.length > 0 ||
+    selectedMaterials.length > 0 ||
+    selectedAddendums.length > 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -968,8 +1037,61 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
                   </Card>
                 )}
 
+                {/* Addendums */}
+                {projectAddendums.length > 0 && (
+                  <Card className="border-slate-200 overflow-hidden">
+                    <CardHeader className="py-3 px-4 border-b border-slate-100 bg-amber-50/50">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-semibold text-amber-700 m-0 flex items-center gap-2">
+                          <FileWarning className="h-4 w-4" />
+                          Nachträge ({projectAddendums.length})
+                        </CardTitle>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleSelectAll('addendums')}
+                          className="h-7 text-xs text-amber-700 hover:text-amber-900"
+                        >
+                          {selectedAddendums.length === projectAddendums.length ? 'Keine' : 'Alle'} auswählen
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-0 divide-y divide-slate-100 max-h-[200px] overflow-y-auto">
+                      {projectAddendums.map(addendum => (
+                        <label
+                          key={addendum.id}
+                          className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 cursor-pointer"
+                        >
+                          <Checkbox
+                            checked={selectedAddendums.includes(addendum.id)}
+                            onCheckedChange={(checked) => {
+                              setSelectedAddendums(prev =>
+                                checked ? [...prev, addendum.id] : prev.filter(id => id !== addendum.id)
+                              );
+                            }}
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-slate-800">{addendum.description}</span>
+                              <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700">
+                                Freigegeben
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-slate-500">
+                              {addendum.quantity} {addendum.unit} × {formatCurrency(addendum.unit_price)}
+                            </p>
+                          </div>
+                          <span className="text-sm font-medium text-slate-600">
+                            {formatCurrency(getAddendumTotal(addendum))}
+                          </span>
+                        </label>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* Empty state */}
-                {offers.length === 0 && deliveryNotes.length === 0 && timeEntries.length === 0 && projectMaterials.length === 0 && (
+                {offers.length === 0 && deliveryNotes.length === 0 && timeEntries.length === 0 && projectMaterials.length === 0 && projectAddendums.length === 0 && (
                   <div className="text-center py-8">
                     <AlertCircle className="h-10 w-10 text-slate-300 mx-auto mb-3" />
                     <p className="text-slate-500">Keine abrechenbaren Daten vorhanden</p>
@@ -1089,6 +1211,16 @@ const CreateInvoiceFromProjectDialog: React.FC<CreateInvoiceFromProjectDialogPro
                           onCheckedChange={(checked) => setIncludeProjectMaterials(!!checked)}
                         />
                         <span className="text-sm">Projekt-Materialien ({selectedMaterials.length})</span>
+                      </label>
+                    )}
+
+                    {selectedAddendums.length > 0 && (
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <Checkbox
+                          checked={includeAddendums}
+                          onCheckedChange={(checked) => setIncludeAddendums(!!checked)}
+                        />
+                        <span className="text-sm">Freigegebene Nachträge ({selectedAddendums.length})</span>
                       </label>
                     )}
                   </CardContent>

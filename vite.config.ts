@@ -7,11 +7,6 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   base: "./",
-  test: {
-    globals: true,
-    environment: 'node',
-    include: ['src/**/*.test.ts'],
-  },
   server: {
     host: true,
     port: 8080,
@@ -20,6 +15,7 @@ export default defineConfig(({ mode }) => ({
   build: {
     sourcemap: mode === 'development',
     minify: mode === 'production' ? 'esbuild' : false,
+    chunkSizeWarningLimit: 1800,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -34,6 +30,11 @@ export default defineConfig(({ mode }) => ({
           ],
           'vendor-query': ['@tanstack/react-query'],
           'vendor-charts': ['recharts'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-motion': ['framer-motion'],
+          'vendor-maps': ['leaflet', 'mapbox-gl', 'react-leaflet'],
+          'vendor-pdf': ['html2canvas', 'jspdf', 'jszip'],
+          'vendor-utils': ['crypto-js', 'date-fns', 'uuid', 'zod'],
         }
       }
     }

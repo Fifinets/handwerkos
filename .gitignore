@@ -67,6 +67,8 @@ supabase/migrations_backup/
 Thumbs.db
 
 # Tooling / AI / Temp
+supabase/.temp/
+.superpowers/**/state/
 git_archaeology/
 .claude/
 lhr.txt
@@ -74,3 +76,11 @@ lhr2.txt
 lhr_new.txt
 serveo_logs.txt
 .claude/worktrees/
+
+# Git worktrees
+.worktrees/
+
+# E2E / Playwright
+e2e/.auth/
+playwright-report/
+test-results/

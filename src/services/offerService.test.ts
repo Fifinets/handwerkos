@@ -396,6 +396,36 @@ describe('OfferService', () => {
   // =============================================
 
   describe('getOffers - Paginierung', () => {
+    it('lädt die Kundenrelation als customer, damit die Kunden-E-Mail im Angebotsmodul verfügbar ist', async () => {
+      mockExecuteWithCount.mockResolvedValueOnce({
+        data: [{ id: 'offer-1' }],
+        count: 1,
+      });
+
+      await OfferService.getOffers();
+
+      expect(mockSelect).toHaveBeenCalledWith(
+        expect.stringContaining('customer:customers'),
+        expect.objectContaining({ count: 'exact' })
+      );
+    });
+
+    it('filtert Angebote nach der aktuellen Firma', async () => {
+      mockSingle.mockResolvedValueOnce({
+        data: { company_id: 'company-1' },
+        error: null,
+      });
+      mockExecuteWithCount.mockResolvedValueOnce({
+        data: [{ id: 'offer-1', company_id: 'company-1' }],
+        count: 1,
+      });
+
+      await OfferService.getOffers();
+
+      expect(mockFrom).toHaveBeenCalledWith('profiles');
+      expect(mockEq).toHaveBeenCalledWith('company_id', 'company-1');
+    });
+
     it('berechnet Pagination-Metadaten korrekt', async () => {
       mockExecuteWithCount.mockResolvedValueOnce({
         data: [{ id: 'offer-1' }],

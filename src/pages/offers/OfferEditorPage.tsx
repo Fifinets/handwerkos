@@ -12,7 +12,7 @@ import { OfferEmailDialog } from '@/components/offers/OfferEmailDialog';
 import { OfferFlowTimeline } from '@/components/offers/OfferFlowTimeline';
 import {
     useOffer, useUpdateOffer, useCreateOffer, useCustomers, useProjects,
-    useSendOffer, useAcceptOffer, useRejectOffer, useCancelOffer, useSyncOfferItems
+    useAcceptOffer, useRejectOffer, useCancelOffer, useSyncOfferItems
 } from '@/hooks/useApi';
 import { useAuth } from '@/hooks/useAuth';
 import { OfferItem, OfferItemCreate } from '@/types/offer';
@@ -46,6 +46,8 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from '@/components/ui/textarea';
 import { generateA4PDF } from '@/lib/pdfGenerator';
+import { documentInputClassName, documentTextareaClassName } from './offerEditorStyles';
+import { checkOfferBeforeSend } from '@/components/offers/offerDocumentCheck';
 
 export default function OfferEditorPage() {
     const { id } = useParams();
@@ -92,12 +94,11 @@ export default function OfferEditorPage() {
     const createOfferMutation = useCreateOffer();
     const updateOfferMutation = useUpdateOffer();
     const syncOfferItemsMutation = useSyncOfferItems();
-    const sendOfferMutation = useSendOffer();
     const acceptOfferMutation = useAcceptOffer();
     const rejectOfferMutation = useRejectOffer();
     const cancelOfferMutation = useCancelOffer();
 
-    const { data: offer } = useOffer(id!, { enabled: !isNew });
+    const { data: offer, refetch: refetchOffer } = useOffer(id!, { enabled: !isNew });
     const { data: customersData } = useCustomers();
     const customers = customersData?.items || [];
 
@@ -257,6 +258,43 @@ export default function OfferEditorPage() {
         if (!offer) return;
         try {
             if (action === 'send') {
+                const check = checkOfferBeforeSend({
+                    offer: {
+                        offer_number: offer.offer_number,
+                        project_name: subject,
+                        valid_until: validUntil,
+                        customer_name: selectedCustomer?.company_name || offer.customer_name,
+                        customer_address: selectedCustomer?.address || offer.customer_address,
+                        is_reverse_charge: isReverseCharge,
+                    },
+                    company: {
+                        company_name: user?.user_metadata?.company_name,
+                        street_address: user?.user_metadata?.street_address,
+                        postal_code: user?.user_metadata?.postal_code,
+                        city: user?.user_metadata?.city,
+                        tax_number: user?.user_metadata?.tax_number,
+                        vat_id: user?.user_metadata?.vat_id,
+                    },
+                    customer: selectedCustomer || offer.customer,
+                    items,
+                });
+
+                if (!check.canSend) {
+                    toast({
+                        title: 'Angebot noch nicht versandbereit',
+                        description: check.errors.slice(0, 4).join(' '),
+                        variant: 'destructive',
+                    });
+                    return;
+                }
+
+                if (check.warnings.length > 0) {
+                    toast({
+                        title: 'Dokumentenprüfung',
+                        description: check.warnings.slice(0, 3).join(' '),
+                    });
+                }
+
                 setIsEmailOpen(true);
             } else if (action === 'accept') {
                 await acceptOfferMutation.mutateAsync({ id: offer.id });
@@ -350,7 +388,7 @@ export default function OfferEditorPage() {
             unit_price_net: unitPrice,
             vat_rate: vatRate,
             item_type: itemType,
-            is_optional: false,
+            is_optional: data?.is_optional ?? false,
             temp_id: crypto.randomUUID(),
         };
 
@@ -381,7 +419,13 @@ export default function OfferEditorPage() {
                 {/* Top Header */}
                 <header className="bg-white border-b px-6 py-3 flex items-center justify-between shadow-sm z-10 print:hidden">
                     <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="icon" onClick={() => navigate('/offers/wizard')}>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Zurück"
+                            title="Zurück"
+                            onClick={() => navigate(isNew ? '/offers/wizard' : '/manager2#offers')}
+                        >
                             <ArrowLeft className="h-5 w-5" />
                         </Button>
                         <div className="flex flex-col">
@@ -433,7 +477,7 @@ export default function OfferEditorPage() {
                                     <DropdownMenuLabel>Aktionen</DropdownMenuLabel>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={() => handleAction('send')} disabled={offer.status !== 'draft'}>
-                                        <Send className="mr-2 h-4 w-4" /> Als versendet markieren
+                                        <Send className="mr-2 h-4 w-4" /> Per E-Mail senden
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleAction('accept')} disabled={['accepted', 'cancelled'].includes(offer.status)}>
                                         <CheckCircle className="mr-2 h-4 w-4 text-green-600" /> Annehmen (Projekt erstellen)
@@ -492,7 +536,7 @@ export default function OfferEditorPage() {
                                                         }}
                                                         disabled={isLocked}
                                                     >
-                                                        <SelectTrigger className="w-full h-auto border-none shadow-none text-left p-0 font-normal text-gray-900 bg-transparent hover:bg-gray-50 focus:ring-0 [&>svg]:hidden print:p-0">
+                                                        <SelectTrigger className="w-full h-auto border-none shadow-none text-left p-0 font-normal text-gray-900 bg-white hover:bg-gray-50 focus:ring-0 [&>svg]:hidden print:p-0">
                                                             {(selectedCustomer || offer) ? (
                                                                 <div className="text-sm text-gray-600 pointer-events-none text-left">
                                                                     <p className="font-bold text-gray-900 mb-1">{selectedCustomer?.company_name || offer?.customer_name}</p>
@@ -535,7 +579,7 @@ export default function OfferEditorPage() {
                                                     value={validUntil}
                                                     onChange={(e) => { setValidUntil(e.target.value); markDirty(); }}
                                                     disabled={isLocked}
-                                                    className="font-medium bg-transparent border-b border-dashed border-gray-300 focus:outline-none focus:border-blue-500 text-sm py-0.5"
+                                                    className={`font-medium border-b border-dashed text-sm py-0.5 ${documentInputClassName}`}
                                                 />
                                             </div>
                                         </div>
@@ -544,14 +588,14 @@ export default function OfferEditorPage() {
                                     {/* Title Subject */}
                                     <div className="mt-8 mb-4">
                                         <Input
-                                            className="text-2xl font-bold border-none shadow-none px-0 focus-visible:ring-0 placeholder:text-gray-300 h-auto print:p-0"
+                                            className={`text-2xl font-bold border-none shadow-none px-0 focus-visible:ring-0 h-auto print:p-0 ${documentInputClassName}`}
                                             placeholder="Betreff eingeben..."
                                             value={subject}
                                             onChange={(e) => setSubjectTracked(e.target.value)}
                                             readOnly={isLocked}
                                         />
                                         <Textarea
-                                            className="mt-4 border-none shadow-none px-0 focus-visible:ring-0 text-gray-600 print:p-0 resize-none min-h-[4rem]"
+                                            className={`mt-4 border-none shadow-none px-0 focus-visible:ring-0 print:p-0 resize-none min-h-[4rem] ${documentTextareaClassName}`}
                                             placeholder="Einleitungstext (optional)..."
                                             value={introText}
                                             onChange={(e) => setIntroTextTracked(e.target.value)}
@@ -564,7 +608,7 @@ export default function OfferEditorPage() {
                             const footerContent = (
                                 <div className="border-t pt-8 mt-4 print:mt-2">
                                     <Textarea
-                                        className="border-none shadow-none px-0 focus-visible:ring-0 text-gray-600 print:p-0 resize-none mb-8 min-h-[3rem]"
+                                        className={`border-none shadow-none px-0 focus-visible:ring-0 print:p-0 resize-none mb-8 min-h-[3rem] ${documentTextareaClassName}`}
                                         placeholder="Abschlusstext (optional)..."
                                         value={finalText}
                                         onChange={(e) => setFinalTextTracked(e.target.value)}
@@ -629,8 +673,8 @@ export default function OfferEditorPage() {
                     open={isEmailOpen}
                     onOpenChange={setIsEmailOpen}
                     offer={offer}
-                    onSend={async () => {
-                        await sendOfferMutation.mutateAsync(offer.id);
+                    onSent={async () => {
+                        await refetchOffer();
                     }}
                 />
             )}
