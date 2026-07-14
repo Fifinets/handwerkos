@@ -46,7 +46,6 @@ import {
     Filter,
     BarChart,
     HardHat,
-    FolderOpen,
     Receipt
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +58,10 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+import { StatCard } from "@/components/ui/stat-card";
+import { StatusChip } from "@/components/ui/status-chip";
+import { UrgencyCard } from "@/components/ui/urgency-card";
 import AddProjectDialog from "./AddProjectDialog";
 import EditProjectDialog from "./EditProjectDialog";
 import ProjectDetailDialogWithTasks from "./ProjectDetailDialogWithTasks";
@@ -121,6 +124,24 @@ const extractBudgetFromDescription = (description: string) => {
     if (!description) return 0;
     const budgetMatch = description.match(/\[BUDGET:(\d+\.?\d*)\]/);
     return budgetMatch ? parseFloat(budgetMatch[1]) : 0;
+};
+
+// Dringlichkeit aus Stunden-Budget ableiten (Spec Regel 2). Nutzt die
+// bestehenden Project-Felder hours_planned/hours_actual (src/types/core.ts) —
+// keine neuen Queries/Services.
+const projectUrgencyInfo = (
+    p: Project
+): { urgency: 'critical' | 'none'; overrunPercent: number | null } => {
+    if (p.status === 'abgeschlossen' || p.status === 'storniert') {
+        return { urgency: 'none', overrunPercent: null };
+    }
+    if (p.hours_planned && p.hours_actual && p.hours_actual > p.hours_planned) {
+        return {
+            urgency: 'critical',
+            overrunPercent: Math.round(((p.hours_actual - p.hours_planned) / p.hours_planned) * 100),
+        };
+    }
+    return { urgency: 'none', overrunPercent: null };
 };
 
 const ProjectModuleV2 = () => {
@@ -449,51 +470,26 @@ const ProjectModuleV2 = () => {
             </div>
 
             {/* KPI Cards Row */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="bg-white border-slate-200 shadow-sm">
-                    <CardContent className="p-5 flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-slate-500">Aktive Projekte</p>
-                            <h3 className="text-2xl font-bold text-slate-900 mt-1">{activeProjectsCount}</h3>
-                        </div>
-                        <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center">
-                            <HardHat className="h-6 w-6 text-slate-600" />
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="bg-white border-slate-200 shadow-sm">
-                    <CardContent className="p-5 flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-slate-500">Abgeschlossen (Gesamt)</p>
-                            <h3 className="text-2xl font-bold text-emerald-600 mt-1">{statusCounts.abgeschlossen}</h3>
-                        </div>
-                        <div className="h-12 w-12 rounded-full bg-emerald-50 flex items-center justify-center">
-                            <CheckCircle className="h-6 w-6 text-emerald-600" />
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="bg-white border-slate-200 shadow-sm">
-                    <CardContent className="p-5 flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-slate-500">Im Verzug</p>
-                            <h3 className="text-2xl font-bold text-rose-600 mt-1">{delayedProjects.length}</h3>
-                        </div>
-                        <div className="h-12 w-12 rounded-full bg-rose-50 flex items-center justify-center">
-                            <AlertTriangle className="h-6 w-6 text-rose-600" />
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="bg-white border-slate-200 shadow-sm">
-                    <CardContent className="p-5 flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-slate-500">Beauftragt</p>
-                            <h3 className="text-2xl font-bold text-slate-600 mt-1">{statusCounts.beauftragt}</h3>
-                        </div>
-                        <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center">
-                            <FolderOpen className="h-6 w-6 text-slate-600" />
-                        </div>
-                    </CardContent>
-                </Card>
+            <div className="flex flex-col sm:flex-row gap-3">
+                <StatCard
+                    label="Aktive Projekte"
+                    emphasis="hero"
+                    value={activeProjectsCount}
+                />
+                <StatCard
+                    label="Abgeschlossen (Gesamt)"
+                    value={statusCounts.abgeschlossen}
+                    tone="positive"
+                />
+                <StatCard
+                    label="Im Verzug"
+                    value={delayedProjects.length}
+                    tone={delayedProjects.length > 0 ? 'critical' : 'default'}
+                />
+                <StatCard
+                    label="Beauftragt"
+                    value={statusCounts.beauftragt}
+                />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -531,27 +527,41 @@ const ProjectModuleV2 = () => {
                                 </div>
                             ) : (
                                 <div className="divide-y divide-slate-100">
-                                    {filteredProjects.map((project) => (
-                                        <div
-                                            key={project.id}
-                                            className={`p-4 hover:bg-slate-50 transition-colors cursor-pointer group ${
-                                                project.status === 'abgeschlossen' ? 'opacity-70 hover:opacity-100' : ''
-                                            }`}
-                                            onDoubleClick={() => handleDoubleClickProject(project)}
-                                        >
-                                            <ProjectRow
-                                                id={generateShortId(project.id)}
-                                                project_number={project.project_number}
-                                                name={project.name}
-                                                status={project.status}
-                                                budget={extractBudgetFromDescription(project.description || '') || project.budget || 0}
-                                                start={project.start_date || project.besichtigung_date || project.work_start_date}
-                                                end={project.end_date || project.work_end_date}
-                                                onOpen={() => handleDoubleClickProject(project)}
-                                                onEdit={() => handleEditProject(project)}
-                                            />
-                                        </div>
-                                    ))}
+                                    {filteredProjects.map((project) => {
+                                        const urgencyInfo = projectUrgencyInfo(project);
+                                        const isDimmed = project.status === 'abgeschlossen' || project.status === 'storniert';
+                                        return (
+                                            <div
+                                                key={project.id}
+                                                className={cn(
+                                                    'p-4 hover:shadow-md transition-shadow cursor-pointer group min-w-0',
+                                                    urgencyInfo.urgency === 'critical' && 'bg-rose-50 dark:bg-rose-950/40',
+                                                    isDimmed && 'opacity-60 hover:opacity-100'
+                                                )}
+                                                onDoubleClick={() => handleDoubleClickProject(project)}
+                                            >
+                                                <ProjectRow
+                                                    id={generateShortId(project.id)}
+                                                    project_number={project.project_number}
+                                                    name={project.name}
+                                                    status={project.status}
+                                                    budget={extractBudgetFromDescription(project.description || '') || project.budget || 0}
+                                                    start={project.start_date || project.besichtigung_date || project.work_start_date}
+                                                    end={project.end_date || project.work_end_date}
+                                                    onOpen={() => handleDoubleClickProject(project)}
+                                                    onEdit={() => handleEditProject(project)}
+                                                />
+                                                {urgencyInfo.overrunPercent !== null && (
+                                                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                                                        <StatusChip status="overdue" label={`Budget +${urgencyInfo.overrunPercent} %`} />
+                                                        <span className="text-xs font-medium text-rose-700 dark:text-rose-300 tabular-nums">
+                                                            {project.hours_actual} von {project.hours_planned} h — {urgencyInfo.overrunPercent} % über Plan
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </CardContent>
@@ -562,27 +572,26 @@ const ProjectModuleV2 = () => {
                 <div className="space-y-6">
                     {/* Delayed Projects */}
                     {delayedProjects.length > 0 && (
-                        <Card className="bg-white border-rose-200 shadow-sm overflow-hidden">
-                            <div className="bg-rose-50 border-b border-rose-100 px-5 py-3 flex items-center gap-2">
+                        <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                            <div className="bg-rose-50 dark:bg-rose-950/40 px-5 py-3 flex items-center gap-2">
                                 <AlertTriangle className="h-5 w-5 text-rose-600" />
-                                <h3 className="font-semibold text-rose-900">Projekte im Verzug ({delayedProjects.length})</h3>
+                                <h3 className="font-semibold text-rose-900 dark:text-rose-300">Projekte im Verzug ({delayedProjects.length})</h3>
                             </div>
-                            <CardContent className="p-0 divide-y divide-slate-100">
+                            <CardContent className="p-3 space-y-2">
                                 {delayedProjects.map((project) => (
-                                    <div
+                                    <UrgencyCard
                                         key={project.id}
-                                        className="p-4 hover:bg-rose-50/50 cursor-pointer transition-colors"
+                                        urgency="critical"
+                                        className="cursor-pointer hover:shadow-md transition-shadow"
                                         onClick={() => handleDoubleClickProject(project)}
+                                        action={<StatusChip status="overdue" />}
                                     >
-                                        <div className="flex justify-between items-start mb-1">
-                                            <span className="font-medium text-slate-800 text-sm truncate pr-2">{project.name}</span>
-                                            <Badge variant="outline" className="text-[10px] bg-rose-100 text-rose-800 border-rose-200 shrink-0">Überfällig</Badge>
+                                        <span className="font-medium text-slate-800 dark:text-slate-100 text-sm truncate block min-w-0">{project.name}</span>
+                                        <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 gap-2 mt-1">
+                                            <span className="truncate min-w-0">Ref: {project.project_number || generateShortId(project.id)}</span>
+                                            <span className="text-rose-700 dark:text-rose-300 font-medium tabular-nums shrink-0">Enddatum: {project.end_date ? new Date(project.end_date).toLocaleDateString('de-DE') : '-'}</span>
                                         </div>
-                                        <div className="flex justify-between items-center text-xs text-slate-500">
-                                            <span>Ref: {project.project_number || generateShortId(project.id)}</span>
-                                            <span className="text-rose-600 font-medium">Enddatum: {project.end_date ? new Date(project.end_date).toLocaleDateString('de-DE') : '-'}</span>
-                                        </div>
-                                    </div>
+                                    </UrgencyCard>
                                 ))}
                             </CardContent>
                         </Card>
@@ -600,18 +609,18 @@ const ProjectModuleV2 = () => {
                             <div className="space-y-3">
                                 {[
                                     { key: 'anfrage', label: 'Anfrage', color: 'bg-slate-300', count: statusCounts.anfrage },
-                                    { key: 'besichtigung', label: 'Besichtigung', color: 'bg-blue-400', count: statusCounts.besichtigung },
-                                    { key: 'angebot', label: 'Angebot', color: 'bg-orange-400', count: statusCounts.angebot },
-                                    { key: 'beauftragt', label: 'Beauftragt', color: 'bg-purple-400', count: statusCounts.beauftragt },
-                                    { key: 'in_bearbeitung', label: 'In Bearbeitung', color: 'bg-amber-400', count: statusCounts.in_bearbeitung },
-                                    { key: 'abgeschlossen', label: 'Abgeschlossen', color: 'bg-emerald-400', count: statusCounts.abgeschlossen },
+                                    { key: 'besichtigung', label: 'Besichtigung', color: 'bg-amber-400', count: statusCounts.besichtigung },
+                                    { key: 'angebot', label: 'Angebot', color: 'bg-amber-500', count: statusCounts.angebot },
+                                    { key: 'beauftragt', label: 'Beauftragt', color: 'bg-teal-500', count: statusCounts.beauftragt },
+                                    { key: 'in_bearbeitung', label: 'In Bearbeitung', color: 'bg-teal-600', count: statusCounts.in_bearbeitung },
+                                    { key: 'abgeschlossen', label: 'Abgeschlossen', color: 'bg-slate-400', count: statusCounts.abgeschlossen },
                                 ].map(stat => (
                                     <div key={stat.key}>
                                         <div className="flex justify-between text-sm mb-1">
                                             <span className="text-slate-600">{stat.label}</span>
-                                            <span className="font-medium text-slate-900">{stat.count}</span>
+                                            <span className="font-medium text-slate-900 tabular-nums">{stat.count}</span>
                                         </div>
-                                        <div className="w-full bg-slate-100 rounded-full h-2">
+                                        <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2">
                                             <div
                                                 className={`h-2 rounded-full ${stat.color}`}
                                                 style={{ width: `${projects.length > 0 ? (stat.count / projects.length) * 100 : 0}%` }}
