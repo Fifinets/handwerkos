@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { MoreVertical } from "lucide-react";
+import { StatusChip } from "@/components/ui/status-chip";
 import type { ProjectStatus } from "@/types/project";
 
 type Props = {
@@ -16,19 +17,6 @@ type Props = {
   onEdit?: () => void;
 };
 
-const STYLES: Record<string, { label: string; cls: string }> = {
-  anfrage:        { label: "Anfrage",         cls: "bg-indigo-100 text-indigo-800 border-indigo-200" },
-  besichtigung:   { label: "Besichtigung",     cls: "bg-amber-100  text-amber-800  border-amber-200" },
-  angebot:        { label: "Angebot",         cls: "bg-orange-100 text-orange-800 border-orange-200" },
-  angebot_versendet: { label: "Angebot versendet", cls: "bg-orange-100 text-orange-800 border-orange-200" },
-  beauftragt:     { label: "Beauftragt",      cls: "bg-purple-100 text-purple-800 border-purple-200" },
-  in_bearbeitung: { label: "In Arbeit",      cls: "bg-yellow-100 text-yellow-800 border-yellow-200" },
-  abgeschlossen:  { label: "Erledigt",       cls: "bg-green-100  text-green-800  border-green-200" },
-  storniert:      { label: "Storniert",      cls: "bg-red-100    text-red-800    border-red-200" }
-};
-
-const DEFAULT_STYLE = { label: "Unbekannt", cls: "bg-gray-100 text-gray-800 border-gray-200" };
-
 // Generate a consistent project number from UUID (until DB field exists)
 const generateProjectNumber = (id: string): string => {
   const currentYear = new Date().getFullYear();
@@ -39,8 +27,7 @@ const generateProjectNumber = (id: string): string => {
 
 export default function ProjectRow(p: Props) {
   const status = p.status || 'anfrage'; // Fallback to 'anfrage' if empty
-  const st = STYLES[status] || DEFAULT_STYLE;
-  
+
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return "—";
     return new Date(dateStr).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
@@ -80,14 +67,15 @@ export default function ProjectRow(p: Props) {
     return diffDays;
   };
 
-  // Get progress bar color based on days remaining
+  // Get progress bar color based on days remaining (Palette: teal = im Plan,
+  // amber = knapp, rose = überfällig — Dringlichkeit nur über Füllfarbe, keine Ränder)
   const getProgressBarColor = () => {
-    if (status === 'abgeschlossen') return 'bg-green-500';
+    if (status === 'abgeschlossen') return 'bg-teal-600';
     const daysRemaining = getDaysRemaining();
-    if (daysRemaining === null) return 'bg-blue-500';
-    if (daysRemaining <= 0) return 'bg-red-500'; // Ende erreicht oder überschritten
-    if (daysRemaining === 1) return 'bg-yellow-500'; // 1 Tag vor Ende
-    return 'bg-blue-500'; // Normal
+    if (daysRemaining === null) return 'bg-teal-600';
+    if (daysRemaining <= 0) return 'bg-rose-500'; // Ende erreicht oder überschritten
+    if (daysRemaining === 1) return 'bg-amber-500'; // 1 Tag vor Ende
+    return 'bg-teal-600'; // Normal
   };
 
   const realProgress = calculateRealProgress();
@@ -98,20 +86,20 @@ export default function ProjectRow(p: Props) {
       className="flex flex-col gap-2 py-2 cursor-pointer" 
       onDoubleClick={p.onOpen}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
           {/* Titel */}
-          <strong className="mr-1">{p.name}</strong>
+          <strong className="mr-1 truncate min-w-0 text-slate-900 dark:text-slate-100">{p.name}</strong>
 
           {/* Project Number Pill */}
-          <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs bg-blue-50 text-blue-700 border-blue-200">
+          <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs tabular-nums bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
             {p.project_number || generateProjectNumber(p.id)}
           </span>
         </div>
 
         {/* Status + Menu - top right */}
-        <div className="flex items-center gap-2">
-          <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs ${st.cls}`}>{st.label}</span>
+        <div className="flex items-center gap-2 shrink-0">
+          <StatusChip status={status} />
           {p.onEdit && (
             <button
               onClick={(e) => {
@@ -132,7 +120,7 @@ export default function ProjectRow(p: Props) {
 
       {/* Progressbar: based on real time progress */}
       {(p.start && p.end) && (
-        <div className="h-2 w-full rounded-full bg-neutral-200 overflow-hidden">
+        <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
           <div
             className={`h-full rounded-full ${progressBarColor} transition-all`}
             style={{ width: `${realProgress}%` }}
