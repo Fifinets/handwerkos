@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { StatusChip } from "@/components/ui/status-chip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -329,7 +329,7 @@ const TimeTrackingModuleV2 = () => {
           <CardContent className="p-5 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-500">Heute aktiv</p>
-              <h3 className="text-2xl font-bold text-slate-900 mt-1">
+              <h3 className="text-2xl font-bold tabular-nums text-slate-900 mt-1">
                 {kpis.activeEmployees} / {kpis.totalEmployees}
               </h3>
             </div>
@@ -343,7 +343,7 @@ const TimeTrackingModuleV2 = () => {
           <CardContent className="p-5 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-500">Stunden heute</p>
-              <h3 className="text-2xl font-bold text-slate-900 mt-1">{kpis.hoursToday.toFixed(1)}h</h3>
+              <h3 className="text-2xl font-bold tabular-nums text-slate-900 mt-1">{kpis.hoursToday.toFixed(1)}h</h3>
             </div>
             <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center">
               <Clock className="h-6 w-6 text-slate-600" />
@@ -355,7 +355,7 @@ const TimeTrackingModuleV2 = () => {
           <CardContent className="p-5 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-500">Überstunden (Monat)</p>
-              <h3 className="text-2xl font-bold text-slate-900 mt-1">{kpis.overtimeMonth.toFixed(1)}h</h3>
+              <h3 className="text-2xl font-bold tabular-nums text-slate-900 mt-1">{kpis.overtimeMonth.toFixed(1)}h</h3>
             </div>
             <div className="h-12 w-12 rounded-full bg-rose-50 flex items-center justify-center">
               <TrendingUp className="h-6 w-6 text-rose-600" />
@@ -367,7 +367,7 @@ const TimeTrackingModuleV2 = () => {
           <CardContent className="p-5 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-500">ArbZG-Warnungen</p>
-              <h3 className="text-2xl font-bold text-slate-900 mt-1">{kpis.entriesWithWarning}</h3>
+              <h3 className="text-2xl font-bold tabular-nums text-slate-900 mt-1">{kpis.entriesWithWarning}</h3>
             </div>
             <div className="h-12 w-12 rounded-full bg-amber-50 flex items-center justify-center">
               <AlertTriangle className="h-6 w-6 text-amber-600" />
@@ -458,36 +458,46 @@ const TimeTrackingModuleV2 = () => {
                 <tbody className="divide-y divide-slate-100">
                   {filtered.map((entry) => {
                     const hasWarning = entry.net_hours > 10;
+                    const isRunning = !entry.end_time;
                     return (
-                      <tr key={entry.id} className={`hover:bg-slate-50 transition-colors ${hasWarning ? 'bg-amber-50/50' : ''}`}>
+                      <tr key={entry.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors ${hasWarning ? 'bg-amber-50 dark:bg-amber-950/40' : ''}`}>
                         <td className="px-5 py-4">
-                          <div className="font-medium text-slate-900">{entry.employee_name}</div>
+                          <div className="font-medium text-slate-900 dark:text-slate-100 truncate min-w-0">{entry.employee_name}</div>
                         </td>
-                        <td className="px-5 py-4 text-slate-600">{formatDate(entry.start_time)}</td>
-                        <td className="px-5 py-4 text-slate-600">{entry.project_name || '–'}</td>
+                        <td className="px-5 py-4 text-slate-600 dark:text-slate-400">{formatDate(entry.start_time)}</td>
+                        <td className="px-5 py-4 text-slate-600 dark:text-slate-400 truncate min-w-0">{entry.project_name || '–'}</td>
                         <td className="px-5 py-4 text-right">
-                          <div className="text-slate-900">{formatTime(entry.start_time)} – {formatTime(entry.end_time)}</div>
+                          {isRunning ? (
+                            <div className="flex items-center justify-end gap-2">
+                              <span className="text-base font-bold tabular-nums text-teal-700 dark:text-teal-400">
+                                {formatTime(entry.start_time)}
+                              </span>
+                              <StatusChip status="running" />
+                            </div>
+                          ) : (
+                            <div className="text-slate-900 dark:text-slate-100 tabular-nums">
+                              {formatTime(entry.start_time)} – {formatTime(entry.end_time)}
+                            </div>
+                          )}
                           {entry.has_correction && (
-                            <Badge variant="outline" className="mt-1 border-amber-200 bg-amber-50 text-amber-700">
-                              Korrigiert
-                            </Badge>
+                            <StatusChip status="sent" label="Korrigiert" className="mt-1" />
                           )}
                         </td>
-                        <td className="px-5 py-4 text-right text-slate-500">
+                        <td className="px-5 py-4 text-right text-slate-500 dark:text-slate-400">
                           {entry.break_duration > 0 ? (
-                            <span className="inline-flex items-center gap-1">
+                            <span className="inline-flex items-center gap-1 tabular-nums">
                               <Coffee className="h-3 w-3" />
                               {entry.break_duration}m
                             </span>
                           ) : '–'}
                         </td>
                         <td className="px-5 py-4 text-right">
-                          <span className={`font-bold ${hasWarning ? 'text-amber-600' : 'text-slate-900'}`}>
+                          <span className={`font-bold tabular-nums ${hasWarning ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-slate-100'}`}>
                             {entry.net_hours.toFixed(1)}h
                           </span>
-                          {hasWarning && <AlertTriangle className="h-3.5 w-3.5 text-amber-500 inline ml-1" />}
+                          {hasWarning && <AlertTriangle className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400 inline ml-1" />}
                         </td>
-                        <td className="px-5 py-4 text-slate-500 max-w-[200px] truncate">
+                        <td className="px-5 py-4 text-slate-500 dark:text-slate-400 max-w-[200px] truncate min-w-0">
                           {entry.description || '–'}
                         </td>
                         <td className="px-5 py-4 text-right">
@@ -512,7 +522,7 @@ const TimeTrackingModuleV2 = () => {
           {filtered.length > 0 && (
             <div className="border-t border-slate-200 bg-slate-50 px-5 py-3 flex justify-between text-sm">
               <span className="text-slate-500">{filtered.length} Einträge</span>
-              <span className="font-bold text-slate-900">
+              <span className="font-bold tabular-nums text-slate-900">
                 Gesamt: {filtered.reduce((sum, e) => sum + e.net_hours, 0).toFixed(1)}h
               </span>
             </div>
