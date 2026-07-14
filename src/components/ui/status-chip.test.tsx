@@ -46,4 +46,9 @@ describe('StatusChip', () => {
     render(<StatusChip status="sent" label="Wartet auf Antwort" />);
     expect(screen.getByText('Wartet auf Antwort')).toBeInTheDocument();
   });
+
+  it('rendert den Korrektur-Status in Amber', () => {
+    render(<StatusChip status="corrected" />);
+    expect(screen.getByText('Korrigiert')).toBeInTheDocument();
+  });
 });

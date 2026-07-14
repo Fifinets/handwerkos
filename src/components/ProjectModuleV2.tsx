@@ -374,7 +374,7 @@ const ProjectModuleV2 = () => {
 
     const today = new Date().toISOString().split('T')[0];
     const delayedProjects = projects.filter(project =>
-        project.end_date && project.end_date < today && project.status !== 'abgeschlossen'
+        project.end_date && project.end_date < today && project.status !== 'abgeschlossen' && project.status !== 'storniert'
     );
 
     const generateShortId = (fullId: string) => {
@@ -555,7 +555,7 @@ const ProjectModuleV2 = () => {
                                                     <div className="mt-2 flex flex-wrap items-center gap-2">
                                                         <StatusChip status="overdue" label={`Budget +${urgencyInfo.overrunPercent} %`} />
                                                         <span className="text-xs font-medium text-rose-700 dark:text-rose-300 tabular-nums">
-                                                            {project.hours_actual} von {project.hours_planned} h — {urgencyInfo.overrunPercent} % über Plan
+                                                            {project.hours_actual} von {project.hours_planned} h
                                                         </span>
                                                     </div>
                                                 )}

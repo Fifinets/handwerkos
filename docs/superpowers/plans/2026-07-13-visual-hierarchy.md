@@ -765,6 +765,8 @@ git commit -m "feat: apply visual hierarchy to offer module"
 **Files:**
 - Modify: `src/components/ProjectModuleV2.tsx` (777 Zeilen)
 
+> Scope-Korrektur bei Ausführung: Das Kartenmarkup liegt in src/components/projects/ProjectRow.tsx — diese Datei wurde mit umgestellt.
+
 Orientierung: Statuszählung ~Zeile 343–352 (legacy-deutsche Status), Projektkarten ab ~Zeile 530 (u. a. `abgeschlossen`-Abblendung existiert schon bei ~538).
 
 - [ ] **Step 1: Imports ergänzen** (StatusChip, UrgencyCard; StatCard falls das Modul einen Zahlen-Kopf hat)

@@ -26,6 +26,7 @@ const STATUS_MAP: Record<string, { label: string; tone: Tone }> = {
   active: { label: 'Aktiv', tone: 'positive' },
   running: { label: 'Läuft', tone: 'positive' },
   completed: { label: 'Abgeschlossen', tone: 'muted' },
+  corrected: { label: 'Korrigiert', tone: 'pending' },
   // Projekte (legacy-deutsche Statuswerte, bleiben im Backend unverändert)
   anfrage: { label: 'Anfrage', tone: 'muted' },
   besichtigung: { label: 'Besichtigung', tone: 'pending' },

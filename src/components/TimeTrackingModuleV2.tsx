@@ -462,10 +462,10 @@ const TimeTrackingModuleV2 = () => {
                     return (
                       <tr key={entry.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors ${hasWarning ? 'bg-amber-50 dark:bg-amber-950/40' : ''}`}>
                         <td className="px-5 py-4">
-                          <div className="font-medium text-slate-900 dark:text-slate-100 truncate min-w-0">{entry.employee_name}</div>
+                          <div className="font-medium text-slate-900 dark:text-slate-100 max-w-[160px] truncate">{entry.employee_name}</div>
                         </td>
                         <td className="px-5 py-4 text-slate-600 dark:text-slate-400">{formatDate(entry.start_time)}</td>
-                        <td className="px-5 py-4 text-slate-600 dark:text-slate-400 truncate min-w-0">{entry.project_name || '–'}</td>
+                        <td className="px-5 py-4 text-slate-600 dark:text-slate-400 max-w-[180px] truncate">{entry.project_name || '–'}</td>
                         <td className="px-5 py-4 text-right">
                           {isRunning ? (
                             <div className="flex items-center justify-end gap-2">
@@ -480,7 +480,7 @@ const TimeTrackingModuleV2 = () => {
                             </div>
                           )}
                           {entry.has_correction && (
-                            <StatusChip status="sent" label="Korrigiert" className="mt-1" />
+                            <StatusChip status="corrected" className="mt-1" />
                           )}
                         </td>
                         <td className="px-5 py-4 text-right text-slate-500 dark:text-slate-400">

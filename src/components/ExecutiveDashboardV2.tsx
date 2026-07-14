@@ -9,16 +9,10 @@ import { UrgencyCard } from '@/components/ui/urgency-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-    TrendingDown,
     CheckCircle,
-    Calendar,
     ArrowRight,
-    Eye,
     Zap,
-    DollarSign,
     AlertCircle,
-    Mail,
-    Wrench,
     ShieldCheck,
     Crown,
     Calculator,
