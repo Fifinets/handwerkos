@@ -22,6 +22,7 @@ import {
     Filter,
     Copy,
     Bell,
+    Link2,
     RotateCcw,
     CreditCard,
     Loader2 as Loader2Icon,
@@ -77,6 +78,7 @@ import { ShareLinkDialog } from "./offers/ShareLinkDialog";
 import { useCreatePaymentLink } from "@/hooks/useSubscription";
 import {
     filterOffersForOverview,
+    getNachfassInfo,
     getOfferStatusCounts,
     hasActiveAdvancedFilters,
     type OfferAdvancedFilters,
@@ -87,16 +89,16 @@ interface OfferModuleProps {
     customerId?: string;
 }
 
-const OFFER_FOLLOWUP_DAYS = 7;
-
-// Eine Quelle für Dringlichkeit + Tage-seit-Versand pro Angebot (pure, injizierbares now für Tests).
+// Dringlichkeit pro Angebot — nutzt dieselbe Nachfass-Quelle wie Filter/Zähler
+// (getNachfassInfo: 7-Tage-Schwelle, schließt abgelaufene Angebote aus).
 const offerUrgencyInfo = (
     offer: Offer,
-    now: number = Date.now()
+    now: Date = new Date()
 ): { urgency: 'warning' | 'none'; daysSinceSent: number | null } => {
-    if (offer.status !== 'sent' || !offer.sent_at) return { urgency: 'none', daysSinceSent: null };
-    const daysSinceSent = Math.floor((now - new Date(offer.sent_at).getTime()) / (1000 * 60 * 60 * 24));
-    return { urgency: daysSinceSent >= OFFER_FOLLOWUP_DAYS ? 'warning' : 'none', daysSinceSent };
+    const nachfass = getNachfassInfo(offer, now);
+    return nachfass
+        ? { urgency: 'warning', daysSinceSent: nachfass.days }
+        : { urgency: 'none', daysSinceSent: null };
 };
 
 const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
@@ -474,7 +476,7 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                 className="group cursor-pointer hover:shadow-md transition-shadow"
                                                 onClick={() => openDetailView(offer)}
                                                 action={
-                                                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                                    <>
                                                         <div className="text-right">
                                                             <div className={cn(
                                                                 'text-base font-bold tabular-nums',
@@ -494,7 +496,7 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                                 variant="ghost"
                                                                 size="sm"
                                                                 className="h-8 px-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
-                                                                onClick={() => handleSendOffer(offer)}
+                                                                onClick={(e) => { e.stopPropagation(); handleSendOffer(offer); }}
                                                                 title="Versenden"
                                                             >
                                                                 <Send className="h-3.5 w-3.5 mr-1" />
@@ -506,7 +508,7 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                                 variant="ghost"
                                                                 size="sm"
                                                                 className="h-8 px-2 text-amber-600 hover:text-amber-800 hover:bg-amber-50"
-                                                                onClick={() => reviseOfferMutation.mutate(offer.id)}
+                                                                onClick={(e) => { e.stopPropagation(); reviseOfferMutation.mutate(offer.id); }}
                                                                 title="Überarbeiten"
                                                             >
                                                                 <RotateCcw className="h-3.5 w-3.5 mr-1" />
@@ -514,12 +516,12 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                             </Button>
                                                         )}
                                                         <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
+                                                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                                                                 <Button variant="ghost" className="h-8 w-8 p-0">
                                                                     <MoreHorizontal className="h-4 w-4" />
                                                                 </Button>
                                                             </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end">
+                                                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                                                                 <DropdownMenuItem onClick={() => openDetailView(offer)}>
                                                                     <Eye className="h-4 w-4 mr-2" />
                                                                     Details anzeigen
@@ -585,7 +587,7 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                                 )}
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>
-                                                    </div>
+                                                    </>
                                                 }
                                             >
                                                 <div className="flex items-center gap-1.5">
@@ -613,10 +615,15 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                         Angenommen — Projekt ansehen →
                                                     </button>
                                                 ) : (
-                                                    <p className="text-xs text-slate-400 truncate">
-                                                        {offer.project_name}
-                                                        {` · ${formatDate(offer.offer_date)}`}
-                                                        {offer.valid_until ? ` · bis ${formatDate(offer.valid_until)}` : ''}
+                                                    <p className="flex items-center gap-1 min-w-0 text-xs text-slate-400">
+                                                        <span className="truncate">
+                                                            {offer.project_name}
+                                                            {` · ${formatDate(offer.offer_date)}`}
+                                                            {offer.valid_until ? ` · bis ${formatDate(offer.valid_until)}` : ''}
+                                                        </span>
+                                                        {offer.project_id && (
+                                                            <Link2 className="h-3 w-3 shrink-0 text-slate-400 dark:text-slate-500" title="Mit Projekt verknüpft" />
+                                                        )}
                                                     </p>
                                                 )}
                                             </UrgencyCard>
