@@ -187,6 +187,8 @@ export const OfferSchema = z.object({
   accepted_by: z.string().nullable(),
   acceptance_note: z.string().nullable(),
   sent_at: z.string().nullable().optional(),
+  last_followup_at: z.string().nullable().optional(),
+  followup_count: z.number().optional(),
   project_id: z.string().uuid().nullable().optional(),
   version: z.number().int(),
   created_at: z.string().datetime(),

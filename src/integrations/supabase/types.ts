@@ -3533,6 +3533,8 @@ export type Database = {
           intro_text: string | null
           is_locked: boolean | null
           is_reverse_charge: boolean | null
+          last_followup_at: string | null
+          followup_count: number
           notes: string | null
           offer_date: string
           offer_number: string
@@ -3580,6 +3582,8 @@ export type Database = {
           intro_text?: string | null
           is_locked?: boolean | null
           is_reverse_charge?: boolean | null
+          last_followup_at?: string | null
+          followup_count?: number
           notes?: string | null
           offer_date?: string
           offer_number: string
@@ -3627,6 +3631,8 @@ export type Database = {
           intro_text?: string | null
           is_locked?: boolean | null
           is_reverse_charge?: boolean | null
+          last_followup_at?: string | null
+          followup_count?: number
           notes?: string | null
           offer_date?: string
           offer_number?: string
