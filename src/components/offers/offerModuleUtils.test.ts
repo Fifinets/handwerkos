@@ -115,6 +115,11 @@ describe('getNachfassInfo mit Nachfass-Merker', () => {
     expect(info?.days).toBe(44);
   });
 
+  it('wird bei genau 7 Tagen seit letztem Nachfassen fällig (medium)', () => {
+    const info = getNachfassInfo({ ...base, last_followup_at: '2026-07-08T10:00:00Z', followup_count: 1 }, now);
+    expect(info).toEqual({ days: 7, severity: 'medium', followupNumber: 2 });
+  });
+
   it('ignoriert last_followup_at, das älter als sent_at ist', () => {
     const info = getNachfassInfo({ ...base, sent_at: '2026-07-12T10:00:00Z', last_followup_at: '2026-07-01T10:00:00Z', followup_count: 1 }, now);
     expect(info).toBeNull(); // 3 Tage seit Versand
