@@ -132,5 +132,65 @@ describe('OfferEmailDialog', () => {
       }));
       expect(onSent).toHaveBeenCalled();
     });
+
+    const [, options] = invokeMock.mock.calls[0];
+    expect(options.body.isReminder).not.toBe(true);
+  });
+
+  it('zeigt im Reminder-Modus den Nachfass-Titel und einen passenden Betreff-/Nachrichten-Default', () => {
+    renderDialog(
+      <OfferEmailDialog
+        open
+        onOpenChange={vi.fn()}
+        offer={baseOffer({
+          customer: {
+            id: '33333333-3333-4333-8333-333333333333',
+            company_name: 'Bauer GmbH',
+            contact_person: null,
+            email: 'kunde@example.com',
+          },
+        })}
+        mode="reminder"
+      />
+    );
+
+    expect(screen.getByText('Angebot nachfassen')).toBeInTheDocument();
+    expect(screen.getByLabelText('Betreff')).toHaveValue('Erinnerung: Angebot ANG-1: Bad');
+    expect((screen.getByLabelText('Nachricht') as HTMLTextAreaElement).value).toContain('erinnern');
+  });
+
+  it('sendet im Reminder-Modus isReminder: true an die Edge Function', async () => {
+    invokeMock.mockResolvedValueOnce({ data: { success: true }, error: null });
+    const onSent = vi.fn().mockResolvedValue(undefined);
+
+    renderDialog(
+      <OfferEmailDialog
+        open
+        onOpenChange={vi.fn()}
+        offer={baseOffer({
+          customer: {
+            id: '33333333-3333-4333-8333-333333333333',
+            company_name: 'Bauer GmbH',
+            contact_person: null,
+            email: 'kunde@example.com',
+          },
+        })}
+        onSent={onSent}
+        mode="reminder"
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /senden/i }));
+
+    await waitFor(() => {
+      expect(invokeMock).toHaveBeenCalledWith('send-offer-email', expect.objectContaining({
+        body: expect.objectContaining({
+          offerId: '11111111-1111-4111-8111-111111111111',
+          recipientEmail: 'kunde@example.com',
+          isReminder: true,
+        }),
+      }));
+      expect(onSent).toHaveBeenCalled();
+    });
   });
 });

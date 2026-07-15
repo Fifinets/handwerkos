@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -22,6 +22,7 @@ interface OfferEmailDialogProps {
     onOpenChange: (open: boolean) => void;
     offer: OfferWithRelations;
     onSent?: () => Promise<void> | void;
+    mode?: 'initial' | 'reminder';
 }
 
 const emailSchema = z.object({
@@ -34,21 +35,38 @@ const emailSchema = z.object({
 
 type EmailFormValues = z.infer<typeof emailSchema>;
 
-export function OfferEmailDialog({ open, onOpenChange, offer, onSent }: OfferEmailDialogProps) {
+const buildDefaults = (offer: OfferWithRelations, isReminder: boolean): EmailFormValues => ({
+    recipient: offer.customer?.email || '',
+    subject: isReminder
+        ? `Erinnerung: Angebot ${offer.offer_number}: ${offer.project_name}`
+        : `Angebot ${offer.offer_number}: ${offer.project_name}`,
+    message: isReminder
+        ? `Sehr geehrte Damen und Herren,\n\nwir möchten freundlich an unser Angebot ${offer.offer_number} vom ${new Date(offer.offer_date).toLocaleDateString('de-DE')} für das Projekt "${offer.project_name}" erinnern.\n\nGerne stehen wir für Rückfragen oder eine Anpassung des Angebots zur Verfügung.\n\nMit freundlichen Grüßen\nIhr HandwerkOS Team`
+        : `Sehr geehrte Damen und Herren,\n\nanbei erhalten Sie unser Angebot für das Projekt "${offer.project_name}".\n\nBei Fragen stehen wir Ihnen gerne zur Verfügung.\n\nMit freundlichen Grüßen\nIhr HandwerkOS Team`,
+    attachPdf: true,
+});
+
+export function OfferEmailDialog({ open, onOpenChange, offer, onSent, mode = 'initial' }: OfferEmailDialogProps) {
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [isSending, setIsSending] = useState(false);
+    const isReminder = mode === 'reminder';
 
     const form = useForm<EmailFormValues>({
         resolver: zodResolver(emailSchema),
         mode: 'onChange',
-        defaultValues: {
-            recipient: offer.customer?.email || '',
-            subject: `Angebot ${offer.offer_number}: ${offer.project_name}`,
-            message: `Sehr geehrte Damen und Herren,\n\nanbei erhalten Sie unser Angebot für das Projekt "${offer.project_name}".\n\nBei Fragen stehen wir Ihnen gerne zur Verfügung.\n\nMit freundlichen Grüßen\nIhr HandwerkOS Team`,
-            attachPdf: true,
-        },
+        defaultValues: buildDefaults(offer, isReminder),
     });
+
+    // useForm-defaultValues gelten nur beim Mount. Wird der Dialog wiederverwendet
+    // (gleiche Instanz über mehrere Öffnungen/Modus-Wechsel hinweg), synchronisiert
+    // dieser Effekt Betreff/Nachricht/Empfänger bei jedem Öffnen neu.
+    useEffect(() => {
+        if (!open) return;
+        form.reset(buildDefaults(offer, isReminder));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, isReminder, offer.id, offer.customer?.email, offer.offer_number, offer.project_name, offer.offer_date]);
+
     const recipient = form.watch('recipient');
     const canSend = Boolean(recipient?.trim()) && !isSending;
 
@@ -64,6 +82,7 @@ export function OfferEmailDialog({ open, onOpenChange, offer, onSent }: OfferEma
                     message: data.message,
                     attachPdf: data.attachPdf,
                     publicBaseUrl: getPublicBaseUrl(),
+                    isReminder,
                 },
             });
 
@@ -73,7 +92,10 @@ export function OfferEmailDialog({ open, onOpenChange, offer, onSent }: OfferEma
             await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.offer(offer.id) });
             await onSent?.();
 
-            toast({
+            toast(isReminder ? {
+                title: 'Erinnerung gesendet',
+                description: `Erinnerung wurde an ${data.recipient} gesendet.`,
+            } : {
                 title: 'E-Mail gesendet',
                 description: `Das Angebot wurde an ${data.recipient} gesendet.`,
             });
@@ -94,9 +116,11 @@ export function OfferEmailDialog({ open, onOpenChange, offer, onSent }: OfferEma
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
-                    <DialogTitle>Angebot per E-Mail senden</DialogTitle>
+                    <DialogTitle>{isReminder ? 'Angebot nachfassen' : 'Angebot per E-Mail senden'}</DialogTitle>
                     <DialogDescription>
-                        Senden Sie das Angebot direkt an den Kunden.
+                        {isReminder
+                            ? 'Senden Sie eine freundliche Erinnerung an den Kunden.'
+                            : 'Senden Sie das Angebot direkt an den Kunden.'}
                     </DialogDescription>
                 </DialogHeader>
 
