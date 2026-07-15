@@ -644,12 +644,13 @@ export function PlannerPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <span className={`text-[10px] font-medium tabular-nums ${util > 100 ? 'text-rose-600' : util >= 80 ? 'text-amber-600' : 'text-teal-600'}`}>
+                          <span className={`text-[10px] font-medium tabular-nums ${util > 100 ? 'text-rose-600 dark:text-rose-400' : util >= 80 ? 'text-amber-600 dark:text-amber-400' : 'text-teal-600 dark:text-teal-400'}`}>
                             {util}%
                           </span>
                           {onVac === 'vacation' && <Palmtree className="h-3.5 w-3.5 text-amber-500" />}
                           {onVac === 'sick' && <div className="h-3.5 w-3.5 rounded-full bg-rose-400 flex items-center justify-center text-[8px] text-white font-bold">K</div>}
-                          <div className={`h-2 w-2 rounded-full ${isAssigned ? 'bg-teal-500' : 'bg-slate-300'}`} />
+                          {/* Frei = teal (verfügbare Kapazität ist die handlungsrelevante Ressource des Planers), zugewiesen = neutral "beschäftigt". */}
+                          <div className={`h-2 w-2 rounded-full ${isAssigned ? 'bg-slate-400' : 'bg-teal-500'}`} />
                         </div>
                       </div>
                     );
@@ -733,7 +734,7 @@ export function PlannerPage() {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div className={`p-1.5 text-center font-medium ${isMonth ? 'text-[10px]' : 'text-xs'} ${
-                                holiday ? 'text-rose-600 bg-rose-50 dark:bg-rose-950/40' :
+                                holiday ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40' :
                                 isToday ? 'bg-teal-50 dark:bg-teal-950/40' :
                                 isWeekend ? 'text-slate-400 bg-slate-200/60' :
                                 'text-slate-500'
@@ -928,7 +929,7 @@ const EmployeeRow = React.memo(function EmployeeRow({
   const numDays = displayDays.length;
 
   const utilColor = utilization > 100 ? 'bg-rose-500' : utilization >= 80 ? 'bg-amber-500' : 'bg-teal-500';
-  const utilTextColor = utilization > 100 ? 'text-rose-600' : utilization >= 80 ? 'text-amber-600' : 'text-teal-600';
+  const utilTextColor = utilization > 100 ? 'text-rose-600 dark:text-rose-400' : utilization >= 80 ? 'text-amber-600 dark:text-amber-400' : 'text-teal-600 dark:text-teal-400';
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const dayStrings = useMemo(() => displayDays.map(d => format(d, 'yyyy-MM-dd')), [displayDays]);
@@ -1081,10 +1082,10 @@ const EmployeeRow = React.memo(function EmployeeRow({
             return (
               <div key={i}
                 className={`h-full relative ${
-                  isDropHere ? '' : isToday ? 'bg-teal-50/60 dark:bg-teal-950/20' : holiday ? 'bg-rose-50/50' : isWeekend ? 'bg-slate-200/50' : ''
-                } ${i > 0 ? 'border-l border-slate-100' : ''} ${isToday && !isDropHere ? 'border-l border-teal-200' : ''} ${
-                  !isDragging ? 'cursor-pointer hover:bg-teal-50/30' : ''
-                } ${isDropHere ? 'bg-teal-100/60 ring-2 ring-inset ring-teal-400' : ''}`}
+                  isDropHere ? '' : isToday ? 'bg-teal-50/60 dark:bg-teal-950/20' : holiday ? 'bg-rose-50/50 dark:bg-rose-950/20' : isWeekend ? 'bg-slate-200/50' : ''
+                } ${i > 0 ? 'border-l border-slate-100' : ''} ${isToday && !isDropHere ? 'border-l border-teal-200 dark:border-teal-800' : ''} ${
+                  !isDragging ? 'cursor-pointer hover:bg-teal-50/30 dark:hover:bg-teal-950/20' : ''
+                } ${isDropHere ? 'bg-teal-100/60 dark:bg-teal-900/40 ring-2 ring-inset ring-teal-400 dark:ring-teal-600' : ''}`}
                 onClick={!isDragging ? () => onCellClick(day) : undefined}
                 onDragOver={isDragging ? (e) => { e.preventDefault(); onDragOver(e, employee.id, ds); } : undefined}
                 onDragLeave={isDragging ? onDragLeave : undefined}

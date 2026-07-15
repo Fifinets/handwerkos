@@ -23,6 +23,6 @@ export const EQUIPMENT_COLOR = { bg: 'bg-slate-100', text: 'text-slate-900', bor
 export const ENTRY_TYPE_STYLES: Record<EntryType, { active: string; label: string }> = {
   project: { active: 'border-blue-500 bg-blue-50 text-blue-700', label: 'Projekt' },
   vacation: { active: 'border-amber-500 bg-amber-50 text-amber-700', label: 'Urlaub' },
-  sick: { active: 'border-red-500 bg-red-50 text-red-700', label: 'Krank' },
+  sick: { active: 'border-rose-500 bg-rose-50 text-rose-700', label: 'Krank' },
   equipment: { active: 'border-slate-500 bg-slate-50 text-slate-700', label: 'Gerät' },
 };
