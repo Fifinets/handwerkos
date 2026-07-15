@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { createSentOfferUpdate } from "./status.ts";
+import { createSentOfferUpdate, createReminderOfferUpdate } from "./status.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +16,7 @@ interface SendOfferEmailRequest {
   message?: string;
   attachPdf?: boolean;
   publicBaseUrl?: string;
+  isReminder?: boolean;
 }
 
 const escapeHtml = (value: string | null | undefined) =>
@@ -80,7 +81,13 @@ serve(async (req: Request): Promise<Response> => {
       .single();
 
     if (offerError || !offer) throw new Error("Angebot nicht gefunden");
-    if (offer.status !== "draft") throw new Error("Nur Entwürfe können versendet werden");
+    if (payload.isReminder) {
+      if (offer.status !== "sent") {
+        throw new Error("Nur bereits versendete Angebote können nachgefasst werden");
+      }
+    } else if (offer.status !== "draft") {
+      throw new Error("Nur Entwürfe können versendet werden");
+    }
     if (!offer.items || offer.items.length === 0) {
       throw new Error("Angebot muss mindestens eine Position enthalten");
     }
@@ -167,12 +174,16 @@ serve(async (req: Request): Promise<Response> => {
       throw new Error((result as any).error.message || "E-Mail konnte nicht gesendet werden");
     }
 
+    const offerUpdate = payload.isReminder
+      ? createReminderOfferUpdate(offer.followup_count ?? 0)
+      : createSentOfferUpdate();
+
     const { data: sentOffer, error: statusError } = await supabase
       .from("offers")
-      .update(createSentOfferUpdate())
+      .update(offerUpdate)
       .eq("id", offer.id)
       .eq("company_id", profile.company_id)
-      .select("id, offer_number, status, sent_at, share_token, share_token_created_at")
+      .select("id, offer_number, status, sent_at, share_token, share_token_created_at, last_followup_at, followup_count")
       .single();
 
     if (statusError || !sentOffer) {
