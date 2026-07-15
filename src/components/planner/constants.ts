@@ -16,7 +16,8 @@ export const PROJECT_COLORS = [
 export type ProjectColor = typeof PROJECT_COLORS[number];
 
 export const VACATION_COLOR = { bg: 'bg-amber-100', text: 'text-amber-900', border: 'border-amber-400', dot: 'bg-amber-400' } as const;
-export const SICK_COLOR = { bg: 'bg-red-100', text: 'text-red-900', border: 'border-red-400', dot: 'bg-red-400' } as const;
+// Visual-hierarchy Task 10: Krank-Status ist semantisch "kritisch" -> rose statt red.
+export const SICK_COLOR = { bg: 'bg-rose-100', text: 'text-rose-900', border: 'border-rose-400', dot: 'bg-rose-400' } as const;
 export const EQUIPMENT_COLOR = { bg: 'bg-slate-100', text: 'text-slate-900', border: 'border-slate-500', dot: 'bg-slate-500' } as const;
 
 export const ENTRY_TYPE_STYLES: Record<EntryType, { active: string; label: string }> = {

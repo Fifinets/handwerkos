@@ -477,7 +477,7 @@ export function PlannerPage() {
           <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => setShowCapacityCheck(true)}>
             <BarChart3 className="h-4 w-4 mr-2" /> Kapazität prüfen
           </Button>
-          <Button variant="outline" className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50 sm:flex-none"
+          <Button variant="outline" className="flex-1 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/40 sm:flex-none"
             onClick={() => { setBulkAssignProjectId(''); setShowBulkAssign(true); }}>
             <Users className="h-4 w-4 mr-2" /> Team zuweisen
           </Button>
@@ -510,17 +510,17 @@ export function PlannerPage() {
 
       {/* Sick replacement banner */}
       {sickOnActiveProject.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-rose-50 dark:bg-rose-950/40 border border-transparent rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <AlertTriangle className="h-5 w-5 text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-red-800">
+              <p className="text-sm font-medium text-rose-800 dark:text-rose-300">
                 {sickOnActiveProject.length} Mitarbeiter krank auf aktivem Projekt
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {sickOnActiveProject.map(({ employee, project }) => (
                   <Button key={employee.id} variant="outline" size="sm"
-                    className="bg-white border-red-300 text-red-800 hover:bg-red-100 text-xs h-7"
+                    className="bg-white dark:bg-slate-900 border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-xs h-7"
                     onClick={() => {
                       setReplanProject(project);
                       setShowReplan(true);
@@ -585,8 +585,8 @@ export function PlannerPage() {
                     <button key={key} onClick={() => setFilterUtilization(key)}
                       className={`flex-1 px-2 py-1.5 rounded text-xs font-medium transition-colors ${
                         filterUtilization === key
-                          ? key === 'overloaded' ? 'bg-red-100 text-red-700 border border-red-300'
-                          : key === 'available' ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
+                          ? key === 'overloaded' ? 'bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
+                          : key === 'available' ? 'bg-teal-100 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-800'
                           : 'bg-slate-200 text-slate-700 border border-slate-300'
                           : 'bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100'
                       }`}>
@@ -598,7 +598,7 @@ export function PlannerPage() {
               {(filterProjectId !== 'all' || filterPosition !== 'all' || filterUtilization !== 'all' || searchTerm) && (
                 <button
                   onClick={() => { setFilterProjectId('all'); setFilterPosition('all'); setFilterUtilization('all'); setSearchTerm(''); }}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                  className="text-xs text-slate-500 hover:text-slate-700 font-medium">
                   Filter zurücksetzen
                 </button>
               )}
@@ -638,18 +638,18 @@ export function PlannerPage() {
                           <div className="truncate">
                             <div className="text-sm font-medium text-slate-900 truncate flex items-center gap-1">
                               {emp.first_name} {emp.last_name}
-                              {hasConflict && <AlertTriangle className="h-3 w-3 text-red-500 flex-shrink-0" />}
+                              {hasConflict && <AlertTriangle className="h-3 w-3 text-rose-500 flex-shrink-0" />}
                             </div>
                             <div className="text-xs text-slate-500 truncate">{emp.position || '—'}</div>
                           </div>
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <span className={`text-[10px] font-medium ${util > 100 ? 'text-red-600' : util >= 80 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                          <span className={`text-[10px] font-medium tabular-nums ${util > 100 ? 'text-rose-600' : util >= 80 ? 'text-amber-600' : 'text-teal-600'}`}>
                             {util}%
                           </span>
                           {onVac === 'vacation' && <Palmtree className="h-3.5 w-3.5 text-amber-500" />}
-                          {onVac === 'sick' && <div className="h-3.5 w-3.5 rounded-full bg-red-400 flex items-center justify-center text-[8px] text-white font-bold">K</div>}
-                          <div className={`h-2 w-2 rounded-full ${isAssigned ? 'bg-blue-500' : 'bg-emerald-500'}`} />
+                          {onVac === 'sick' && <div className="h-3.5 w-3.5 rounded-full bg-rose-400 flex items-center justify-center text-[8px] text-white font-bold">K</div>}
+                          <div className={`h-2 w-2 rounded-full ${isAssigned ? 'bg-teal-500' : 'bg-slate-300'}`} />
                         </div>
                       </div>
                     );
@@ -733,29 +733,29 @@ export function PlannerPage() {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div className={`p-1.5 text-center font-medium ${isMonth ? 'text-[10px]' : 'text-xs'} ${
-                                holiday ? 'text-rose-600 bg-rose-50' :
-                                isToday ? 'bg-blue-50' :
+                                holiday ? 'text-rose-600 bg-rose-50 dark:bg-rose-950/40' :
+                                isToday ? 'bg-teal-50 dark:bg-teal-950/40' :
                                 isWeekend ? 'text-slate-400 bg-slate-200/60' :
                                 'text-slate-500'
                               }`}>
                                 {isMonth ? (
                                   <>
                                     <div className="flex justify-center">
-                                      <span className={isToday ? 'inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-600 text-white text-[10px] font-bold' : ''}>
+                                      <span className={isToday ? 'inline-flex items-center justify-center h-5 w-5 rounded-full bg-teal-600 text-white text-[10px] font-bold' : ''}>
                                         {format(day, 'dd')}
                                       </span>
                                     </div>
-                                    <div className={`text-[8px] opacity-70 ${isToday ? 'text-blue-600' : ''}`}>{format(day, 'EE', { locale: de })}</div>
+                                    <div className={`text-[8px] opacity-70 ${isToday ? 'text-teal-600 dark:text-teal-400' : ''}`}>{format(day, 'EE', { locale: de })}</div>
                                   </>
                                 ) : (
                                   <>
-                                    <div className={isToday ? 'text-blue-500 font-semibold' : ''}>{format(day, 'EEE', { locale: de })}</div>
+                                    <div className={isToday ? 'text-teal-600 dark:text-teal-400 font-semibold' : ''}>{format(day, 'EEE', { locale: de })}</div>
                                     <div className="flex justify-center mt-0.5">
-                                      <span className={isToday ? 'inline-flex items-center justify-center h-7 w-7 rounded-full bg-blue-600 text-white text-xs font-bold' : ''}>
+                                      <span className={isToday ? 'inline-flex items-center justify-center h-7 w-7 rounded-full bg-teal-600 text-white text-xs font-bold' : ''}>
                                         {format(day, 'dd', { locale: de })}
                                       </span>
                                     </div>
-                                    <div className={`text-[9px] opacity-60 ${isToday ? 'text-blue-600' : ''}`}>{format(day, 'MM.', { locale: de })}</div>
+                                    <div className={`text-[9px] opacity-60 ${isToday ? 'text-teal-600 dark:text-teal-400' : ''}`}>{format(day, 'MM.', { locale: de })}</div>
                                     {holiday && <div className="text-[9px] text-rose-500 font-normal truncate">{holiday}</div>}
                                   </>
                                 )}
@@ -927,8 +927,8 @@ const EmployeeRow = React.memo(function EmployeeRow({
   const barGap = 2;
   const numDays = displayDays.length;
 
-  const utilColor = utilization > 100 ? 'bg-red-500' : utilization >= 80 ? 'bg-amber-500' : 'bg-emerald-500';
-  const utilTextColor = utilization > 100 ? 'text-red-600' : utilization >= 80 ? 'text-amber-600' : 'text-emerald-600';
+  const utilColor = utilization > 100 ? 'bg-rose-500' : utilization >= 80 ? 'bg-amber-500' : 'bg-teal-500';
+  const utilTextColor = utilization > 100 ? 'text-rose-600' : utilization >= 80 ? 'text-amber-600' : 'text-teal-600';
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const dayStrings = useMemo(() => displayDays.map(d => format(d, 'yyyy-MM-dd')), [displayDays]);
@@ -1062,7 +1062,7 @@ const EmployeeRow = React.memo(function EmployeeRow({
             <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
               <div className={`h-full ${utilColor} rounded-full transition-all`} style={{ width: `${Math.min(utilization, 100)}%` }} />
             </div>
-            <span className={`text-[10px] font-medium ${utilTextColor} min-w-[28px] text-right`}>{utilization}%</span>
+            <span className={`text-[10px] font-medium tabular-nums ${utilTextColor} min-w-[28px] text-right`}>{utilization}%</span>
           </div>
         </div>
       </div>
@@ -1081,10 +1081,10 @@ const EmployeeRow = React.memo(function EmployeeRow({
             return (
               <div key={i}
                 className={`h-full relative ${
-                  isDropHere ? '' : isToday ? 'bg-blue-50/60' : holiday ? 'bg-rose-50/50' : isWeekend ? 'bg-slate-200/50' : ''
-                } ${i > 0 ? 'border-l border-slate-100' : ''} ${isToday && !isDropHere ? 'border-l border-blue-200' : ''} ${
-                  !isDragging ? 'cursor-pointer hover:bg-blue-50/30' : ''
-                } ${isDropHere ? 'bg-blue-100/60 ring-2 ring-inset ring-blue-400' : ''}`}
+                  isDropHere ? '' : isToday ? 'bg-teal-50/60 dark:bg-teal-950/20' : holiday ? 'bg-rose-50/50' : isWeekend ? 'bg-slate-200/50' : ''
+                } ${i > 0 ? 'border-l border-slate-100' : ''} ${isToday && !isDropHere ? 'border-l border-teal-200' : ''} ${
+                  !isDragging ? 'cursor-pointer hover:bg-teal-50/30' : ''
+                } ${isDropHere ? 'bg-teal-100/60 ring-2 ring-inset ring-teal-400' : ''}`}
                 onClick={!isDragging ? () => onCellClick(day) : undefined}
                 onDragOver={isDragging ? (e) => { e.preventDefault(); onDragOver(e, employee.id, ds); } : undefined}
                 onDragLeave={isDragging ? onDragLeave : undefined}
@@ -1094,10 +1094,10 @@ const EmployeeRow = React.memo(function EmployeeRow({
                   <TooltipProvider delayDuration={200}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <AlertTriangle className="absolute top-0.5 right-0.5 h-3 w-3 text-red-500 z-20" />
+                        <AlertTriangle className="absolute top-0.5 right-0.5 h-3 w-3 text-rose-500 z-20" />
                       </TooltipTrigger>
                       <TooltipContent side="top" className="text-xs">
-                        <p className="font-semibold text-red-600">Konflikt</p>
+                        <p className="font-semibold text-rose-600">Konflikt</p>
                         <p className="text-slate-500">Doppelbelegung oder Urlaub-Überschneidung</p>
                       </TooltipContent>
                     </Tooltip>
