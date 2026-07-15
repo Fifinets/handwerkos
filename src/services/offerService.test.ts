@@ -304,7 +304,7 @@ describe('OfferService', () => {
   describe('recordFollowup - Nachfass-Merker', () => {
     it('liest den aktuellen followup_count und schreibt last_followup_at + followup_count+1', async () => {
       mockSingle.mockResolvedValueOnce({
-        data: { followup_count: 2 },
+        data: { status: 'sent', followup_count: 2 },
         error: null,
       });
       mockSingle.mockResolvedValueOnce({
@@ -323,7 +323,7 @@ describe('OfferService', () => {
 
     it('emittiert OFFER_UPDATED nach dem Nachfassen', async () => {
       mockSingle.mockResolvedValueOnce({
-        data: { followup_count: 0 },
+        data: { status: 'sent', followup_count: 0 },
         error: null,
       });
       mockSingle.mockResolvedValueOnce({
@@ -341,9 +341,21 @@ describe('OfferService', () => {
       );
     });
 
+    it('verhindert Nachfassen von nicht versendeten Angeboten', async () => {
+      mockSingle.mockResolvedValueOnce({
+        data: { status: 'draft', followup_count: 0 },
+        error: null,
+      });
+
+      await expect(OfferService.recordFollowup('offer-1')).rejects.toThrow(
+        'Nur versendete Angebote können nachgefasst werden.'
+      );
+      expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
     it('wirft einen Fehler, wenn das Nachfassen nicht gespeichert werden kann', async () => {
       mockSingle.mockResolvedValueOnce({
-        data: { followup_count: 0 },
+        data: { status: 'sent', followup_count: 0 },
         error: null,
       });
       mockSingle.mockResolvedValueOnce({

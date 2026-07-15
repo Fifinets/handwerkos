@@ -667,11 +667,19 @@ export class OfferService {
     return apiCall(async () => {
       const { data: current, error: fetchError } = await supabase
         .from('offers')
-        .select('followup_count')
+        .select('status, followup_count')
         .eq('id', id)
         .single();
 
       if (fetchError) throw fetchError;
+
+      if (current?.status !== 'sent') {
+        throw new ApiError(
+          API_ERROR_CODES.BUSINESS_RULE_VIOLATION,
+          'Nur versendete Angebote können nachgefasst werden.',
+          { currentStatus: current?.status }
+        );
+      }
 
       const { data: updatedOffer, error } = await supabase
         .from('offers')
@@ -691,7 +699,7 @@ export class OfferService {
       });
 
       return updatedOffer;
-    }, `Nachfassen konnte nicht gespeichert werden`);
+    }, `Record offer followup ${id}`);
   }
 
   // Cancel offer
