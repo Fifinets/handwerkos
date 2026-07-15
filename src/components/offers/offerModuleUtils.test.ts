@@ -4,6 +4,7 @@ import {
   getOfferStatusCounts,
   filterOffersForOverview,
   isOfferExpiredByDate,
+  getNachfassInfo,
 } from './offerModuleUtils';
 
 const baseOffer = (overrides: Partial<Offer>): Offer => ({
@@ -91,5 +92,31 @@ describe('offerModuleUtils', () => {
       advancedFilters: { minAmount: '1000' },
       now,
     })).toHaveLength(1);
+  });
+});
+
+describe('getNachfassInfo mit Nachfass-Merker', () => {
+  const base = { status: 'sent' as const, sent_at: '2026-06-01T10:00:00Z', valid_until: null };
+  const now = new Date('2026-07-15T10:00:00Z');
+
+  it('rechnet ab last_followup_at, wenn es jünger als sent_at ist', () => {
+    const info = getNachfassInfo({ ...base, last_followup_at: '2026-07-10T10:00:00Z', followup_count: 1 }, now);
+    expect(info).toBeNull(); // erst 5 Tage seit letztem Kontakt
+  });
+
+  it('wird nach 7 Tagen seit letztem Nachfassen wieder fällig — als nächste Stufe', () => {
+    const info = getNachfassInfo({ ...base, last_followup_at: '2026-07-01T10:00:00Z', followup_count: 1 }, now);
+    expect(info).toEqual({ days: 14, severity: 'high', followupNumber: 2 });
+  });
+
+  it('ohne Merker: followupNumber ist 1, Verhalten wie bisher', () => {
+    const info = getNachfassInfo(base, now);
+    expect(info?.followupNumber).toBe(1);
+    expect(info?.days).toBe(44);
+  });
+
+  it('ignoriert last_followup_at, das älter als sent_at ist', () => {
+    const info = getNachfassInfo({ ...base, sent_at: '2026-07-12T10:00:00Z', last_followup_at: '2026-07-01T10:00:00Z', followup_count: 1 }, now);
+    expect(info).toBeNull(); // 3 Tage seit Versand
   });
 });

@@ -30,20 +30,25 @@ export const isOfferExpiredByDate = (offer: Pick<Offer, 'status' | 'valid_until'
 };
 
 export const getNachfassInfo = (
-  offer: Pick<Offer, 'status' | 'sent_at' | 'valid_until'>,
+  offer: Pick<Offer, 'status' | 'sent_at' | 'valid_until'> &
+    Partial<Pick<Offer, 'last_followup_at' | 'followup_count'>>,
   now = new Date()
 ) => {
   if (offer.status !== 'sent' || !offer.sent_at || isOfferExpiredByDate(offer, now)) return null;
 
-  const daysSinceSent = Math.floor(
-    (now.getTime() - new Date(offer.sent_at).getTime()) / (1000 * 60 * 60 * 24)
-  );
+  // Referenz = letzter Kontakt: jüngeres von sent_at und last_followup_at
+  const lastContact =
+    offer.last_followup_at && new Date(offer.last_followup_at) > new Date(offer.sent_at)
+      ? offer.last_followup_at
+      : offer.sent_at;
 
-  if (daysSinceSent < 7) return null;
+  const days = Math.floor((now.getTime() - new Date(lastContact).getTime()) / (1000 * 60 * 60 * 24));
+  if (days < 7) return null;
 
   return {
-    days: daysSinceSent,
-    severity: daysSinceSent >= 14 ? 'high' as const : 'medium' as const,
+    days,
+    severity: days >= 14 ? ('high' as const) : ('medium' as const),
+    followupNumber: (offer.followup_count ?? 0) + 1,
   };
 };
 
