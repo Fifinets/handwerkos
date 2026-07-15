@@ -26,6 +26,7 @@ import {
     RotateCcw,
     CreditCard,
     Loader2 as Loader2Icon,
+    PhoneCall,
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -75,7 +76,9 @@ import { UrgencyCard } from "@/components/ui/urgency-card";
 import AddOfferDialog from "./AddOfferDialog";
 import OfferDetailView from "./OfferDetailView";
 import { ShareLinkDialog } from "./offers/ShareLinkDialog";
+import { OfferEmailDialog } from "./offers/OfferEmailDialog";
 import { useCreatePaymentLink } from "@/hooks/useSubscription";
+import { OfferService } from "@/services/offerService";
 import {
     filterOffersForOverview,
     getNachfassInfo,
@@ -94,11 +97,11 @@ interface OfferModuleProps {
 const offerUrgencyInfo = (
     offer: Offer,
     now: Date = new Date()
-): { urgency: 'warning' | 'none'; daysSinceSent: number | null } => {
+): { urgency: 'warning' | 'none'; daysSinceLastContact: number | null; followupNumber: number | null } => {
     const nachfass = getNachfassInfo(offer, now);
     return nachfass
-        ? { urgency: 'warning', daysSinceSent: nachfass.days }
-        : { urgency: 'none', daysSinceSent: null };
+        ? { urgency: 'warning', daysSinceLastContact: nachfass.days, followupNumber: nachfass.followupNumber }
+        : { urgency: 'none', daysSinceLastContact: null, followupNumber: null };
 };
 
 const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
@@ -121,6 +124,9 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
     const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
     const [rejectReason, setRejectReason] = useState('');
     const [shareLinkData, setShareLinkData] = useState<{ link: string; offerNumber: string; customerName: string; projectName: string; customerEmail: string } | null>(null);
+    const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+    const [emailDialogMode, setEmailDialogMode] = useState<'initial' | 'reminder'>('initial');
+    const [emailDialogOffer, setEmailDialogOffer] = useState<Offer | null>(null);
 
     const filters: Record<string, any> = {};
     if (customerId) {
@@ -281,6 +287,22 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
         }
     };
 
+    const handleRecordFollowup = async (offer: Offer) => {
+        try {
+            await OfferService.recordFollowup(offer.id);
+            toast({
+                title: "Als nachgefasst markiert",
+                description: `${offer.offer_number} wurde als nachgefasst markiert.`,
+            });
+        } catch (error: any) {
+            toast({
+                title: "Fehler",
+                description: error.message || "Nachfassen konnte nicht gespeichert werden.",
+                variant: "destructive",
+            });
+        }
+    };
+
     const handleDuplicateOffer = async (offer: Offer) => {
         try {
             await duplicateOfferMutation.mutateAsync(offer.id);
@@ -315,6 +337,12 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
     const openDetailView = (offer: Offer) => {
         setSelectedOfferId(offer.id);
         setIsDetailViewOpen(true);
+    };
+
+    const openReminderDialog = (offer: Offer) => {
+        setEmailDialogOffer(offer);
+        setEmailDialogMode('reminder');
+        setIsEmailDialogOpen(true);
     };
 
     return (
@@ -465,7 +493,7 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                             ) : (
                                 <div className="p-4 space-y-2">
                                     {filteredOffers.map((offer) => {
-                                        const { urgency, daysSinceSent } = offerUrgencyInfo(offer);
+                                        const { urgency, daysSinceLastContact, followupNumber } = offerUrgencyInfo(offer);
                                         const done = offer.status === 'draft' || offer.status === 'rejected' || offer.status === 'expired';
 
                                         return (
@@ -515,6 +543,16 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                                 <span className="text-xs">Überarbeiten</span>
                                                             </Button>
                                                         )}
+                                                        {urgency === 'warning' && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="border-amber-300 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-950/60 bg-white/60 dark:bg-transparent"
+                                                                onClick={(e) => { e.stopPropagation(); openReminderDialog(offer); }}
+                                                            >
+                                                                Nachfassen
+                                                            </Button>
+                                                        )}
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                                                                 <Button variant="ghost" className="h-8 w-8 p-0">
@@ -540,6 +578,15 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                                 )}
                                                                 {offer.status === 'sent' && (
                                                                     <>
+                                                                        <DropdownMenuSeparator />
+                                                                        <DropdownMenuItem onClick={() => openReminderDialog(offer)}>
+                                                                            <Send className="h-4 w-4 mr-2 text-amber-600" />
+                                                                            Nachfassen (E-Mail)
+                                                                        </DropdownMenuItem>
+                                                                        <DropdownMenuItem onClick={() => handleRecordFollowup(offer)}>
+                                                                            <PhoneCall className="h-4 w-4 mr-2 text-amber-600" />
+                                                                            Als nachgefasst markieren
+                                                                        </DropdownMenuItem>
                                                                         <DropdownMenuSeparator />
                                                                         <DropdownMenuItem onClick={() => openAcceptDialog(offer)}>
                                                                             <CheckCircle className="h-4 w-4 mr-2 text-emerald-600" />
@@ -604,7 +651,7 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                                                 </div>
                                                 {urgency === 'warning' ? (
                                                     <p className="text-xs font-medium text-amber-700 dark:text-amber-300">
-                                                        Seit {daysSinceSent} Tagen keine Antwort — nachfassen?
+                                                        Seit {daysSinceLastContact} Tagen keine Antwort — {followupNumber === 1 ? 'nachfassen?' : `${followupNumber}. Nachfassen?`}
                                                     </p>
                                                 ) : offer.status === 'accepted' ? (
                                                     <button
@@ -811,6 +858,14 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                 projectName={shareLinkData?.projectName || ''}
                 customerEmail={shareLinkData?.customerEmail || ''}
             />
+            {emailDialogOffer && (
+                <OfferEmailDialog
+                    open={isEmailDialogOpen}
+                    onOpenChange={setIsEmailDialogOpen}
+                    offer={emailDialogOffer as OfferWithRelations}
+                    mode={emailDialogMode}
+                />
+            )}
         </div>
     );
 };
