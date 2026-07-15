@@ -84,6 +84,7 @@ vi.mock('./eventBus', () => ({
 }));
 
 import { OfferService } from './offerService';
+import { eventBus } from './eventBus';
 
 describe('OfferService', () => {
   beforeEach(() => {
@@ -293,6 +294,64 @@ describe('OfferService', () => {
           unit_price_net: 100,
         } as any)
       ).rejects.toThrow('Positionen eines gesperrten Angebots können nicht geändert werden.');
+    });
+  });
+
+  // =============================================
+  // Nachfass-Merker (recordFollowup)
+  // =============================================
+
+  describe('recordFollowup - Nachfass-Merker', () => {
+    it('liest den aktuellen followup_count und schreibt last_followup_at + followup_count+1', async () => {
+      mockSingle.mockResolvedValueOnce({
+        data: { followup_count: 2 },
+        error: null,
+      });
+      mockSingle.mockResolvedValueOnce({
+        data: { id: 'offer-1', followup_count: 3, last_followup_at: '2026-07-15T10:00:00.000Z' },
+        error: null,
+      });
+
+      const result = await OfferService.recordFollowup('offer-1');
+
+      expect(mockUpdate).toHaveBeenCalledWith({
+        last_followup_at: expect.any(String),
+        followup_count: 3,
+      });
+      expect(result).toEqual({ id: 'offer-1', followup_count: 3, last_followup_at: '2026-07-15T10:00:00.000Z' });
+    });
+
+    it('emittiert OFFER_UPDATED nach dem Nachfassen', async () => {
+      mockSingle.mockResolvedValueOnce({
+        data: { followup_count: 0 },
+        error: null,
+      });
+      mockSingle.mockResolvedValueOnce({
+        data: { id: 'offer-1', followup_count: 1, last_followup_at: '2026-07-15T10:00:00.000Z' },
+        error: null,
+      });
+
+      await OfferService.recordFollowup('offer-1');
+
+      expect(eventBus.emit).toHaveBeenCalledWith(
+        'OFFER_UPDATED',
+        expect.objectContaining({
+          offer: { id: 'offer-1', followup_count: 1, last_followup_at: '2026-07-15T10:00:00.000Z' },
+        })
+      );
+    });
+
+    it('wirft einen Fehler, wenn das Nachfassen nicht gespeichert werden kann', async () => {
+      mockSingle.mockResolvedValueOnce({
+        data: { followup_count: 0 },
+        error: null,
+      });
+      mockSingle.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'DB failed' },
+      });
+
+      await expect(OfferService.recordFollowup('offer-1')).rejects.toThrow();
     });
   });
 

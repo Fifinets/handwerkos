@@ -662,6 +662,38 @@ export class OfferService {
     }, `Revise offer ${id}`);
   }
 
+  // Record a manual follow-up reminder (updates last_followup_at + followup_count)
+  static async recordFollowup(id: string): Promise<Offer> {
+    return apiCall(async () => {
+      const { data: current, error: fetchError } = await supabase
+        .from('offers')
+        .select('followup_count')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const { data: updatedOffer, error } = await supabase
+        .from('offers')
+        .update({
+          last_followup_at: new Date().toISOString(),
+          followup_count: (current?.followup_count ?? 0) + 1,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      eventBus.emit('OFFER_UPDATED', {
+        offer: updatedOffer,
+        user_id: (await supabase.auth.getUser()).data.user?.id,
+      });
+
+      return updatedOffer;
+    }, `Nachfassen konnte nicht gespeichert werden`);
+  }
+
   // Cancel offer
   static async cancelOffer(id: string): Promise<Offer> {
     return apiCall(async () => {
