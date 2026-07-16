@@ -37,7 +37,7 @@ export class OfferService {
   static async getOffers(
     pagination?: PaginationQuery,
     filters?: OfferFilter
-  ): Promise<PaginationResponse<Offer>> {
+  ): Promise<PaginationResponse<OfferWithRelations>> {
     return apiCall(async () => {
       const companyId = await this.getCompanyId();
 

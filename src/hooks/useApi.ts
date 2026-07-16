@@ -2586,7 +2586,7 @@ export const useEstimationStatistics = (
 export const useOffers = (
   pagination?: PaginationQuery,
   filters?: OfferFilter,
-  options?: UseApiQueryOptions<PaginationResponse<Offer>>
+  options?: UseApiQueryOptions<PaginationResponse<OfferWithRelations>>
 ) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.offers, pagination, filters],

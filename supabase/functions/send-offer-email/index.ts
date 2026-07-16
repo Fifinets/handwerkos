@@ -102,7 +102,9 @@ serve(async (req: Request): Promise<Response> => {
       ? `${(payload.publicBaseUrl || "").replace(/\/$/, "")}/public/offer/${offer.share_token}`
       : null;
 
-    const subject = payload.subject || `Angebot ${offer.offer_number}: ${offer.project_name}`;
+    const subject = payload.subject || (payload.isReminder
+      ? `Erinnerung: Angebot ${offer.offer_number}: ${offer.project_name}`
+      : `Angebot ${offer.offer_number}: ${offer.project_name}`);
     const messageHtml = escapeHtml(payload.message || "")
       .split("\n")
       .map((line) => `<p style="margin:0 0 12px 0;">${line || "&nbsp;"}</p>`)

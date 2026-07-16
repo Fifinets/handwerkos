@@ -125,8 +125,7 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
     const [rejectReason, setRejectReason] = useState('');
     const [shareLinkData, setShareLinkData] = useState<{ link: string; offerNumber: string; customerName: string; projectName: string; customerEmail: string } | null>(null);
     const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
-    const [emailDialogMode, setEmailDialogMode] = useState<'initial' | 'reminder'>('initial');
-    const [emailDialogOffer, setEmailDialogOffer] = useState<Offer | null>(null);
+    const [emailDialogOffer, setEmailDialogOffer] = useState<OfferWithRelations | null>(null);
 
     const filters: Record<string, any> = {};
     if (customerId) {
@@ -202,7 +201,7 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
         });
     };
 
-    const handleSendOffer = async (offer: Offer) => {
+    const handleSendOffer = async (offer: OfferWithRelations) => {
         try {
             const result = await sendOfferMutation.mutateAsync(offer.id);
             const shareLink = result?.shareLink;
@@ -212,7 +211,7 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                     offerNumber: offer.offer_number,
                     customerName: offer.customer_name || '',
                     projectName: offer.project_name || '',
-                    customerEmail: (offer as OfferWithRelations).customer?.email || '',
+                    customerEmail: offer.customer?.email || '',
                 });
             } else {
                 toast({
@@ -339,9 +338,8 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
         setIsDetailViewOpen(true);
     };
 
-    const openReminderDialog = (offer: Offer) => {
+    const openReminderDialog = (offer: OfferWithRelations) => {
         setEmailDialogOffer(offer);
-        setEmailDialogMode('reminder');
         setIsEmailDialogOpen(true);
     };
 
@@ -859,11 +857,12 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                 customerEmail={shareLinkData?.customerEmail || ''}
             />
             {emailDialogOffer && (
+                // Dialog wird hier nur für Nachfassen genutzt; Erstversand läuft über Share-Link.
                 <OfferEmailDialog
                     open={isEmailDialogOpen}
                     onOpenChange={setIsEmailDialogOpen}
-                    offer={emailDialogOffer as OfferWithRelations}
-                    mode={emailDialogMode}
+                    offer={emailDialogOffer}
+                    mode="reminder"
                 />
             )}
         </div>
