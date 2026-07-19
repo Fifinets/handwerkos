@@ -36,7 +36,7 @@ export function StatCard({
     <div
       onClick={onClick}
       className={cn(
-        'bg-card border border-border rounded-xl p-4',
+        'bg-card border border-border rounded-xl p-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)]',
         emphasis === 'hero' ? 'flex-[1.4]' : 'flex-1',
         onClick && 'cursor-pointer hover:shadow-md transition-shadow',
         className

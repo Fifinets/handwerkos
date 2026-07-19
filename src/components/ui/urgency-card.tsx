@@ -29,7 +29,7 @@ export function UrgencyCard({
   return (
     <div
       className={cn(
-        'rounded-xl border p-3 sm:px-4 flex items-center justify-between gap-3',
+        'rounded-xl border p-3 sm:px-4 flex items-center justify-between gap-3 shadow-[0_1px_2px_rgba(15,23,42,0.05)]',
         URGENCY_CLASSES[urgency],
         done && 'opacity-60',
         className
