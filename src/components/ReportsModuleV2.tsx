@@ -79,7 +79,7 @@ interface InvoiceStats {
 }
 
 // Palette-Fallback für Segmente ohne eigenes Status-Mapping (teal/amber/rose/slate).
-const COLORS = ['#0d9488', '#d97706', '#e11d48', '#64748b', '#94a3b8', '#334155'];
+const COLORS = ['#0d9488', '#d97706', '#64748b', '#94a3b8', '#334155', '#e11d48'];
 // Status-Semantik (Spec Regel 2/3): aktiv/positiv -> teal, wartend -> amber, kritisch -> rose, erledigt/neutral -> slate.
 const STATUS_COLORS: Record<string, string> = {
   'draft': '#94a3b8',
@@ -533,7 +533,6 @@ const ReportsModuleV2: React.FC = () => {
                 <StatCard
                   label="Gesamtumsatz"
                   emphasis="hero"
-                  tone="positive"
                   value={formatCurrency(kpis.totalRevenue)}
                   hint={`${kpis.paidInvoices} bezahlte Rechnungen`}
                 />
