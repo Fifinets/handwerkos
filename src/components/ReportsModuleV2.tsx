@@ -1,19 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { StatCard } from "@/components/ui/stat-card";
 import {
   BarChart3,
   TrendingUp,
   TrendingDown,
   Euro,
-  Clock,
   Users,
   FileText,
   Download,
@@ -30,8 +29,7 @@ import {
   Target,
   Briefcase,
   CheckCircle2,
-  AlertTriangle,
-  Wallet
+  AlertTriangle
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -80,16 +78,18 @@ interface InvoiceStats {
   amount: number;
 }
 
-const COLORS = ['#0ea5e9', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#ec4899'];
+// Palette-Fallback für Segmente ohne eigenes Status-Mapping (teal/amber/rose/slate).
+const COLORS = ['#0d9488', '#d97706', '#e11d48', '#64748b', '#94a3b8', '#334155'];
+// Status-Semantik (Spec Regel 2/3): aktiv/positiv -> teal, wartend -> amber, kritisch -> rose, erledigt/neutral -> slate.
 const STATUS_COLORS: Record<string, string> = {
   'draft': '#94a3b8',
-  'sent': '#3b82f6',
-  'paid': '#10b981',
-  'overdue': '#f43f5e',
+  'sent': '#d97706',
+  'paid': '#0d9488',
+  'overdue': '#e11d48',
   'anfrage': '#94a3b8',
-  'in_bearbeitung': '#f59e0b',
-  'abgeschlossen': '#10b981',
-  'storniert': '#f43f5e'
+  'in_bearbeitung': '#0d9488',
+  'abgeschlossen': '#64748b',
+  'storniert': '#e11d48'
 };
 
 const ReportsModuleV2: React.FC = () => {
@@ -529,76 +529,30 @@ const ReportsModuleV2: React.FC = () => {
           ) : (
             <>
               {/* KPI Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="bg-gradient-to-br from-emerald-50 to-white border-emerald-100">
-                  <CardContent className="p-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-medium text-emerald-600 uppercase tracking-wider">Gesamtumsatz</p>
-                        <p className="text-2xl font-bold text-emerald-700 mt-1">{formatCurrency(kpis.totalRevenue)}</p>
-                        <div className="flex items-center gap-1 mt-2">
-                          <span className="text-xs text-slate-500">{kpis.paidInvoices} bezahlte Rechnungen</span>
-                        </div>
-                      </div>
-                      <div className="h-12 w-12 rounded-xl bg-emerald-100 flex items-center justify-center">
-                        <TrendingUp className="h-6 w-6 text-emerald-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-100">
-                  <CardContent className="p-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-medium text-blue-600 uppercase tracking-wider">Gewinn</p>
-                        <p className="text-2xl font-bold text-blue-700 mt-1">{formatCurrency(kpis.totalProfit)}</p>
-                        <div className="flex items-center gap-1 mt-2">
-                          <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs">
-                            {formatPercent(kpis.profitMargin)} Marge
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="h-12 w-12 rounded-xl bg-blue-100 flex items-center justify-center">
-                        <Wallet className="h-6 w-6 text-blue-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-amber-50 to-white border-amber-100">
-                  <CardContent className="p-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-medium text-amber-600 uppercase tracking-wider">Projekte</p>
-                        <p className="text-2xl font-bold text-amber-700 mt-1">{kpis.totalProjects}</p>
-                        <div className="flex items-center gap-1 mt-2">
-                          <span className="text-xs text-slate-500">{kpis.completedProjects} abgeschlossen</span>
-                        </div>
-                      </div>
-                      <div className="h-12 w-12 rounded-xl bg-amber-100 flex items-center justify-center">
-                        <Briefcase className="h-6 w-6 text-amber-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-purple-50 to-white border-purple-100">
-                  <CardContent className="p-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-medium text-purple-600 uppercase tracking-wider">Arbeitsstunden</p>
-                        <p className="text-2xl font-bold text-purple-700 mt-1">{kpis.totalHours.toLocaleString('de-DE')}h</p>
-                        <div className="flex items-center gap-1 mt-2">
-                          <span className="text-xs text-slate-500">{formatCurrency(kpis.avgHourlyRate)}/Std.</span>
-                        </div>
-                      </div>
-                      <div className="h-12 w-12 rounded-xl bg-purple-100 flex items-center justify-center">
-                        <Clock className="h-6 w-6 text-purple-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <StatCard
+                  label="Gesamtumsatz"
+                  emphasis="hero"
+                  tone="positive"
+                  value={formatCurrency(kpis.totalRevenue)}
+                  hint={`${kpis.paidInvoices} bezahlte Rechnungen`}
+                />
+                <StatCard
+                  label="Gewinn"
+                  value={formatCurrency(kpis.totalProfit)}
+                  tone={kpis.totalProfit >= 0 ? 'positive' : 'critical'}
+                  trend={{ text: `${formatPercent(kpis.profitMargin)} Marge`, positive: kpis.profitMargin >= 0 }}
+                />
+                <StatCard
+                  label="Projekte"
+                  value={kpis.totalProjects}
+                  hint={`${kpis.completedProjects} abgeschlossen`}
+                />
+                <StatCard
+                  label="Arbeitsstunden"
+                  value={`${kpis.totalHours.toLocaleString('de-DE')}h`}
+                  hint={`${formatCurrency(kpis.avgHourlyRate)}/Std.`}
+                />
               </div>
 
               {/* Charts Row */}
@@ -618,8 +572,8 @@ const ReportsModuleV2: React.FC = () => {
                           <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                           <Tooltip content={<CustomTooltip />} />
                           <Legend />
-                          <Bar dataKey="revenue" name="Umsatz" fill="#10b981" radius={[4, 4, 0, 0]} />
-                          <Bar dataKey="expenses" name="Ausgaben" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="revenue" name="Umsatz" fill="#0d9488" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="expenses" name="Ausgaben" fill="#e11d48" radius={[4, 4, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -688,8 +642,8 @@ const ReportsModuleV2: React.FC = () => {
                           />
                           <span className="text-sm text-slate-600">{getStatusLabel(stat.status)}</span>
                         </div>
-                        <p className="text-xl font-bold text-slate-800">{stat.count}</p>
-                        <p className="text-sm text-slate-500">{formatCurrency(stat.amount)}</p>
+                        <p className="text-xl font-bold tabular-nums text-slate-800">{stat.count}</p>
+                        <p className="text-sm tabular-nums text-slate-500">{formatCurrency(stat.amount)}</p>
                       </div>
                     ))}
                   </div>
@@ -705,27 +659,14 @@ const ReportsModuleV2: React.FC = () => {
             <Skeleton className="h-[400px]" />
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="bg-white border-slate-200">
-                  <CardContent className="p-5">
-                    <p className="text-sm text-slate-500">Einnahmen</p>
-                    <p className="text-2xl font-bold text-emerald-600">{formatCurrency(kpis.totalRevenue)}</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-white border-slate-200">
-                  <CardContent className="p-5">
-                    <p className="text-sm text-slate-500">Ausgaben</p>
-                    <p className="text-2xl font-bold text-red-500">{formatCurrency(kpis.totalExpenses)}</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-white border-slate-200">
-                  <CardContent className="p-5">
-                    <p className="text-sm text-slate-500">Gewinn</p>
-                    <p className={`text-2xl font-bold ${kpis.totalProfit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                      {formatCurrency(kpis.totalProfit)}
-                    </p>
-                  </CardContent>
-                </Card>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <StatCard label="Einnahmen" tone="positive" value={formatCurrency(kpis.totalRevenue)} />
+                <StatCard label="Ausgaben" tone="critical" value={formatCurrency(kpis.totalExpenses)} />
+                <StatCard
+                  label="Gewinn"
+                  tone={kpis.totalProfit >= 0 ? 'positive' : 'critical'}
+                  value={formatCurrency(kpis.totalProfit)}
+                />
               </div>
 
               <Card className="bg-white border-slate-200">
@@ -738,15 +679,15 @@ const ReportsModuleV2: React.FC = () => {
                       <AreaChart data={revenueData}>
                         <defs>
                           <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                            <stop offset="5%" stopColor="#0d9488" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#0d9488" stopOpacity={0} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                         <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#94a3b8" />
                         <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                         <Tooltip content={<CustomTooltip />} />
-                        <Area type="monotone" dataKey="profit" name="Gewinn" stroke="#10b981" fill="url(#profitGradient)" strokeWidth={2} />
+                        <Area type="monotone" dataKey="profit" name="Gewinn" stroke="#0d9488" fill="url(#profitGradient)" strokeWidth={2} />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -762,33 +703,14 @@ const ReportsModuleV2: React.FC = () => {
             <Skeleton className="h-[400px]" />
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="bg-white border-slate-200">
-                  <CardContent className="p-5">
-                    <p className="text-sm text-slate-500">Gesamt</p>
-                    <p className="text-2xl font-bold text-slate-800">{kpis.totalProjects}</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-white border-slate-200">
-                  <CardContent className="p-5">
-                    <p className="text-sm text-slate-500">Abgeschlossen</p>
-                    <p className="text-2xl font-bold text-emerald-600">{kpis.completedProjects}</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-white border-slate-200">
-                  <CardContent className="p-5">
-                    <p className="text-sm text-slate-500">Durchschn. Projektwert</p>
-                    <p className="text-2xl font-bold text-blue-600">{formatCurrency(kpis.avgProjectValue)}</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-white border-slate-200">
-                  <CardContent className="p-5">
-                    <p className="text-sm text-slate-500">Gesamtbudget</p>
-                    <p className="text-2xl font-bold text-amber-600">
-                      {formatCurrency(projectStats.reduce((sum, p) => sum + p.budget, 0))}
-                    </p>
-                  </CardContent>
-                </Card>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <StatCard label="Gesamt" value={kpis.totalProjects} />
+                <StatCard label="Abgeschlossen" tone="positive" value={kpis.completedProjects} />
+                <StatCard label="Durchschn. Projektwert" value={formatCurrency(kpis.avgProjectValue)} />
+                <StatCard
+                  label="Gesamtbudget"
+                  value={formatCurrency(projectStats.reduce((sum, p) => sum + p.budget, 0))}
+                />
               </div>
 
               <Card className="bg-white border-slate-200">
@@ -810,7 +732,7 @@ const ReportsModuleV2: React.FC = () => {
                           width={120}
                         />
                         <Tooltip formatter={(value, name) => [value, name === 'count' ? 'Anzahl' : 'Budget']} />
-                        <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                        <Bar dataKey="count" fill="#64748b" radius={[0, 4, 4, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -826,27 +748,13 @@ const ReportsModuleV2: React.FC = () => {
             <Skeleton className="h-[400px]" />
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="bg-white border-slate-200">
-                  <CardContent className="p-5">
-                    <p className="text-sm text-slate-500">Gesamtstunden</p>
-                    <p className="text-2xl font-bold text-slate-800">{kpis.totalHours.toLocaleString('de-DE')}h</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-white border-slate-200">
-                  <CardContent className="p-5">
-                    <p className="text-sm text-slate-500">Aktive Mitarbeiter</p>
-                    <p className="text-2xl font-bold text-blue-600">{employeeStats.length}</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-white border-slate-200">
-                  <CardContent className="p-5">
-                    <p className="text-sm text-slate-500">Durchschn. Stunden/Mitarbeiter</p>
-                    <p className="text-2xl font-bold text-purple-600">
-                      {employeeStats.length > 0 ? Math.round(kpis.totalHours / employeeStats.length) : 0}h
-                    </p>
-                  </CardContent>
-                </Card>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <StatCard label="Gesamtstunden" value={`${kpis.totalHours.toLocaleString('de-DE')}h`} />
+                <StatCard label="Aktive Mitarbeiter" value={employeeStats.length} />
+                <StatCard
+                  label="Durchschn. Stunden/Mitarbeiter"
+                  value={`${employeeStats.length > 0 ? Math.round(kpis.totalHours / employeeStats.length) : 0}h`}
+                />
               </div>
 
               <Card className="bg-white border-slate-200">
@@ -861,7 +769,7 @@ const ReportsModuleV2: React.FC = () => {
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-1">
                             <span className="font-medium text-slate-700">{emp.name}</span>
-                            <span className="text-sm text-slate-500">{emp.totalHours}h / {emp.projectCount} Projekte</span>
+                            <span className="text-sm tabular-nums text-slate-500">{emp.totalHours}h / {emp.projectCount} Projekte</span>
                           </div>
                           <Progress
                             value={Math.min((emp.totalHours / (employeeStats[0]?.totalHours || 1)) * 100, 100)}
@@ -883,27 +791,13 @@ const ReportsModuleV2: React.FC = () => {
             <Skeleton className="h-[400px]" />
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="bg-white border-slate-200">
-                  <CardContent className="p-5">
-                    <p className="text-sm text-slate-500">Kunden mit Umsatz</p>
-                    <p className="text-2xl font-bold text-slate-800">{customerStats.length}</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-white border-slate-200">
-                  <CardContent className="p-5">
-                    <p className="text-sm text-slate-500">Gesamtumsatz</p>
-                    <p className="text-2xl font-bold text-emerald-600">{formatCurrency(kpis.totalRevenue)}</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-white border-slate-200">
-                  <CardContent className="p-5">
-                    <p className="text-sm text-slate-500">Durchschn. Umsatz/Kunde</p>
-                    <p className="text-2xl font-bold text-blue-600">
-                      {formatCurrency(customerStats.length > 0 ? kpis.totalRevenue / customerStats.length : 0)}
-                    </p>
-                  </CardContent>
-                </Card>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <StatCard label="Kunden mit Umsatz" value={customerStats.length} />
+                <StatCard label="Gesamtumsatz" tone="positive" value={formatCurrency(kpis.totalRevenue)} />
+                <StatCard
+                  label="Durchschn. Umsatz/Kunde"
+                  value={formatCurrency(customerStats.length > 0 ? kpis.totalRevenue / customerStats.length : 0)}
+                />
               </div>
 
               <Card className="bg-white border-slate-200">
@@ -914,16 +808,16 @@ const ReportsModuleV2: React.FC = () => {
                   <div className="space-y-3">
                     {customerStats.slice(0, 10).map((cust, index) => (
                       <div key={cust.id} className="flex items-center gap-4 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-600">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold tabular-nums text-slate-600">
                           {index + 1}
                         </div>
                         <div className="flex-1">
                           <p className="font-medium text-slate-700">{cust.name}</p>
-                          <p className="text-xs text-slate-500">{cust.projectCount} Projekte</p>
+                          <p className="text-xs tabular-nums text-slate-500">{cust.projectCount} Projekte</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-slate-800">{formatCurrency(cust.totalRevenue)}</p>
-                          <p className="text-xs text-slate-500">
+                          <p className="font-bold tabular-nums text-slate-800">{formatCurrency(cust.totalRevenue)}</p>
+                          <p className="text-xs tabular-nums text-slate-500">
                             {formatCurrency(cust.avgProjectValue)} / Projekt
                           </p>
                         </div>
