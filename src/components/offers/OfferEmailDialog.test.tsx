@@ -1,16 +1,24 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { OfferEmailDialog } from './OfferEmailDialog';
 import type { OfferWithRelations } from '@/types/offer';
 
 const invokeMock = vi.hoisted(() => vi.fn());
+const companySettingsMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     functions: {
       invoke: invokeMock,
     },
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        limit: vi.fn(() => ({
+          maybeSingle: companySettingsMock,
+        })),
+      })),
+    })),
   },
 }));
 
@@ -82,9 +90,50 @@ describe('OfferEmailDialog', () => {
     };
   });
 
+  beforeEach(() => {
+    companySettingsMock.mockResolvedValue({ data: null, error: null });
+  });
+
   afterEach(() => {
     cleanup();
     invokeMock.mockReset();
+    companySettingsMock.mockReset();
+  });
+
+  it('signiert die Nachricht mit dem Firmennamen aus den Unternehmenseinstellungen', async () => {
+    companySettingsMock.mockResolvedValue({ data: { company_name: 'Elektro Bosz Meisterbetrieb' }, error: null });
+
+    renderDialog(
+      <OfferEmailDialog
+        open
+        onOpenChange={vi.fn()}
+        offer={baseOffer()}
+      />
+    );
+
+    await waitFor(() => {
+      const message = (screen.getByLabelText('Nachricht') as HTMLTextAreaElement).value;
+      expect(message).toContain('Mit freundlichen Grüßen\nElektro Bosz Meisterbetrieb');
+      expect(message).not.toContain('HandwerkOS');
+    });
+  });
+
+  it('fällt ohne hinterlegten Firmennamen auf eine neutrale Grußformel zurück', async () => {
+    companySettingsMock.mockResolvedValue({ data: null, error: null });
+
+    renderDialog(
+      <OfferEmailDialog
+        open
+        onOpenChange={vi.fn()}
+        offer={baseOffer()}
+      />
+    );
+
+    await waitFor(() => {
+      const message = (screen.getByLabelText('Nachricht') as HTMLTextAreaElement).value;
+      expect(message.trimEnd()).toMatch(/Mit freundlichen Grüßen$/);
+      expect(message).not.toContain('HandwerkOS');
+    });
   });
 
   it('deaktiviert Senden und zeigt einen Hinweis, wenn keine Empfängeradresse vorhanden ist', () => {

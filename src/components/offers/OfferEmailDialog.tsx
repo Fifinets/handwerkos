@@ -13,7 +13,7 @@ import { Loader2, Send } from 'lucide-react';
 import { OfferWithRelations } from '@/types/offer';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { QUERY_KEYS } from '@/hooks/useApi';
 import { getPublicBaseUrl } from '@/lib/publicUrl';
 
@@ -35,16 +35,27 @@ const emailSchema = z.object({
 
 type EmailFormValues = z.infer<typeof emailSchema>;
 
-const buildDefaults = (offer: OfferWithRelations, isReminder: boolean): EmailFormValues => ({
-    recipient: offer.customer?.email || '',
-    subject: isReminder
-        ? `Erinnerung: Angebot ${offer.offer_number}: ${offer.project_name}`
-        : `Angebot ${offer.offer_number}: ${offer.project_name}`,
-    message: isReminder
-        ? `Sehr geehrte Damen und Herren,\n\nwir möchten freundlich an unser Angebot ${offer.offer_number} vom ${new Date(offer.offer_date).toLocaleDateString('de-DE')} für das Projekt "${offer.project_name}" erinnern.\n\nGerne stehen wir für Rückfragen oder eine Anpassung des Angebots zur Verfügung.\n\nMit freundlichen Grüßen\nIhr HandwerkOS Team`
-        : `Sehr geehrte Damen und Herren,\n\nanbei erhalten Sie unser Angebot für das Projekt "${offer.project_name}".\n\nBei Fragen stehen wir Ihnen gerne zur Verfügung.\n\nMit freundlichen Grüßen\nIhr HandwerkOS Team`,
-    attachPdf: true,
-});
+const buildDefaults = (
+    offer: OfferWithRelations,
+    isReminder: boolean,
+    companyName?: string | null
+): EmailFormValues => {
+    // Die Mail geht im Namen des Betriebs raus, nicht der Plattform.
+    const signature = companyName
+        ? `Mit freundlichen Grüßen\n${companyName}`
+        : 'Mit freundlichen Grüßen';
+
+    return {
+        recipient: offer.customer?.email || '',
+        subject: isReminder
+            ? `Erinnerung: Angebot ${offer.offer_number}: ${offer.project_name}`
+            : `Angebot ${offer.offer_number}: ${offer.project_name}`,
+        message: isReminder
+            ? `Sehr geehrte Damen und Herren,\n\nwir möchten freundlich an unser Angebot ${offer.offer_number} vom ${new Date(offer.offer_date).toLocaleDateString('de-DE')} für das Projekt "${offer.project_name}" erinnern.\n\nGerne stehen wir für Rückfragen oder eine Anpassung des Angebots zur Verfügung.\n\n${signature}`
+            : `Sehr geehrte Damen und Herren,\n\nanbei erhalten Sie unser Angebot für das Projekt "${offer.project_name}".\n\nBei Fragen stehen wir Ihnen gerne zur Verfügung.\n\n${signature}`,
+        attachPdf: true,
+    };
+};
 
 export function OfferEmailDialog({ open, onOpenChange, offer, onSent, mode = 'initial' }: OfferEmailDialogProps) {
     const { toast } = useToast();
@@ -52,20 +63,36 @@ export function OfferEmailDialog({ open, onOpenChange, offer, onSent, mode = 'in
     const [isSending, setIsSending] = useState(false);
     const isReminder = mode === 'reminder';
 
+    // Firmenname für die Grußformel; RLS liefert die company_settings des eingeloggten Betriebs.
+    const { data: companyName } = useQuery({
+        queryKey: ['company-settings', 'company-name'],
+        queryFn: async () => {
+            const { data } = await supabase
+                .from('company_settings')
+                .select('company_name')
+                .limit(1)
+                .maybeSingle();
+            return data?.company_name ?? null;
+        },
+        staleTime: 5 * 60 * 1000,
+    });
+
     const form = useForm<EmailFormValues>({
         resolver: zodResolver(emailSchema),
         mode: 'onChange',
-        defaultValues: buildDefaults(offer, isReminder),
+        defaultValues: buildDefaults(offer, isReminder, companyName),
     });
 
     // useForm-defaultValues gelten nur beim Mount. Wird der Dialog wiederverwendet
     // (gleiche Instanz über mehrere Öffnungen/Modus-Wechsel hinweg), synchronisiert
-    // dieser Effekt Betreff/Nachricht/Empfänger bei jedem Öffnen neu.
+    // dieser Effekt Betreff/Nachricht/Empfänger bei jedem Öffnen neu. companyName ist
+    // dabei bewusst Dependency: er lädt einmalig kurz nach dem ersten Mount und ist
+    // danach durch staleTime gecacht (kein Reset mehr mitten in der Bearbeitung).
     useEffect(() => {
         if (!open) return;
-        form.reset(buildDefaults(offer, isReminder));
+        form.reset(buildDefaults(offer, isReminder, companyName));
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, isReminder, offer.id, offer.customer?.email, offer.offer_number, offer.project_name, offer.offer_date]);
+    }, [open, isReminder, companyName, offer.id, offer.customer?.email, offer.offer_number, offer.project_name, offer.offer_date]);
 
     const recipient = form.watch('recipient');
     const canSend = Boolean(recipient?.trim()) && !isSending;
