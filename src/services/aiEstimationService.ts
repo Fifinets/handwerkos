@@ -602,7 +602,7 @@ export class AIEstimationService {
         metadata,
         description
       `)
-      .eq('status', 'abgeschlossen')
+      .eq('status', 'completed')
       .not('budget', 'is', null)
       .limit(10);
 

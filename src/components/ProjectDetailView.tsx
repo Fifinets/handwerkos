@@ -12,11 +12,12 @@ import {
   ProjectDashboardData,
   ProjectPermissions,
   getProjectPermissions,
-  PROJECT_STATUS_CONFIG,
+  WORKFLOW_STAGE_CONFIG,
   WORKFLOW_STAGES,
   UserRole,
   ProjectStatus
 } from "@/types/project";
+import { normalizeProjectStatus, type WorkflowStage } from "@/lib/projectStatus";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -87,8 +88,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
 
   // Workflow status dialog
   const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
-  const [workflowTargetStatus, setWorkflowTargetStatus] = useState<ProjectStatus | undefined>();
-  const [workflowEditMode, setWorkflowEditMode] = useState<'besichtigung' | 'in_bearbeitung' | undefined>();
+  const [workflowTargetStatus, setWorkflowTargetStatus] = useState<WorkflowStage | undefined>();
+  const [workflowEditMode, setWorkflowEditMode] = useState<'site_visit' | 'in_progress' | undefined>();
   const [allEmployees, setAllEmployees] = useState<{ id: string; first_name: string; last_name: string }[]>([]);
 
   // Internal project ID tracking (allows switching projects within the dialog)
@@ -982,14 +983,14 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
     }
   };
 
-  const handleStatusChange = (newStatus: string) => {
+  const handleStatusChange = (newStage: string) => {
     if (!project || !permissions.can_change_status) return;
-    setWorkflowTargetStatus(newStatus as ProjectStatus);
+    setWorkflowTargetStatus(newStage as WorkflowStage);
     setWorkflowEditMode(undefined);
     setWorkflowDialogOpen(true);
   };
 
-  const handleEditAppointment = (mode: 'besichtigung' | 'in_bearbeitung') => {
+  const handleEditAppointment = (mode: 'site_visit' | 'in_progress') => {
     setWorkflowTargetStatus(undefined);
     setWorkflowEditMode(mode);
     setWorkflowDialogOpen(true);
@@ -1070,11 +1071,13 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             {project.project_type !== 'kleinauftrag' && (() => {
               const stages = WORKFLOW_STAGES.map(key => ({
                 key,
-                label: PROJECT_STATUS_CONFIG[key].label,
-                icon: PROJECT_STATUS_CONFIG[key].icon,
+                label: WORKFLOW_STAGE_CONFIG[key].label,
+                icon: WORKFLOW_STAGE_CONFIG[key].icon,
               }));
-              const statusKey = project.status === 'angebot_versendet' ? 'angebot' : project.status;
-              const currentIdx = stages.findIndex(s => s.key === statusKey);
+              // Altwerte wie 'angebot_versendet' brauchen keine Sonderbehandlung
+              // mehr — normalizeProjectStatus bildet sie auf die Stufe ab.
+              const { workflow_stage } = normalizeProjectStatus(project.status, project.workflow_stage);
+              const currentIdx = stages.findIndex(s => s.key === workflow_stage);
 
               const getDateAnnotation = (stageKey: string) => {
                 switch (stageKey) {
@@ -1125,7 +1128,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                   <div className="hidden sm:flex mt-1">
                     {stages.map(stage => {
                       const date = getDateAnnotation(stage.key);
-                      const empName = stage.key === 'besichtigung' ? getEmployeeName() : null;
+                      const empName = stage.key === 'site_visit' ? getEmployeeName() : null;
                       return (
                         <div key={stage.key} className="flex-1 text-center">
                           <div className="text-[10px] text-slate-400 leading-tight">{date || '—'}</div>

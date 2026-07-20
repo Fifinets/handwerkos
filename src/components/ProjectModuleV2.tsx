@@ -74,50 +74,30 @@ import AutoFixDatabase from "./AutoFixDatabase";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AddOrderDialog from "./AddOrderDialog";
 import { Wrench, CalendarDays, MapPin, User } from "lucide-react";
-import { PROJECT_STATUS_CONFIG } from "@/types/project";
+import { projectStageLabel, projectStageStyle, normalizeProjectStatus, type WorkflowStage } from "@/lib/projectStatus";
 
-const getStatusColor = (status: string) => {
-    switch (status) {
-        case 'anfrage':
-            return 'bg-slate-100 text-slate-700 border-slate-200';
-        case 'besichtigung':
-            return 'bg-blue-50 text-blue-700 border-blue-200';
-        case 'angebot':
-        case 'angebot_versendet':
-            return 'bg-orange-50 text-orange-700 border-orange-200';
-        case 'beauftragt':
-            return 'bg-purple-50 text-purple-700 border-purple-200';
-        case 'in_bearbeitung':
-            return 'bg-amber-50 text-amber-700 border-amber-200';
-        case 'abgeschlossen':
-            return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-        case 'storniert':
-            return 'bg-red-50 text-red-700 border-red-200';
-        default:
-            return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
+// Farben und Symbole kommen aus dem zentralen Statusmodell; hier standen
+// frueher zwei switch-Bloecke ueber deutsche Statuswerte, die nach der
+// Umstellung auf planned/active/... alle in den default-Zweig gelaufen waeren.
+const getStatusColor = (status: string, stage?: string | null) =>
+    projectStageStyle(status, stage);
+
+const STAGE_ICONS: Record<WorkflowStage, JSX.Element> = {
+    inquiry: <FileText className="h-4 w-4 text-slate-500" />,
+    site_visit: <Search className="h-4 w-4 text-blue-500" />,
+    quoted: <FileText className="h-4 w-4 text-orange-500" />,
+    ordered: <CheckCircle className="h-4 w-4 text-purple-500" />,
+    in_progress: <HardHat className="h-4 w-4 text-amber-500" />,
+    acceptance: <CheckCircle className="h-4 w-4 text-teal-500" />,
+    done: <CheckCircle className="h-4 w-4 text-emerald-500" />,
 };
 
-const getStatusIcon = (status: string) => {
-    switch (status) {
-        case 'anfrage':
-            return <FileText className="h-4 w-4 text-slate-500" />;
-        case 'besichtigung':
-            return <Search className="h-4 w-4 text-blue-500" />;
-        case 'angebot':
-        case 'angebot_versendet':
-            return <FileText className="h-4 w-4 text-orange-500" />;
-        case 'beauftragt':
-            return <CheckCircle className="h-4 w-4 text-purple-500" />;
-        case 'in_bearbeitung':
-            return <HardHat className="h-4 w-4 text-amber-500" />;
-        case 'abgeschlossen':
-            return <CheckCircle className="h-4 w-4 text-emerald-500" />;
-        case 'storniert':
-            return <FileText className="h-4 w-4 text-red-500" />;
-        default:
-            return <FileText className="h-4 w-4 text-gray-500" />;
+const getStatusIcon = (status: string, stage?: string | null) => {
+    const { status: lifecycle, workflow_stage } = normalizeProjectStatus(status, stage);
+    if (lifecycle === 'cancelled' || !workflow_stage) {
+        return <FileText className="h-4 w-4 text-red-500" />;
     }
+    return STAGE_ICONS[workflow_stage];
 };
 
 const extractBudgetFromDescription = (description: string) => {
@@ -668,7 +648,7 @@ const ProjectModuleV2 = () => {
                                                         <h3 className="font-medium text-slate-900 truncate">{order.name}</h3>
                                                         <Badge variant="outline" className={`text-[10px] shrink-0 ${getStatusColor(order.status)}`}>
                                                             {getStatusIcon(order.status)}
-                                                            <span className="ml-1">{PROJECT_STATUS_CONFIG[order.status as keyof typeof PROJECT_STATUS_CONFIG]?.label ?? order.status}</span>
+                                                            <span className="ml-1">{projectStageLabel(order.status, order.workflow_stage)}</span>
                                                         </Badge>
                                                     </div>
                                                     <div className="flex items-center gap-4 text-xs text-slate-500 mt-2">

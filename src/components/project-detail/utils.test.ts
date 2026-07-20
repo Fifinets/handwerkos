@@ -132,20 +132,29 @@ describe('getStatusConfig', () => {
     expect(config.label).toBe('Fertig');
   });
 
-  it('returns fallback config for unknown status', () => {
-    // Falls back to PROJECT_STATUS_CONFIG.geplant, which does not exist,
-    // so it returns undefined. The code uses || to fall back.
-    // Since geplant is not in the config, it will be undefined.
-    // Let's test what actually happens:
-    const config = getStatusConfig('unknown_status');
-    // The fallback is PROJECT_STATUS_CONFIG.geplant which doesn't exist,
-    // so config will be undefined
-    expect(config).toBeUndefined();
+  it('returns config for the canonical pair', () => {
+    expect(getStatusConfig('active', 'in_progress').label).toBe('In Arbeit');
+    expect(getStatusConfig('planned', 'site_visit').label).toBe('Besichtigung');
   });
 
-  it('returns fallback for empty string', () => {
+  it('returns the first stage for an unknown status instead of undefined', () => {
+    // Vorher fiel die Funktion auf PROJECT_STATUS_CONFIG.geplant zurueck, einen
+    // Schluessel, den es nie gab — der Aufrufer bekam undefined und lief in
+    // einen Zugriffsfehler.
+    const config = getStatusConfig('unknown_status');
+    expect(config).toBeDefined();
+    expect(config.label).toBe('Anfrage');
+  });
+
+  it('returns the first stage for an empty string', () => {
     const config = getStatusConfig('');
-    expect(config).toBeUndefined();
+    expect(config).toBeDefined();
+    expect(config.label).toBe('Anfrage');
+  });
+
+  it('returns a defined config for cancelled projects, which have no stage', () => {
+    const config = getStatusConfig('cancelled');
+    expect(config).toBeDefined();
   });
 
   it('each status config has required fields', () => {

@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar as CalendarIcon, Clock, User } from 'lucide-react';
-import { PROJECT_STATUS_CONFIG, type ProjectStatus } from '@/types/project';
+import { WORKFLOW_STAGE_CONFIG } from '@/types/project';
+import { statusForStage, type WorkflowStage } from '@/lib/projectStatus';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -15,8 +16,8 @@ interface WorkflowStatusDialogProps {
   projectId: string;
   projectName: string;
   companyId: string;
-  targetStatus?: ProjectStatus;
-  editMode?: 'besichtigung' | 'in_bearbeitung';
+  targetStatus?: WorkflowStage;
+  editMode?: 'site_visit' | 'in_progress';
   currentValues?: {
     besichtigung_date?: string | null;
     besichtigung_time_start?: string | null;
@@ -49,10 +50,10 @@ export function WorkflowStatusDialog({
   const [workEndDate, setWorkEndDate] = useState('');
 
   const activeStage = editMode || targetStatus;
-  const showBesichtigung = activeStage === 'besichtigung';
-  const showInArbeit = activeStage === 'in_bearbeitung';
-  const showConfirmOnly = activeStage === 'angebot' || activeStage === 'beauftragt' || activeStage === 'anfrage';
-  const showFertig = activeStage === 'abgeschlossen';
+  const showBesichtigung = activeStage === 'site_visit';
+  const showInArbeit = activeStage === 'in_progress';
+  const showConfirmOnly = activeStage === 'quoted' || activeStage === 'ordered' || activeStage === 'inquiry';
+  const showFertig = activeStage === 'done';
 
   // Pre-fill from current values
   useEffect(() => {
@@ -74,10 +75,10 @@ export function WorkflowStatusDialog({
   }, [open, currentValues]);
 
   const getTitle = () => {
-    if (editMode === 'besichtigung') return 'Besichtigungstermin bearbeiten';
-    if (editMode === 'in_bearbeitung') return 'Baustart bearbeiten';
+    if (editMode === 'site_visit') return 'Besichtigungstermin bearbeiten';
+    if (editMode === 'in_progress') return 'Baustart bearbeiten';
     if (!targetStatus) return '';
-    const config = PROJECT_STATUS_CONFIG[targetStatus];
+    const config = WORKFLOW_STAGE_CONFIG[targetStatus];
     return `Status: ${config.icon} ${config.label}`;
   };
 
@@ -98,8 +99,11 @@ export function WorkflowStatusDialog({
 
       // Status change (not in edit mode)
       if (targetStatus && !editMode) {
-        updates.status = targetStatus;
-        if (targetStatus === 'abgeschlossen') {
+        // Beide Achsen zusammen setzen — der DB-Constraint verlangt ein
+        // konsistentes Paar aus Lebenszyklus und Stufe.
+        updates.workflow_stage = targetStatus;
+        updates.status = statusForStage(targetStatus);
+        if (targetStatus === 'done') {
           updates.completed_at = new Date().toISOString();
         }
       }
@@ -201,7 +205,7 @@ export function WorkflowStatusDialog({
 
       const msg = editMode
         ? 'Termin gespeichert'
-        : `Status zu "${PROJECT_STATUS_CONFIG[targetStatus!].label}" geändert`;
+        : `Status zu "${WORKFLOW_STAGE_CONFIG[targetStatus!].label}" geändert`;
       toast({ title: 'Erfolg', description: msg });
       onOpenChange(false);
       onSuccess();
@@ -218,10 +222,10 @@ export function WorkflowStatusDialog({
     try {
       const { error } = await supabase
         .from('projects')
-        .update({ status: targetStatus })
+        .update({ status: statusForStage(targetStatus), workflow_stage: targetStatus })
         .eq('id', projectId);
       if (error) throw error;
-      toast({ title: 'Erfolg', description: `Status zu "${PROJECT_STATUS_CONFIG[targetStatus].label}" geändert` });
+      toast({ title: 'Erfolg', description: `Status zu "${WORKFLOW_STAGE_CONFIG[targetStatus].label}" geändert` });
       onOpenChange(false);
       onSuccess();
     } catch (err: any) {
@@ -304,7 +308,7 @@ export function WorkflowStatusDialog({
           {/* Simple confirmation */}
           {showConfirmOnly && !editMode && (
             <p className="text-sm text-slate-600">
-              Status zu <strong>{PROJECT_STATUS_CONFIG[targetStatus!]?.label}</strong> ändern?
+              Status zu <strong>{WORKFLOW_STAGE_CONFIG[targetStatus!]?.label}</strong> ändern?
             </p>
           )}
 

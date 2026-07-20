@@ -3,11 +3,12 @@
  * Basiert auf den spezifizierten Anforderungen für Projektmanagement
  */
 
-export type ProjectStatus = 'anfrage' | 'besichtigung' | 'angebot' | 'beauftragt' | 'in_bearbeitung' | 'abgeschlossen';
+// Statuswerte kommen zentral aus src/lib/projectStatus.ts. Frueher stand hier
+// eine eigene deutsche Union, die weder zur Datenbank noch zu core.ts passte.
+export type { ProjectStatus, WorkflowStage } from '@/lib/projectStatus';
+export { WORKFLOW_STAGES } from '@/lib/projectStatus';
 
-export const WORKFLOW_STAGES: ProjectStatus[] = [
-  'anfrage', 'besichtigung', 'angebot', 'beauftragt', 'in_bearbeitung', 'abgeschlossen'
-];
+import type { ProjectStatus, WorkflowStage } from '@/lib/projectStatus';
 
 export type UserRole = 'mitarbeiter' | 'projektleiter' | 'admin';
 
@@ -312,50 +313,60 @@ export interface ProjectFilters {
   search_term?: string;
 }
 
-// 📈 Status-Definitionen mit Beschreibungen
-export const PROJECT_STATUS_CONFIG: Record<ProjectStatus, {
+// 📈 Stufen-Definitionen mit Beschreibungen.
+// Keyed by workflow_stage, nicht by status — die Feinstufen sind das, was die
+// Oberflaeche anzeigt. Der Lebenszyklus (status) hat eigene Bezeichnungen in
+// PROJECT_STATUS_LABELS.
+export const WORKFLOW_STAGE_CONFIG: Record<WorkflowStage, {
   label: string;
   color: string;
   bgColor: string;
   icon: string;
   description: string;
 }> = {
-  anfrage: {
+  inquiry: {
     label: 'Anfrage',
     color: 'text-purple-700',
     bgColor: 'bg-purple-100',
     icon: '📋',
     description: 'Projekt-Anfrage eingegangen',
   },
-  besichtigung: {
+  site_visit: {
     label: 'Besichtigung',
     color: 'text-orange-700',
     bgColor: 'bg-orange-100',
     icon: '🔍',
     description: 'Besichtigungstermin vereinbaren',
   },
-  angebot: {
+  quoted: {
     label: 'Angebot',
     color: 'text-blue-700',
     bgColor: 'bg-blue-100',
     icon: '📄',
     description: 'Angebot erstellen und versenden',
   },
-  beauftragt: {
+  ordered: {
     label: 'Beauftragt',
     color: 'text-indigo-700',
     bgColor: 'bg-indigo-100',
     icon: '✅',
     description: 'Auftrag erteilt',
   },
-  in_bearbeitung: {
+  in_progress: {
     label: 'In Arbeit',
     color: 'text-yellow-700',
     bgColor: 'bg-yellow-100',
     icon: '🔨',
     description: 'Projekt läuft aktiv',
   },
-  abgeschlossen: {
+  acceptance: {
+    label: 'Abnahme',
+    color: 'text-teal-700',
+    bgColor: 'bg-teal-100',
+    icon: '🤝',
+    description: 'Abnahme mit dem Kunden',
+  },
+  done: {
     label: 'Fertig',
     color: 'text-green-700',
     bgColor: 'bg-green-100',

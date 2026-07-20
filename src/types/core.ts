@@ -2,6 +2,7 @@
 // Provides type-safe validation for API requests and responses
 
 import { z } from 'zod';
+import { PROJECT_STATUSES, WORKFLOW_STAGES } from '@/lib/projectStatus';
 
 // Base schemas for common fields
 export const BaseEntitySchema = z.object({
@@ -134,11 +135,10 @@ export const ProjectCreateSchema = z.object({
   project_site_id: z.string().uuid().optional(),
   name: z.string().min(1, 'Projektname ist erforderlich'),
   description: z.string().optional(),
-  status: z.enum([
-    'anfrage', 'besichtigung', 'angebot', 'angebot_versendet',
-    'beauftragt', 'in_planung', 'in_bearbeitung', 'abnahme',
-    'abgeschlossen', 'storniert'
-  ]).default('anfrage'),
+  // Kanonisch, siehe src/lib/projectStatus.ts und Migration 20260720210000.
+  // Die Datenbank erzwingt beide Mengen per CHECK-Constraint.
+  status: z.enum(PROJECT_STATUSES).default('planned'),
+  workflow_stage: z.enum(WORKFLOW_STAGES).nullable().default('inquiry'),
   budget: z.number().min(0, 'Budget muss positiv sein').optional(),
   start_date: z.string().optional(),
   end_date: z.string().optional(),

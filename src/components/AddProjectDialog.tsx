@@ -62,7 +62,8 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
     customer_id: '',
     project_site_id: '',
     team: [] as string[],
-    status: 'anfrage'
+    status: 'planned',
+    workflow_stage: 'inquiry'
   });
   const [dateRange] = useState<DateRange | undefined>();
   const [projectSites, setProjectSites] = useState<{ id: string; name: string | null; address: string; city: string; }[]>([]);
@@ -248,7 +249,8 @@ const AddProjectDialog = ({ isOpen, onClose, onProjectAdded, customers, teamMemb
         customer_id: '',
         project_site_id: '',
         team: [],
-        status: 'anfrage'
+        status: 'planned',
+    workflow_stage: 'inquiry'
       });
 
       onClose();

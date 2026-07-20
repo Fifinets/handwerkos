@@ -4,37 +4,13 @@
 import type { Project as CoreProject, Customer as CoreCustomer } from './core';
 import type { ProjectBaseData, UserRole } from './project';
 import type { InvoiceData, CustomerData } from './financial';
+import { normalizeProjectStatus, PROJECT_STATUSES } from '@/lib/projectStatus';
 
-// Map legacy project status to core project status
-export const mapLegacyProjectStatus = (legacyStatus: string): CoreProject['status'] => {
-  const statusMap: Record<string, CoreProject['status']> = {
-    'geplant': 'planned',
-    'beauftragt': 'planned',
-    'angebot': 'planned',
-    'in_bearbeitung': 'active',
-    'fertig': 'completed',
-    'abgerechnet': 'completed',
-    'archiviert': 'completed',
-    'abgeschlossen': 'completed',
-    'blocked': 'blocked',
-    'cancelled': 'cancelled',
-  };
-
-  return statusMap[legacyStatus] || 'planned';
-};
-
-// Map core project status to legacy status
-export const mapCoreProjectStatus = (coreStatus: CoreProject['status']): string => {
-  const statusMap: Record<CoreProject['status'], string> = {
-    'planned': 'beauftragt',
-    'active': 'in_bearbeitung',
-    'blocked': 'blocked',
-    'completed': 'abgeschlossen',
-    'cancelled': 'cancelled',
-  };
-
-  return statusMap[coreStatus] || 'beauftragt';
-};
+// Statusabbildung liegt zentral in src/lib/projectStatus.ts. Hier standen
+// frueher zwei eigene Tabellen, die weder zur Datenbank noch zu core.ts passten
+// und zusaetzlich ein 'blocked' kannten, das es nirgends sonst gab.
+export const mapLegacyProjectStatus = (legacyStatus: string): CoreProject['status'] =>
+  normalizeProjectStatus(legacyStatus).status;
 
 // Convert legacy ProjectBaseData to Core Project
 export const convertLegacyProject = (legacy: ProjectBaseData): Partial<CoreProject> => {
@@ -61,7 +37,8 @@ export const convertCoreProject = (core: CoreProject): Partial<ProjectBaseData> 
     project_name: core.name,
     project_description: core.description || '',
     customer_id: core.customer_id || '',
-    status: mapCoreProjectStatus(core.status) as ProjectBaseData['status'],
+    // Beide Seiten fuehren jetzt denselben kanonischen Status — keine Rueckuebersetzung mehr.
+    status: core.status,
     start_date: core.start_date || '',
     planned_end_date: core.end_date || '',
     project_address: '', // Default value, should be mapped from actual data
@@ -91,7 +68,7 @@ export const isLegacyProject = (obj: any): obj is ProjectBaseData => {
          typeof obj.id === 'string' &&
          typeof obj.project_name === 'string' &&
          typeof obj.status === 'string' &&
-         ['geplant', 'beauftragt', 'angebot', 'in_bearbeitung', 'fertig', 'abgerechnet', 'archiviert', 'abgeschlossen'].includes(obj.status);
+         !(PROJECT_STATUSES as readonly string[]).includes(obj.status);
 };
 
 export const isCoreProject = (obj: any): obj is CoreProject => {
@@ -99,7 +76,7 @@ export const isCoreProject = (obj: any): obj is CoreProject => {
          typeof obj.id === 'string' &&
          typeof obj.name === 'string' &&
          typeof obj.status === 'string' &&
-         ['planned', 'active', 'blocked', 'completed', 'cancelled'].includes(obj.status);
+         (PROJECT_STATUSES as readonly string[]).includes(obj.status);
 };
 
 // Hook to safely migrate legacy data
@@ -143,27 +120,9 @@ export const needsMigration = (data: any): boolean => {
   return isLegacyProject(data);
 };
 
-// Export type mappings for use in components
+// Statusabbildungen bewusst nicht mehr hier: die einzige Quelle ist
+// src/lib/projectStatus.ts (PROJECT_STATUS_LABELS, normalizeProjectStatus).
 export const TYPE_MAPPINGS = {
-  PROJECT_STATUS: {
-    LEGACY_TO_CORE: {
-      'geplant': 'planned',
-      'beauftragt': 'planned',
-      'angebot': 'planned',
-      'in_bearbeitung': 'active',
-      'fertig': 'completed',
-      'abgerechnet': 'completed',
-      'archiviert': 'completed',
-      'abgeschlossen': 'completed',
-    } as const,
-    CORE_TO_LEGACY: {
-      'planned': 'beauftragt',
-      'active': 'in_bearbeitung',
-      'blocked': 'blocked',
-      'completed': 'abgeschlossen',
-      'cancelled': 'cancelled',
-    } as const,
-  },
   CUSTOMER_STATUS: {
     LEGACY_TO_CORE: {
       'aktiv': 'Aktiv',

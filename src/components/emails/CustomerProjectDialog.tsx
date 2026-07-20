@@ -201,7 +201,8 @@ export function CustomerProjectDialog({ isOpen, onClose, email }: CustomerProjec
         end_date: projectData.end_date || null,
         customer_id: customerId,
         company_id: profileData.company_id,
-        status: 'beauftragt'
+        status: 'planned',
+        workflow_stage: 'ordered'
       };
 
 

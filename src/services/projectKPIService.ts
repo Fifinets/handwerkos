@@ -480,8 +480,7 @@ export class ProjectKPIService {
         supabase
           .from('projects')
           .select('id')
-          .neq('status', 'cancelled')
-          .neq('status', 'abgeschlossen'),
+          .in('status', ['planned', 'active']),
         'Kritische Projekte laden',
       ) || [];
 
