@@ -125,6 +125,49 @@ describe('OfferService', () => {
       );
     });
 
+    it('vergibt keine Nummer clientseitig und übernimmt die vom DB-Trigger vergebene Angebotsnummer', async () => {
+      // getOffer: Entwurf mit Entwurfs-Marker als Nummer
+      mockSingle.mockResolvedValueOnce({
+        data: {
+          id: 'offer-1',
+          status: 'draft',
+          offer_number: 'ENTWURF-20260719-120000',
+          items: [{ id: 'item-1' }],
+        },
+        error: null,
+      });
+      mockSingle.mockResolvedValueOnce({ data: null, error: { code: 'PGRST116' } });
+      mockOrder.mockReturnValueOnce(Promise.resolve({ data: [{ id: 'item-1' }], error: null }));
+      // update().eq().select().single(): DB-Trigger assign_offer_number_trigger hat
+      // beim draft->sent-Übergang die echte, lückenlose Nummer vergeben
+      mockSingle.mockResolvedValueOnce({
+        data: {
+          id: 'offer-1',
+          status: 'sent',
+          offer_number: 'ANG-2026-0001',
+          share_token: null,
+        },
+        error: null,
+      });
+
+      const result = await OfferService.sendOffer('offer-1');
+
+      // Die Nummernvergabe liegt vollständig beim DB-Trigger:
+      // kein RPC-Aufruf, kein offer_number im Update-Payload
+      expect(mockRpc).not.toHaveBeenCalled();
+      expect(mockUpdate).toHaveBeenCalledWith(
+        expect.not.objectContaining({ offer_number: expect.anything() })
+      );
+      // Die vom Trigger vergebene Nummer kommt über .select() zurück an die UI
+      expect(result.offer_number).toBe('ANG-2026-0001');
+      expect(eventBus.emit).toHaveBeenCalledWith(
+        'OFFER_SENT',
+        expect.objectContaining({
+          offer: expect.objectContaining({ offer_number: 'ANG-2026-0001' }),
+        })
+      );
+    });
+
     it('verhindert Versand ohne Positionen', async () => {
       mockSingle.mockResolvedValueOnce({
         data: {

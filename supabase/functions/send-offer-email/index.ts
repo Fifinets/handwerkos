@@ -92,6 +92,40 @@ serve(async (req: Request): Promise<Response> => {
       throw new Error("Angebot muss mindestens eine Position enthalten");
     }
 
+    // GoBD: Beim Erstversand eines Entwurfs mit Entwurfs-Marker ('ENTWURF-%',
+    // Altbestand 'KI-%' oder leer) ZUERST eine echte, lückenlose Angebotsnummer
+    // vergeben — VOR dem Bau von Betreff/Mail, damit der Kunde nie den Marker sieht.
+    // Es wird nur offer_number gesetzt (Status bleibt draft): Schlägt der Mail-Versand
+    // danach fehl, behält das Angebot seine Nummer; beim Retry greift der Marker-Check
+    // nicht mehr und es wird KEINE neue Nummer gezogen (keine Lücke, keine Doppelnummer).
+    // Der DB-Trigger assign_offer_number_trigger vergibt beim späteren Status-Update
+    // nichts mehr, weil die Nummer dann bereits echt ist.
+    let offerNumber: string = offer.offer_number ?? "";
+    if (!payload.isReminder) {
+      const hasDraftMarker =
+        !offerNumber ||
+        offerNumber.startsWith("ENTWURF-") ||
+        offerNumber.startsWith("KI-"); // Altbestand: frühere Agent-Entwürfe
+      if (hasDraftMarker) {
+        const { data: nextNumber, error: numberError } = await supabase.rpc("get_next_number", {
+          seq_name: "offers",
+          comp_id: profile.company_id,
+        });
+        if (numberError || !nextNumber) {
+          throw new Error("Angebotsnummer konnte nicht vergeben werden");
+        }
+        const { error: numberUpdateError } = await supabase
+          .from("offers")
+          .update({ offer_number: nextNumber })
+          .eq("id", offer.id)
+          .eq("company_id", profile.company_id);
+        if (numberUpdateError) {
+          throw new Error("Angebotsnummer konnte nicht gespeichert werden");
+        }
+        offerNumber = nextNumber;
+      }
+    }
+
     const { data: company } = await supabase
       .from("company_settings")
       .select("company_name, company_email, company_phone")
@@ -103,8 +137,8 @@ serve(async (req: Request): Promise<Response> => {
       : null;
 
     const subject = payload.subject || (payload.isReminder
-      ? `Erinnerung: Angebot ${offer.offer_number}: ${offer.project_name}`
-      : `Angebot ${offer.offer_number}: ${offer.project_name}`);
+      ? `Erinnerung: Angebot ${offerNumber}: ${offer.project_name}`
+      : `Angebot ${offerNumber}: ${offer.project_name}`);
     const messageHtml = escapeHtml(payload.message || "")
       .split("\n")
       .map((line) => `<p style="margin:0 0 12px 0;">${line || "&nbsp;"}</p>`)
@@ -128,7 +162,7 @@ serve(async (req: Request): Promise<Response> => {
       <html>
         <body style="font-family:Arial,sans-serif;line-height:1.5;color:#111827;margin:0;padding:24px;background:#f8fafc;">
           <div style="max-width:760px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:10px;padding:24px;">
-            <h1 style="font-size:22px;margin:0 0 4px 0;">Angebot ${escapeHtml(offer.offer_number)}</h1>
+            <h1 style="font-size:22px;margin:0 0 4px 0;">Angebot ${escapeHtml(offerNumber)}</h1>
             <p style="margin:0 0 20px 0;color:#64748b;">${escapeHtml(offer.project_name)}</p>
             ${messageHtml}
             ${shareLink ? `
