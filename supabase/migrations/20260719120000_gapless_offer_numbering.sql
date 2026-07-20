@@ -23,6 +23,9 @@
 -- 4. Restores the draft marker ('ENTWURF-...') in create_offer_with_targets. Only that one line
 --    changes; the rest of the function matches the live definition (verified against remote DB).
 --
+-- 5. Backfills never-sent drafts that still carry a legacy random number so they, too,
+--    get a real number on their first send.
+--
 -- GoBD: numbers of already sent/finalized offers are NOT migrated or changed. Only the
 -- draft -> sent/accepted transition assigns a number, exactly once.
 
@@ -274,3 +277,45 @@ BEGIN
   RETURN jsonb_build_object('id', v_offer_id, 'offer_number', v_offer_number);
 END;
 $$;
+
+-- ---------------------------------------------------------------------------
+-- 5. One-time backfill: never-sent drafts carrying a legacy random number
+--    ('ANG-YYYYMMDD-<random>') are not recognised as draft markers by the
+--    trigger, so without this they would keep that number forever on their
+--    first send. Rewriting them to the draft marker is GoBD-safe because these
+--    rows were never issued as a document.
+--
+--    Deliberately narrow: only status 'draft', never sent, not locked, no
+--    snapshot, still version 1, and NOT already a real gapless number
+--    ('ANG-YYYY-NNNN'). Sent, accepted, rejected, cancelled and revised offers
+--    are untouched.
+-- ---------------------------------------------------------------------------
+UPDATE public.offers
+SET offer_number = 'ENTWURF-' || to_char(COALESCE(created_at, NOW()), 'YYYYMMDD-HH24MISS')
+WHERE status = 'draft'
+  AND sent_at IS NULL
+  AND is_locked = false
+  AND snapshot_created_at IS NULL
+  AND COALESCE(version, 1) = 1
+  AND offer_number IS NOT NULL
+  AND offer_number <> ''
+  AND offer_number NOT LIKE 'ENTWURF-%'
+  AND offer_number NOT LIKE 'KI-%'
+  AND offer_number !~ '^[A-Z]+-[0-9]{4}-[0-9]{4}$';
+
+-- ---------------------------------------------------------------------------
+-- 6. Enforce the invariant in the database, not just in application code:
+--    a real document number must be unique per company. Nothing prevented a
+--    duplicate before.
+--
+--    Partial index: draft markers are deliberately excluded, because several
+--    drafts created within the same second legitimately share a marker
+--    ('ENTWURF-YYYYMMDD-HHMMSS'). Verified against the live data: no duplicate
+--    real numbers exist, so this index applies cleanly.
+-- ---------------------------------------------------------------------------
+CREATE UNIQUE INDEX IF NOT EXISTS offers_company_document_number_unique
+  ON public.offers (company_id, offer_number)
+  WHERE offer_number IS NOT NULL
+    AND offer_number <> ''
+    AND offer_number NOT LIKE 'ENTWURF-%'
+    AND offer_number NOT LIKE 'KI-%';
