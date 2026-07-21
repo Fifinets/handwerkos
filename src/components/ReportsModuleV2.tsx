@@ -86,6 +86,11 @@ const STATUS_COLORS: Record<string, string> = {
   'sent': '#d97706',
   'paid': '#0d9488',
   'overdue': '#e11d48',
+  'planned': '#94a3b8',
+  'active': '#0d9488',
+  'completed': '#64748b',
+  'cancelled': '#e11d48',
+  // Legacy-Fallback
   'anfrage': '#94a3b8',
   'in_bearbeitung': '#0d9488',
   'abgeschlossen': '#64748b',
@@ -353,7 +358,7 @@ const ReportsModuleV2: React.FC = () => {
       setInvoiceStats(invoiceStatsData);
 
       // Update KPIs
-      const completedProjects = projectStatsData.find(p => p.status === 'abgeschlossen')?.count || 0;
+      const completedProjects = projectStatsData.find(p => p.status === 'completed')?.count || 0;
       const openInvoicesCount = invoiceStatsData.filter(i => ['draft', 'sent'].includes(i.status)).reduce((sum, i) => sum + i.count, 0);
       const paidInvoicesCount = invoiceStatsData.find(i => i.status === 'paid')?.count || 0;
       const overdueAmount = invoiceStatsData.find(i => i.status === 'overdue')?.amount || 0;
@@ -403,6 +408,11 @@ const ReportsModuleV2: React.FC = () => {
       'sent': 'Versendet',
       'paid': 'Bezahlt',
       'overdue': 'Überfällig',
+      'planned': 'Geplant',
+      'active': 'In Arbeit',
+      'completed': 'Abgeschlossen',
+      'cancelled': 'Storniert',
+      // Legacy-Fallback
       'anfrage': 'Anfrage',
       'besichtigung': 'Besichtigung',
       'angebot': 'Angebot',

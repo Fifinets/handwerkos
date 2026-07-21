@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { CalendarEvent, PlannerProject, PlannerEmployee, VacationRequest } from '../types';
 import { getAvailableEmployees, getEmployeeConflictsForRange } from '../utils/capacityUtils';
 import { getGermanHolidays } from '../holidays';
+import { normalizeProjectStatus } from '@/lib/projectStatus';
 import {
   buildProjectShiftEventRows,
   calculateShiftMinutes,
@@ -236,7 +237,7 @@ export function BulkAssignDialog({
   };
 
   // Active projects only
-  const activeProjects = projects.filter(p => ['beauftragt', 'in_bearbeitung'].includes(p.status));
+  const activeProjects = projects.filter(p => { const st = normalizeProjectStatus(p.status, p.workflow_stage).workflow_stage; return st === 'ordered' || st === 'in_progress'; });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

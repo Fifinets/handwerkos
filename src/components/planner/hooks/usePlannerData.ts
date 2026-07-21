@@ -29,7 +29,7 @@ export function usePlannerData() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('projects')
-        .select('id, name, status, start_date, end_date, location, work_start_date, work_end_date, project_team_assignments(employee_id, is_active, start_date, end_date, role)')
+        .select('id, name, status, workflow_stage, start_date, end_date, location, work_start_date, work_end_date, project_team_assignments(employee_id, is_active, start_date, end_date, role)')
         .eq('company_id', companyId!)
         .not('status', 'in', '("abgeschlossen","storniert")');
       if (error) throw error;

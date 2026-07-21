@@ -155,7 +155,7 @@ export function DeliveryNoteForm({
       .from('projects')
       .select('id, name, customers(company_name)')
       .eq('company_id', companyId)
-      .in('status', ['anfrage', 'besichtigung', 'angebot', 'beauftragt', 'in_bearbeitung'])
+      .in('status', ['planned', 'active'])
       .order('name')
       .then(({ data }) => {
         setProjects(

@@ -9,10 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { isOpenProject } from '@/lib/projectStatus';
 
 const getEmployeeAvailability = (emp: any) => {
   const activeProjects = (emp.project_team_assignments || [])
-    .filter((a: any) => a.is_active && a.projects && a.projects.status !== 'abgeschlossen' && a.projects.status !== 'storniert');
+    .filter((a: any) => a.is_active && a.projects && isOpenProject(a.projects.status));
   if (activeProjects.length === 0) return { label: 'Verfügbar', color: 'bg-emerald-100 text-emerald-700', projects: [] };
   if (activeProjects.length >= 3) return { label: 'Ausgelastet', color: 'bg-red-100 text-red-700', projects: activeProjects };
   return { label: `${activeProjects.length} Projekt${activeProjects.length > 1 ? 'e' : ''}`, color: 'bg-amber-100 text-amber-700', projects: activeProjects };
@@ -91,7 +92,8 @@ const AddOrderDialog = ({ open, onOpenChange, onOrderAdded }: AddOrderDialogProp
           company_id: companyId,
           project_site_id: formData.project_site_id || null,
           project_type: 'kleinauftrag',
-          status: formData.work_date ? 'beauftragt' : 'anfrage',
+          status: 'planned',
+          workflow_stage: formData.work_date ? 'ordered' : 'inquiry',
           start_date: formData.work_date || null,
           end_date: formData.work_date || null,
           description: formData.description || null,

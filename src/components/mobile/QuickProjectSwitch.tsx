@@ -92,7 +92,7 @@ export const QuickProjectSwitch: React.FC<QuickProjectSwitchProps> = ({
           .select(`
             id, name, status, location, color, customer_id, start_date, end_date, priority, description
           `)
-          .not('status', 'eq', 'abgeschlossen')
+          .neq('status', 'completed')
           .not('status', 'eq', 'completed')
           .not('status', 'eq', 'cancelled')
           .not('status', 'eq', 'archiviert')

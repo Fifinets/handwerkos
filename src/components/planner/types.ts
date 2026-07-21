@@ -10,6 +10,7 @@ export interface PlannerProject {
   id: string;
   name: string;
   status: string;
+  workflow_stage?: string | null;
   start_date: string | null;
   end_date: string | null;
   location: string | null;

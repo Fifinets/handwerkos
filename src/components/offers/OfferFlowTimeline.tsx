@@ -5,6 +5,7 @@ import { Check, ArrowRight, FileText, FolderKanban, Receipt, AlertCircle } from 
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { normalizeProjectStatus } from '@/lib/projectStatus';
 
 interface OfferFlowTimelineProps {
   offer: Offer;
@@ -88,7 +89,7 @@ export function OfferFlowTimeline({ offer }: OfferFlowTimelineProps) {
       documentName: 'Nicht verknüpft',
     });
   } else if (project) {
-    const projectCompleted = project.status === 'abgeschlossen';
+    const projectCompleted = normalizeProjectStatus(project.status).status === 'completed';
     steps.push({
       label: 'Projekt',
       icon: <FolderKanban className="h-4 w-4" />,

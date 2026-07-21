@@ -17,7 +17,7 @@ import {
   UserRole,
   ProjectStatus
 } from "@/types/project";
-import { normalizeProjectStatus, type WorkflowStage } from "@/lib/projectStatus";
+import { normalizeProjectStatus, projectStageLabel, type WorkflowStage } from "@/lib/projectStatus";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -548,7 +548,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         customer_id: projectData.customer_id || '',
         start_date: projectData.start_date || new Date().toISOString().split('T')[0],
         planned_end_date: projectData.end_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        status: ((projectData.status as ProjectStatus) ?? 'anfrage') as ProjectStatus,
+        status: ((projectData.status as ProjectStatus) ?? 'planned') as ProjectStatus,
         project_type: projectData.project_type,
         project_address: projectData.site || projectData.location || 'Nicht angegeben',
         project_description: projectData.description || 'Keine Beschreibung',
@@ -1081,15 +1081,15 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
 
               const getDateAnnotation = (stageKey: string) => {
                 switch (stageKey) {
-                  case 'anfrage': return project.created_at ? format(new Date(project.created_at), 'dd.MM.', { locale: de }) : null;
-                  case 'besichtigung': {
+                  case 'inquiry': return project.created_at ? format(new Date(project.created_at), 'dd.MM.', { locale: de }) : null;
+                  case 'site_visit': {
                     if (!project.besichtigung_date) return null;
                     const d = format(new Date(project.besichtigung_date), 'dd.MM.', { locale: de });
                     const t = project.besichtigung_time_start ? ` ${project.besichtigung_time_start.slice(0, 5)}` : '';
                     return d + t;
                   }
-                  case 'in_bearbeitung': return project.work_start_date ? format(new Date(project.work_start_date), 'dd.MM.', { locale: de }) : null;
-                  case 'abgeschlossen': return project.completed_at ? format(new Date(project.completed_at), 'dd.MM.', { locale: de }) : null;
+                  case 'in_progress': return project.work_start_date ? format(new Date(project.work_start_date), 'dd.MM.', { locale: de }) : null;
+                  case 'done': return project.completed_at ? format(new Date(project.completed_at), 'dd.MM.', { locale: de }) : null;
                   default: return null;
                 }
               };
@@ -1378,14 +1378,11 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                         </p>
                       </div>
                       <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                        proj.status === 'abgeschlossen' ? 'bg-green-100 text-green-700' :
-                        proj.status === 'in_bearbeitung' ? 'bg-blue-100 text-blue-700' :
+                        normalizeProjectStatus(proj.status).status === 'completed' ? 'bg-green-100 text-green-700' :
+                        normalizeProjectStatus(proj.status).status === 'active' ? 'bg-blue-100 text-blue-700' :
                         'bg-slate-100 text-slate-700'
                       }`}>
-                        {proj.status === 'abgeschlossen' ? 'Fertig' :
-                         proj.status === 'in_bearbeitung' ? 'In Arbeit' :
-                         proj.status === 'beauftragt' ? 'Beauftragt' :
-                         proj.status === 'angebot' ? 'Angebot' : proj.status}
+                        {projectStageLabel(proj.status, proj.workflow_stage)}
                       </span>
                     </div>
                   </button>

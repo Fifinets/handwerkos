@@ -13,6 +13,7 @@ import type { CalendarEvent, PlannerProject, PlannerEmployee, EntryType } from '
 import { ENTRY_TYPE_STYLES } from '../constants';
 import { getEmployeeDayAssignments, getAbsence } from '../utils/capacityUtils';
 import type { VacationRequest } from '../types';
+import { normalizeProjectStatus } from '@/lib/projectStatus';
 import {
   buildProjectShiftEventRows,
   calculateShiftMinutes,
@@ -251,7 +252,7 @@ export function SingleAssignDialog({
   };
 
   const selectedProject = projects.find(p => p.id === projectId);
-  const preBeauftragt = selectedProject && ['anfrage', 'besichtigung', 'angebot', 'angebot_versendet'].includes(selectedProject.status);
+  const preBeauftragt = selectedProject && ['inquiry', 'site_visit', 'quoted'].includes(normalizeProjectStatus(selectedProject.status, selectedProject.workflow_stage).workflow_stage ?? '');
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

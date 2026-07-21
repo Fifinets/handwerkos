@@ -76,6 +76,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useNavigate } from 'react-router-dom';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { normalizeProjectStatus } from '@/lib/projectStatus';
 
 type TabValue = 'dashboard' | 'projects' | 'delivery-notes' | 'timesheet' | 'vacation' | 'profile' | 'invoices';
 
@@ -577,7 +578,7 @@ export function DesktopEmployeePage() {
                     <div className="p-2 bg-blue-100 rounded-lg"><Building2 className="h-5 w-5 text-blue-600" /></div>
                     <div>
                       <p className="text-sm text-muted-foreground">Aktive Projekte</p>
-                      <p className="text-2xl font-bold">{projects.filter(p => p.status === 'active' || p.status === 'in_bearbeitung' || p.status === 'beauftragt').length}</p>
+                      <p className="text-2xl font-bold">{projects.filter(p => { const n = normalizeProjectStatus(p.status, p.workflow_stage); return n.status === 'active' || n.workflow_stage === 'ordered'; }).length}</p>
                     </div>
                   </div>
                 </CardContent>
