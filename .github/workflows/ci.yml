@@ -37,6 +37,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Prueft gegen typecheck-baseline.json: neue Typfehler lassen den Lauf
+      # fehlschlagen, die ~975 Altfehler nicht. Vollstaendige Liste:
+      # npm run typecheck:full
       - name: Run TypeScript check
         run: npm run typecheck
 

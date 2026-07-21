@@ -10,7 +10,7 @@
     "build:android": "vite build && npx cap sync android",
     "lint": "eslint .",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node scripts/typecheck.mjs",
     "test": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
@@ -20,7 +20,9 @@
     "db:push": "npx supabase db push",
     "db:diff": "npx supabase db diff --schema public --local --name",
     "db:migrate": "supabase db push",
-    "db:seed": "supabase db seed"
+    "db:seed": "supabase db seed",
+    "typecheck:full": "tsc -p tsconfig.app.json --noEmit",
+    "typecheck:baseline": "node scripts/typecheck.mjs --update-baseline"
   },
   "dependencies": {
     "@capacitor-community/keep-awake": "^7.1.0",
