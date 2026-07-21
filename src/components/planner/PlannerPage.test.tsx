@@ -1,6 +1,21 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlannerPage } from './PlannerPage';
+
+// PlannerPage leitet die sichtbare Woche aus `new Date()` ab (currentDate-State,
+// viewMode 'week'). Die Fixtures unten heften den Shift an den 2026-06-08 — als
+// der Test geschrieben wurde, lag dieser Tag in der aktuellen Woche. Ohne
+// eingefrorene Uhr faellt der Shift mit fortschreitender Echtzeit aus dem
+// Fenster und der Test wird grundlos rot. Nur Date einfrieren, damit Timer und
+// Microtasks von React Testing Library real bleiben.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date(2026, 5, 8, 9, 0, 0));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {},
