@@ -21,6 +21,7 @@ interface Project {
   name: string;
   customer: string;
   status: string;
+  workflow_stage?: string | null;
   progress: number;
   startDate: string;
   endDate: string;

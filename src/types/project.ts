@@ -21,7 +21,8 @@ export interface ProjectBaseData {
   customer_id: string;                     // Kunde (Referenz)
   start_date: string;                      // Startdatum
   planned_end_date: string;                // Geplantes Enddatum
-  status: ProjectStatus;                   // Status
+  status: ProjectStatus;                   // Lebenszyklus (kanonisch)
+  workflow_stage?: WorkflowStage | null;   // operative Stufe; NULL bei storniert
   offer_order_number?: string;             // Angebots-/Auftragsnummer
   project_address: string;                 // Projektadresse
   project_description: string;             // Projektbeschreibung
@@ -147,8 +148,8 @@ export interface ProjectStatusChange {
   changed_by: string;
   changed_by_name: string;
   
-  from_status: ProjectStatus;
-  to_status: ProjectStatus;
+  from_status: WorkflowStage;
+  to_status: WorkflowStage;
   reason?: string;
   
   changed_at: string;
