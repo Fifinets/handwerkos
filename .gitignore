@@ -84,3 +84,9 @@ serveo_logs.txt
 e2e/.auth/
 playwright-report/
 test-results/
+
+# Superpowers-Brainstorm: ephemere Session-Scratch-Ordner.
+# Bereits committete Brainstorm-Dateien bleiben getrackt; diese Regel verhindert
+# nur, dass NEUE Scratch-Ordner versehentlich (z. B. via git add -A) reinrutschen.
+# Bewusst committen: git add -f <pfad>.
+/.superpowers/brainstorm/
