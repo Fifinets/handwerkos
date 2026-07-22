@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { PlannerProject, PlannerEmployee, VacationRequest } from '../types';
 import { getAvailableEmployees } from '../utils/capacityUtils';
 import { getGermanHolidays } from '../holidays';
+import { normalizeProjectStatus } from '@/lib/projectStatus';
 
 type ReplanMode = 'team-transfer' | 'replacement';
 
@@ -226,7 +227,7 @@ export function ReplanDialog({
   };
 
   const targetProjects = projects.filter(p =>
-    p.id !== sourceProject?.id && ['beauftragt', 'in_bearbeitung'].includes(p.status)
+    p.id !== sourceProject?.id && ['ordered', 'in_progress'].includes(normalizeProjectStatus(p.status, p.workflow_stage).workflow_stage ?? '')
   );
 
   return (

@@ -2,13 +2,15 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { MoreVertical } from "lucide-react";
 import { StatusChip } from "@/components/ui/status-chip";
-import type { ProjectStatus } from "@/types/project";
+import type { ProjectStatus, WorkflowStage } from "@/types/project";
+import { normalizeProjectStatus } from "@/lib/projectStatus";
 
 type Props = {
   id: string;
   project_number?: string;
   name: string;
   status: ProjectStatus;
+  workflow_stage?: WorkflowStage | null;
   budget: number;
   start?: string;
   end?: string;
@@ -26,7 +28,7 @@ const generateProjectNumber = (id: string): string => {
 };
 
 export default function ProjectRow(p: Props) {
-  const status = p.status || 'anfrage'; // Fallback to 'anfrage' if empty
+  const { status: lifecycle, workflow_stage } = normalizeProjectStatus(p.status, p.workflow_stage);
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return "—";
@@ -45,7 +47,7 @@ export default function ProjectRow(p: Props) {
     if (today < startDate) return 0;
 
     // If project is finished
-    if (today >= endDate || status === 'abgeschlossen') return 100;
+    if (today >= endDate || lifecycle === 'completed') return 100;
 
     // Calculate progress based on elapsed days
     const totalDays = Math.max(1, (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -70,7 +72,7 @@ export default function ProjectRow(p: Props) {
   // Get progress bar color based on days remaining (Palette: teal = im Plan,
   // amber = knapp, rose = überfällig — Dringlichkeit nur über Füllfarbe, keine Ränder)
   const getProgressBarColor = () => {
-    if (status === 'abgeschlossen') return 'bg-teal-600';
+    if (lifecycle === 'completed') return 'bg-teal-600';
     const daysRemaining = getDaysRemaining();
     if (daysRemaining === null) return 'bg-teal-600';
     if (daysRemaining <= 0) return 'bg-rose-500'; // Ende erreicht oder überschritten
@@ -99,7 +101,7 @@ export default function ProjectRow(p: Props) {
 
         {/* Status + Menu - top right */}
         <div className="flex items-center gap-2 shrink-0">
-          <StatusChip status={status} />
+          <StatusChip status={workflow_stage ?? lifecycle} />
           {p.onEdit && (
             <button
               onClick={(e) => {

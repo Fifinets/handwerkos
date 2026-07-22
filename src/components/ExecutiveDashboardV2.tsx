@@ -30,6 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { format, subMonths } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { normalizeProjectStatus } from '@/lib/projectStatus';
 import {
     createDashboardInsights,
     type DashboardInsights,
@@ -242,9 +243,9 @@ const ExecutiveDashboardV2: React.FC<ExecutiveDashboardV2Props> = ({ onNavigate 
             const outstandingAmount = overdueInvoices.reduce((s, i) => s + (i.gross_amount || i.net_amount || 0), 0);
 
             // Project status
-            const activeProjects = projects.filter(p => ['active', 'in_bearbeitung'].includes(p.status));
-            const planningProjects = projects.filter(p => ['planning', 'beauftragt', 'planned', 'angebot'].includes(p.status));
-            const completedProjects = projects.filter(p => ['completed', 'abgeschlossen'].includes(p.status));
+            const activeProjects = projects.filter(p => normalizeProjectStatus(p.status).status === 'active');
+            const planningProjects = projects.filter(p => normalizeProjectStatus(p.status).status === 'planned');
+            const completedProjects = projects.filter(p => normalizeProjectStatus(p.status).status === 'completed');
 
             // Revenue chart: last 6 months
             const monthlyRevMap: Record<string, { revenue: number; expenses: number }> = {};

@@ -220,7 +220,18 @@ async function createOffer(
   const positionen = (input.positionen as Position[]) ?? [];
   const gesamtNetto = positionen.reduce((sum, p) => sum + p.menge * p.einzelpreis, 0);
   const vatRate = DEFAULT_VAT_RATE;
-  const offerNumber = `KI-${Date.now()}-${crypto.randomUUID().slice(0, 4)}`;
+  // Entwurfs-Marker, KEINE Belegnummer (GoBD): Die echte, lückenlose Angebotsnummer
+  // vergibt der DB-Trigger assign_offer_number_trigger (via get_next_number) genau einmal
+  // beim Erstversand (draft -> sent). Format wie im RPC create_offer_with_targets
+  // ('ENTWURF-YYYYMMDD-HHMMSS'), plus kurzer Zufalls-Suffix gegen Kollisionen, wenn der
+  // Agent mehrere Angebote in derselben Sekunde anlegt. Die Herkunft "vom Agenten
+  // erstellt" bleibt über die Spalte created_by_agent erhalten.
+  const draftTimestamp = new Date()
+    .toISOString()
+    .slice(0, 19)
+    .replace(/[-:]/g, '')
+    .replace('T', '-'); // YYYYMMDD-HHMMSS
+  const offerNumber = `ENTWURF-${draftTimestamp}-${crypto.randomUUID().slice(0, 4)}`;
 
   const employee = await getFirstActiveEmployee(supabase, companyId);
   const createdByUserId = employee?.user_id ?? null;

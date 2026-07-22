@@ -49,6 +49,7 @@ import { BulkAssignDialog } from './dialogs/BulkAssignDialog';
 import { ReplanDialog } from './dialogs/ReplanDialog';
 import { ProjectShiftDialog } from './dialogs/ProjectShiftDialog';
 import { CapacityCheckDialog } from './dialogs/CapacityCheckDialog';
+import { normalizeProjectStatus, isOpenProject } from '@/lib/projectStatus';
 
 export function PlannerPage() {
   const { toast } = useToast();
@@ -197,7 +198,8 @@ export function PlannerPage() {
   // ── Banner data ────────────────────────────────────────────
   const unplannedProjects = useMemo(() => {
     return projects.filter(p => {
-      if (p.status !== 'in_bearbeitung' && p.status !== 'beauftragt') return false;
+      const { workflow_stage } = normalizeProjectStatus(p.status, p.workflow_stage);
+      if (workflow_stage !== 'in_progress' && workflow_stage !== 'ordered') return false;
       const team = p.project_team_assignments?.filter(a => a.is_active) || [];
       if (team.length === 0) return false;
       return team.some(a => {
@@ -213,7 +215,7 @@ export function PlannerPage() {
 
   const unstaffedProjects = useMemo(() => {
     return projects.filter(p => {
-      if (p.status === 'abgeschlossen' || p.status === 'storniert') return false;
+      if (!isOpenProject(p.status)) return false;
       const team = p.project_team_assignments?.filter(a => a.is_active) || [];
       return team.length === 0;
     });

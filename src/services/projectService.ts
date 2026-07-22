@@ -2,6 +2,7 @@
 // Handles CRUD operations and status management for projects
 
 import { supabase } from '@/integrations/supabase/client';
+import { normalizeProjectStatus } from '@/lib/projectStatus';
 import {
   apiCall,
   validateInput,
@@ -297,7 +298,7 @@ export class ProjectService {
     return apiCall(async () => {
       const existingProject = await this.getProject(id);
 
-      if (existingProject.status !== 'planned' && existingProject.status !== 'beauftragt') {
+      if (normalizeProjectStatus(existingProject.status).status !== 'planned') {
         throw new ApiError(
           API_ERROR_CODES.BUSINESS_RULE_VIOLATION,
           'Nur geplante Projekte können gestartet werden.',
@@ -319,7 +320,7 @@ export class ProjectService {
     return apiCall(async () => {
       const existingProject = await this.getProject(id);
 
-      if (existingProject.status !== 'active' && existingProject.status !== 'in_bearbeitung') {
+      if (normalizeProjectStatus(existingProject.status).status !== 'active') {
         throw new ApiError(
           API_ERROR_CODES.BUSINESS_RULE_VIOLATION,
           'Nur aktive Projekte können abgeschlossen werden.',
@@ -341,7 +342,7 @@ export class ProjectService {
     return apiCall(async () => {
       const existingProject = await this.getProject(id);
 
-      if (existingProject.status !== 'active' && existingProject.status !== 'in_bearbeitung') {
+      if (normalizeProjectStatus(existingProject.status).status !== 'active') {
         throw new ApiError(
           API_ERROR_CODES.BUSINESS_RULE_VIOLATION,
           'Nur aktive Projekte können blockiert werden.',
@@ -386,7 +387,7 @@ export class ProjectService {
     return apiCall(async () => {
       const existingProject = await this.getProject(id);
 
-      if (existingProject.status === 'completed' || existingProject.status === 'abgeschlossen') {
+      if (normalizeProjectStatus(existingProject.status).status === 'completed') {
         throw new ApiError(
           API_ERROR_CODES.BUSINESS_RULE_VIOLATION,
           'Abgeschlossene Projekte können nicht storniert werden.',
@@ -567,7 +568,7 @@ export class ProjectService {
       const existingProject = await this.getProject(id);
 
       // Only allow deletion of planned or cancelled projects
-      if (!['planned', 'cancelled', 'beauftragt', 'anfrage', 'besichtigung'].includes(existingProject.status)) {
+      if (!['planned', 'cancelled'].includes(normalizeProjectStatus(existingProject.status).status)) {
         throw new ApiError(
           API_ERROR_CODES.BUSINESS_RULE_VIOLATION,
           'Nur geplante oder stornierte Projekte können gelöscht werden.',

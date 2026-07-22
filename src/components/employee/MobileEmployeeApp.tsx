@@ -456,7 +456,7 @@ const MobileEmployeeApp: React.FC = () => {
       const projects: Project[] = teamAssignments?.map((assignment: any) => ({
         id: assignment.projects.id,
         name: assignment.projects.name,
-        status: assignment.projects.status || 'in_bearbeitung',
+        status: assignment.projects.status || 'active',
         priority: assignment.projects.priority || 'normal',
         assignedTo: [user.id],
         deadline: assignment.projects.end_date

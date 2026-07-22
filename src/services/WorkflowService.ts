@@ -6,6 +6,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { normalizeProjectStatus } from '@/lib/projectStatus';
 import { toast } from '@/hooks/use-toast';
 import { withApproval } from './approvalService';
 
@@ -67,7 +68,8 @@ class WorkflowService {
         name: order.title,
         customer_id: order.customer_id,
         company_id: profile.company_id,
-        status: 'beauftragt',
+        status: 'planned',
+        workflow_stage: 'ordered',
         start_date: new Date().toISOString().split('T')[0],
         end_date: order.due_date || null,
         location: null,
@@ -139,7 +141,7 @@ class WorkflowService {
         throw new Error('Projekt nicht gefunden');
       }
 
-      if (project.status !== 'abgeschlossen') {
+      if (normalizeProjectStatus(project.status).status !== 'completed') {
         throw new Error('Rechnung kann nur für abgeschlossene Projekte erstellt werden');
       }
 
@@ -211,7 +213,7 @@ class WorkflowService {
       const { data: projects } = await supabase
         .from('projects')
         .select('*')
-        .in('status', ['angebot', 'beauftragt', 'in_bearbeitung']);
+        .in('status', ['planned', 'active']);
 
       const warnings = [];
 
@@ -369,7 +371,7 @@ class WorkflowService {
     const { data } = await supabase
       .from('projects')
       .select('*')
-      .in('status', ['angebot', 'beauftragt', 'in_bearbeitung'])
+      .in('status', ['planned', 'active'])
       .lt('end_date', new Date().toISOString().split('T')[0]);
 
     return data || [];

@@ -19,7 +19,7 @@ export interface DetailsTabProps {
   permissions: ProjectPermissions;
   allEmployees: { id: string; first_name: string; last_name: string }[];
   onLoadCustomerProjects: (customerId: string) => void;
-  onHandleEditAppointment: (mode: 'besichtigung' | 'in_bearbeitung') => void;
+  onHandleEditAppointment: (mode: 'site_visit' | 'in_progress') => void;
 }
 
 const DetailsTab: React.FC<DetailsTabProps> = ({
@@ -109,7 +109,7 @@ const DetailsTab: React.FC<DetailsTabProps> = ({
                     <span className="text-sm font-semibold text-slate-900">Besichtigung</span>
                   </div>
                   <button
-                    onClick={() => onHandleEditAppointment('besichtigung')}
+                    onClick={() => onHandleEditAppointment('site_visit')}
                     className="text-xs text-slate-400 hover:text-blue-600 transition-colors"
                   >
                     Bearbeiten
@@ -138,7 +138,7 @@ const DetailsTab: React.FC<DetailsTabProps> = ({
           ) : (
             <Card
               className="border-dashed border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition-all rounded-xl"
-              onClick={() => onHandleEditAppointment('besichtigung')}
+              onClick={() => onHandleEditAppointment('site_visit')}
             >
               <CardContent className="p-4 flex flex-col items-center justify-center text-center py-6">
                 <CalendarIcon className="h-5 w-5 text-slate-300 mb-1.5" />
@@ -158,7 +158,7 @@ const DetailsTab: React.FC<DetailsTabProps> = ({
                     <span className="text-sm font-semibold text-slate-900">In Arbeit</span>
                   </div>
                   <button
-                    onClick={() => onHandleEditAppointment('in_bearbeitung')}
+                    onClick={() => onHandleEditAppointment('in_progress')}
                     className="text-xs text-slate-400 hover:text-blue-600 transition-colors"
                   >
                     Bearbeiten
@@ -181,7 +181,7 @@ const DetailsTab: React.FC<DetailsTabProps> = ({
           ) : (
             <Card
               className="border-dashed border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition-all rounded-xl"
-              onClick={() => onHandleEditAppointment('in_bearbeitung')}
+              onClick={() => onHandleEditAppointment('in_progress')}
             >
               <CardContent className="p-4 flex flex-col items-center justify-center text-center py-6">
                 <CalendarIcon className="h-5 w-5 text-slate-300 mb-1.5" />

@@ -1,4 +1,5 @@
-import { PROJECT_STATUS_CONFIG } from "@/types/project";
+import { WORKFLOW_STAGE_CONFIG } from "@/types/project";
+import { normalizeProjectStatus } from "@/lib/projectStatus";
 
 export const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('de-DE', {
@@ -22,8 +23,18 @@ export const formatDateTime = (dateString: string) => {
   return new Date(dateString).toLocaleString('de-DE');
 };
 
-export const getStatusConfig = (status: string) => {
-  return PROJECT_STATUS_CONFIG[status as keyof typeof PROJECT_STATUS_CONFIG] || PROJECT_STATUS_CONFIG.geplant;
+/**
+ * Anzeigekonfiguration für die Workflow-Stufe eines Projekts.
+ *
+ * Vorher wurde auf `PROJECT_STATUS_CONFIG.geplant` zurückgefallen — einen
+ * Schlüssel, den es nie gab. Bei unbekanntem Status kam also `undefined`
+ * zurück und der Aufrufer lief in einen Zugriffsfehler. Jetzt normalisiert
+ * `normalizeProjectStatus` erst auf eine gültige Stufe; stornierte Projekte
+ * haben keine Stufe und bekommen die Endstufe zur Anzeige.
+ */
+export const getStatusConfig = (status: string, workflowStage?: string | null) => {
+  const { workflow_stage } = normalizeProjectStatus(status, workflowStage);
+  return WORKFLOW_STAGE_CONFIG[workflow_stage ?? 'done'];
 };
 
 export const generateShortId = (fullId: string) => {

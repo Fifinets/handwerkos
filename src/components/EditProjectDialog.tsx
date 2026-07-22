@@ -21,6 +21,7 @@ interface Project {
   name: string;
   customer: string;
   status: string;
+  workflow_stage?: string | null;
   progress: number;
   startDate: string;
   endDate: string;
@@ -51,7 +52,8 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
   const [formData, setFormData] = useState({
     name: '',
     customer_id: '',
-    status: 'anfrage',
+    status: 'planned',
+    workflow_stage: 'inquiry',
     startDate: '',
     endDate: '',
     project_site_id: ''
@@ -96,7 +98,8 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
       setFormData({
         name: project.name || '',
         customer_id: project.customer_id || '',
-        status: project.status || 'anfrage',
+        status: project.status || 'planned',
+        workflow_stage: project.workflow_stage || 'inquiry',
         startDate: project.start_date || project.startDate || '',
         endDate: project.end_date || project.endDate || '',
         project_site_id: project.project_site_id || ''
@@ -142,6 +145,7 @@ const EditProjectDialog = ({ isOpen, onClose, project, onProjectUpdated, onProje
         name: project.name,
         customer_id: project.customer_id || '',
         status: project.status,
+        workflow_stage: project.workflow_stage || 'inquiry',
         startDate: project.startDate,
         endDate: project.endDate,
         project_site_id: project.project_site_id || ''

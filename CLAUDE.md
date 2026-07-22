@@ -11,7 +11,9 @@ HandwerkOS — AI-First SaaS für deutsche Handwerksbetriebe (Multi-Tenant B2B).
 ```sh
 npm run dev          # Dev-Server auf Port 8080 (Vite)
 npm run build        # Production Build
-npm run typecheck    # tsc --noEmit
+npm run typecheck    # Typpruefung gegen typecheck-baseline.json (nur NEUE Fehler sind rot)
+npm run typecheck:full     # vollstaendige Fehlerliste (aktuell ~975 Altlasten)
+npm run typecheck:baseline # Basislinie nachziehen, nachdem Altfehler behoben wurden
 npm run lint         # ESLint
 npm run test         # Vitest (watch mode)
 npm run test:e2e     # Playwright E2E (braucht laufende lokale Supabase: npm run db:start)
@@ -52,6 +54,8 @@ Drei Dokumente sind bei jeder Backend-/DB-/Schema-Arbeit **zwingend** zu beachte
 - **`docs/EU_COMPLIANCE_RULES.md`**: GoBD — finalisierte Belege sind unveränderlich (Versionierung statt Überschreiben), lückenlose Nummerierung, Audit-Trail. DSGVO-Datenminimierung. KI darf vorschlagen/vorbefüllen, aber nie autonom rechtsverbindlich entscheiden — Human-in-the-loop-Gates konfiguriert in `src/config/compliance.ts`.
 
 **Nach Schema-Änderungen Pflicht**: Supabase-Typen neu generieren (`src/integrations/supabase/types.ts` / `src/types/database.ts`), dann `npm run typecheck` und Build laufen lassen.
+
+**Zur Typpruefung**: `tsconfig.json` hat `"files": []` und delegiert per Project References — ein blosses `tsc --noEmit` prueft deshalb keine einzige Datei. `npm run typecheck` laeuft daher ueber `scripts/typecheck.mjs`, das `tsconfig.app.json` prueft und gegen `typecheck-baseline.json` vergleicht. Neue Fehler brechen den Lauf ab, die bestehenden Altlasten nicht.
 
 ## Konventionen
 

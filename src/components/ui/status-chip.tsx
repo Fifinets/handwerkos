@@ -27,7 +27,16 @@ const STATUS_MAP: Record<string, { label: string; tone: Tone }> = {
   running: { label: 'Läuft', tone: 'positive' },
   completed: { label: 'Abgeschlossen', tone: 'muted' },
   corrected: { label: 'Korrigiert', tone: 'pending' },
-  // Projekte (legacy-deutsche Statuswerte, bleiben im Backend unverändert)
+  // Projekte — kanonische Werte (status + workflow_stage, siehe src/lib/projectStatus.ts)
+  planned: { label: 'Geplant', tone: 'pending' },
+  inquiry: { label: 'Anfrage', tone: 'muted' },
+  site_visit: { label: 'Besichtigung', tone: 'pending' },
+  quoted: { label: 'Angebot', tone: 'pending' },
+  ordered: { label: 'Beauftragt', tone: 'positive' },
+  in_progress: { label: 'In Arbeit', tone: 'positive' },
+  acceptance: { label: 'Abnahme', tone: 'pending' },
+  done: { label: 'Abgeschlossen', tone: 'muted' },
+  // Projekte (legacy-deutsche Statuswerte — Fallback fuer alte Caches/URLs)
   anfrage: { label: 'Anfrage', tone: 'muted' },
   besichtigung: { label: 'Besichtigung', tone: 'pending' },
   angebot: { label: 'Angebot', tone: 'pending' },

@@ -12,11 +12,12 @@ import {
   ProjectDashboardData,
   ProjectPermissions,
   getProjectPermissions,
-  PROJECT_STATUS_CONFIG,
+  WORKFLOW_STAGE_CONFIG,
   WORKFLOW_STAGES,
   UserRole,
   ProjectStatus
 } from "@/types/project";
+import { normalizeProjectStatus, projectStageLabel, type WorkflowStage } from "@/lib/projectStatus";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -87,8 +88,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
 
   // Workflow status dialog
   const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
-  const [workflowTargetStatus, setWorkflowTargetStatus] = useState<ProjectStatus | undefined>();
-  const [workflowEditMode, setWorkflowEditMode] = useState<'besichtigung' | 'in_bearbeitung' | undefined>();
+  const [workflowTargetStatus, setWorkflowTargetStatus] = useState<WorkflowStage | undefined>();
+  const [workflowEditMode, setWorkflowEditMode] = useState<'site_visit' | 'in_progress' | undefined>();
   const [allEmployees, setAllEmployees] = useState<{ id: string; first_name: string; last_name: string }[]>([]);
 
   // Internal project ID tracking (allows switching projects within the dialog)
@@ -547,7 +548,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
         customer_id: projectData.customer_id || '',
         start_date: projectData.start_date || new Date().toISOString().split('T')[0],
         planned_end_date: projectData.end_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        status: ((projectData.status as ProjectStatus) ?? 'anfrage') as ProjectStatus,
+        status: ((projectData.status as ProjectStatus) ?? 'planned') as ProjectStatus,
         project_type: projectData.project_type,
         project_address: projectData.site || projectData.location || 'Nicht angegeben',
         project_description: projectData.description || 'Keine Beschreibung',
@@ -982,14 +983,14 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
     }
   };
 
-  const handleStatusChange = (newStatus: string) => {
+  const handleStatusChange = (newStage: string) => {
     if (!project || !permissions.can_change_status) return;
-    setWorkflowTargetStatus(newStatus as ProjectStatus);
+    setWorkflowTargetStatus(newStage as WorkflowStage);
     setWorkflowEditMode(undefined);
     setWorkflowDialogOpen(true);
   };
 
-  const handleEditAppointment = (mode: 'besichtigung' | 'in_bearbeitung') => {
+  const handleEditAppointment = (mode: 'site_visit' | 'in_progress') => {
     setWorkflowTargetStatus(undefined);
     setWorkflowEditMode(mode);
     setWorkflowDialogOpen(true);
@@ -1070,23 +1071,25 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
             {project.project_type !== 'kleinauftrag' && (() => {
               const stages = WORKFLOW_STAGES.map(key => ({
                 key,
-                label: PROJECT_STATUS_CONFIG[key].label,
-                icon: PROJECT_STATUS_CONFIG[key].icon,
+                label: WORKFLOW_STAGE_CONFIG[key].label,
+                icon: WORKFLOW_STAGE_CONFIG[key].icon,
               }));
-              const statusKey = project.status === 'angebot_versendet' ? 'angebot' : project.status;
-              const currentIdx = stages.findIndex(s => s.key === statusKey);
+              // Altwerte wie 'angebot_versendet' brauchen keine Sonderbehandlung
+              // mehr — normalizeProjectStatus bildet sie auf die Stufe ab.
+              const { workflow_stage } = normalizeProjectStatus(project.status, project.workflow_stage);
+              const currentIdx = stages.findIndex(s => s.key === workflow_stage);
 
               const getDateAnnotation = (stageKey: string) => {
                 switch (stageKey) {
-                  case 'anfrage': return project.created_at ? format(new Date(project.created_at), 'dd.MM.', { locale: de }) : null;
-                  case 'besichtigung': {
+                  case 'inquiry': return project.created_at ? format(new Date(project.created_at), 'dd.MM.', { locale: de }) : null;
+                  case 'site_visit': {
                     if (!project.besichtigung_date) return null;
                     const d = format(new Date(project.besichtigung_date), 'dd.MM.', { locale: de });
                     const t = project.besichtigung_time_start ? ` ${project.besichtigung_time_start.slice(0, 5)}` : '';
                     return d + t;
                   }
-                  case 'in_bearbeitung': return project.work_start_date ? format(new Date(project.work_start_date), 'dd.MM.', { locale: de }) : null;
-                  case 'abgeschlossen': return project.completed_at ? format(new Date(project.completed_at), 'dd.MM.', { locale: de }) : null;
+                  case 'in_progress': return project.work_start_date ? format(new Date(project.work_start_date), 'dd.MM.', { locale: de }) : null;
+                  case 'done': return project.completed_at ? format(new Date(project.completed_at), 'dd.MM.', { locale: de }) : null;
                   default: return null;
                 }
               };
@@ -1125,7 +1128,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                   <div className="hidden sm:flex mt-1">
                     {stages.map(stage => {
                       const date = getDateAnnotation(stage.key);
-                      const empName = stage.key === 'besichtigung' ? getEmployeeName() : null;
+                      const empName = stage.key === 'site_visit' ? getEmployeeName() : null;
                       return (
                         <div key={stage.key} className="flex-1 text-center">
                           <div className="text-[10px] text-slate-400 leading-tight">{date || '—'}</div>
@@ -1375,14 +1378,11 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ isOpen, onClose, 
                         </p>
                       </div>
                       <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                        proj.status === 'abgeschlossen' ? 'bg-green-100 text-green-700' :
-                        proj.status === 'in_bearbeitung' ? 'bg-blue-100 text-blue-700' :
+                        normalizeProjectStatus(proj.status).status === 'completed' ? 'bg-green-100 text-green-700' :
+                        normalizeProjectStatus(proj.status).status === 'active' ? 'bg-blue-100 text-blue-700' :
                         'bg-slate-100 text-slate-700'
                       }`}>
-                        {proj.status === 'abgeschlossen' ? 'Fertig' :
-                         proj.status === 'in_bearbeitung' ? 'In Arbeit' :
-                         proj.status === 'beauftragt' ? 'Beauftragt' :
-                         proj.status === 'angebot' ? 'Angebot' : proj.status}
+                        {projectStageLabel(proj.status, proj.workflow_stage)}
                       </span>
                     </div>
                   </button>

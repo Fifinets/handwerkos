@@ -74,50 +74,30 @@ import AutoFixDatabase from "./AutoFixDatabase";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AddOrderDialog from "./AddOrderDialog";
 import { Wrench, CalendarDays, MapPin, User } from "lucide-react";
-import { PROJECT_STATUS_CONFIG } from "@/types/project";
+import { projectStageLabel, projectStageStyle, normalizeProjectStatus, isOpenProject, type WorkflowStage } from "@/lib/projectStatus";
 
-const getStatusColor = (status: string) => {
-    switch (status) {
-        case 'anfrage':
-            return 'bg-slate-100 text-slate-700 border-slate-200';
-        case 'besichtigung':
-            return 'bg-blue-50 text-blue-700 border-blue-200';
-        case 'angebot':
-        case 'angebot_versendet':
-            return 'bg-orange-50 text-orange-700 border-orange-200';
-        case 'beauftragt':
-            return 'bg-purple-50 text-purple-700 border-purple-200';
-        case 'in_bearbeitung':
-            return 'bg-amber-50 text-amber-700 border-amber-200';
-        case 'abgeschlossen':
-            return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-        case 'storniert':
-            return 'bg-red-50 text-red-700 border-red-200';
-        default:
-            return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
+// Farben und Symbole kommen aus dem zentralen Statusmodell; hier standen
+// frueher zwei switch-Bloecke ueber deutsche Statuswerte, die nach der
+// Umstellung auf planned/active/... alle in den default-Zweig gelaufen waeren.
+const getStatusColor = (status: string, stage?: string | null) =>
+    projectStageStyle(status, stage);
+
+const STAGE_ICONS: Record<WorkflowStage, JSX.Element> = {
+    inquiry: <FileText className="h-4 w-4 text-slate-500" />,
+    site_visit: <Search className="h-4 w-4 text-blue-500" />,
+    quoted: <FileText className="h-4 w-4 text-orange-500" />,
+    ordered: <CheckCircle className="h-4 w-4 text-purple-500" />,
+    in_progress: <HardHat className="h-4 w-4 text-amber-500" />,
+    acceptance: <CheckCircle className="h-4 w-4 text-teal-500" />,
+    done: <CheckCircle className="h-4 w-4 text-emerald-500" />,
 };
 
-const getStatusIcon = (status: string) => {
-    switch (status) {
-        case 'anfrage':
-            return <FileText className="h-4 w-4 text-slate-500" />;
-        case 'besichtigung':
-            return <Search className="h-4 w-4 text-blue-500" />;
-        case 'angebot':
-        case 'angebot_versendet':
-            return <FileText className="h-4 w-4 text-orange-500" />;
-        case 'beauftragt':
-            return <CheckCircle className="h-4 w-4 text-purple-500" />;
-        case 'in_bearbeitung':
-            return <HardHat className="h-4 w-4 text-amber-500" />;
-        case 'abgeschlossen':
-            return <CheckCircle className="h-4 w-4 text-emerald-500" />;
-        case 'storniert':
-            return <FileText className="h-4 w-4 text-red-500" />;
-        default:
-            return <FileText className="h-4 w-4 text-gray-500" />;
+const getStatusIcon = (status: string, stage?: string | null) => {
+    const { status: lifecycle, workflow_stage } = normalizeProjectStatus(status, stage);
+    if (lifecycle === 'cancelled' || !workflow_stage) {
+        return <FileText className="h-4 w-4 text-red-500" />;
     }
+    return STAGE_ICONS[workflow_stage];
 };
 
 const extractBudgetFromDescription = (description: string) => {
@@ -132,7 +112,7 @@ const extractBudgetFromDescription = (description: string) => {
 const projectUrgencyInfo = (
     p: Project
 ): { urgency: 'critical' | 'none'; overrunPercent: number | null } => {
-    if (p.status === 'abgeschlossen' || p.status === 'storniert') {
+    if (!isOpenProject(p.status)) {
         return { urgency: 'none', overrunPercent: null };
     }
     if (p.hours_planned && p.hours_actual && p.hours_actual > p.hours_planned) {
@@ -316,14 +296,13 @@ const ProjectModuleV2 = () => {
     const filterOptions = [
         { value: 'aktive', label: 'Nur aktive' },
         { value: 'alle', label: 'Alle Projekte' },
-        { value: 'anfrage', label: 'Anfragen' },
-        { value: 'besichtigung', label: 'Besichtigung' },
-        { value: 'angebot', label: 'Angebot' },
-        { value: 'angebot_versendet', label: 'Angebot versendet' },
-        { value: 'beauftragt', label: 'Beauftragt' },
-        { value: 'in_bearbeitung', label: 'In Bearbeitung' },
-        { value: 'abgeschlossen', label: 'Abgeschlossen' },
-        { value: 'storniert', label: 'Storniert' },
+        { value: 'inquiry', label: 'Anfragen' },
+        { value: 'site_visit', label: 'Besichtigung' },
+        { value: 'quoted', label: 'Angebot' },
+        { value: 'ordered', label: 'Beauftragt' },
+        { value: 'in_progress', label: 'In Bearbeitung' },
+        { value: 'completed', label: 'Abgeschlossen' },
+        { value: 'cancelled', label: 'Storniert' },
     ];
 
     // Filter projects based on search and status
@@ -334,14 +313,18 @@ const ProjectModuleV2 = () => {
 
         if (!matchesSearch) return false;
 
-        // Status filter
+        // Status filter — kanonische Werte; 'completed'/'cancelled' filtern nach
+        // Lebenszyklus, alles andere nach Workflow-Stufe.
         if (statusFilter === 'aktive') {
-            return p.status !== 'abgeschlossen' && p.status !== 'storniert';
+            return isOpenProject(p.status);
         } else if (statusFilter === 'alle') {
             return true;
-        } else {
-            return p.status === statusFilter;
         }
+        const { status: lifecycle, workflow_stage } = normalizeProjectStatus(p.status, p.workflow_stage);
+        if (statusFilter === 'completed' || statusFilter === 'cancelled') {
+            return lifecycle === statusFilter;
+        }
+        return workflow_stage === statusFilter;
     });
 
     const customersWithFallback = customers.length > 0 ? customers : [
@@ -360,21 +343,22 @@ const ProjectModuleV2 = () => {
     const isLoading = projectsLoading || customersLoading || teamLoading;
 
     // Derived data
+    const stageOf = (p: Project) => normalizeProjectStatus(p.status, p.workflow_stage).workflow_stage;
     const statusCounts = {
-        anfrage: projects.filter(p => p.status === 'anfrage').length,
-        besichtigung: projects.filter(p => p.status === 'besichtigung').length,
-        angebot: projects.filter(p => p.status === 'angebot' || p.status === 'angebot_versendet').length,
-        beauftragt: projects.filter(p => p.status === 'beauftragt').length,
-        in_bearbeitung: projects.filter(p => p.status === 'in_bearbeitung').length,
-        abgeschlossen: projects.filter(p => p.status === 'abgeschlossen').length,
-        storniert: projects.filter(p => p.status === 'storniert').length,
+        inquiry: projects.filter(p => stageOf(p) === 'inquiry').length,
+        site_visit: projects.filter(p => stageOf(p) === 'site_visit').length,
+        quoted: projects.filter(p => stageOf(p) === 'quoted').length,
+        ordered: projects.filter(p => stageOf(p) === 'ordered').length,
+        in_progress: projects.filter(p => stageOf(p) === 'in_progress').length,
+        completed: projects.filter(p => normalizeProjectStatus(p.status).status === 'completed').length,
+        cancelled: projects.filter(p => normalizeProjectStatus(p.status).status === 'cancelled').length,
     };
 
-    const activeProjectsCount = projects.filter(p => p.status !== 'abgeschlossen' && p.status !== 'storniert').length;
+    const activeProjectsCount = projects.filter(p => isOpenProject(p.status)).length;
 
     const today = new Date().toISOString().split('T')[0];
     const delayedProjects = projects.filter(project =>
-        project.end_date && project.end_date < today && project.status !== 'abgeschlossen' && project.status !== 'storniert'
+        project.end_date && project.end_date < today && isOpenProject(project.status)
     );
 
     const generateShortId = (fullId: string) => {
@@ -478,7 +462,7 @@ const ProjectModuleV2 = () => {
                 />
                 <StatCard
                     label="Abgeschlossen (Gesamt)"
-                    value={statusCounts.abgeschlossen}
+                    value={statusCounts.completed}
                     tone="positive"
                 />
                 <StatCard
@@ -488,7 +472,7 @@ const ProjectModuleV2 = () => {
                 />
                 <StatCard
                     label="Beauftragt"
-                    value={statusCounts.beauftragt}
+                    value={statusCounts.ordered}
                 />
             </div>
 
@@ -529,7 +513,7 @@ const ProjectModuleV2 = () => {
                                 <div className="divide-y divide-slate-100">
                                     {filteredProjects.map((project) => {
                                         const urgencyInfo = projectUrgencyInfo(project);
-                                        const isDimmed = project.status === 'abgeschlossen' || project.status === 'storniert';
+                                        const isDimmed = !isOpenProject(project.status);
                                         return (
                                             <div
                                                 key={project.id}
@@ -608,12 +592,12 @@ const ProjectModuleV2 = () => {
                         <CardContent className="p-5 space-y-4">
                             <div className="space-y-3">
                                 {[
-                                    { key: 'anfrage', label: 'Anfrage', color: 'bg-slate-300', count: statusCounts.anfrage },
-                                    { key: 'besichtigung', label: 'Besichtigung', color: 'bg-amber-400', count: statusCounts.besichtigung },
-                                    { key: 'angebot', label: 'Angebot', color: 'bg-amber-500', count: statusCounts.angebot },
-                                    { key: 'beauftragt', label: 'Beauftragt', color: 'bg-teal-500', count: statusCounts.beauftragt },
-                                    { key: 'in_bearbeitung', label: 'In Bearbeitung', color: 'bg-teal-600', count: statusCounts.in_bearbeitung },
-                                    { key: 'abgeschlossen', label: 'Abgeschlossen', color: 'bg-slate-400', count: statusCounts.abgeschlossen },
+                                    { key: 'inquiry', label: 'Anfrage', color: 'bg-slate-300', count: statusCounts.inquiry },
+                                    { key: 'site_visit', label: 'Besichtigung', color: 'bg-amber-400', count: statusCounts.site_visit },
+                                    { key: 'quoted', label: 'Angebot', color: 'bg-amber-500', count: statusCounts.quoted },
+                                    { key: 'ordered', label: 'Beauftragt', color: 'bg-teal-500', count: statusCounts.ordered },
+                                    { key: 'in_progress', label: 'In Bearbeitung', color: 'bg-teal-600', count: statusCounts.in_progress },
+                                    { key: 'completed', label: 'Abgeschlossen', color: 'bg-slate-400', count: statusCounts.completed },
                                 ].map(stat => (
                                     <div key={stat.key}>
                                         <div className="flex justify-between text-sm mb-1">
@@ -668,7 +652,7 @@ const ProjectModuleV2 = () => {
                                                         <h3 className="font-medium text-slate-900 truncate">{order.name}</h3>
                                                         <Badge variant="outline" className={`text-[10px] shrink-0 ${getStatusColor(order.status)}`}>
                                                             {getStatusIcon(order.status)}
-                                                            <span className="ml-1">{PROJECT_STATUS_CONFIG[order.status as keyof typeof PROJECT_STATUS_CONFIG]?.label ?? order.status}</span>
+                                                            <span className="ml-1">{projectStageLabel(order.status, order.workflow_stage)}</span>
                                                         </Badge>
                                                     </div>
                                                     <div className="flex items-center gap-4 text-xs text-slate-500 mt-2">
