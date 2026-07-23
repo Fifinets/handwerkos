@@ -24,4 +24,13 @@ describe('OfferSummaryCard Marge', () => {
     expect(screen.getByText(/Kostensatz/i)).toBeInTheDocument();
     expect(screen.queryByText(/0 Positionen/i)).not.toBeInTheDocument();
   });
+
+  it('zeigt weder Marge noch Warnung, wenn der Aufrufer costRate gar nicht übergibt', () => {
+    render(<OfferSummaryCard
+      items={[{ quantity: 10, unit_price_net: 85, planned_hours_item: 10, material_purchase_cost: 200 }] as any}
+    />);
+    expect(screen.queryByText(/Marge/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Kostensatz/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Positionen/i)).not.toBeInTheDocument();
+  });
 });

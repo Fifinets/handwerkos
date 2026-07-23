@@ -38,7 +38,7 @@ export function OfferSummaryCard({
   vatRate = 19,
   discountPercent = 0,
   snapshotTotals,
-  costRate = null,
+  costRate,
   className = '',
 }: OfferSummaryCardProps) {
   // Calculate from items if no snapshot
@@ -67,7 +67,7 @@ export function OfferSummaryCard({
     .filter(item => item.is_optional)
     .reduce((sum, item) => sum + item.quantity * item.unit_price_net, 0);
 
-  const costBasis = computeOfferCostBasis(items, costRate);
+  const costBasis = computeOfferCostBasis(items, costRate ?? null);
   const itemsMissingCostBasis = items.filter(
     item => item.planned_hours_item == null && item.material_purchase_cost == null
   ).length;
@@ -121,7 +121,7 @@ export function OfferSummaryCard({
             <span className="text-muted-foreground">Marge</span>
             <span>{formatPercent(costBasis.marginPct)} %</span>
           </div>
-        ) : items.length === 0 ? null : costRate == null ? (
+        ) : costRate === undefined ? null : items.length === 0 ? null : costRate === null ? (
           <p className="text-sm text-amber-600">
             Kein interner Kostensatz hinterlegt — Marge nicht berechenbar
           </p>
