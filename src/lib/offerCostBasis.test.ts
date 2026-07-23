@@ -15,6 +15,22 @@ describe('computeOfferCostBasis', () => {
     expect(r.isComplete).toBe(true);
   });
 
+  // Parität zur SQL-Funktion get_offer_cost_basis (Migration 20260722180000).
+  // Die Erwartungswerte sind KEINE Handrechnung, sondern die real gemessene
+  // Ausgabe der SQL-Funktion gegen dieselben Eingaben (lokale DB, 2026-07-22):
+  //   revenue 850.00000 | cost 603.9000 | margin_pct 28.95 | cost_rate 40.39 | complete t
+  // Weichen beide Seiten voneinander ab, ist eine der Formeln geändert worden.
+  it('liefert dieselben Zahlen wie die SQL-Funktion get_offer_cost_basis', () => {
+    const r = computeOfferCostBasis(
+      [{ quantity: 10, unit_price_net: 85, planned_hours_item: 10, material_purchase_cost: 200 }],
+      40.39,
+    );
+    expect(r.revenue).toBe(850);
+    expect(r.cost).toBeCloseTo(603.9, 4);
+    expect(r.marginPct).toBe(28.95);
+    expect(r.isComplete).toBe(true);
+  });
+
   it('markiert fehlende Kosten als unvollständig, Kosten/Marge null', () => {
     const r = computeOfferCostBasis(
       [{ quantity: 1, unit_price_net: 100, planned_hours_item: null, material_purchase_cost: null }],
