@@ -495,7 +495,10 @@ const AMGEKalkulator: React.FC = () => {
                   ankommt. Die Schmerzgrenze (Vollkosten) stand vorher nur als kleine
                   graue Zwischensumme in der Kaskade — sie ist aber die wichtigere
                   der beiden Zahlen. */}
-              <Card className="border-slate-200 shadow-sm">
+              {/* sticky, damit die beiden Zahlen sichtbar bleiben, waehrend links
+                  weiter unten die Zuschlaege eingestellt werden — sonst aendert man
+                  einen Wert und sieht die Wirkung nicht. */}
+              <Card className="border-slate-200 shadow-sm sticky top-0 z-10 bg-white">
                 <CardContent className="p-4 space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
