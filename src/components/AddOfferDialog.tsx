@@ -27,6 +27,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { OfferItemsEditor, OfferTargetsForm, OfferSummaryCard } from '@/components/offers';
 import { useCreateOffer, useEmployees } from '@/hooks/useApi';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import {
   OfferCreate,
   OfferItemCreate,
@@ -82,11 +83,13 @@ export function AddOfferDialog({
   const { toast } = useToast();
   const createOfferMutation = useCreateOffer();
   const { data: employeesData } = useEmployees();
+  const { companyId } = useSupabaseAuth();
 
   // Form state
   const [activeTab, setActiveTab] = useState('basics');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
+  const [costRate, setCostRate] = useState<number | null>(null);
 
   // Offer data
   const [offerData, setOfferData] = useState<OfferCreate>({
@@ -114,6 +117,32 @@ export function AddOfferDialog({
       loadCustomers();
     }
   }, [isOpen]);
+
+  // Load internen Vollkostensatz aus der aktiven Betriebskalkulation (für Live-Marge)
+  useEffect(() => {
+    if (!isOpen || !companyId) {
+      return;
+    }
+    let cancelled = false;
+    const loadCostRate = async () => {
+      const { data } = await supabase
+        .from('amge_calculations')
+        .select('lohn_mit_agk')
+        .eq('company_id', companyId)
+        .eq('is_active', true)
+        .order('valid_from', { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!cancelled) {
+        setCostRate(data?.lohn_mit_agk ?? null);
+      }
+    };
+    loadCostRate();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, companyId]);
 
   // Pre-fill customer if preselected
   useEffect(() => {
@@ -470,7 +499,7 @@ export function AddOfferDialog({
                 </div>
               </div>
               <div>
-                <OfferSummaryCard items={items} />
+                <OfferSummaryCard items={items} costRate={costRate} />
               </div>
             </div>
           </TabsContent>
