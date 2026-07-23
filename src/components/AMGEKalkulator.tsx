@@ -497,41 +497,39 @@ const AMGEKalkulator: React.FC = () => {
                   der beiden Zahlen. */}
               <Card className="border-slate-200 shadow-sm">
                 <CardContent className="p-4 space-y-3">
-                  <div>
-                    <div className="text-sm text-slate-500">Eine Stunde kostet dich</div>
-                    <div className="text-2xl font-bold font-mono text-slate-900">
-                      {formatCurrency(steps.lohn_mit_agk)}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-xs text-slate-500">Kostet dich</div>
+                      <div className="text-xl font-bold font-mono text-slate-900 leading-tight">
+                        {formatCurrency(steps.lohn_mit_agk)}
+                      </div>
+                      <div className="text-[11px] text-slate-400 leading-snug">Vollkosten / Std.</div>
                     </div>
-                    <div className="text-xs text-slate-400">
-                      Vollkosten: Lohn, Lohnzusatz-, Baustellen- und Geschäftskosten
+                    <div className="border-l border-slate-100 pl-3">
+                      <div className="text-xs text-slate-500">Berechne mindestens</div>
+                      <div className="text-xl font-bold font-mono text-emerald-700 leading-tight">
+                        {formatCurrency(steps.verrechnungslohn)}
+                      </div>
+                      <div className="text-[11px] text-slate-400 leading-snug">
+                        inkl. {formatCurrency(steps.wagnis_betrag + steps.gewinn_betrag)} Risiko + Gewinn
+                      </div>
                     </div>
                   </div>
 
-                  <div className="border-t border-slate-100 pt-3">
-                    <div className="text-sm text-slate-500">Berechne dem Kunden mindestens</div>
-                    <div className="text-2xl font-bold font-mono text-emerald-700">
-                      {formatCurrency(steps.verrechnungslohn)}
-                    </div>
-                    <div className="text-xs text-slate-400">
-                      enthält {formatCurrency(steps.wagnis_betrag + steps.gewinn_betrag)} für Risiko und Gewinn
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-amber-700 bg-amber-50 rounded-md px-2.5 py-2">
-                    Unter {formatCurrency(steps.lohn_mit_agk)} pro Stunde zahlst du bei jedem
-                    Auftrag drauf.
+                  <p className="text-xs text-amber-700 bg-amber-50 rounded-md px-2.5 py-1.5">
+                    Unter {formatCurrency(steps.lohn_mit_agk)} pro Stunde zahlst du drauf.
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-b from-slate-50 to-white border-slate-200 shadow-sm sticky top-0">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold text-slate-800">
-                    So kommt der Stundensatz zustande
-                  </CardTitle>
-                  <CardDescription>Schritt für Schritt vom Lohn zum Kundenpreis</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-1">
+              {/* Detail auf Abruf (Konzept §8: einblendbare Formel). Standardmaessig
+                  zu, damit die rechte Spalte ohne Scrollen in den Dialog passt. */}
+              <CollapsibleSection
+                title="So kommt der Stundensatz zustande"
+                badge={formatCurrency(steps.verrechnungslohn)}
+                defaultOpen={false}
+              >
+                <div className="space-y-1">
                   <StepResult label="Direktlohn" betrag={steps.direktlohn} />
                   <StepResult label="+ Lohnzusatzkosten" betrag={steps.lzk_betrag} prozent={steps.lzk_gesamt_prozent} />
                   <div className="text-right text-xs text-slate-400 font-mono pr-1 pb-1">
@@ -558,8 +556,8 @@ const AMGEKalkulator: React.FC = () => {
                   <StepResult label="+ Wagnis" betrag={steps.wagnis_betrag} prozent={steps.wagnis_prozent} />
                   <StepResult label="+ Gewinn" betrag={steps.gewinn_betrag} prozent={steps.gewinn_prozent} />
                   <StepResult label="Verrechnungslohn / Std." betrag={steps.verrechnungslohn} isTotal />
-                </CardContent>
-              </Card>
+                </div>
+              </CollapsibleSection>
 
               {/* Gesamtzuschlag */}
               <Card className="bg-white border-slate-200 shadow-sm">
