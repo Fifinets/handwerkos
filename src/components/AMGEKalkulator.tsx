@@ -491,12 +491,45 @@ const AMGEKalkulator: React.FC = () => {
 
             {/* Rechte Seite: Live-Ergebnis */}
             <div className="space-y-4">
+              {/* Klartext-Ergebnis: die beiden Zahlen, auf die es beim Preisgespräch
+                  ankommt. Die Schmerzgrenze (Vollkosten) stand vorher nur als kleine
+                  graue Zwischensumme in der Kaskade — sie ist aber die wichtigere
+                  der beiden Zahlen. */}
+              <Card className="border-slate-200 shadow-sm">
+                <CardContent className="p-4 space-y-3">
+                  <div>
+                    <div className="text-sm text-slate-500">Eine Stunde kostet dich</div>
+                    <div className="text-2xl font-bold font-mono text-slate-900">
+                      {formatCurrency(steps.lohn_mit_agk)}
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      Vollkosten: Lohn, Lohnzusatz-, Baustellen- und Geschäftskosten
+                    </div>
+                  </div>
+
+                  <div className="border-t border-slate-100 pt-3">
+                    <div className="text-sm text-slate-500">Berechne dem Kunden mindestens</div>
+                    <div className="text-2xl font-bold font-mono text-emerald-700">
+                      {formatCurrency(steps.verrechnungslohn)}
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      enthält {formatCurrency(steps.wagnis_betrag + steps.gewinn_betrag)} für Risiko und Gewinn
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-amber-700 bg-amber-50 rounded-md px-2.5 py-2">
+                    Unter {formatCurrency(steps.lohn_mit_agk)} pro Stunde zahlst du bei jedem
+                    Auftrag drauf.
+                  </p>
+                </CardContent>
+              </Card>
+
               <Card className="bg-gradient-to-b from-slate-50 to-white border-slate-200 shadow-sm sticky top-0">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base font-semibold text-slate-800">
-                    Berechnungsergebnis
+                    So kommt der Stundensatz zustande
                   </CardTitle>
-                  <CardDescription>Live-Berechnung des Verrechnungslohns</CardDescription>
+                  <CardDescription>Schritt für Schritt vom Lohn zum Kundenpreis</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-1">
                   <StepResult label="Direktlohn" betrag={steps.direktlohn} />
@@ -551,17 +584,21 @@ const AMGEKalkulator: React.FC = () => {
               {/* Tageswerte */}
               <Card className="bg-white border-slate-200 shadow-sm">
                 <CardContent className="p-4 space-y-2">
-                  <h4 className="text-sm font-medium text-slate-700 mb-2">Hochrechnung</h4>
+                  {/* Das sind Rechnungsbetraege, keine Loehne: verrechnungslohn ist der
+                      Kundenpreis. Die frueheren Labels 'Tagelohn/Wochenlohn/Monatslohn'
+                      lasen sich wie Personalkosten und waren damit irrefuehrend. */}
+                  <h4 className="text-sm font-medium text-slate-700">Das stellst du dem Kunden in Rechnung</h4>
+                  <p className="text-xs text-slate-400 mb-2">bei voll abgerechneten Stunden</p>
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Tagelohn (8 Std.)</span>
+                    <span className="text-slate-500">Ein Tag (8 Std.)</span>
                     <span className="font-mono text-slate-800">{formatCurrency(steps.verrechnungslohn * 8)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Wochenlohn (40 Std.)</span>
+                    <span className="text-slate-500">Eine Woche (40 Std.)</span>
                     <span className="font-mono text-slate-800">{formatCurrency(steps.verrechnungslohn * 40)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Monatslohn (170 Std.)</span>
+                    <span className="text-slate-500">Ein Monat (170 Std.)</span>
                     <span className="font-mono text-slate-800">{formatCurrency(steps.verrechnungslohn * 170)}</span>
                   </div>
                 </CardContent>
