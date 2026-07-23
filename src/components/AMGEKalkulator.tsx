@@ -369,6 +369,7 @@ const AMGEKalkulator: React.FC = () => {
               <CollapsibleSection
                 title="Lohnzusatzkosten (LZK)"
                 badge={formatPercent(steps.lzk_gesamt_prozent)}
+                defaultOpen={false}
               >
                 <PercentInput label="Sozialversicherung (AG)" value={formData.lzk_sozialversicherung}
                   onChange={v => updateField('lzk_sozialversicherung', v)} />
@@ -402,91 +403,6 @@ const AMGEKalkulator: React.FC = () => {
                   onChange={v => updateField('bgk_sonstige', v)} />
               </CollapsibleSection>
 
-              {/* AGK */}
-              <CollapsibleSection
-                title="Allgemeine Geschäftskosten (AGK)"
-                badge={formatPercent(formData.agk_prozent)}
-                defaultOpen={false}
-              >
-                <PercentInput label="AGK-Zuschlag" value={formData.agk_prozent}
-                  onChange={v => updateField('agk_prozent', v)} />
-              </CollapsibleSection>
-
-              {/* Eigene Zuschläge */}
-              <CollapsibleSection
-                title="Eigene Zuschläge"
-                badge={formData.custom_surcharges.length > 0
-                  ? formatPercent(formData.custom_surcharges.reduce((s, c) => s + c.prozent, 0))
-                  : '0,0 %'}
-                defaultOpen={formData.custom_surcharges.length > 0}
-              >
-                {formData.custom_surcharges.map((surcharge, index) => (
-                  <div key={index} className="flex items-center gap-2 py-1.5">
-                    <Input
-                      value={surcharge.name}
-                      onChange={e => {
-                        const updated = [...formData.custom_surcharges];
-                        updated[index] = { ...updated[index], name: e.target.value };
-                        setFormData(prev => ({ ...prev, custom_surcharges: updated }));
-                      }}
-                      placeholder="Bezeichnung"
-                      className="flex-1 h-8 text-sm"
-                    />
-                    <div className="relative w-20">
-                      <Input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        value={surcharge.prozent}
-                        onChange={e => {
-                          const updated = [...formData.custom_surcharges];
-                          updated[index] = { ...updated[index], prozent: parseFloat(e.target.value) || 0 };
-                          setFormData(prev => ({ ...prev, custom_surcharges: updated }));
-                        }}
-                        className="text-right pr-7 h-8 text-sm"
-                      />
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">%</span>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 w-8 p-0 text-rose-400 hover:text-rose-600 shrink-0"
-                      onClick={() => {
-                        const updated = formData.custom_surcharges.filter((_, i) => i !== index);
-                        setFormData(prev => ({ ...prev, custom_surcharges: updated }));
-                      }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full mt-2 h-8 text-xs"
-                  onClick={() => {
-                    setFormData(prev => ({
-                      ...prev,
-                      custom_surcharges: [...prev.custom_surcharges, { name: '', prozent: 0 }],
-                    }));
-                  }}
-                >
-                  <Plus className="h-3 w-3 mr-1.5" />
-                  Zuschlag hinzufügen
-                </Button>
-              </CollapsibleSection>
-
-              {/* W+G */}
-              <CollapsibleSection
-                title="Wagnis und Gewinn (W+G)"
-                badge={formatPercent(formData.wagnis_prozent + formData.gewinn_prozent)}
-                defaultOpen={false}
-              >
-                <PercentInput label="Wagnis" value={formData.wagnis_prozent}
-                  onChange={v => updateField('wagnis_prozent', v)} />
-                <PercentInput label="Gewinn" value={formData.gewinn_prozent}
-                  onChange={v => updateField('gewinn_prozent', v)} />
-              </CollapsibleSection>
             </div>
 
             {/* Rechte Seite: Live-Ergebnis */}
@@ -604,6 +520,92 @@ const AMGEKalkulator: React.FC = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* AGK */}
+              <CollapsibleSection
+                title="Allgemeine Geschäftskosten (AGK)"
+                badge={formatPercent(formData.agk_prozent)}
+                defaultOpen={false}
+              >
+                <PercentInput label="AGK-Zuschlag" value={formData.agk_prozent}
+                  onChange={v => updateField('agk_prozent', v)} />
+              </CollapsibleSection>
+
+              {/* Eigene Zuschläge */}
+              <CollapsibleSection
+                title="Eigene Zuschläge"
+                badge={formData.custom_surcharges.length > 0
+                  ? formatPercent(formData.custom_surcharges.reduce((s, c) => s + c.prozent, 0))
+                  : '0,0 %'}
+                defaultOpen={formData.custom_surcharges.length > 0}
+              >
+                {formData.custom_surcharges.map((surcharge, index) => (
+                  <div key={index} className="flex items-center gap-2 py-1.5">
+                    <Input
+                      value={surcharge.name}
+                      onChange={e => {
+                        const updated = [...formData.custom_surcharges];
+                        updated[index] = { ...updated[index], name: e.target.value };
+                        setFormData(prev => ({ ...prev, custom_surcharges: updated }));
+                      }}
+                      placeholder="Bezeichnung"
+                      className="flex-1 h-8 text-sm"
+                    />
+                    <div className="relative w-20">
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={surcharge.prozent}
+                        onChange={e => {
+                          const updated = [...formData.custom_surcharges];
+                          updated[index] = { ...updated[index], prozent: parseFloat(e.target.value) || 0 };
+                          setFormData(prev => ({ ...prev, custom_surcharges: updated }));
+                        }}
+                        className="text-right pr-7 h-8 text-sm"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">%</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0 text-rose-400 hover:text-rose-600 shrink-0"
+                      onClick={() => {
+                        const updated = formData.custom_surcharges.filter((_, i) => i !== index);
+                        setFormData(prev => ({ ...prev, custom_surcharges: updated }));
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full mt-2 h-8 text-xs"
+                  onClick={() => {
+                    setFormData(prev => ({
+                      ...prev,
+                      custom_surcharges: [...prev.custom_surcharges, { name: '', prozent: 0 }],
+                    }));
+                  }}
+                >
+                  <Plus className="h-3 w-3 mr-1.5" />
+                  Zuschlag hinzufügen
+                </Button>
+              </CollapsibleSection>
+
+              {/* W+G */}
+              <CollapsibleSection
+                title="Wagnis und Gewinn (W+G)"
+                badge={formatPercent(formData.wagnis_prozent + formData.gewinn_prozent)}
+                defaultOpen={false}
+              >
+                <PercentInput label="Wagnis" value={formData.wagnis_prozent}
+                  onChange={v => updateField('wagnis_prozent', v)} />
+                <PercentInput label="Gewinn" value={formData.gewinn_prozent}
+                  onChange={v => updateField('gewinn_prozent', v)} />
+              </CollapsibleSection>
             </div>
           </div>
 
