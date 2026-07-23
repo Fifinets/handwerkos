@@ -24,6 +24,8 @@ import { CalendarIcon, Loader2, Lock } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { OfferItemsEditor, OfferTargetsForm, OfferSummaryCard } from '@/components/offers';
 import {
   useOffer,
@@ -57,6 +59,7 @@ export function EditOfferDialog({
 }: EditOfferDialogProps) {
   const { toast } = useToast();
   const { data: employeesData } = useEmployees();
+  const { companyId } = useSupabaseAuth();
 
   // Queries
   const { data: offer, isLoading: offerLoading } = useOffer(offerId || '', {
@@ -80,6 +83,7 @@ export function EditOfferDialog({
   const [targets, setTargets] = useState<OfferTargetCreate>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [costRate, setCostRate] = useState<number | null>(null);
 
   // Load offer data when dialog opens
   useEffect(() => {
@@ -118,6 +122,32 @@ export function EditOfferDialog({
       setItems(offerItems);
     }
   }, [offerItems]);
+
+  // Load internen Vollkostensatz aus der aktiven Betriebskalkulation (für Live-Marge)
+  useEffect(() => {
+    if (!isOpen || !companyId) {
+      return;
+    }
+    let cancelled = false;
+    const loadCostRate = async () => {
+      const { data } = await supabase
+        .from('amge_calculations')
+        .select('lohn_mit_agk')
+        .eq('company_id', companyId)
+        .eq('is_active', true)
+        .order('valid_from', { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!cancelled) {
+        setCostRate(data?.lohn_mit_agk ?? null);
+      }
+    };
+    loadCostRate();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, companyId]);
 
   const isLocked = offer?.is_locked || offer?.status !== 'draft';
 
@@ -484,7 +514,7 @@ export function EditOfferDialog({
                     </div>
                   </div>
                   <div>
-                    <OfferSummaryCard items={items as OfferItem[]} />
+                    <OfferSummaryCard items={items as OfferItem[]} costRate={costRate} />
                   </div>
                 </div>
               </TabsContent>

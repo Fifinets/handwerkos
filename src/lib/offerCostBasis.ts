@@ -1,8 +1,8 @@
 export interface OfferCostItem {
-  quantity: number | null;
-  unit_price_net: number | null;
-  planned_hours_item: number | null;
-  material_purchase_cost: number | null;
+  quantity?: number | null;
+  unit_price_net?: number | null;
+  planned_hours_item?: number | null;
+  material_purchase_cost?: number | null;
 }
 
 export interface OfferCostBasis {
