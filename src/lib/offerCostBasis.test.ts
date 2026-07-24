@@ -59,4 +59,47 @@ describe('computeOfferCostBasis', () => {
     expect(r.cost).toBeNull();
     expect(r.isComplete).toBe(false);
   });
+
+  it('rechnet angebotsweit, wenn keine Position Kostendaten hat', () => {
+    const r = computeOfferCostBasis(
+      [{ quantity: 10, unit_price_net: 85, planned_hours_item: null, material_purchase_cost: null }],
+      40.39,
+      { plannedHours: 10, plannedMaterial: 200 },
+    );
+    expect(r.revenue).toBe(850);
+    expect(r.cost).toBeCloseTo(603.9, 4);
+    expect(r.marginPct).toBe(28.95);
+    expect(r.isComplete).toBe(true);
+  });
+
+  it('angebotsweit unvollständig, wenn Material fehlt', () => {
+    const r = computeOfferCostBasis(
+      [{ quantity: 1, unit_price_net: 100, planned_hours_item: null, material_purchase_cost: null }],
+      40,
+      { plannedHours: 5, plannedMaterial: null },
+    );
+    expect(r.cost).toBeNull();
+    expect(r.isComplete).toBe(false);
+  });
+
+  it('Pro-Positions-Daten haben Vorrang vor angebotsweiten Totalen', () => {
+    const r = computeOfferCostBasis(
+      [{ quantity: 1, unit_price_net: 1000, planned_hours_item: 2, material_purchase_cost: 100 }],
+      40,
+      { plannedHours: 999, plannedMaterial: 999 },
+    );
+    // Position: 2*40 + 100 = 180, nicht die Totale
+    expect(r.cost).toBe(180);
+    expect(r.isComplete).toBe(true);
+  });
+
+  it('angebotsweit ohne Kostensatz ist unvollständig', () => {
+    const r = computeOfferCostBasis(
+      [{ quantity: 1, unit_price_net: 100, planned_hours_item: null, material_purchase_cost: null }],
+      null,
+      { plannedHours: 5, plannedMaterial: 20 },
+    );
+    expect(r.cost).toBeNull();
+    expect(r.isComplete).toBe(false);
+  });
 });
