@@ -24,7 +24,11 @@ const eur = (v: number) =>
 const pct = (v: number) =>
   new Intl.NumberFormat('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(v);
 
-const parse = (raw: string): number | null => (raw.trim() === '' ? null : Number(raw));
+const parse = (raw: string): number | null => {
+  if (raw.trim() === '') return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+};
 
 export function OfferMarginBar({
   items,

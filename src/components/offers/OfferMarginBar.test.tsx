@@ -25,11 +25,12 @@ describe('OfferMarginBar', () => {
     expect(screen.queryByText(/Kein interner Kostensatz/i)).not.toBeInTheDocument();
   });
 
-  it('ist bei gesperrtem Angebot lesend (keine Eingabefelder)', () => {
+  it('ist bei gesperrtem Angebot lesend und zeigt den Snapshot-Wert', () => {
     render(<OfferMarginBar items={baseItems} costRate={40.39} plannedHours={10} plannedMaterial={200}
       onChangeTotals={vi.fn()} isLocked
-      snapshot={{ cost: 603.9, revenue: 850, marginPct: 28.95 }} />);
+      snapshot={{ cost: 111, revenue: 850, marginPct: 87 }} />);
     expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
-    expect(screen.getByText(/^Marge/)).toBeInTheDocument();
+    // 87 % stammt aus dem Snapshot, nicht aus der Live-Rechnung (die 28,95 % ergäbe)
+    expect(screen.getByText(/Marge 87,0 %/)).toBeInTheDocument();
   });
 });
