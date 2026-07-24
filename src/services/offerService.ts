@@ -487,6 +487,19 @@ export class OfferService {
     }, `Update offer targets ${offerId}`);
   }
 
+  static async upsertOfferTargets(offerId: string, data: OfferTargetUpdate): Promise<OfferTarget> {
+    return apiCall(async () => {
+      const { data: row, error } = await supabase
+        .from('offer_targets')
+        .upsert({ offer_id: offerId, ...data }, { onConflict: 'offer_id' })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return row;
+    }, `Upsert offer targets ${offerId}`);
+  }
+
   // ============================================================================
   // WORKFLOW OPERATIONS
   // ============================================================================

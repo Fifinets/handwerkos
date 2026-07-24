@@ -566,4 +566,29 @@ describe('OfferService', () => {
       expect(result.pagination.has_next).toBe(false);
     });
   });
+
+  // =============================================
+  // upsertOfferTargets
+  // =============================================
+
+  describe('upsertOfferTargets', () => {
+    it('upsertet auf Konflikt offer_id und gibt die Zeile zurück', async () => {
+      const row = { offer_id: 'off-1', planned_hours_total: 12, planned_material_cost_total: 300 };
+      mockUpsert.mockReturnThis();
+      mockSelect.mockReturnThis();
+      mockSingle.mockResolvedValueOnce({ data: row, error: null });
+
+      const result = await OfferService.upsertOfferTargets('off-1', {
+        planned_hours_total: 12,
+        planned_material_cost_total: 300,
+      });
+
+      expect(mockFrom).toHaveBeenCalledWith('offer_targets');
+      expect(mockUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({ offer_id: 'off-1', planned_hours_total: 12, planned_material_cost_total: 300 }),
+        { onConflict: 'offer_id' },
+      );
+      expect(result).toEqual(row);
+    });
+  });
 });
