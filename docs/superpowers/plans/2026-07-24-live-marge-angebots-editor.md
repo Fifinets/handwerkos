@@ -26,7 +26,7 @@
 | `src/pages/offers/OfferEditorPage.tsx` | Leiste einhängen, targets laden/speichern | Ändern |
 | `src/components/AddOfferDialog.tsx` | tot | **Löschen** |
 | `src/components/EditOfferDialog.tsx` | tot | **Löschen** |
-| `src/components/offers/OfferSummaryCard.tsx` (+ `.test.tsx`) | nur von toten Dialogen genutzt | **Löschen** |
+| `src/components/offers/OfferSummaryCard.tsx` (+ `.test.tsx`) | ~~tot~~ — **doch live** (von `OfferDetailView` als Summen-Karte genutzt) | **Behalten** (Korrektur bei Umsetzung) |
 | `src/components/offers/OfferTargetsForm.tsx` | nur von toten Dialogen genutzt | **Löschen** |
 | `src/components/offers/index.ts` | Barrel-Exporte | 2 Exporte entfernen |
 | `src/components/OfferModuleV2.tsx` | toter `AddOfferDialog`-Mount/State | 3 Stellen entfernen |
@@ -584,8 +584,9 @@ git commit -m "feat: Live-Marge-Leiste im Angebots-Editor (offer_targets laden/s
 ## Task 6: Verwaiste Dialoge & Komponenten löschen
 
 **Files:**
-- Delete: `src/components/AddOfferDialog.tsx`, `src/components/EditOfferDialog.tsx`, `src/components/offers/OfferSummaryCard.tsx`, `src/components/offers/OfferSummaryCard.test.tsx`, `src/components/offers/OfferTargetsForm.tsx`
+- Delete: `src/components/AddOfferDialog.tsx`, `src/components/EditOfferDialog.tsx`, `src/components/offers/OfferTargetsForm.tsx`
 - Modify: `src/components/offers/index.ts`, `src/components/OfferModuleV2.tsx`
+- **Behalten:** `src/components/offers/OfferSummaryCard.tsx` (+ Test) — bei der Umsetzung stellte sich heraus, dass `OfferDetailView` sie live als Summen-Karte (ohne `costRate`/Marge) rendert. Ursprünglich fälschlich zum Löschen gelistet.
 
 **Kontext:** Vor dem Löschen absichern, dass nichts (außer den zu löschenden Dateien selbst) sie importiert.
 
@@ -599,14 +600,13 @@ Expected: nur Treffer in `src/components/offers/index.ts` und `src/components/Of
 
 - [ ] **Step 2: Barrel-Exporte entfernen**
 
-In `src/components/offers/index.ts` diese zwei Zeilen löschen:
+In `src/components/offers/index.ts` **nur diese eine Zeile** löschen:
 
 ```ts
 export { OfferTargetsForm } from './OfferTargetsForm';
-export { OfferSummaryCard } from './OfferSummaryCard';
 ```
 
-(Verbleiben: `OfferStatusBadge`, `OfferItemsEditor`.)
+(Verbleiben: `OfferStatusBadge`, `OfferItemsEditor`, **`OfferSummaryCard`** — Letztere wird von `OfferDetailView` gebraucht.)
 
 - [ ] **Step 3: Toten Mount in `OfferModuleV2` entfernen**
 
@@ -625,7 +625,7 @@ Drei Stellen löschen:
 
 Run:
 ```bash
-git rm src/components/AddOfferDialog.tsx src/components/EditOfferDialog.tsx src/components/offers/OfferSummaryCard.tsx src/components/offers/OfferSummaryCard.test.tsx src/components/offers/OfferTargetsForm.tsx
+git rm src/components/AddOfferDialog.tsx src/components/EditOfferDialog.tsx src/components/offers/OfferTargetsForm.tsx
 ```
 
 - [ ] **Step 5: Typecheck + Build + volle Testsuite**
