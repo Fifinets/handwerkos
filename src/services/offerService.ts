@@ -489,6 +489,15 @@ export class OfferService {
 
   static async upsertOfferTargets(offerId: string, data: OfferTargetUpdate): Promise<OfferTarget> {
     return apiCall(async () => {
+      // Check if offer is locked
+      const offer = await this.getOffer(offerId);
+      if (offer.is_locked) {
+        throw new ApiError(
+          API_ERROR_CODES.IMMUTABLE_RECORD,
+          'Zielwerte eines gesperrten Angebots können nicht geändert werden.'
+        );
+      }
+
       const { data: row, error } = await supabase
         .from('offer_targets')
         .upsert({ offer_id: offerId, ...data }, { onConflict: 'offer_id' })

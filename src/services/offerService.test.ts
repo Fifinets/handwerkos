@@ -576,6 +576,11 @@ describe('OfferService', () => {
       const row = { offer_id: 'off-1', planned_hours_total: 12, planned_material_cost_total: 300 };
       mockUpsert.mockReturnThis();
       mockSelect.mockReturnThis();
+      // First call: getOffer - offer itself
+      mockSingle.mockResolvedValueOnce({ data: { id: 'off-1', is_locked: false }, error: null });
+      // Second call: getOffer - offer targets
+      mockSingle.mockResolvedValueOnce({ data: null, error: { code: 'PGRST116' } });
+      // Third call: upsert result
       mockSingle.mockResolvedValueOnce({ data: row, error: null });
 
       const result = await OfferService.upsertOfferTargets('off-1', {
@@ -589,6 +594,17 @@ describe('OfferService', () => {
         { onConflict: 'offer_id' },
       );
       expect(result).toEqual(row);
+    });
+
+    it('verhindert Upsert auf gesperrten Angeboten', async () => {
+      // getOffer returns locked offer
+      mockSingle.mockResolvedValueOnce({ data: { id: 'off-1', is_locked: true }, error: null });
+      // getOffer - offer targets (won't be used since lock check fails first)
+      mockSingle.mockResolvedValueOnce({ data: null, error: { code: 'PGRST116' } });
+
+      await expect(OfferService.upsertOfferTargets('off-1', { planned_hours_total: 10 })).rejects.toThrow(
+        'Zielwerte eines gesperrten Angebots können nicht geändert werden.'
+      );
     });
   });
 });
