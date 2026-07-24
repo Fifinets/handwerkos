@@ -110,10 +110,14 @@ export default function OfferEditorPage() {
     const [plannedMaterial, setPlannedMaterial] = useState<number | null>(null);
 
     React.useEffect(() => {
+        // Nur beim Laden neuer Target-Daten synchronisieren, nicht bei jeder Änderung von
+        // hasUnsavedChanges — sonst würden getippte Werte beim Dirty-Wechsel überschrieben.
+        // hasUnsavedChanges wird daher bewusst als Guard gelesen, aber nicht als Dependency geführt.
         if (offerTargets && !hasUnsavedChanges) {
             setPlannedHours(offerTargets.planned_hours_total ?? null);
             setPlannedMaterial(offerTargets.planned_material_cost_total ?? null);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [offerTargets]);
 
     const { data: customersData } = useCustomers();

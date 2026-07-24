@@ -87,7 +87,7 @@ export function OfferMarginBar({
               <span className={`font-semibold ${marginClass}`}>Marge {pct(view.marginPct)} %</span>
             </>
           ) : costRate == null ? (
-            <span className="text-amber-600">Kein interner Kostensatz hinterlegt — Marge nicht berechenbar</span>
+            <span className="text-amber-600">Kein interner Kostensatz hinterlegt — lege eine aktive Kalkulation unter Finanzen → Kalkulation an</span>
           ) : (
             <span className="text-amber-600">Marge unvollständig — Stunden &amp; Material eintragen</span>
           )}
