@@ -7,12 +7,15 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { OfferSidebar } from '@/components/offers/OfferSidebar';
 import { OfferItemsEditor } from '@/components/offers/OfferItemsEditor';
+import { OfferMarginBar } from '@/components/offers/OfferMarginBar';
+import { useActiveAMGE } from '@/hooks/useAMGE';
 import { OfferStatusBadge } from '@/components/offers/OfferStatusBadge';
 import { OfferEmailDialog } from '@/components/offers/OfferEmailDialog';
 import { OfferFlowTimeline } from '@/components/offers/OfferFlowTimeline';
 import {
     useOffer, useUpdateOffer, useCreateOffer, useCustomers, useProjects,
-    useAcceptOffer, useRejectOffer, useCancelOffer, useSyncOfferItems
+    useAcceptOffer, useRejectOffer, useCancelOffer, useSyncOfferItems,
+    useOfferTargets, useUpsertOfferTargets
 } from '@/hooks/useApi';
 import { useAuth } from '@/hooks/useAuth';
 import { OfferItem, OfferItemCreate } from '@/types/offer';
@@ -99,6 +102,20 @@ export default function OfferEditorPage() {
     const cancelOfferMutation = useCancelOffer();
 
     const { data: offer, refetch: refetchOffer } = useOffer(id!, { enabled: !isNew });
+    const { data: activeAMGE } = useActiveAMGE();
+    const costRate = activeAMGE?.lohn_mit_agk ?? null;
+    const { data: offerTargets } = useOfferTargets(id!, { enabled: !isNew });
+    const upsertTargetsMutation = useUpsertOfferTargets();
+    const [plannedHours, setPlannedHours] = useState<number | null>(null);
+    const [plannedMaterial, setPlannedMaterial] = useState<number | null>(null);
+
+    React.useEffect(() => {
+        if (offerTargets) {
+            setPlannedHours(offerTargets.planned_hours_total ?? null);
+            setPlannedMaterial(offerTargets.planned_material_cost_total ?? null);
+        }
+    }, [offerTargets]);
+
     const { data: customersData } = useCustomers();
     const customers = customersData?.items || [];
 
@@ -212,6 +229,12 @@ export default function OfferEditorPage() {
                     },
                     items: items,
                 });
+                if (plannedHours != null || plannedMaterial != null) {
+                    await upsertTargetsMutation.mutateAsync({
+                        offerId: result.id,
+                        data: { planned_hours_total: plannedHours, planned_material_cost_total: plannedMaterial },
+                    });
+                }
                 setLastSavedAt(new Date());
                 setHasUnsavedChanges(false);
                 toast({ title: "Angebot erstellt", description: "Das Angebot wurde erfolgreich angelegt." });
@@ -239,6 +262,11 @@ export default function OfferEditorPage() {
                 await syncOfferItemsMutation.mutateAsync({
                     offerId: id!,
                     items: items
+                });
+
+                await upsertTargetsMutation.mutateAsync({
+                    offerId: id!,
+                    data: { planned_hours_total: plannedHours, planned_material_cost_total: plannedMaterial },
                 });
                 setLastSavedAt(new Date());
                 setHasUnsavedChanges(false);
@@ -666,6 +694,29 @@ export default function OfferEditorPage() {
                     />
                 </div>
             )}
+
+            <OfferMarginBar
+                items={items.map(i => ({
+                    quantity: i.quantity,
+                    unit_price_net: i.unit_price_net,
+                    planned_hours_item: (i as any).planned_hours_item ?? null,
+                    material_purchase_cost: (i as any).material_purchase_cost ?? null,
+                }))}
+                costRate={costRate}
+                plannedHours={plannedHours}
+                plannedMaterial={plannedMaterial}
+                onChangeTotals={({ plannedHours: h, plannedMaterial: m }) => {
+                    setPlannedHours(h);
+                    setPlannedMaterial(m);
+                    markDirty();
+                }}
+                isLocked={isLocked}
+                snapshot={offerTargets ? {
+                    cost: offerTargets.snapshot_target_cost,
+                    revenue: offerTargets.snapshot_target_revenue,
+                    marginPct: offerTargets.snapshot_target_margin,
+                } : null}
+            />
 
             {/* Email Dialog */}
             {offer && (
