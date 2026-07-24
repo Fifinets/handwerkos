@@ -2622,6 +2622,17 @@ export const useOfferTargets = (offerId: string, options?: UseApiQueryOptions<Of
   });
 };
 
+export const useUpsertOfferTargets = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ offerId, data }: { offerId: string; data: OfferTargetUpdate }) =>
+      OfferService.upsertOfferTargets(offerId, data),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.offerTargets(variables.offerId) });
+    },
+  });
+};
+
 export const useOfferStats = (options?: UseApiQueryOptions<any>) => {
   return useQuery({
     queryKey: QUERY_KEYS.offerStats,
@@ -2995,7 +3006,7 @@ export default {
   useOffers, useOffer, useOfferItems, useOfferTargets, useOfferStats,
   useCreateOffer, useUpdateOffer, useDeleteOffer,
   useSendOffer, useAcceptOffer, useRejectOffer, useReviseOffer, useCancelOffer, useDuplicateOffer,
-  useAddOfferItem, useUpdateOfferItem, useDeleteOfferItem, useUpdateOfferTargets, useSyncOfferItems,
+  useAddOfferItem, useUpdateOfferItem, useDeleteOfferItem, useUpdateOfferTargets, useUpsertOfferTargets, useSyncOfferItems,
   // AI Offer hooks
   useOfferTemplates,
 };
