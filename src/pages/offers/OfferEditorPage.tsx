@@ -110,7 +110,7 @@ export default function OfferEditorPage() {
     const [plannedMaterial, setPlannedMaterial] = useState<number | null>(null);
 
     React.useEffect(() => {
-        if (offerTargets) {
+        if (offerTargets && !hasUnsavedChanges) {
             setPlannedHours(offerTargets.planned_hours_total ?? null);
             setPlannedMaterial(offerTargets.planned_material_cost_total ?? null);
         }
@@ -264,10 +264,12 @@ export default function OfferEditorPage() {
                     items: items
                 });
 
-                await upsertTargetsMutation.mutateAsync({
-                    offerId: id!,
-                    data: { planned_hours_total: plannedHours, planned_material_cost_total: plannedMaterial },
-                });
+                if (offerTargets != null || plannedHours != null || plannedMaterial != null) {
+                    await upsertTargetsMutation.mutateAsync({
+                        offerId: id!,
+                        data: { planned_hours_total: plannedHours, planned_material_cost_total: plannedMaterial },
+                    });
+                }
                 setLastSavedAt(new Date());
                 setHasUnsavedChanges(false);
                 toast({ title: "Gespeichert", description: "Änderungen wurden gespeichert." });
@@ -699,8 +701,8 @@ export default function OfferEditorPage() {
                 items={items.map(i => ({
                     quantity: i.quantity,
                     unit_price_net: i.unit_price_net,
-                    planned_hours_item: (i as any).planned_hours_item ?? null,
-                    material_purchase_cost: (i as any).material_purchase_cost ?? null,
+                    planned_hours_item: i.planned_hours_item ?? null,
+                    material_purchase_cost: i.material_purchase_cost ?? null,
                 }))}
                 costRate={costRate}
                 plannedHours={plannedHours}
