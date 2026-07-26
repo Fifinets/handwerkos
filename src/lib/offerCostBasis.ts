@@ -3,6 +3,8 @@ export interface OfferCostItem {
   unit_price_net?: number | null;
   planned_hours_item?: number | null;
   material_purchase_cost?: number | null;
+  item_type?: string | null;
+  is_optional?: boolean | null;
 }
 
 /** Angebotsweite Kostenbasis (Standard-Eingabemodus): eine Stundenzahl + eine Materialsumme. */
@@ -23,6 +25,44 @@ const itemKnown = (i: OfferCostItem) =>
 
 const marginOf = (revenue: number, cost: number): number | null =>
   revenue > 0 ? Math.round(((revenue - cost) / revenue) * 10000) / 100 : null;
+
+/**
+ * Summe der geplanten Arbeitsstunden = Menge aller nicht-optionalen
+ * Arbeitszeit-Positionen (item_type 'labor'). Basis für die automatische
+ * Stundenherleitung in der Marge-Leiste.
+ */
+export function sumLaborHours(items: OfferCostItem[]): number {
+  return items.reduce(
+    (s, i) => s + (i.item_type === 'labor' && !i.is_optional ? (i.quantity ?? 0) : 0),
+    0,
+  );
+}
+
+export interface OfferMargin {
+  revenue: number;
+  laborHours: number;
+  cost: number;
+  marginPct: number | null;
+}
+
+/**
+ * Marge-Modell der Leiste: Stunden werden aus den Arbeitszeit-Positionen
+ * hergeleitet, Material ist ein einzelner angebotsweiter Wert. Umsatz zählt
+ * nur nicht-optionale Positionen (was der Kunde wirklich zahlt).
+ */
+export function computeOfferMargin(
+  items: OfferCostItem[],
+  costRate: number,
+  material: number,
+): OfferMargin {
+  const revenue = items.reduce(
+    (s, i) => s + (i.is_optional ? 0 : (i.quantity ?? 0) * (i.unit_price_net ?? 0)),
+    0,
+  );
+  const laborHours = sumLaborHours(items);
+  const cost = laborHours * costRate + material;
+  return { revenue, laborHours, cost, marginPct: marginOf(revenue, cost) };
+}
 
 export function computeOfferCostBasis(
   items: OfferCostItem[],

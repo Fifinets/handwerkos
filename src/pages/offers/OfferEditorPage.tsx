@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { OfferSidebar } from '@/components/offers/OfferSidebar';
 import { OfferItemsEditor } from '@/components/offers/OfferItemsEditor';
 import { OfferMarginBar } from '@/components/offers/OfferMarginBar';
+import { sumLaborHours } from '@/lib/offerCostBasis';
 import { useActiveAMGE } from '@/hooks/useAMGE';
 import { OfferStatusBadge } from '@/components/offers/OfferStatusBadge';
 import { OfferEmailDialog } from '@/components/offers/OfferEmailDialog';
@@ -106,15 +107,13 @@ export default function OfferEditorPage() {
     const costRate = activeAMGE?.lohn_mit_agk ?? null;
     const { data: offerTargets } = useOfferTargets(id!, { enabled: !isNew });
     const upsertTargetsMutation = useUpsertOfferTargets();
-    const [plannedHours, setPlannedHours] = useState<number | null>(null);
+    // Stunden kommen automatisch aus den Arbeitszeit-Positionen; nur Material wird getippt.
     const [plannedMaterial, setPlannedMaterial] = useState<number | null>(null);
 
     React.useEffect(() => {
-        // Nur beim Laden neuer Target-Daten synchronisieren, nicht bei jeder Änderung von
-        // hasUnsavedChanges — sonst würden getippte Werte beim Dirty-Wechsel überschrieben.
-        // hasUnsavedChanges wird daher bewusst als Guard gelesen, aber nicht als Dependency geführt.
+        // Nur Material aus den Zielwerten laden (Stunden werden live aus den Positionen abgeleitet).
+        // hasUnsavedChanges wird bewusst als Guard gelesen, aber nicht als Dependency geführt.
         if (offerTargets && !hasUnsavedChanges) {
-            setPlannedHours(offerTargets.planned_hours_total ?? null);
             setPlannedMaterial(offerTargets.planned_material_cost_total ?? null);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -180,6 +179,15 @@ export default function OfferEditorPage() {
     const setFinalTextTracked = useCallback((v: string) => { setFinalText(v); markDirty(); }, [markDirty]);
     const setItemsTracked = useCallback((v: ((OfferItem | OfferItemCreate) & { temp_id?: string })[]) => { setItems(v); markDirty(); }, [markDirty]);
 
+    // Kostenbasis der Positionen für die Marge-Leiste; Stunden aus Arbeitszeit-Positionen abgeleitet.
+    const costItems = items.map(i => ({
+        quantity: i.quantity,
+        unit_price_net: i.unit_price_net,
+        item_type: i.item_type,
+        is_optional: i.is_optional,
+    }));
+    const laborHours = sumLaborHours(costItems);
+
     const isLocked = offer ? (offer.is_locked || ['sent', 'accepted', 'rejected'].includes(offer.status)) : false;
 
     // Ctrl+S Keyboard Shortcut
@@ -233,10 +241,10 @@ export default function OfferEditorPage() {
                     },
                     items: items,
                 });
-                if (plannedHours != null || plannedMaterial != null) {
+                if (laborHours > 0 || plannedMaterial != null) {
                     await upsertTargetsMutation.mutateAsync({
                         offerId: result.id,
-                        data: { planned_hours_total: plannedHours, planned_material_cost_total: plannedMaterial },
+                        data: { planned_hours_total: laborHours, planned_material_cost_total: plannedMaterial },
                     });
                 }
                 setLastSavedAt(new Date());
@@ -268,10 +276,10 @@ export default function OfferEditorPage() {
                     items: items
                 });
 
-                if (offerTargets != null || plannedHours != null || plannedMaterial != null) {
+                if (offerTargets != null || laborHours > 0 || plannedMaterial != null) {
                     await upsertTargetsMutation.mutateAsync({
                         offerId: id!,
-                        data: { planned_hours_total: plannedHours, planned_material_cost_total: plannedMaterial },
+                        data: { planned_hours_total: laborHours, planned_material_cost_total: plannedMaterial },
                     });
                 }
                 setLastSavedAt(new Date());
@@ -702,17 +710,10 @@ export default function OfferEditorPage() {
             )}
 
             <OfferMarginBar
-                items={items.map(i => ({
-                    quantity: i.quantity,
-                    unit_price_net: i.unit_price_net,
-                    planned_hours_item: i.planned_hours_item ?? null,
-                    material_purchase_cost: i.material_purchase_cost ?? null,
-                }))}
+                items={costItems}
                 costRate={costRate}
-                plannedHours={plannedHours}
                 plannedMaterial={plannedMaterial}
-                onChangeTotals={({ plannedHours: h, plannedMaterial: m }) => {
-                    setPlannedHours(h);
+                onChangeMaterial={(m) => {
                     setPlannedMaterial(m);
                     markDirty();
                 }}
