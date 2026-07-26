@@ -73,7 +73,6 @@ import { OfferWorkflowDots } from "./offers/OfferWorkflowDots";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusChip } from "@/components/ui/status-chip";
 import { UrgencyCard } from "@/components/ui/urgency-card";
-import AddOfferDialog from "./AddOfferDialog";
 import OfferDetailView from "./OfferDetailView";
 import { ShareLinkDialog } from "./offers/ShareLinkDialog";
 import { OfferEmailDialog } from "./offers/OfferEmailDialog";
@@ -115,7 +114,6 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
     const [statusFilter, setStatusFilter] = useState<OfferStatusFilter>('all');
     const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
     const [advancedFilters, setAdvancedFilters] = useState<OfferAdvancedFilters>({});
-    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
     const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
     const [isDetailViewOpen, setIsDetailViewOpen] = useState(false);
@@ -765,10 +763,6 @@ const OfferModuleV2: React.FC<OfferModuleProps> = ({ customerId }) => {
                 </DialogContent>
             </Dialog>
 
-            <AddOfferDialog
-                isOpen={isAddDialogOpen}
-                onClose={() => setIsAddDialogOpen(false)}
-            />
 
             <OfferDetailView
                 isOpen={isDetailViewOpen}

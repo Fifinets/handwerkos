@@ -7,12 +7,16 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { OfferSidebar } from '@/components/offers/OfferSidebar';
 import { OfferItemsEditor } from '@/components/offers/OfferItemsEditor';
+import { OfferMarginBar } from '@/components/offers/OfferMarginBar';
+import { sumLaborHours } from '@/lib/offerCostBasis';
+import { useActiveAMGE } from '@/hooks/useAMGE';
 import { OfferStatusBadge } from '@/components/offers/OfferStatusBadge';
 import { OfferEmailDialog } from '@/components/offers/OfferEmailDialog';
 import { OfferFlowTimeline } from '@/components/offers/OfferFlowTimeline';
 import {
     useOffer, useUpdateOffer, useCreateOffer, useCustomers, useProjects,
-    useAcceptOffer, useRejectOffer, useCancelOffer, useSyncOfferItems
+    useAcceptOffer, useRejectOffer, useCancelOffer, useSyncOfferItems,
+    useOfferTargets, useUpsertOfferTargets
 } from '@/hooks/useApi';
 import { useAuth } from '@/hooks/useAuth';
 import { OfferItem, OfferItemCreate } from '@/types/offer';
@@ -99,6 +103,22 @@ export default function OfferEditorPage() {
     const cancelOfferMutation = useCancelOffer();
 
     const { data: offer, refetch: refetchOffer } = useOffer(id!, { enabled: !isNew });
+    const { data: activeAMGE } = useActiveAMGE();
+    const costRate = activeAMGE?.lohn_mit_agk ?? null;
+    const { data: offerTargets } = useOfferTargets(id!, { enabled: !isNew });
+    const upsertTargetsMutation = useUpsertOfferTargets();
+    // Stunden kommen automatisch aus den Arbeitszeit-Positionen; nur Material wird getippt.
+    const [plannedMaterial, setPlannedMaterial] = useState<number | null>(null);
+
+    React.useEffect(() => {
+        // Nur Material aus den Zielwerten laden (Stunden werden live aus den Positionen abgeleitet).
+        // hasUnsavedChanges wird bewusst als Guard gelesen, aber nicht als Dependency geführt.
+        if (offerTargets && !hasUnsavedChanges) {
+            setPlannedMaterial(offerTargets.planned_material_cost_total ?? null);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [offerTargets]);
+
     const { data: customersData } = useCustomers();
     const customers = customersData?.items || [];
 
@@ -159,6 +179,15 @@ export default function OfferEditorPage() {
     const setFinalTextTracked = useCallback((v: string) => { setFinalText(v); markDirty(); }, [markDirty]);
     const setItemsTracked = useCallback((v: ((OfferItem | OfferItemCreate) & { temp_id?: string })[]) => { setItems(v); markDirty(); }, [markDirty]);
 
+    // Kostenbasis der Positionen für die Marge-Leiste; Stunden aus Arbeitszeit-Positionen abgeleitet.
+    const costItems = items.map(i => ({
+        quantity: i.quantity,
+        unit_price_net: i.unit_price_net,
+        item_type: i.item_type,
+        is_optional: i.is_optional,
+    }));
+    const laborHours = sumLaborHours(costItems);
+
     const isLocked = offer ? (offer.is_locked || ['sent', 'accepted', 'rejected'].includes(offer.status)) : false;
 
     // Ctrl+S Keyboard Shortcut
@@ -212,6 +241,12 @@ export default function OfferEditorPage() {
                     },
                     items: items,
                 });
+                if (laborHours > 0 || plannedMaterial != null) {
+                    await upsertTargetsMutation.mutateAsync({
+                        offerId: result.id,
+                        data: { planned_hours_total: laborHours, planned_material_cost_total: plannedMaterial },
+                    });
+                }
                 setLastSavedAt(new Date());
                 setHasUnsavedChanges(false);
                 toast({ title: "Angebot erstellt", description: "Das Angebot wurde erfolgreich angelegt." });
@@ -240,6 +275,13 @@ export default function OfferEditorPage() {
                     offerId: id!,
                     items: items
                 });
+
+                if (offerTargets != null || laborHours > 0 || plannedMaterial != null) {
+                    await upsertTargetsMutation.mutateAsync({
+                        offerId: id!,
+                        data: { planned_hours_total: laborHours, planned_material_cost_total: plannedMaterial },
+                    });
+                }
                 setLastSavedAt(new Date());
                 setHasUnsavedChanges(false);
                 toast({ title: "Gespeichert", description: "Änderungen wurden gespeichert." });
@@ -666,6 +708,22 @@ export default function OfferEditorPage() {
                     />
                 </div>
             )}
+
+            <OfferMarginBar
+                items={costItems}
+                costRate={costRate}
+                plannedMaterial={plannedMaterial}
+                onChangeMaterial={(m) => {
+                    setPlannedMaterial(m);
+                    markDirty();
+                }}
+                isLocked={isLocked}
+                snapshot={offerTargets ? {
+                    cost: offerTargets.snapshot_target_cost,
+                    revenue: offerTargets.snapshot_target_revenue,
+                    marginPct: offerTargets.snapshot_target_margin,
+                } : null}
+            />
 
             {/* Email Dialog */}
             {offer && (

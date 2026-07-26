@@ -369,6 +369,7 @@ const AMGEKalkulator: React.FC = () => {
               <CollapsibleSection
                 title="Lohnzusatzkosten (LZK)"
                 badge={formatPercent(steps.lzk_gesamt_prozent)}
+                defaultOpen={false}
               >
                 <PercentInput label="Sozialversicherung (AG)" value={formData.lzk_sozialversicherung}
                   onChange={v => updateField('lzk_sozialversicherung', v)} />
@@ -401,6 +402,124 @@ const AMGEKalkulator: React.FC = () => {
                 <PercentInput label="Sonstige BGK" value={formData.bgk_sonstige}
                   onChange={v => updateField('bgk_sonstige', v)} />
               </CollapsibleSection>
+
+            </div>
+
+            {/* Rechte Seite: Live-Ergebnis */}
+            <div className="space-y-4">
+              {/* Klartext-Ergebnis: die beiden Zahlen, auf die es beim Preisgespräch
+                  ankommt. Die Schmerzgrenze (Vollkosten) stand vorher nur als kleine
+                  graue Zwischensumme in der Kaskade — sie ist aber die wichtigere
+                  der beiden Zahlen. */}
+              {/* sticky, damit die beiden Zahlen sichtbar bleiben, waehrend links
+                  weiter unten die Zuschlaege eingestellt werden — sonst aendert man
+                  einen Wert und sieht die Wirkung nicht. */}
+              <Card className="border-slate-200 shadow-sm sticky top-0 z-10 bg-white">
+                <CardContent className="p-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-xs text-slate-500">Kostet dich</div>
+                      <div className="text-xl font-bold font-mono text-slate-900 leading-tight">
+                        {formatCurrency(steps.lohn_mit_agk)}
+                      </div>
+                      <div className="text-[11px] text-slate-400 leading-snug">Vollkosten / Std.</div>
+                    </div>
+                    <div className="border-l border-slate-100 pl-3">
+                      <div className="text-xs text-slate-500">Berechne mindestens</div>
+                      <div className="text-xl font-bold font-mono text-emerald-700 leading-tight">
+                        {formatCurrency(steps.verrechnungslohn)}
+                      </div>
+                      <div className="text-[11px] text-slate-400 leading-snug">
+                        inkl. {formatCurrency(steps.wagnis_betrag + steps.gewinn_betrag)} Risiko + Gewinn
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-amber-700 bg-amber-50 rounded-md px-2.5 py-1.5">
+                    Unter {formatCurrency(steps.lohn_mit_agk)} pro Stunde zahlst du drauf.
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Detail auf Abruf (Konzept §8: einblendbare Formel). Standardmaessig
+                  zu, damit die rechte Spalte ohne Scrollen in den Dialog passt. */}
+              <CollapsibleSection
+                title="So kommt der Stundensatz zustande"
+                badge={formatCurrency(steps.verrechnungslohn)}
+                defaultOpen={false}
+              >
+                <div className="space-y-1">
+                  <StepResult label="Direktlohn" betrag={steps.direktlohn} />
+                  <StepResult label="+ Lohnzusatzkosten" betrag={steps.lzk_betrag} prozent={steps.lzk_gesamt_prozent} />
+                  <div className="text-right text-xs text-slate-400 font-mono pr-1 pb-1">
+                    = {formatCurrency(steps.lohn_mit_lzk)}
+                  </div>
+                  <StepResult label="+ Baustellengemeinkosten" betrag={steps.bgk_betrag} prozent={steps.bgk_gesamt_prozent} />
+                  <div className="text-right text-xs text-slate-400 font-mono pr-1 pb-1">
+                    = {formatCurrency(steps.lohn_mit_bgk)}
+                  </div>
+                  <StepResult label="+ Allg. Geschäftskosten" betrag={steps.agk_betrag} prozent={steps.agk_prozent} />
+                  <div className="text-right text-xs text-slate-400 font-mono pr-1 pb-1">
+                    = {formatCurrency(steps.lohn_mit_agk)}
+                  </div>
+                  {steps.custom_surcharges.length > 0 && (
+                    <>
+                      {steps.custom_surcharges.map((s, i) => (
+                        <StepResult key={i} label={`+ ${s.name || 'Eigener Zuschlag'}`} betrag={s.betrag} prozent={s.prozent} />
+                      ))}
+                      <div className="text-right text-xs text-slate-400 font-mono pr-1 pb-1">
+                        = {formatCurrency(steps.lohn_mit_custom)}
+                      </div>
+                    </>
+                  )}
+                  <StepResult label="+ Wagnis" betrag={steps.wagnis_betrag} prozent={steps.wagnis_prozent} />
+                  <StepResult label="+ Gewinn" betrag={steps.gewinn_betrag} prozent={steps.gewinn_prozent} />
+                  <StepResult label="Verrechnungslohn / Std." betrag={steps.verrechnungslohn} isTotal />
+                </div>
+              </CollapsibleSection>
+
+              {/* Gesamtzuschlag */}
+              <Card className="bg-white border-slate-200 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-600">Gesamtzuschlag auf Direktlohn</span>
+                    <span className="font-bold font-mono text-slate-800">{formatPercent(totalMarkup)}</span>
+                  </div>
+                  <div className="mt-3 h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-blue-400 via-violet-400 to-emerald-400 rounded-full transition-all"
+                      style={{ width: `${Math.min(totalMarkup / 2, 100)}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-slate-400 mt-1">
+                    <span>0%</span>
+                    <span>200%</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Tageswerte */}
+              <Card className="bg-white border-slate-200 shadow-sm">
+                <CardContent className="p-4 space-y-2">
+                  {/* Das sind Rechnungsbetraege, keine Loehne: verrechnungslohn ist der
+                      Kundenpreis. Die frueheren Labels 'Tagelohn/Wochenlohn/Monatslohn'
+                      lasen sich wie Personalkosten und waren damit irrefuehrend. */}
+                  <h4 className="text-sm font-medium text-slate-700">Das stellst du dem Kunden in Rechnung</h4>
+                  <p className="text-xs text-slate-400 mb-2">bei voll abgerechneten Stunden</p>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">Ein Tag (8 Std.)</span>
+                    <span className="font-mono text-slate-800">{formatCurrency(steps.verrechnungslohn * 8)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">Eine Woche (40 Std.)</span>
+                    <span className="font-mono text-slate-800">{formatCurrency(steps.verrechnungslohn * 40)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">Ein Monat (170 Std.)</span>
+                    <span className="font-mono text-slate-800">{formatCurrency(steps.verrechnungslohn * 170)}</span>
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* AGK */}
               <CollapsibleSection
@@ -487,85 +606,6 @@ const AMGEKalkulator: React.FC = () => {
                 <PercentInput label="Gewinn" value={formData.gewinn_prozent}
                   onChange={v => updateField('gewinn_prozent', v)} />
               </CollapsibleSection>
-            </div>
-
-            {/* Rechte Seite: Live-Ergebnis */}
-            <div className="space-y-4">
-              <Card className="bg-gradient-to-b from-slate-50 to-white border-slate-200 shadow-sm sticky top-0">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold text-slate-800">
-                    Berechnungsergebnis
-                  </CardTitle>
-                  <CardDescription>Live-Berechnung des Verrechnungslohns</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-1">
-                  <StepResult label="Direktlohn" betrag={steps.direktlohn} />
-                  <StepResult label="+ Lohnzusatzkosten" betrag={steps.lzk_betrag} prozent={steps.lzk_gesamt_prozent} />
-                  <div className="text-right text-xs text-slate-400 font-mono pr-1 pb-1">
-                    = {formatCurrency(steps.lohn_mit_lzk)}
-                  </div>
-                  <StepResult label="+ Baustellengemeinkosten" betrag={steps.bgk_betrag} prozent={steps.bgk_gesamt_prozent} />
-                  <div className="text-right text-xs text-slate-400 font-mono pr-1 pb-1">
-                    = {formatCurrency(steps.lohn_mit_bgk)}
-                  </div>
-                  <StepResult label="+ Allg. Geschäftskosten" betrag={steps.agk_betrag} prozent={steps.agk_prozent} />
-                  <div className="text-right text-xs text-slate-400 font-mono pr-1 pb-1">
-                    = {formatCurrency(steps.lohn_mit_agk)}
-                  </div>
-                  {steps.custom_surcharges.length > 0 && (
-                    <>
-                      {steps.custom_surcharges.map((s, i) => (
-                        <StepResult key={i} label={`+ ${s.name || 'Eigener Zuschlag'}`} betrag={s.betrag} prozent={s.prozent} />
-                      ))}
-                      <div className="text-right text-xs text-slate-400 font-mono pr-1 pb-1">
-                        = {formatCurrency(steps.lohn_mit_custom)}
-                      </div>
-                    </>
-                  )}
-                  <StepResult label="+ Wagnis" betrag={steps.wagnis_betrag} prozent={steps.wagnis_prozent} />
-                  <StepResult label="+ Gewinn" betrag={steps.gewinn_betrag} prozent={steps.gewinn_prozent} />
-                  <StepResult label="Verrechnungslohn / Std." betrag={steps.verrechnungslohn} isTotal />
-                </CardContent>
-              </Card>
-
-              {/* Gesamtzuschlag */}
-              <Card className="bg-white border-slate-200 shadow-sm">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-600">Gesamtzuschlag auf Direktlohn</span>
-                    <span className="font-bold font-mono text-slate-800">{formatPercent(totalMarkup)}</span>
-                  </div>
-                  <div className="mt-3 h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-blue-400 via-violet-400 to-emerald-400 rounded-full transition-all"
-                      style={{ width: `${Math.min(totalMarkup / 2, 100)}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-xs text-slate-400 mt-1">
-                    <span>0%</span>
-                    <span>200%</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Tageswerte */}
-              <Card className="bg-white border-slate-200 shadow-sm">
-                <CardContent className="p-4 space-y-2">
-                  <h4 className="text-sm font-medium text-slate-700 mb-2">Hochrechnung</h4>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Tagelohn (8 Std.)</span>
-                    <span className="font-mono text-slate-800">{formatCurrency(steps.verrechnungslohn * 8)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Wochenlohn (40 Std.)</span>
-                    <span className="font-mono text-slate-800">{formatCurrency(steps.verrechnungslohn * 40)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Monatslohn (170 Std.)</span>
-                    <span className="font-mono text-slate-800">{formatCurrency(steps.verrechnungslohn * 170)}</span>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </div>
 
