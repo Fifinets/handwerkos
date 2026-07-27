@@ -92,6 +92,11 @@ export const QUERY_KEYS = {
   employees: ['employees'] as const,
   employee: (id: string) => ['employees', id] as const,
 
+  // Employee-Seite (Mitarbeiter-Arbeitsbereich)
+  employeeProjects: (employeeId: string) => ['employee-projects', employeeId] as const,
+  projectMaterialUsage: (projectId: string) => ['project-material-usage', projectId] as const,
+  projectNotes: (projectId: string) => ['project-notes', projectId] as const,
+
   // Planner keys
   plannerEmployees: (companyId: string) => ['planner', 'employees', companyId] as const,
   plannerProjects: (companyId: string) => ['planner', 'projects', companyId] as const,
