@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import Employee from "./pages/Employee";
 import { EmployeeDashboard } from "./components/employee/dashboard/EmployeeDashboard";
 import { EmployeeTimesheet } from "./components/employee/timesheet/EmployeeTimesheet";
+import { EmployeeVacation } from "./components/employee/vacation/EmployeeVacation";
 import GmailCallback from "./pages/GmailCallback";
 import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
@@ -198,6 +199,7 @@ const App = () => (
               <Route path="/employee" element={<Employee />}>
                 <Route index element={<EmployeeDashboard />} />
                 <Route path="zeiterfassung" element={<EmployeeTimesheet />} />
+                <Route path="urlaub" element={<EmployeeVacation />} />
               </Route>
               <Route path="/auth/callback" element={<GmailCallback />} />
               <Route path="/privacy" element={<Privacy />} />
