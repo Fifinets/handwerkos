@@ -8,7 +8,7 @@ import { useEffect } from "react";
 import IndexV2 from "./pages/IndexV2";
 import Auth from "./pages/Auth";
 import Employee from "./pages/Employee";
-import DesktopEmployeePage from "./components/employee/DesktopEmployeePage";
+import { EmployeeDashboard } from "./components/employee/dashboard/EmployeeDashboard";
 import GmailCallback from "./pages/GmailCallback";
 import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
@@ -195,7 +195,7 @@ const App = () => (
               <Route path="/manager" element={<Navigate to="/manager2" replace />} />
               <Route path="/manager2" element={<IndexV2 />} />
               <Route path="/employee" element={<Employee />}>
-                <Route index element={<DesktopEmployeePage />} />
+                <Route index element={<EmployeeDashboard />} />
               </Route>
               <Route path="/auth/callback" element={<GmailCallback />} />
               <Route path="/privacy" element={<Privacy />} />
