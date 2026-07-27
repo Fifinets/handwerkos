@@ -13,26 +13,21 @@ import { useEmployeePermissions } from '@/hooks/useEmployeePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
-// Hinweis: Die employees-Tabelle hat keine Spalte "start_date" (siehe
-// src/integrations/supabase/types.ts — dort existiert nur "hire_date").
-// Der select-String stammt unverändert aus DesktopEmployeePage.tsx; dort ist
-// dieselbe Diskrepanz bereits in der typecheck-Basislinie vermerkt. Die
-// Query liefert dadurch zur Laufzeit einen PostgREST-Fehler zurück (kein
-// Crash, `data` bleibt `null`), das Verhalten ändert sich hier nicht — nur
-// der Cast, damit die Property-Zugriffe unten in dieser neuen Datei
-// typchecken.
+// Die employees-Tabelle hat die Spalte "hire_date" (Einstellungsdatum);
+// ein früherer Stand las hier fälschlich "start_date" → "Angestellt seit"
+// blieb immer leer. Korrigiert auf hire_date.
 interface ProfileRow {
   position: string | null;
   phone: string | null;
   hourly_wage: number | null;
-  start_date: string | null;
+  hire_date: string | null;
 }
 
 export function EmployeeProfile() {
   const { toast } = useToast();
   const { employee } = useEmployeePermissions();
 
-  const [profileData, setProfileData] = useState({ position: '', phone: '', hourly_wage: 0, start_date: '' });
+  const [profileData, setProfileData] = useState({ position: '', phone: '', hourly_wage: 0, hire_date: '' });
   const [vacationDays, setVacationDays] = useState({ total: 30, used: 0 });
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
   const [pwSaving, setPwSaving] = useState(false);
@@ -49,11 +44,11 @@ export function EmployeeProfile() {
     if (!employee?.id) return;
     const { data } = await supabase
       .from('employees')
-      .select('position, phone, hourly_wage, start_date')
+      .select('position, phone, hourly_wage, hire_date')
       .eq('id', employee.id)
       .single();
     const row = data as unknown as ProfileRow | null;
-    if (row) setProfileData({ position: row.position || '', phone: row.phone || '', hourly_wage: row.hourly_wage || 0, start_date: row.start_date || '' });
+    if (row) setProfileData({ position: row.position || '', phone: row.phone || '', hourly_wage: row.hourly_wage || 0, hire_date: row.hire_date || '' });
   };
 
   const fetchVacation = async () => {
@@ -121,7 +116,7 @@ export function EmployeeProfile() {
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Angestellt seit</Label>
-              <p className="text-sm font-medium mt-0.5">{profileData.start_date ? formatDate(profileData.start_date) : '—'}</p>
+              <p className="text-sm font-medium mt-0.5">{profileData.hire_date ? formatDate(profileData.hire_date) : '—'}</p>
             </div>
           </div>
         </CardContent>
