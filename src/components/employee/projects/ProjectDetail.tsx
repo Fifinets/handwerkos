@@ -13,6 +13,7 @@ import { ProjectTimeTab } from './tabs/ProjectTimeTab';
 import { ProjectMaterialTab } from './tabs/ProjectMaterialTab';
 import { ProjectDeliveryNotesTab } from './tabs/ProjectDeliveryNotesTab';
 import { ProjectPhotosTab } from './tabs/ProjectPhotosTab';
+import { ProjectNotesTab } from './tabs/ProjectNotesTab';
 
 export function ProjectDetail() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -111,7 +112,7 @@ export function ProjectDetail() {
           <ProjectMaterialTab projectId={project.id} />
         </TabsContent>
         <TabsContent value="notizen">
-          <div className="text-muted-foreground py-8 text-center">Kommt in Kürze</div>
+          <ProjectNotesTab projectId={project.id} />
         </TabsContent>
         <TabsContent value="fotos">
           <ProjectPhotosTab projectId={project.id} />
