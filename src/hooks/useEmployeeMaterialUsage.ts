@@ -39,16 +39,22 @@ export function buildMaterialUsageInsert(p: {
   };
 }
 
-export function useProjectMaterialUsage(projectId?: string) {
+// Datenminimierung: unit_price (kaufmännisch) wird nur geladen, wenn der
+// Aufrufer die Preis-Freigabe hat. Ohne Freigabe verlässt der Preis den
+// Server gar nicht erst — nicht nur die UI blendet ihn aus.
+export function useProjectMaterialUsage(projectId?: string, includePrices = false) {
   return useQuery({
-    queryKey: QUERY_KEYS.projectMaterialUsage(projectId ?? ''),
+    queryKey: [...QUERY_KEYS.projectMaterialUsage(projectId ?? ''), includePrices] as const,
     enabled: !!projectId,
     queryFn: async () => {
+      const materialFields = includePrices
+        ? 'name, unit, sku, unit_price'
+        : 'name, unit, sku';
       const { data, error } = await supabase
         .from('employee_material_usage')
         .select(
           `id, quantity_used, notes, usage_date, created_at,
-           material:materials ( name, unit, sku, unit_price ),
+           material:materials ( ${materialFields} ),
            employee:employees ( first_name, last_name )`
         )
         .eq('project_id', projectId)

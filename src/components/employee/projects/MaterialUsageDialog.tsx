@@ -60,12 +60,16 @@ export function MaterialUsageDialog({ open, onOpenChange, projectId }: MaterialU
     const fetchMaterials = async () => {
       setIsLoadingMaterials(true);
       try {
+        // Datenminimierung: unit_price nur laden, wenn Preis-Freigabe vorhanden.
+        const columns = canViewPrices()
+          ? 'id, name, sku, unit, unit_price, category'
+          : 'id, name, sku, unit, category';
         const { data, error } = await supabase
           .from('materials')
-          .select('id, name, sku, unit, unit_price, category')
+          .select(columns)
           .order('name');
         if (error) throw error;
-        if (!cancelled) setMaterials(data || []);
+        if (!cancelled) setMaterials((data || []) as unknown as MaterialCatalogItem[]);
       } catch (err) {
         console.error('Error fetching materials:', err);
       } finally {

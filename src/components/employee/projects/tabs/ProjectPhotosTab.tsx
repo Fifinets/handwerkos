@@ -24,11 +24,12 @@ const formatDate = (date: string | undefined) => {
   return format(new Date(date), 'dd.MM.yyyy', { locale: de });
 };
 
-const resolvePhotoSrc = (photo: ProjectDocumentPhoto): string => {
+const resolvePhotoSrc = (photo: ProjectDocumentPhoto): string | null => {
   if (photo.file_url && photo.file_url.startsWith('http')) {
     return photo.file_url;
   }
-  const path = photo.file_url || photo.file_path || '';
+  const path = photo.file_url || photo.file_path;
+  if (!path) return null;
   return supabase.storage.from('project-media').getPublicUrl(path).data.publicUrl;
 };
 
@@ -78,17 +79,21 @@ export function ProjectPhotosTab({ projectId }: ProjectPhotosTabProps) {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-      {photos.map((photo) => (
-        <div key={photo.id} className="space-y-1">
-          <img
-            src={resolvePhotoSrc(photo)}
-            alt={photo.name}
-            className="w-full aspect-square object-cover rounded-lg border"
-          />
-          <p className="text-xs font-medium truncate">{photo.name}</p>
-          <p className="text-xs text-muted-foreground">{formatDate(photo.created_at)}</p>
-        </div>
-      ))}
+      {photos.map((photo) => {
+        const src = resolvePhotoSrc(photo);
+        if (!src) return null;
+        return (
+          <div key={photo.id} className="space-y-1">
+            <img
+              src={src}
+              alt={photo.name}
+              className="w-full aspect-square object-cover rounded-lg border"
+            />
+            <p className="text-xs font-medium truncate">{photo.name}</p>
+            <p className="text-xs text-muted-foreground">{formatDate(photo.created_at)}</p>
+          </div>
+        );
+      })}
     </div>
   );
 }

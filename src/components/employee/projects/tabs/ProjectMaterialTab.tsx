@@ -47,11 +47,11 @@ const formatEUR = (value: number) =>
 
 export function ProjectMaterialTab({ projectId }: ProjectMaterialTabProps) {
   const { canViewPrices } = useEmployeePermissions();
-  const { data, isLoading } = useProjectMaterialUsage(projectId);
+  const showPrices = canViewPrices();
+  const { data, isLoading } = useProjectMaterialUsage(projectId, showPrices);
   const rows = (data ?? []) as unknown as MaterialUsageRow[];
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const showPrices = canViewPrices();
   const colSpan = showPrices ? 6 : 5;
 
   return (
