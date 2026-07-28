@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProjectStatusBadge } from './projectStatusBadge';
 import { ProjectOverviewTab, type ProjectOverviewData } from './tabs/ProjectOverviewTab';
 import { ProjectTimeTab } from './tabs/ProjectTimeTab';
+import { ProjectMaterialTab } from './tabs/ProjectMaterialTab';
 import { ProjectDeliveryNotesTab } from './tabs/ProjectDeliveryNotesTab';
 import { ProjectPhotosTab } from './tabs/ProjectPhotosTab';
 
@@ -107,7 +108,7 @@ export function ProjectDetail() {
           <ProjectTimeTab projectId={project.id} projectName={project.name} />
         </TabsContent>
         <TabsContent value="material">
-          <div className="text-muted-foreground py-8 text-center">Kommt in Kürze</div>
+          <ProjectMaterialTab projectId={project.id} />
         </TabsContent>
         <TabsContent value="notizen">
           <div className="text-muted-foreground py-8 text-center">Kommt in Kürze</div>
