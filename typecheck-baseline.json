@@ -1,5 +1,5 @@
 {
-  "total": 956,
+  "total": 951,
   "errors": {
     "src/App.tsx|TS2345|Argument of type '\"QUOTE_ACCEPTED\"' is not assignable to parameter of type 'EventType'.": 1,
     "src/App.tsx|TS2345|Argument of type '\"QUOTE_CREATED\"' is not assignable to parameter of type 'EventType'.": 1,
@@ -26,11 +26,6 @@
     "src/components/EditOfferDialog.tsx|TS2353|Object literal may only specify known properties, and 'targets' does not exist in type '{ offerId: string; data: { project_manager_id?: string; billable_hourly_rate?: number; complexity?: \"medium\" | \"simple\" | \"complex\"; internal_hourly_rate?: number; planned_hours_total?: number; planned_material_cost_total?: number; planned_other_cost?: number; target_end_date?: string; target_start_date?: string; }; }'.": 1,
     "src/components/EditProjectDialog.tsx|TS2339|Property 'name' does not exist on type '{ address: string; anrede: string; bank_name: string; benutzer_id: string; bic: string; city: string; company_id: string; company_name: string; contact_person: string; country: string; created_at: string; ... 23 more ...; zugprd_status: string; }'.": 1,
     "src/components/emails/AgentSuggestionReviewDialog.tsx|TS2322|Type '{ user_decision: \"sent\" | \"rejected\"; action?: string; preview?: Record<string, unknown>; }' is not assignable to type 'Json'.": 1,
-    "src/components/employee/DesktopEmployeePage.tsx|TS2339|Property 'hourly_wage' does not exist on type 'SelectQueryError<\"column 'start_date' does not exist on 'employees'.\">'.": 1,
-    "src/components/employee/DesktopEmployeePage.tsx|TS2339|Property 'phone' does not exist on type 'SelectQueryError<\"column 'start_date' does not exist on 'employees'.\">'.": 1,
-    "src/components/employee/DesktopEmployeePage.tsx|TS2339|Property 'position' does not exist on type 'SelectQueryError<\"column 'start_date' does not exist on 'employees'.\">'.": 1,
-    "src/components/employee/DesktopEmployeePage.tsx|TS2339|Property 'start_date' does not exist on type 'SelectQueryError<\"column 'start_date' does not exist on 'employees'.\">'.": 1,
-    "src/components/employee/DesktopEmployeePage.tsx|TS2339|Property 'workflow_stage' does not exist on type 'Project'.": 1,
     "src/components/employee/MobileEmployeeApp.tsx|TS18047|'data' is possibly 'null'.": 3,
     "src/components/employee/MobileEmployeeApp.tsx|TS2339|Property 'amount' does not exist on type 'Json'.": 1,
     "src/components/employee/MobileEmployeeApp.tsx|TS2339|Property 'default_vacation_days' does not exist on type 'SelectQueryError<\"column 'default_vacation_days' does not exist on 'company_settings'.\">'.": 1,
