@@ -13,6 +13,8 @@ import { EmployeeTimesheet } from "./components/employee/timesheet/EmployeeTimes
 import { EmployeeVacation } from "./components/employee/vacation/EmployeeVacation";
 import { EmployeeProfile } from "./components/employee/profile/EmployeeProfile";
 import { EmployeeInvoices } from "./components/employee/invoices/EmployeeInvoices";
+import { ProjectList } from "./components/employee/projects/ProjectList";
+import { ProjectDetail } from "./components/employee/projects/ProjectDetail";
 import GmailCallback from "./pages/GmailCallback";
 import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
@@ -200,6 +202,8 @@ const App = () => (
               <Route path="/manager2" element={<IndexV2 />} />
               <Route path="/employee" element={<Employee />}>
                 <Route index element={<EmployeeDashboard />} />
+                <Route path="projekte" element={<ProjectList />} />
+                <Route path="projekt/:projectId" element={<ProjectDetail />} />
                 <Route path="zeiterfassung" element={<EmployeeTimesheet />} />
                 <Route path="urlaub" element={<EmployeeVacation />} />
                 <Route path="profil" element={<EmployeeProfile />} />
