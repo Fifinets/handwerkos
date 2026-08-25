@@ -1,5 +1,5 @@
 {
-  "total": 951,
+  "total": 948,
   "errors": {
     "src/App.tsx|TS2345|Argument of type '\"QUOTE_ACCEPTED\"' is not assignable to parameter of type 'EventType'.": 1,
     "src/App.tsx|TS2345|Argument of type '\"QUOTE_CREATED\"' is not assignable to parameter of type 'EventType'.": 1,
@@ -280,8 +280,6 @@
     "src/hooks/useInvoices.ts|TS2352|Conversion of type '{ agent_task_id: string; company_id: string; created_at: string; created_by_agent: boolean; currency: string; customer_id: string; description: string; due_date: string; gross_amount: number; ... 24 more ...; project: { ...; }; }[]' to type '{ title?: string; id?: string; status?: \"void\" | \"paid\" | \"cancelled\" | \"draft\" | \"sent\" | \"overdue\"; description?: string; company_id?: string; project_id?: string; customer_id?: string; order_id?: string; ... 17 more ...; service_period_end?: string; }[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.": 2,
     "src/hooks/useInvoices.ts|TS2589|Type instantiation is excessively deep and possibly infinite.": 2,
     "src/hooks/useInvoices.ts|TS2769|No overload matches this call.": 9,
-    "src/hooks/useMaterials.ts|TS2345|Argument of type '\"RECORD_MATERIAL\"' is not assignable to parameter of type '\"START_TIME\" | \"STOP_TIME\" | \"SWITCH_TIME\" | \"CREATE_DELIVERY_NOTE\" | \"SIGN_DELIVERY_NOTE\"'.": 2,
-    "src/hooks/useMaterials.ts|TS2769|No overload matches this call.": 1,
     "src/hooks/useNotificationHooks.ts|TS2576|Property 'archiveNotification' does not exist on type 'NotificationService'. Did you mean to access the static member 'NotificationService.archiveNotification' instead?": 1,
     "src/hooks/useNotificationHooks.ts|TS2576|Property 'createNotification' does not exist on type 'NotificationService'. Did you mean to access the static member 'NotificationService.createNotification' instead?": 1,
     "src/hooks/useNotificationHooks.ts|TS2576|Property 'getNotifications' does not exist on type 'NotificationService'. Did you mean to access the static member 'NotificationService.getNotifications' instead?": 1,
