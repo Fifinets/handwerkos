@@ -1,5 +1,5 @@
 {
-  "total": 956,
+  "total": 948,
   "errors": {
     "src/App.tsx|TS2345|Argument of type '\"QUOTE_ACCEPTED\"' is not assignable to parameter of type 'EventType'.": 1,
     "src/App.tsx|TS2345|Argument of type '\"QUOTE_CREATED\"' is not assignable to parameter of type 'EventType'.": 1,
@@ -26,11 +26,6 @@
     "src/components/EditOfferDialog.tsx|TS2353|Object literal may only specify known properties, and 'targets' does not exist in type '{ offerId: string; data: { project_manager_id?: string; billable_hourly_rate?: number; complexity?: \"medium\" | \"simple\" | \"complex\"; internal_hourly_rate?: number; planned_hours_total?: number; planned_material_cost_total?: number; planned_other_cost?: number; target_end_date?: string; target_start_date?: string; }; }'.": 1,
     "src/components/EditProjectDialog.tsx|TS2339|Property 'name' does not exist on type '{ address: string; anrede: string; bank_name: string; benutzer_id: string; bic: string; city: string; company_id: string; company_name: string; contact_person: string; country: string; created_at: string; ... 23 more ...; zugprd_status: string; }'.": 1,
     "src/components/emails/AgentSuggestionReviewDialog.tsx|TS2322|Type '{ user_decision: \"sent\" | \"rejected\"; action?: string; preview?: Record<string, unknown>; }' is not assignable to type 'Json'.": 1,
-    "src/components/employee/DesktopEmployeePage.tsx|TS2339|Property 'hourly_wage' does not exist on type 'SelectQueryError<\"column 'start_date' does not exist on 'employees'.\">'.": 1,
-    "src/components/employee/DesktopEmployeePage.tsx|TS2339|Property 'phone' does not exist on type 'SelectQueryError<\"column 'start_date' does not exist on 'employees'.\">'.": 1,
-    "src/components/employee/DesktopEmployeePage.tsx|TS2339|Property 'position' does not exist on type 'SelectQueryError<\"column 'start_date' does not exist on 'employees'.\">'.": 1,
-    "src/components/employee/DesktopEmployeePage.tsx|TS2339|Property 'start_date' does not exist on type 'SelectQueryError<\"column 'start_date' does not exist on 'employees'.\">'.": 1,
-    "src/components/employee/DesktopEmployeePage.tsx|TS2339|Property 'workflow_stage' does not exist on type 'Project'.": 1,
     "src/components/employee/MobileEmployeeApp.tsx|TS18047|'data' is possibly 'null'.": 3,
     "src/components/employee/MobileEmployeeApp.tsx|TS2339|Property 'amount' does not exist on type 'Json'.": 1,
     "src/components/employee/MobileEmployeeApp.tsx|TS2339|Property 'default_vacation_days' does not exist on type 'SelectQueryError<\"column 'default_vacation_days' does not exist on 'company_settings'.\">'.": 1,
@@ -285,8 +280,6 @@
     "src/hooks/useInvoices.ts|TS2352|Conversion of type '{ agent_task_id: string; company_id: string; created_at: string; created_by_agent: boolean; currency: string; customer_id: string; description: string; due_date: string; gross_amount: number; ... 24 more ...; project: { ...; }; }[]' to type '{ title?: string; id?: string; status?: \"void\" | \"paid\" | \"cancelled\" | \"draft\" | \"sent\" | \"overdue\"; description?: string; company_id?: string; project_id?: string; customer_id?: string; order_id?: string; ... 17 more ...; service_period_end?: string; }[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.": 2,
     "src/hooks/useInvoices.ts|TS2589|Type instantiation is excessively deep and possibly infinite.": 2,
     "src/hooks/useInvoices.ts|TS2769|No overload matches this call.": 9,
-    "src/hooks/useMaterials.ts|TS2345|Argument of type '\"RECORD_MATERIAL\"' is not assignable to parameter of type '\"START_TIME\" | \"STOP_TIME\" | \"SWITCH_TIME\" | \"CREATE_DELIVERY_NOTE\" | \"SIGN_DELIVERY_NOTE\"'.": 2,
-    "src/hooks/useMaterials.ts|TS2769|No overload matches this call.": 1,
     "src/hooks/useNotificationHooks.ts|TS2576|Property 'archiveNotification' does not exist on type 'NotificationService'. Did you mean to access the static member 'NotificationService.archiveNotification' instead?": 1,
     "src/hooks/useNotificationHooks.ts|TS2576|Property 'createNotification' does not exist on type 'NotificationService'. Did you mean to access the static member 'NotificationService.createNotification' instead?": 1,
     "src/hooks/useNotificationHooks.ts|TS2576|Property 'getNotifications' does not exist on type 'NotificationService'. Did you mean to access the static member 'NotificationService.getNotifications' instead?": 1,
