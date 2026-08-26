@@ -27,12 +27,11 @@ serve(async (req) => {
 
   try {
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
-    if (webhookSecret) {
-      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
-    } else {
-      // In development without webhook secret, parse directly
-      event = JSON.parse(body) as Stripe.Event;
+    if (!webhookSecret) {
+      console.error("STRIPE_WEBHOOK_SECRET is not set — refusing to process unverified webhooks");
+      return new Response("Webhook secret not configured", { status: 500 });
     }
+    event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
   } catch (err) {
     console.error("Webhook signature verification failed:", err.message);
     return new Response(`Webhook Error: ${err.message}`, { status: 400 });
@@ -99,12 +98,67 @@ serve(async (req) => {
         break;
       }
 
+      case "invoice.paid": {
+        const invoice = event.data.object as Stripe.Invoice;
+        if (invoice.subscription) {
+          // Status aus Stripe abfragen statt blind "active" zu setzen: Stripe
+          // garantiert keine Event-Reihenfolge (spätes invoice.paid nach
+          // Kündigung), und die 0-€-Rechnung beim Trial-Start würde sonst
+          // "trialing" vorzeitig auf "active" kippen.
+          const { data: sub } = await supabase
+            .from("subscriptions")
+            .select("company_id")
+            .eq("stripe_subscription_id", invoice.subscription as string)
+            .single();
+          if (sub) {
+            const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+            await upsertSubscription(sub.company_id, invoice.customer as string, subscription);
+            await patchSubscriptionMetadata("stripe_subscription_id", invoice.subscription as string, {
+              payment_action_required: false,
+              invoice_id: null,
+            });
+          }
+        }
+        break;
+      }
+
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
         await supabase
           .from("subscriptions")
           .update({ status: "past_due", updated_at: new Date().toISOString() })
           .eq("stripe_customer_id", invoice.customer as string);
+        break;
+      }
+
+      case "invoice.payment_action_required": {
+        // SCA/3D-Secure: payment needs additional authentication
+        const invoice = event.data.object as Stripe.Invoice;
+        console.log(`Payment action required for customer ${invoice.customer}, invoice ${invoice.id}`);
+        // Keep subscription active but flag for attention
+        await patchSubscriptionMetadata("stripe_customer_id", invoice.customer as string, {
+          payment_action_required: true,
+          invoice_id: invoice.id,
+        });
+        break;
+      }
+
+      case "customer.subscription.trial_will_end": {
+        // Fired 3 days before trial ends — notify user
+        const subscription = event.data.object as Stripe.Subscription;
+        const { data: sub } = await supabase
+          .from("subscriptions")
+          .select("company_id")
+          .eq("stripe_subscription_id", subscription.id)
+          .single();
+        if (sub) {
+          console.log(`Trial ending soon for company ${sub.company_id}, subscription ${subscription.id}`);
+          // TODO: Send email notification to company admin
+          await patchSubscriptionMetadata("stripe_subscription_id", subscription.id, {
+            trial_ending_notified: true,
+            trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
+          });
+        }
         break;
       }
 
@@ -174,6 +228,30 @@ async function upsertSubscription(companyId: string, stripeCustomerId: string, s
     },
     { onConflict: "company_id" }
   );
+}
+
+// Merged das metadata-JSONB statt es zu überschreiben — ein plain update
+// würde Flags anderer Handler (payment_action_required, trial_ending_notified)
+// löschen.
+async function patchSubscriptionMetadata(
+  column: "stripe_customer_id" | "stripe_subscription_id",
+  value: string,
+  patch: Record<string, unknown>
+) {
+  const { data: sub } = await supabase
+    .from("subscriptions")
+    .select("metadata")
+    .eq(column, value)
+    .single();
+  if (!sub) return;
+
+  await supabase
+    .from("subscriptions")
+    .update({
+      metadata: { ...(sub.metadata ?? {}), ...patch },
+      updated_at: new Date().toISOString(),
+    })
+    .eq(column, value);
 }
 
 async function handleOfferPayment(session: Stripe.Checkout.Session) {
